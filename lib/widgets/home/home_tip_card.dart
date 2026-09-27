@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../core/services/app_haptics.dart';
 import '../../core/theme/app_layout.dart';
 import '../../core/ui/app_card.dart';
 import '../../features/notes/presentation/widgets/note_migration_sheet.dart';
@@ -167,10 +167,7 @@ class HomeTipCard extends StatelessWidget {
                   icon: const Icon(Icons.close_rounded, size: 18),
                   tooltip: 'Dismiss tip',
                   visualDensity: VisualDensity.compact,
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    onDismiss();
-                  },
+                  onPressed: onDismiss,
                 ),
               ],
             ),
@@ -178,7 +175,7 @@ class HomeTipCard extends StatelessWidget {
             Text(
               tip.description,
               style: textTheme.bodySmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
+                 color: colorScheme.onSurfaceVariant,
                 height: 1.35,
               ),
             ),
@@ -192,7 +189,7 @@ class HomeTipCard extends StatelessWidget {
                     visualDensity: VisualDensity.compact,
                   ),
                   onPressed: () {
-                    HapticFeedback.selectionClick();
+                    AppHaptics.selectionClick();
                     onDisable();
                   },
                   child: Text(
@@ -211,10 +208,7 @@ class HomeTipCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           visualDensity: VisualDensity.compact,
                         ),
-                        onPressed: () {
-                          HapticFeedback.lightImpact();
-                          tip.onAction!();
-                        },
+                        onPressed: tip.onAction!,
                         icon: const Icon(Icons.arrow_forward_rounded, size: 14),
                         label: Text(
                           tip.actionLabel!,
@@ -231,10 +225,7 @@ class HomeTipCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                         visualDensity: VisualDensity.compact,
                       ),
-                      onPressed: () {
-                        HapticFeedback.lightImpact();
-                        onDismiss();
-                      },
+                      onPressed: onDismiss,
                       child: const Text('Got it', style: TextStyle(fontSize: 12)),
                     ),
                   ],

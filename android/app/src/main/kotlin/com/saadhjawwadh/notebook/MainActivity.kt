@@ -30,9 +30,21 @@ class MainActivity: FlutterFragmentActivity() {
     private var pendingWidgetAction: String? = null
     private var pendingSharedText: String? = null
 
+    companion object {
+        private var instance: MainActivity? = null
+        private var widgetChannel: MethodChannel? = null
+
+        fun notifyWidgetToggle() {
+            instance?.runOnUiThread {
+                widgetChannel?.invokeMethod("onWidgetToggle", null)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        instance = this
         handleIntent(intent)
         val filter = IntentFilter(Intent.ACTION_SCREEN_OFF)
         receiver = object : BroadcastReceiver() {
@@ -63,6 +75,13 @@ class MainActivity: FlutterFragmentActivity() {
             "com.saadhjawwadh.notebook.SEARCH" -> pendingWidgetAction = "search"
             "com.saadhjawwadh.notebook.SCAN_RECEIPT" -> pendingWidgetAction = "scan_receipt"
             "com.saadhjawwadh.notebook.SYNC_DEVICES" -> pendingWidgetAction = "sync_devices"
+            "com.saadhjawwadh.notebook.QUICK_ADD_TODO" -> {
+                val activeNoteId = intent.getStringExtra("active_note_id") ?: "ALL_NOTES"
+                pendingWidgetAction = "quick_add_todo:$activeNoteId"
+            }
+            "com.saadhjawwadh.notebook.PIN_TODO_WIDGET" -> {
+                requestPinTodoWidget()
+            }
             Intent.ACTION_PROCESS_TEXT -> {
                 val text = intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString()
                 if (!text.isNullOrEmpty()) {
@@ -71,10 +90,29 @@ class MainActivity: FlutterFragmentActivity() {
                 }
             }
         }
+        if (intent?.getBooleanExtra("pin_todo_widget", false) == true) {
+            requestPinTodoWidget()
+        }
+    }
+
+    private fun requestPinTodoWidget(): Boolean {
+        val appWidgetManager = AppWidgetManager.getInstance(this)
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O &&
+            appWidgetManager.isRequestPinAppWidgetSupported
+        ) {
+            val component = ComponentName(this, TodoWidgetProvider::class.java)
+            appWidgetManager.requestPinAppWidget(component, null, null)
+        } else {
+            false
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        if (instance == this) {
+            instance = null
+            widgetChannel = null
+        }
         receiver?.let {
             try {
                 unregisterReceiver(it)
@@ -98,7 +136,9 @@ class MainActivity: FlutterFragmentActivity() {
             }
         }
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WIDGET_CHANNEL).setMethodCallHandler { call, result ->
+        val channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WIDGET_CHANNEL)
+        widgetChannel = channel
+        channel.setMethodCallHandler { call, result ->
             when (call.method) {
                 "updateWidget" -> {
                     val context = this@MainActivity
@@ -126,7 +166,13 @@ class MainActivity: FlutterFragmentActivity() {
                         context.sendBroadcast(notesIntent)
                     }
 
+                    // Update Todo & Checklist Widget
+                    TodoWidgetProvider.updateAllWidgets(context)
+
                     result.success(true)
+                }
+                "pinTodoWidget" -> {
+                    result.success(requestPinTodoWidget())
                 }
                 "getPendingAction" -> {
                     result.success(pendingWidgetAction)

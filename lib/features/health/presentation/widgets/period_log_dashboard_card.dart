@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../../../core/services/app_haptics.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../../../core/theme/app_layout.dart';
@@ -49,7 +49,7 @@ class _PeriodLogDashboardCardState extends State<PeriodLogDashboardCard> {
   bool _symptomsExpanded = false;
 
   Future<void> _handleToggleStatus() async {
-    await HapticFeedback.mediumImpact();
+    AppHaptics.mediumImpact();
     final success = await widget.provider.togglePeriodStatus();
     if (!success && mounted) {
       await AppDialog.showConfirm(
@@ -71,7 +71,7 @@ class _PeriodLogDashboardCardState extends State<PeriodLogDashboardCard> {
     );
 
     if (confirmed == true) {
-      await HapticFeedback.mediumImpact();
+      AppHaptics.mediumImpact();
       await widget.provider.deleteLog(id);
     }
   }
@@ -135,7 +135,6 @@ class _PeriodLogDashboardCardState extends State<PeriodLogDashboardCard> {
               if (selectedLog != null) ...[
                 IconButton(
                   onPressed: () {
-                    HapticFeedback.lightImpact();
                     PeriodLogEditorSheet.show(
                       context: context,
                       log: selectedLog,
@@ -175,7 +174,6 @@ class _PeriodLogDashboardCardState extends State<PeriodLogDashboardCard> {
             const SizedBox(height: 12),
             FilledButton.icon(
               onPressed: () {
-                HapticFeedback.lightImpact();
                 PeriodLogEditorSheet.show(
                   context: context,
                   defaultStartDate: widget.selectedDay,
@@ -234,7 +232,7 @@ class _PeriodLogDashboardCardState extends State<PeriodLogDashboardCard> {
                     selected: isChosen,
                     child: GestureDetector(
                       onTap: () async {
-                        await HapticFeedback.lightImpact();
+                        AppHaptics.selectionClick();
                         await widget.provider.updateIntensity(selectedLog, label);
                       },
                       child: ConstrainedBox(
@@ -281,7 +279,6 @@ class _PeriodLogDashboardCardState extends State<PeriodLogDashboardCard> {
             // Collapsible Symptoms Section
             InkWell(
               onTap: () {
-                HapticFeedback.selectionClick();
                 setState(() => _symptomsExpanded = !_symptomsExpanded);
               },
               borderRadius: BorderRadius.circular(AppLayout.radiusS),
@@ -354,7 +351,7 @@ class _PeriodLogDashboardCardState extends State<PeriodLogDashboardCard> {
                                 constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
                                 child: GestureDetector(
                                   onTap: () async {
-                                    await HapticFeedback.selectionClick();
+                                    AppHaptics.selectionClick();
                                     await widget.provider.toggleSymptom(selectedLog, symptom);
                                   },
                                   child: AnimatedContainer(

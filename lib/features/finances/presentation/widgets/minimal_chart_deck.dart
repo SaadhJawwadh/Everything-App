@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/services/app_haptics.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_card.dart';
 import '../../../../data/transaction_category.dart';
@@ -91,7 +91,6 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
   }
 
   void _handleDetailsTap() {
-    HapticFeedback.lightImpact();
     widget.onTapDetailsWithPage?.call(_currentPage);
     widget.onTapDetails?.call();
   }
@@ -197,7 +196,6 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                   controller: _pageController,
                   physics: const BouncingScrollPhysics(),
                   onPageChanged: (page) {
-                    HapticFeedback.selectionClick();
                     setState(() => _currentPage = page);
                   },
                   children: [
@@ -230,7 +228,6 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
-                      HapticFeedback.selectionClick();
                       _pauseAutoCycle(userAction: true);
                       _pageController.animateToPage(
                         index,
@@ -493,7 +490,7 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                 final spotIndex = touchResponse.lineBarSpots!.first.spotIndex;
                 if (_lastTouchedSpotIndex != spotIndex) {
                   _lastTouchedSpotIndex = spotIndex;
-                  HapticFeedback.selectionClick();
+                  AppHaptics.selectionClick();
                 }
               },
               touchTooltipData: LineTouchTooltipData(
@@ -699,7 +696,7 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                         if (idx >= 0 && idx < sorted.length) {
                           if (_lastTouchedPieIndex != idx) {
                             _lastTouchedPieIndex = idx;
-                            HapticFeedback.selectionClick();
+                            AppHaptics.selectionClick();
                           }
                         } else {
                           _lastTouchedPieIndex = null;

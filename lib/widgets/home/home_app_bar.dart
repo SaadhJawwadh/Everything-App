@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../core/services/app_haptics.dart';
 import 'package:provider/provider.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
 import '../../providers/note_provider.dart';
@@ -159,7 +159,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
           icon: const Icon(Icons.close_rounded),
           tooltip: 'Clear selection',
           onPressed: () {
-            HapticFeedback.selectionClick();
+            AppHaptics.selectionClick();
             widget.onClearSelection();
           },
         ),
@@ -179,7 +179,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
           icon: Icon(allSelected ? Icons.deselect_rounded : Icons.select_all_rounded),
           tooltip: allSelected ? 'Deselect all' : 'Select all',
           onPressed: () {
-            HapticFeedback.selectionClick();
+            AppHaptics.selectionClick();
             if (allSelected) {
               noteProvider.clearSelection();
             } else {
@@ -201,7 +201,6 @@ class _HomeAppBarState extends State<HomeAppBar> {
           icon: const Icon(Icons.arrow_back),
           tooltip: 'Close search',
           onPressed: () {
-            HapticFeedback.selectionClick();
             context.read<NoteProvider>().setSearchQuery('');
             setState(() {
               _isSearching = false;
@@ -248,7 +247,6 @@ class _HomeAppBarState extends State<HomeAppBar> {
             icon: const Icon(Icons.close_rounded, size: 20),
             tooltip: 'Clear query',
             onPressed: () {
-              HapticFeedback.selectionClick();
               _searchController.clear();
               context.read<NoteProvider>().setSearchQuery('');
               setState(() {});
@@ -258,7 +256,6 @@ class _HomeAppBarState extends State<HomeAppBar> {
           icon: const Icon(Icons.search_rounded),
           tooltip: 'Search',
           onPressed: () {
-            HapticFeedback.selectionClick();
             FocusScope.of(context).unfocus();
           },
         ),
@@ -283,7 +280,6 @@ class _HomeAppBarState extends State<HomeAppBar> {
           onSubmitted: (v) {
             final name = v.trim();
             if (name.isNotEmpty) {
-              HapticFeedback.selectionClick();
               noteProvider.createFolder(name);
               Navigator.pop(ctx);
             }
@@ -295,7 +291,6 @@ class _HomeAppBarState extends State<HomeAppBar> {
         onConfirm: () {
           final name = controller.text.trim();
           if (name.isNotEmpty) {
-            HapticFeedback.selectionClick();
             noteProvider.createFolder(name);
             Navigator.pop(ctx);
           }
@@ -383,13 +378,37 @@ class _HomeAppBarState extends State<HomeAppBar> {
                           ],
                         ),
                         onTap: () {
-                          HapticFeedback.selectionClick();
                           noteProvider.setFolder(folder);
                           Navigator.pop(context);
                         },
                       );
                     }),
                     const SizedBox(height: AppLayout.spaceM),
+                    ListTile(
+                      leading: Icon(
+                        Icons.checklist_rtl_rounded,
+                        color: noteProvider.filterChecklistsOnly
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      title: Text(
+                        'Checklists & Tasks',
+                        style: TextStyle(
+                          fontWeight: noteProvider.filterChecklistsOnly ? FontWeight.bold : FontWeight.normal,
+                          color: noteProvider.filterChecklistsOnly ? Theme.of(context).colorScheme.primary : null,
+                        ),
+                      ),
+                      trailing: noteProvider.checklistNotesCount > 0
+                          ? AppChip(
+                              label: '${noteProvider.checklistNotesCount}',
+                              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                            )
+                          : null,
+                      onTap: () {
+                        noteProvider.setFilterChecklistsOnly(true);
+                        Navigator.pop(context);
+                      },
+                    ),
                     ListTile(
                       leading: Icon(Icons.archive_outlined, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       title: const Text('Archived Notes'),
@@ -400,7 +419,6 @@ class _HomeAppBarState extends State<HomeAppBar> {
                             )
                           : null,
                       onTap: () {
-                        HapticFeedback.selectionClick();
                         Navigator.pop(context);
                         AppRoute.push(context, const FilteredNotesScreen(filterType: FilterType.archived));
                       },
@@ -416,7 +434,6 @@ class _HomeAppBarState extends State<HomeAppBar> {
                             )
                           : null,
                       onTap: () {
-                        HapticFeedback.selectionClick();
                         Navigator.pop(context);
                         AppRoute.push(context, const FilteredNotesScreen(filterType: FilterType.trash));
                       },
@@ -436,8 +453,13 @@ class _HomeAppBarState extends State<HomeAppBar> {
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final noteProvider = context.watch<NoteProvider>();
-    final displayFolder = noteProvider.selectedFolder ?? 'Notes';
-    final count = noteProvider.folderCounts[displayFolder] ?? noteProvider.tagCounts['All'] ?? 0;
+    final isChecklistsMode = noteProvider.filterChecklistsOnly;
+    final displayFolder = isChecklistsMode
+        ? 'Checklists'
+        : (noteProvider.selectedFolder ?? 'Notes');
+    final count = isChecklistsMode
+        ? noteProvider.checklistNotesCount
+        : (noteProvider.folderCounts[displayFolder] ?? noteProvider.tagCounts['All'] ?? 0);
 
     return Row(
       children: [
@@ -463,7 +485,6 @@ class _HomeAppBarState extends State<HomeAppBar> {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
                   onTap: () {
-                    HapticFeedback.selectionClick();
                     _showFolderPicker(context, noteProvider);
                   },
                   child: Container(
@@ -480,7 +501,9 @@ class _HomeAppBarState extends State<HomeAppBar> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          Icons.folder_outlined,
+                          isChecklistsMode
+                              ? Icons.checklist_rtl_rounded
+                              : Icons.folder_outlined,
                           color: colorScheme.primary,
                           size: 13,
                         ),
@@ -514,7 +537,6 @@ class _HomeAppBarState extends State<HomeAppBar> {
           constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           visualDensity: VisualDensity.compact,
           onPressed: () {
-            HapticFeedback.selectionClick();
             setState(() {
               _isSearching = true;
             });
@@ -555,13 +577,12 @@ class _HomeAppBarState extends State<HomeAppBar> {
                   onTap: isSyncing
                       ? null
                       : () async {
-                          unawaited(HapticFeedback.lightImpact());
                           await syncProvider.syncNow(onCompleted: () {
                             noteProvider.refreshNotes();
                           });
                         },
                   onLongPress: () {
-                    HapticFeedback.mediumImpact();
+                    AppHaptics.mediumImpact();
                     AppRoute.push(context, const P2pSyncScreen());
                   },
                   child: Center(
@@ -597,7 +618,6 @@ class _HomeAppBarState extends State<HomeAppBar> {
           ),
           color: Theme.of(context).colorScheme.surfaceContainerHigh,
           onSelected: (sortMode) {
-            HapticFeedback.selectionClick();
             noteProvider.setSortMode(sortMode);
           },
           itemBuilder: (context) {
@@ -659,7 +679,6 @@ class _HomeAppBarState extends State<HomeAppBar> {
           ),
           color: Theme.of(context).colorScheme.surfaceContainerHigh,
           onSelected: (action) {
-            HapticFeedback.selectionClick();
             if (action == 'view_mode') {
               widget.onCycleViewMode();
             } else if (action == 'manage_folders') {
@@ -796,7 +815,6 @@ class _HomeAppBarState extends State<HomeAppBar> {
           constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           visualDensity: VisualDensity.compact,
           onPressed: () {
-            HapticFeedback.selectionClick();
             AppRoute.push(context, const SettingsScreen())
                 .then((_) => widget.onRefresh());
           },

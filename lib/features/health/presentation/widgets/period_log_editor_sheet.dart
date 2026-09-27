@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../../../core/services/app_haptics.dart';
 import 'package:intl/intl.dart';
 import '../../../../data/period_log_model.dart';
 import '../../../../core/theme/app_layout.dart';
@@ -78,7 +78,7 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
   }
 
   Future<void> _handleSave() async {
-    await HapticFeedback.mediumImpact();
+    AppHaptics.mediumImpact();
 
     if (!_isOngoing && _tempEnd != null && _tempStart.isAfter(_tempEnd!)) {
       if (mounted) {
@@ -163,7 +163,6 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
               subtitle: Text(DateFormat.yMMMMd().format(_tempStart)),
               trailing: const Icon(Icons.edit_outlined),
               onTap: () async {
-                await HapticFeedback.lightImpact();
                 if (!context.mounted) return;
                 final picked = await showDatePicker(
                   context: context,
@@ -189,7 +188,7 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
               subtitle: const Text('Still active/no end date yet'),
               value: _isOngoing,
               onChanged: (val) async {
-                await HapticFeedback.selectionClick();
+                AppHaptics.selectionClick();
                 setState(() {
                   _isOngoing = val;
                   if (val) {
@@ -207,7 +206,6 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
                 subtitle: Text(_tempEnd != null ? DateFormat.yMMMMd().format(_tempEnd!) : 'Select end date'),
                 trailing: const Icon(Icons.edit_outlined),
                 onTap: () async {
-                  await HapticFeedback.lightImpact();
                   if (!context.mounted) return;
                   final picked = await showDatePicker(
                     context: context,
@@ -236,7 +234,7 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
               ],
               selected: {_tempIntensity},
               onSelectionChanged: (Set<String> selection) {
-                HapticFeedback.selectionClick();
+                AppHaptics.selectionClick();
                 setState(() {
                   _tempIntensity = selection.first;
                 });
@@ -261,7 +259,7 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
                   label: Text(symptom),
                   selected: isSelected,
                   onSelected: (selected) {
-                    HapticFeedback.selectionClick();
+                    AppHaptics.selectionClick();
                     setState(() {
                       if (selected) {
                         _tempSymptoms.add(symptom);

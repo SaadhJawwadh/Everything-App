@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:animations/animations.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../../data/transaction_model.dart';
 import '../../../../data/transaction_category.dart';
+import '../../../../core/services/app_haptics.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_card.dart';
 import '../../providers/financial_manager_provider.dart';
@@ -67,10 +67,7 @@ class FinancialLedgerTab extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               FilledButton.icon(
-                onPressed: () {
-                  HapticFeedback.lightImpact();
-                  onAddFirstTransaction();
-                },
+                onPressed: onAddFirstTransaction,
                 icon: const Icon(Icons.add),
                 label: const Text('Add Transaction'),
               ),
@@ -220,18 +217,17 @@ class FinancialLedgerTab extends StatelessWidget {
                                     : colorScheme.primary,
                               ),
                             ),
-                            onTap: () async {
+                            onTap: () {
                               if (finProvider.isSelectionMode && transaction.id != null) {
-                                await HapticFeedback.selectionClick();
+                                AppHaptics.selectionClick();
                                 finProvider.toggleSelection(transaction.id!);
                               } else {
-                                await HapticFeedback.lightImpact();
                                 openContainer();
                               }
                             },
-                            onLongPress: () async {
+                            onLongPress: () {
                               if (transaction.id != null) {
-                                await HapticFeedback.selectionClick();
+                                AppHaptics.mediumImpact();
                                 if (finProvider.isSelectionMode) {
                                   finProvider.toggleSelection(transaction.id!);
                                 } else {

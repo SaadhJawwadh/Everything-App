@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/services/app_haptics.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
@@ -55,6 +55,7 @@ class SettleUpSheet extends StatefulWidget {
 class _SettleUpSheetState extends State<SettleUpSheet> {
   bool _recordInLedger = true;
   bool _isProcessing = false;
+  bool _isSettledSuccess = false;
 
   @override
   Widget build(BuildContext context) {
@@ -210,17 +211,23 @@ class _SettleUpSheetState extends State<SettleUpSheet> {
             const SizedBox(height: AppLayout.spaceS),
           ],
           FilledButton.icon(
-            onPressed: _isProcessing ? null : _confirmSettleUp,
-            icon: _isProcessing
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : const Icon(Icons.check_circle_rounded),
-            label: Text(_isProcessing ? 'Settling...' : 'Confirm Settle Up'),
+            onPressed: (_isProcessing || _isSettledSuccess) ? null : _confirmSettleUp,
+            icon: _isSettledSuccess
+                ? const Icon(Icons.check_circle_rounded, color: Colors.white)
+                : _isProcessing
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.check_circle_rounded),
+            label: Text(_isSettledSuccess
+                ? 'All Settled Up!'
+                : (_isProcessing ? 'Settling...' : 'Confirm Settle Up')),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
+              backgroundColor: _isSettledSuccess ? successColor : null,
+              foregroundColor: _isSettledSuccess ? Colors.white : null,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppLayout.radiusM)),
             ),
           ),
@@ -234,7 +241,7 @@ class _SettleUpSheetState extends State<SettleUpSheet> {
     final splitProvider = Provider.of<SplitBillProvider>(context, listen: false);
     final fmProvider = Provider.of<FinancialManagerProvider>(context, listen: false);
     setState(() => _isProcessing = true);
-    await HapticFeedback.mediumImpact();
+    AppHaptics.mediumImpact();
 
     try {
       final isContactOwingUser = widget.netAmount >= 0;
@@ -280,12 +287,25 @@ class _SettleUpSheetState extends State<SettleUpSheet> {
       }
 
       if (mounted) {
-        Navigator.of(context).pop();
-        final messenger = ScaffoldMessenger.of(context);
-        messenger.clearSnackBars();
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text('Settled with ${widget.contactName} successfully.'),
+        final settings = Provider.of<SettingsProvider?>(context, listen: false);
+        final showDelight = settings?.showMilestoneDelight ?? true;
+
+        if (showDelight) {
+          setState(() {
+            _isProcessing = false;
+            _isSettledSuccess = true;
+          });
+          AppHaptics.heavyImpact();
+          await Future.delayed(const Duration(milliseconds: 450));
+        }
+
+        if (mounted) {
+          Navigator.of(context).pop();
+          final messenger = ScaffoldMessenger.of(context);
+          messenger.clearSnackBars();
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text('Settled with ${widget.contactName} successfully.'),
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 4),
             action: SnackBarAction(
@@ -308,6 +328,7 @@ class _SettleUpSheetState extends State<SettleUpSheet> {
           ),
         );
       }
+    }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

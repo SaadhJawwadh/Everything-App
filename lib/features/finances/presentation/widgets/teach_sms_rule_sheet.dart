@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/services/app_haptics.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../data/custom_sms_rule.dart';
@@ -122,7 +122,7 @@ class _TeachSmsRuleSheetState extends State<TeachSmsRuleSheet> {
     );
 
     context.read<SettingsProvider>().saveCustomSmsRule(rule);
-    HapticFeedback.lightImpact();
+    AppHaptics.mediumImpact();
     Navigator.of(context).pop(rule);
   }
 
@@ -192,7 +192,6 @@ class _TeachSmsRuleSheetState extends State<TeachSmsRuleSheet> {
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
                   onPressed: () {
-                    HapticFeedback.selectionClick();
                     setState(() {
                       _keywordController.text = token;
                     });
@@ -227,7 +226,6 @@ class _TeachSmsRuleSheetState extends State<TeachSmsRuleSheet> {
             ],
             selected: {_selectedType},
             onSelectionChanged: (set) {
-              HapticFeedback.selectionClick();
               setState(() {
                 _selectedType = set.first;
               });
@@ -261,7 +259,6 @@ class _TeachSmsRuleSheetState extends State<TeachSmsRuleSheet> {
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
                 onSelected: (selected) {
-                  HapticFeedback.selectionClick();
                   setState(() {
                     _selectedCategory = selected ? categoryName : null;
                   });
@@ -294,7 +291,6 @@ class _TeachSmsRuleSheetState extends State<TeachSmsRuleSheet> {
                         selected: _targetAccount == null,
                         onSelected: (selected) {
                           if (selected) {
-                            HapticFeedback.selectionClick();
                             setState(() => _targetAccount = null);
                           }
                         },
@@ -305,7 +301,6 @@ class _TeachSmsRuleSheetState extends State<TeachSmsRuleSheet> {
                         label: Text(settings.account1Name),
                         selected: _targetAccount == 'daily',
                         onSelected: (selected) {
-                          HapticFeedback.selectionClick();
                           setState(() => _targetAccount = selected ? 'daily' : null);
                         },
                       ),
@@ -315,7 +310,6 @@ class _TeachSmsRuleSheetState extends State<TeachSmsRuleSheet> {
                         label: Text(settings.account2Name),
                         selected: _targetAccount == 'savings',
                         onSelected: (selected) {
-                          HapticFeedback.selectionClick();
                           setState(() => _targetAccount = selected ? 'savings' : null);
                         },
                       ),
@@ -362,7 +356,7 @@ class _TeachSmsRuleSheetState extends State<TeachSmsRuleSheet> {
             child: SwitchListTile.adaptive(
               value: _bypassOtpFilter,
               onChanged: (val) {
-                HapticFeedback.selectionClick();
+                AppHaptics.selectionClick();
                 setState(() {
                   _bypassOtpFilter = val;
                 });

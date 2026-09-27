@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/services.dart';
+import '../../../../core/services/app_haptics.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
 import '../../data/transaction_repository.dart';
 import '../../../../data/repositories/recurring_rule_repository.dart';
@@ -416,7 +416,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           final isSelected = isCurrent(range);
           return InkWell(
             onTap: () {
-              HapticFeedback.mediumImpact();
+              AppHaptics.selectionClick();
               Navigator.pop(ctx, range);
             },
             borderRadius: BorderRadius.circular(AppLayout.radiusM),
@@ -689,7 +689,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () {
-                          HapticFeedback.selectionClick();
                           _pauseHeroAutoCycle(userAction: true);
                           _heroPageController.animateToPage(
                             idx,
@@ -740,7 +739,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                   controller: _heroPageController,
                   physics: const BouncingScrollPhysics(),
                   onPageChanged: (idx) {
-                    HapticFeedback.selectionClick();
                     setState(() => _heroCardMode = idx);
                   },
                   children: [
@@ -853,7 +851,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                       selected: _selectedAccount == AccountType.daily,
                       child: InkWell(
                         onTap: () {
-                          HapticFeedback.selectionClick();
                           setState(() {
                             _selectedAccount = _selectedAccount == AccountType.daily ? 'all' : AccountType.daily;
                           });
@@ -898,7 +895,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                       selected: _selectedAccount == AccountType.savings,
                       child: InkWell(
                         onTap: () {
-                          HapticFeedback.selectionClick();
                           setState(() {
                             _selectedAccount = _selectedAccount == AccountType.savings ? 'all' : AccountType.savings;
                           });
@@ -1063,7 +1059,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
             const SizedBox(width: 8),
             GestureDetector(
               onTap: () {
-                HapticFeedback.lightImpact();
+                AppHaptics.selectionClick();
                 SmsService.cancelSync();
               },
               child: Container(
@@ -1097,7 +1093,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           visualDensity: VisualDensity.compact,
           onPressed: () {
-            HapticFeedback.selectionClick();
             setState(() {
               _isSearching = false;
               _searchController.clear();
@@ -1145,7 +1140,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
             constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             visualDensity: VisualDensity.compact,
             onPressed: () {
-              HapticFeedback.selectionClick();
               _searchController.clear();
               setState(() {
                 _searchQuery = '';
@@ -1160,7 +1154,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           visualDensity: VisualDensity.compact,
           onPressed: () {
-            HapticFeedback.selectionClick();
             FocusScope.of(context).unfocus();
           },
         ),
@@ -1196,7 +1189,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                 child: InkWell(
                   borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
                   onTap: () {
-                    HapticFeedback.lightImpact();
                     _selectDateRange(context);
                   },
                   child: Container(
@@ -1253,7 +1245,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           visualDensity: VisualDensity.compact,
           onPressed: () {
-            HapticFeedback.selectionClick();
             setState(() {
               if (_selectedTab != 'Ledger') {
                 _selectedTab = 'Ledger';
@@ -1273,11 +1264,10 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                 constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                 child: BouncingWidget(
                   onTap: () {
-                    HapticFeedback.lightImpact();
                     _quickImportRecentSms();
                   },
                   onLongPress: () {
-                    HapticFeedback.mediumImpact();
+                    AppHaptics.mediumImpact();
                     showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
@@ -1322,7 +1312,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           ),
           color: colorScheme.surfaceContainerHigh,
           onSelected: (value) {
-            HapticFeedback.selectionClick();
             if (value == 'savings_goals') {
               setState(() => _selectedTab = 'Budgets');
               SavingsGoalEditorSheet.show(context);
@@ -1424,7 +1413,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           visualDensity: VisualDensity.compact,
           onPressed: () {
-            HapticFeedback.selectionClick();
             AppRoute.push(context, const SettingsScreen())
                 .then((_) => _refreshTransactions());
           },
@@ -1498,7 +1486,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                   child: InkWell(
                     borderRadius: BorderRadius.circular(AppLayout.radiusS),
                     onTap: () {
-                      HapticFeedback.selectionClick();
+                      AppHaptics.selectionClick();
                       SmsService.cancelSync();
                     },
                     child: Container(
@@ -1548,7 +1536,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           visualDensity: VisualDensity.compact,
           onPressed: () {
-            HapticFeedback.selectionClick();
+            AppHaptics.selectionClick();
             finProvider.clearSelection();
           },
         ),
@@ -1571,7 +1559,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           visualDensity: VisualDensity.compact,
           onPressed: () {
-            HapticFeedback.selectionClick();
+            AppHaptics.selectionClick();
             if (allSelected) {
               finProvider.clearSelection();
             } else {
@@ -1694,14 +1682,12 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                           currency: currency,
                           forecast: forecast,
                           onTapDetailsWithPage: (page) {
-                            HapticFeedback.lightImpact();
                             setState(() {
                               _selectedTab = 'Budgets';
                               _analyticsSubView = (page == 2) ? 1 : 0;
                             });
                           },
                           onTapDetails: () {
-                            HapticFeedback.lightImpact();
                             setState(() {
                               _selectedTab = 'Budgets';
                               _analyticsSubView = 0;
@@ -1776,7 +1762,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                       label: const Text('All Accounts'),
                       selected: _selectedAccount == 'all',
                       onSelected: (_) {
-                        HapticFeedback.lightImpact();
                         setState(() => _selectedAccount = 'all');
                         _applyFilters();
                       },
@@ -1788,7 +1773,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                       label: Text(settings.account1Name),
                       selected: _selectedAccount == AccountType.daily,
                       onSelected: (_) {
-                        HapticFeedback.lightImpact();
                         setState(() => _selectedAccount = AccountType.daily);
                         _applyFilters();
                       },
@@ -1800,7 +1784,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                       label: Text(settings.account2Name),
                       selected: _selectedAccount == AccountType.savings,
                       onSelected: (_) {
-                        HapticFeedback.lightImpact();
                         setState(() => _selectedAccount = AccountType.savings);
                         _applyFilters();
                       },
@@ -1832,7 +1815,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                             label: const Text('All Categories'),
                             selected: _selectedCategory == null,
                             onSelected: (_) {
-                              HapticFeedback.lightImpact();
                               setState(() => _selectedCategory = null);
                               _applyFilters();
                             },
@@ -1854,7 +1836,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                                 label: Text(cat),
                                 selected: selected,
                                 onSelected: (_) {
-                                  HapticFeedback.lightImpact();
                                   setState(() => _selectedCategory = selected ? null : cat);
                                   _applyFilters();
                                 },
@@ -2054,7 +2035,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
         ],
         selected: {effectiveSelected},
         onSelectionChanged: (Set<String> newSelection) {
-          HapticFeedback.lightImpact();
           final finProvider = Provider.of<FinancialManagerProvider>(context, listen: false);
           if (finProvider.isSelectionMode) {
             finProvider.clearSelection();

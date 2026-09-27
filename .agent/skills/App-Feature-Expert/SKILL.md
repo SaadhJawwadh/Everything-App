@@ -34,6 +34,7 @@ Specialist skill governing domain modules, feature-driven architecture (`lib/fea
   - **SQLite Single-Quote Migration Syntax Invariant**: All `DatabaseHelper._upgradeDB` migration SQL statements MUST use standard single quotes (`''`) for string literals and default values (e.g. `DEFAULT ''`, `NULLIF(col, '')`). Double quotes `""` are parsed by SQLite as column identifiers and will cause `no such column: ""` migration crashes.
   - **WorkManager Periodic Task Registration Invariant**: Periodic background tasks (`BackupService.schedulePeriodicBackup`) MUST default to `ExistingPeriodicWorkPolicy.keep` during app startup and initialization. Do NOT use `ExistingPeriodicWorkPolicy.replace` on startup, as this cancels the active periodic timer and resets the countdown interval on every app launch. Only pass `.replace` when the user actively modifies execution frequency, changes backup destination folders, or triggers an immediate sync.
   - **Mandatory Bitmap Memory Downsampling**: In `main.dart`, set `PaintingBinding.instance.imageCache.maximumSizeBytes = 100MB` and `maximumSize = 100`. All `Image.file`, `Image.network`, and `Image.asset` preview widgets MUST supply `cacheWidth` (e.g. `cacheWidth: 1080` for note body embeds, `cacheWidth: 400` for grid/list cards) and provide an `errorBuilder` fallback container to prevent 12–48MP camera images from allocating 24–48MB RAM buffers per image.
+  - **Global Multilingual Architecture & MaterialApp SupportedLocales Invariant**: When expanding language support (e.g., `zh`, `pt`, `es`, `de`, `fr`, `ta`, `en`), `MaterialApp` in `main.dart` MUST register `supportedLocales: AppLocalizations.supportedLocales` rather than a hardcoded list. Hardcoded locale lists cause Flutter's `localeResolutionCallback` to silently drop newly supported languages and fall back to English, breaking reactive in-app language switching.
 
 ---
 
@@ -68,9 +69,9 @@ Specialist skill governing domain modules, feature-driven architecture (`lib/fea
   - **Left Flank ($64\text{dp}$ Fixed)**: Horizontal stepper `[ ‹ ] [ › ]` (32dp per icon) with single-tap character nudges, double-tap & long-press word-boundary regex jumps, and `HapticFeedback.selectionClick()`. When `selection.isCollapsed`, update via `TextSelection.collapsed(offset: newOffset)` rather than opening accidental ranges.
   - **Right Flank ($64\text{dp}$ Fixed)**: Vertical stepper `[ ▲ ] [ ▼ ]` (32dp per icon) with line-level vertical navigation.
   - **Scrollable Center**: Center formatting tools (`Headings`, `B`, `I`, `U`, `S`, `Align`, `Indent`, `Quote`, `Code`) wrapped in `Expanded(child: SingleChildScrollView(scrollDirection: Axis.horizontal, ...))`.
-* **Natural Dismissal & Clean Bottom Toolbar**:
-  - Never render a manual `[ ✕ ]` close button on the floating pill. Tapping in the text collapses selection naturally.
-  - Bottom toolbar stays permanently clean without mode-swapping glitches: `[Formatting] [AI Assist] | [Table] [Checklist] [Image] [Dictate] [Hide Keyboard]`.
+  - Bottom toolbar stays permanently clean without mode-swapping glitches: `[Formatting Toggle (Arrow-Down when open)] [AI Assist (gated by isAiActive)] | [Table] [Checklist] [Image] [Hide Keyboard]`.
+  - Disambiguate formatting bar dismissal: When the formatting deck is expanded, the toggle button displays `Icons.keyboard_arrow_down_rounded` to collapse formatting, keeping `Icons.keyboard_hide_rounded` strictly dedicated to hiding the soft keyboard.
+  - Voice dictation dependencies and permissions are eliminated to keep the app privacy-focused and lightweight.
 
 ### 📥 Google Keep & Markdown Migration Standards
 * **JSON Structured Schema Handling**:
@@ -137,6 +138,10 @@ Specialist skill governing domain modules, feature-driven architecture (`lib/fea
   - **Context-Aware Deep Linking**: Tapping "Details >" inspects active page index and deep-links to sub-tabs (Slide 0/1 $\to$ Breakdown, Slide 2 $\to$ Budgets).
   - **Chart Tooltip 1px Accent Outline**: Floating Canvas chart tooltips (`LineTouchTooltipData`) must specify a 1px primary accent border (`BorderSide(color: colorScheme.primary.withValues(alpha: 0.3), width: 1.0)`) and rounded radius (`AppLayout.radiusM`) to prevent light-mode blending against surface cards.
 - **Android App Widget Dynamic Canvas Sparkline**: Render anti-aliased canvas sparklines in `FinanceWidgetProvider.kt` with gradient underfill and glowing forecast dots, fed by `WidgetHelper.dart` via `widget_sparkline_data`.
+- **Budgets 3-Way Sub-Navigation & Savings Goals Vault**:
+  The Budgets tab hosts a 3-way segmented pill navigation (`[Breakdown] ⇄ [Budgets] ⇄ [Savings]`). To prevent whitespace padding anomalies, `SavingsGoalsCard(isEmbeddedInCard: true)` returns inner content directly without nesting another `AppCard`. The goal creation sheet supplies an expanded 24-color M3 palette (`_colorPalette`) covering all primary color spectrums.
+- **Ledger Floating Toolbar & SQLite ID Lookup Invariant**:
+  Bulk operations (e.g. `bulkAiRefineSelected()`, `bulkDeleteSelected()`) triggered from `LedgerFloatingToolbar` must resolve transactions by ID directly from storage (`_repository.readTransaction(id)`) rather than assuming in-memory collections are populated, and must notify `FinancialManagerScreen.refreshNotifier` to immediately trigger a UI re-render.
 
 ---
 

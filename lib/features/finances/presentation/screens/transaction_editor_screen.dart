@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/services.dart';
+import 'package:note_taking_app/core/services/app_haptics.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
 import 'package:note_taking_app/features/finances/data/transaction_repository.dart';
 import 'package:note_taking_app/data/transaction_model.dart';
@@ -324,7 +324,7 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
     setState(() => _isLoading = false);
     if (mounted) {
       final navigator = Navigator.of(context);
-      await HapticFeedback.mediumImpact();
+      AppHaptics.mediumImpact();
       navigator.pop(true);
     }
   }
@@ -420,7 +420,7 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
       setState(() => _isLoading = false);
       if (mounted) {
         final navigator = Navigator.of(context);
-        await HapticFeedback.mediumImpact();
+        AppHaptics.mediumImpact();
         navigator.pop(true);
         appScaffoldMessengerKey.currentState?.clearSnackBars();
         appScaffoldMessengerKey.currentState?.showSnackBar(
@@ -571,13 +571,12 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
       lastDate: DateTime(2100),
     );
     if (picked != null && picked != _selectedDate) {
-      await HapticFeedback.lightImpact();
+      AppHaptics.selectionClick();
       setState(() => _selectedDate = picked);
     }
   }
 
   Future<void> _openCalculator() async {
-    await HapticFeedback.lightImpact();
     if (!mounted) return;
     final double? currentVal = double.tryParse(_amountController.text);
     final result = await showModalBottomSheet<double>(
@@ -608,7 +607,6 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
     }
 
     final messenger = ScaffoldMessenger.of(context);
-    await HapticFeedback.lightImpact();
     setState(() => _isRefiningAi = true);
 
     try {
@@ -625,7 +623,7 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
       if (!mounted) return;
 
       if (refined != null) {
-        await HapticFeedback.mediumImpact();
+        AppHaptics.mediumImpact();
         setState(() {
           _descriptionController.text = refined.description;
           _category = refined.category;
@@ -717,7 +715,7 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
                             final isSelected = selectedIcon.codePoint == icon.codePoint;
                             return GestureDetector(
                               onTap: () {
-                                HapticFeedback.selectionClick();
+                                AppHaptics.selectionClick();
                                 setDialogState(() => selectedIcon = icon);
                               },
                               child: Container(
@@ -868,7 +866,7 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
                       ],
                       selected: {_isExpense},
                       onSelectionChanged: (Set<bool> newSelection) {
-                        HapticFeedback.selectionClick();
+                        AppHaptics.selectionClick();
                         setState(() {
                           _isExpense = newSelection.first;
                         });
@@ -984,7 +982,7 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
                                 label: Text(cat),
                                 selected: selected,
                                 onSelected: (_) {
-                                  HapticFeedback.lightImpact();
+                                  AppHaptics.selectionClick();
                                   setState(() => _category = cat);
                                 },
                                 selectedColor: catColor.withValues(alpha: 0.2),
@@ -1030,7 +1028,7 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
                             shape: const StadiumBorder(),
                             onPressed: () async {
                               final messenger = ScaffoldMessenger.of(context);
-                              await HapticFeedback.selectionClick();
+                              AppHaptics.selectionClick();
                               await _trainCategoryKeyword(candidate, _category);
                               messenger.showSnackBar(
                                 SnackBar(
@@ -1067,7 +1065,7 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
                         ],
                         selected: {_account},
                         onSelectionChanged: (selected) {
-                          HapticFeedback.selectionClick();
+                          AppHaptics.selectionClick();
                           setState(() => _account = selected.first);
                         },
                       ),
@@ -1127,7 +1125,7 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
                         ],
                         selected: {_repeatFrequency},
                         onSelectionChanged: (selection) {
-                          HapticFeedback.selectionClick();
+                          AppHaptics.selectionClick();
                           setState(() => _repeatFrequency = selection.first);
                         },
                       ),
@@ -1147,7 +1145,6 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
                       const SizedBox(height: 20),
                       OutlinedButton.icon(
                         onPressed: () {
-                          HapticFeedback.lightImpact();
                           final title = _descriptionController.text.trim();
                           final amount = double.tryParse(_amountController.text.trim());
                           Navigator.of(context).push(
@@ -1191,7 +1188,6 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
           tooltip: 'Categories',
           icon: Icon(Icons.category_outlined, color: colorScheme.onPrimaryContainer, size: 20),
           onPressed: () {
-            HapticFeedback.lightImpact();
             AppRoute.push(context, const CategoryManagementScreen());
           },
         ),

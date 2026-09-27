@@ -156,7 +156,6 @@ class NoteSearchReplaceBar extends StatelessWidget {
                 color: colorScheme.onSurfaceVariant,
                 tooltip: 'Clear search text',
                 onPressed: () {
-                  HapticFeedback.selectionClick();
                   searchController.clear();
                   onSearchChanged('');
                 },

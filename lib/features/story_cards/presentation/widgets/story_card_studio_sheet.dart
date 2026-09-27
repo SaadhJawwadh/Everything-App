@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'dart:typed_data';
+import '../../../../core/services/app_haptics.dart';
 
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
@@ -125,7 +126,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
   Future<void> _shareCard() async {
     if (_isExporting) return;
     setState(() => _isExporting = true);
-    await HapticFeedback.mediumImpact();
+    AppHaptics.mediumImpact();
 
     try {
       final bytes = await _captureCard();
@@ -148,7 +149,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
   Future<void> _saveCardToGallery() async {
     if (_isExporting) return;
     setState(() => _isExporting = true);
-    await HapticFeedback.selectionClick();
+    AppHaptics.mediumImpact();
 
     try {
       final bytes = await _captureCard();
@@ -179,7 +180,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
   Future<void> _copyImageToClipboard() async {
     if (_isExporting) return;
     setState(() => _isExporting = true);
-    await HapticFeedback.lightImpact();
+    AppHaptics.selectionClick();
 
     try {
       final bytes = await _captureCard();
@@ -261,7 +262,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                 ),
                 TextButton.icon(
                   onPressed: () {
-                    HapticFeedback.selectionClick();
+                    AppHaptics.selectionClick();
                     setState(() => _isEditingText = !_isEditingText);
                   },
                   icon: Icon(
@@ -367,7 +368,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 onSelectionChanged: (set) {
-                  HapticFeedback.selectionClick();
+                  AppHaptics.selectionClick();
                   setState(() => _config = _config.copyWith(aspectRatio: set.first));
                 },
               ),
@@ -425,7 +426,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                       visualDensity: VisualDensity.compact,
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       onSelected: (_) {
-                        HapticFeedback.selectionClick();
+                        AppHaptics.selectionClick();
                         setState(() => _config = _config.copyWith(wordLimit: limit));
                       },
                     ),
@@ -466,7 +467,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                       visualDensity: VisualDensity.compact,
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       onSelected: (_) {
-                        HapticFeedback.selectionClick();
+                        AppHaptics.selectionClick();
                         setState(() => _config = _config.copyWith(fontStyle: style));
                       },
                     ),
@@ -512,7 +513,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                       visualDensity: VisualDensity.compact,
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       onSelected: (_) {
-                        HapticFeedback.selectionClick();
+                        AppHaptics.selectionClick();
                         setState(() => _config = _config.copyWith(themePreset: preset));
                       },
                     ),
@@ -543,7 +544,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                   visualDensity: VisualDensity.compact,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   onSelected: (val) {
-                    HapticFeedback.selectionClick();
+                    AppHaptics.selectionClick();
                     setState(() => _config = _config.copyWith(showTitle: val));
                   },
                 ),
@@ -566,7 +567,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                   visualDensity: VisualDensity.compact,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   onSelected: (val) {
-                    HapticFeedback.selectionClick();
+                    AppHaptics.selectionClick();
                     setState(() => _config = _config.copyWith(showDate: val));
                   },
                 ),
@@ -589,7 +590,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                   visualDensity: VisualDensity.compact,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   onSelected: (val) {
-                    HapticFeedback.selectionClick();
+                    AppHaptics.selectionClick();
                     setState(() => _config = _config.copyWith(showWatermark: val));
                   },
                 ),

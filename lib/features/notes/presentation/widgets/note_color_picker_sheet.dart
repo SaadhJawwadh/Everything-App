@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../../../core/services/app_haptics.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
 
@@ -70,7 +70,7 @@ class NoteColorPickerSheet extends StatelessWidget {
             message: preset.label,
             child: InkWell(
               onTap: () {
-                HapticFeedback.selectionClick();
+                AppHaptics.selectionClick();
                 onColorSelected(preset.colorValue);
                 Navigator.pop(context);
               },

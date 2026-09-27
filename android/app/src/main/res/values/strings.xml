@@ -2,6 +2,7 @@
 <resources>
     <string name="finance_widget_description">Track today\'s spending, monthly totals, and your latest transactions right from the home screen.</string>
     <string name="notes_widget_description">Capture a note or search everything with one tap.</string>
+    <string name="todo_widget_description">View, switch, and check off tasks from your notes directly on your home screen.</string>
     <string name="shortcut_new_note_short">New note</string>
     <string name="shortcut_new_note_long">Create a new note</string>
     <string name="shortcut_new_transaction_short">New transaction</string>

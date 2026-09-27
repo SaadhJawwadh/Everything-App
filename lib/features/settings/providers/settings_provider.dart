@@ -10,6 +10,7 @@ import '../../../utils/widget_helper.dart';
 import '../../../data/custom_sms_rule.dart';
 import '../../../data/transaction_model.dart';
 import '../../../utils/app_constants.dart';
+import '../../../core/services/app_haptics.dart';
 import 'dart:convert';
 
 enum NoteViewMode { list, grid }
@@ -36,8 +37,17 @@ class SettingsProvider extends ChangeNotifier {
   
   bool get isGridView => _noteViewMode == NoteViewMode.grid;
 
+  bool _enableHaptics = true;
+  bool get enableHaptics => _enableHaptics;
+
   bool _moveCompletedChecklistsToBottom = false;
   bool get moveCompletedChecklistsToBottom => _moveCompletedChecklistsToBottom;
+
+  bool _showMilestoneDelight = true;
+  bool get showMilestoneDelight => _showMilestoneDelight;
+
+  bool _showClarityMosaic = true;
+  bool get showClarityMosaic => _showClarityMosaic;
 
   bool _showTagFilterBar = true;
   bool get showTagFilterBar => _showTagFilterBar;
@@ -288,10 +298,15 @@ class SettingsProvider extends ChangeNotifier {
     _lastSeenVersion = prefs.getString('lastSeenVersion') ?? '';
     _trashAutoPurgeDays = prefs.getInt('trashAutoPurgeDays') ?? 30;
     _moveCompletedChecklistsToBottom = prefs.getBool('moveCompletedChecklistsToBottom') ?? false;
+    _showMilestoneDelight = prefs.getBool('showMilestoneDelight') ?? true;
+    _showClarityMosaic = prefs.getBool('showClarityMosaic') ?? true;
 
     _showProTips = prefs.getBool('showProTips') ?? true;
     _lastTipDismissedTimestamp = prefs.getInt('lastTipDismissedTimestamp') ?? 0;
     _currentTipIndex = prefs.getInt('currentTipIndex') ?? 0;
+
+    _enableHaptics = prefs.getBool('enableHaptics') ?? true;
+    AppHaptics.isEnabled = _enableHaptics;
 
     final budgetsStr = prefs.getString('categoryBudgets');
     if (budgetsStr != null) {
@@ -327,6 +342,14 @@ class SettingsProvider extends ChangeNotifier {
     _hasSeenOnboarding = seen;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('hasSeenOnboarding_v1', seen);
+    notifyListeners();
+  }
+
+  Future<void> setEnableHaptics(bool value) async {
+    _enableHaptics = value;
+    AppHaptics.isEnabled = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('enableHaptics', value);
     notifyListeners();
   }
 
@@ -371,6 +394,20 @@ class SettingsProvider extends ChangeNotifier {
     _moveCompletedChecklistsToBottom = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('moveCompletedChecklistsToBottom', value);
+    notifyListeners();
+  }
+
+  Future<void> setShowMilestoneDelight(bool value) async {
+    _showMilestoneDelight = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('showMilestoneDelight', value);
+    notifyListeners();
+  }
+
+  Future<void> setShowClarityMosaic(bool value) async {
+    _showClarityMosaic = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('showClarityMosaic', value);
     notifyListeners();
   }
 

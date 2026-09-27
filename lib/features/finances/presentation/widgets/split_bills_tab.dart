@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/services/app_haptics.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/app_card.dart';
@@ -40,7 +40,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
   bool get _isSelectionMode => _selectedBillIds.isNotEmpty;
 
   void _toggleSelection(String id) {
-    HapticFeedback.selectionClick();
+    AppHaptics.selectionClick();
     setState(() {
       if (_selectedBillIds.contains(id)) {
         _selectedBillIds.remove(id);
@@ -133,7 +133,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
   }
 
   void _clearSelection() {
-    HapticFeedback.selectionClick();
+    AppHaptics.selectionClick();
     setState(() {
       _selectedBillIds.clear();
     });
@@ -251,7 +251,6 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                     ],
                     selected: {splitProvider.activeViewMode},
                     onSelectionChanged: (set) {
-                      HapticFeedback.lightImpact();
                       if (_isSelectionMode) _clearSelection();
                       splitProvider.setViewMode(set.first);
                     },
@@ -437,7 +436,6 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
               Expanded(
                 child: InkWell(
                   onTap: () {
-                    HapticFeedback.selectionClick();
                     splitProvider.setFilter('i_am_owed');
                   },
                   borderRadius: BorderRadius.circular(AppLayout.radiusM),
@@ -485,7 +483,6 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
               Expanded(
                 child: InkWell(
                   onTap: () {
-                    HapticFeedback.selectionClick();
                     splitProvider.setFilter('i_owe');
                   },
                   borderRadius: BorderRadius.circular(AppLayout.radiusM),
@@ -562,7 +559,6 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                 label: Text(label),
                 selected: isSelected,
                 onSelected: (_) {
-                  HapticFeedback.selectionClick();
                   splitProvider.setFilter(id);
                   splitProvider.setGroupTag(null);
                 },
@@ -579,7 +575,6 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                 label: Text('# $tag'),
                 selected: isSelected,
                 onSelected: (sel) {
-                  HapticFeedback.selectionClick();
                   splitProvider.setGroupTag(sel ? tag : null);
                 },
               ),
@@ -679,14 +674,18 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                         radius: 22,
                         backgroundColor: isOwed
                             ? successColor.withValues(alpha: 0.2)
-                            : (owes ? debtColor.withValues(alpha: 0.2) : colorScheme.surfaceContainerHighest),
-                        child: Text(
-                          name.isNotEmpty ? name[0].toUpperCase() : '?',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: isOwed ? successColor : (owes ? debtColor : colorScheme.onSurfaceVariant),
-                          ),
-                        ),
+                            : (owes
+                                ? debtColor.withValues(alpha: 0.2)
+                                : successColor.withValues(alpha: 0.12)),
+                        child: isSettled
+                            ? Icon(Icons.check_rounded, size: 18, color: successColor)
+                            : Text(
+                                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: isOwed ? successColor : (owes ? debtColor : colorScheme.onSurfaceVariant),
+                                ),
+                              ),
                       ),
                       const SizedBox(width: AppLayout.spaceM),
                       Expanded(
@@ -695,14 +694,28 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                           children: [
                             Text(name, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                             const SizedBox(height: 2),
-                            Text(
-                              isSettled
-                                  ? 'All settled up'
-                                  : (isOwed
-                                      ? 'Owes you for ${openBills.length} bill${openBills.length == 1 ? '' : 's'}'
-                                      : 'You owe for ${openBills.length} bill${openBills.length == 1 ? '' : 's'}'),
-                              style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
-                            ),
+                            if (isSettled)
+                              Row(
+                                children: [
+                                  Icon(Icons.check_circle_outline_rounded, size: 13, color: successColor),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'All clear • 0 open debts',
+                                    style: TextStyle(
+                                      color: successColor,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else
+                              Text(
+                                isOwed
+                                    ? 'Owes you for ${openBills.length} bill${openBills.length == 1 ? '' : 's'}'
+                                    : 'You owe for ${openBills.length} bill${openBills.length == 1 ? '' : 's'}',
+                                style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                              ),
                           ],
                         ),
                       ),
@@ -866,13 +879,13 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                     if (_isSelectionMode) {
                       _toggleSelection(bill.id);
                     } else {
-                      HapticFeedback.lightImpact();
                       Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => SplitBillEditorScreen(existingBill: bill)),
                       );
                     }
                   },
                   onLongPress: () {
+                    AppHaptics.mediumImpact();
                     _toggleSelection(bill.id);
                   },
                   borderRadius: BorderRadius.circular(AppLayout.radiusM),
@@ -1090,7 +1103,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                                 onTap: isPayer
                                     ? null
                                     : () {
-                                        HapticFeedback.selectionClick();
+                                        AppHaptics.selectionClick();
                                         if (isYou) {
                                           if (!p.hasPaid) {
                                             SettleUpSheet.show(
@@ -1134,7 +1147,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                                 onLongPress: (!p.hasPaid && !isYou && !isPayer)
                                     ? () async {
                                         final settings = Provider.of<SettingsProvider>(context, listen: false);
-                                        await HapticFeedback.mediumImpact();
+                                        AppHaptics.mediumImpact();
                                         final reminder = SplitShareService.formatPersonReminder(
                                           contactName: p.contactName,
                                           billTitle: bill.title,

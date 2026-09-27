@@ -1,8 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/services/app_haptics.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../core/ui/expressive_shape_morph_indicator.dart';
@@ -32,11 +33,14 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
   
   String? _imagePath;
   bool _isScanning = false;
+  int _scanPhase = 0;
+  Timer? _tickerTimer;
   ParsedReceiptResult? _scanResult;
   String? _errorMessage;
 
   @override
   void dispose() {
+    _tickerTimer?.cancel();
     _titleController.dispose();
     _totalController.dispose();
     super.dispose();
@@ -53,13 +57,29 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
       setState(() {
         _imagePath = file.path;
         _isScanning = true;
+        _scanPhase = 0;
         _errorMessage = null;
+      });
+
+      _tickerTimer?.cancel();
+      _tickerTimer = Timer.periodic(const Duration(milliseconds: 380), (timer) {
+        if (!mounted || !_isScanning) {
+          timer.cancel();
+          return;
+        }
+        setState(() {
+          if (_scanPhase < 2) {
+            _scanPhase++;
+          }
+        });
       });
 
       final result = await ReceiptScannerService.instance.processReceiptImage(
         file.path,
         isAiActive: settings.isAiActive,
       );
+
+      _tickerTimer?.cancel();
 
       if (!mounted) return;
 
@@ -76,6 +96,7 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
         }
       });
     } catch (e) {
+      _tickerTimer?.cancel();
       if (!mounted) return;
       setState(() {
         _isScanning = false;
@@ -140,9 +161,35 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
                   children: [
                     const ExpressiveShapeMorphIndicator(size: 48),
                     const SizedBox(height: AppLayout.spaceM),
-                    Text(
-                      'Analyzing receipt offline...',
-                      style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      child: Row(
+                        key: ValueKey<int>(_scanPhase),
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _scanPhase == 0
+                                ? Icons.document_scanner_rounded
+                                : (_scanPhase == 1
+                                    ? Icons.calculate_rounded
+                                    : Icons.storefront_rounded),
+                            size: 16,
+                            color: colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _scanPhase == 0
+                                ? 'Extracting text lines locally...'
+                                : (_scanPhase == 1
+                                    ? 'Calculating subtotal, tax & tips...'
+                                    : 'Matching merchant & category...'),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -270,7 +317,7 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
       return;
     }
 
-    HapticFeedback.lightImpact();
+    AppHaptics.mediumImpact();
     Navigator.of(context).pop({
       'title': title.isNotEmpty ? title : 'Scanned Receipt',
       'total': total,

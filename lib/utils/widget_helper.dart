@@ -3,9 +3,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'app_constants.dart';
+import '../data/note_model.dart';
 import '../features/finances/data/transaction_repository.dart';
 import '../features/finances/services/spending_forecast_service.dart';
+import '../features/notes/data/note_repository.dart';
+import 'quill_checklist_helper.dart';
+import 'rich_text_utils.dart';
 
 /// Workmanager task that recomputes widget data in the background so the
 /// TODAY figure rolls over at midnight without the app being opened.
@@ -172,6 +177,186 @@ class WidgetHelper {
     } catch (e) {
       // Avoid crashing the app if widget updates fail
       debugPrint('Widget update failed: $e');
+    }
+  }
+
+  /// Synchronizes any pending checkbox toggles queued by the Android AppWidget
+  /// and writes the changes back into the notes database.
+  static Future<void> syncPendingTodoToggles() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final pendingStr = prefs.getString('widget_pending_toggles');
+      if (pendingStr == null || pendingStr.isEmpty || pendingStr == '[]') {
+        return;
+      }
+
+      final List<dynamic> toggles = json.decode(pendingStr);
+      if (toggles.isEmpty) return;
+
+      // Group toggles by noteId
+      final Map<String, List<Map<String, dynamic>>> byNote = {};
+      for (final t in toggles) {
+        if (t is Map) {
+          final noteId = t['noteId'] as String?;
+          if (noteId != null && noteId.isNotEmpty) {
+            byNote.putIfAbsent(noteId, () => []).add(Map<String, dynamic>.from(t));
+          }
+        }
+      }
+
+      final repo = NoteRepository.instance;
+      for (final entry in byNote.entries) {
+        final note = await repo.readNote(entry.key);
+        if (note == null) continue;
+
+        final delta = RichTextUtils.contentToDelta(note.content);
+        final doc = Document.fromDelta(delta);
+
+        bool changed = false;
+        for (final toggle in entry.value) {
+          final lineIndex = toggle['lineIndex'] as int? ?? -1;
+          final isDone = toggle['isDone'] as bool? ?? false;
+          if (lineIndex >= 0) {
+            final ok = QuillChecklistHelper.toggleChecklistLine(doc, lineIndex, isDone);
+            if (ok) changed = true;
+          }
+        }
+
+        if (changed) {
+          note.content = RichTextUtils.deltaToJson(doc.toDelta());
+          note.dateModified = DateTime.now();
+          await repo.updateNote(note);
+        }
+      }
+
+      // Clear pending queue once processed
+      await prefs.setString('widget_pending_toggles', '[]');
+    } catch (e) {
+      debugPrint('Sync pending todo toggles failed: $e');
+    }
+  }
+
+  /// Recomputes checklist notes data for the TODO AppWidget and broadcasts update.
+  static Future<void> updateTodoWidgetData() async {
+    try {
+      await syncPendingTodoToggles();
+
+      final prefs = await SharedPreferences.getInstance();
+      final repo = NoteRepository.instance;
+      final activeNotes = await repo.readAllNotes(isArchived: false, isTrashed: false);
+
+      final List<Map<String, dynamic>> todoNotes = [];
+      for (final note in activeNotes) {
+        if (!note.content.contains('list') && !note.content.contains('- [')) {
+          continue;
+        }
+
+        final delta = RichTextUtils.contentToDelta(note.content);
+        final doc = Document.fromDelta(delta);
+        final items = QuillChecklistHelper.extractChecklistData(doc);
+        if (items.isNotEmpty) {
+          todoNotes.add({
+            'id': note.id,
+            'title': note.title.trim().isEmpty ? 'Untitled Note' : note.title.trim(),
+            'items': items.map((it) => it.toJson()).toList(),
+          });
+        }
+      }
+
+      await prefs.setString('widget_todo_notes_json', json.encode(todoNotes));
+
+      final activeNoteId = prefs.getString('widget_active_note_id');
+      if (activeNoteId != null && activeNoteId != 'ALL_NOTES') {
+        final exists = todoNotes.any((n) => n['id'] == activeNoteId);
+        if (!exists) {
+          await prefs.setString('widget_active_note_id', 'ALL_NOTES');
+        }
+      }
+
+      await _channel.invokeMethod('updateWidget');
+    } catch (e) {
+      debugPrint('Todo widget update failed: $e');
+    }
+  }
+
+  /// Appends a new checklist item to the specified note (or default/new checklist note)
+  /// and updates widget data.
+  static Future<void> quickAddTask({
+    String? noteId,
+    required String taskText,
+  }) async {
+    final cleaned = taskText.trim();
+    if (cleaned.isEmpty) return;
+
+    try {
+      await syncPendingTodoToggles();
+
+      final repo = NoteRepository.instance;
+      Note? targetNote;
+
+      if (noteId != null && noteId.isNotEmpty && noteId != 'ALL_NOTES') {
+        targetNote = await repo.readNote(noteId);
+      }
+
+      if (targetNote == null) {
+        // Find existing "My Tasks" or first checklist note
+        final activeNotes = await repo.readAllNotes(isArchived: false, isTrashed: false);
+        for (final n in activeNotes) {
+          if (n.title.trim().toLowerCase() == 'my tasks' ||
+              n.title.trim().toLowerCase() == 'todo' ||
+              n.title.trim().toLowerCase() == 'tasks') {
+            targetNote = n;
+            break;
+          }
+        }
+
+        if (targetNote == null && activeNotes.isNotEmpty) {
+          for (final n in activeNotes) {
+            if (n.content.contains('list') || n.content.contains('- [')) {
+              targetNote = n;
+              break;
+            }
+          }
+        }
+      }
+
+      if (targetNote != null) {
+        final delta = RichTextUtils.contentToDelta(targetNote.content);
+        final doc = Document.fromDelta(delta);
+        QuillChecklistHelper.appendChecklistItem(doc, cleaned);
+        targetNote.content = RichTextUtils.deltaToJson(doc.toDelta());
+        targetNote.dateModified = DateTime.now();
+        await repo.updateNote(targetNote);
+      } else {
+        // Create new "My Tasks" note
+        final now = DateTime.now();
+        final doc = Document();
+        QuillChecklistHelper.appendChecklistItem(doc, cleaned);
+        final newNote = Note(
+          id: now.millisecondsSinceEpoch.toString(),
+          title: 'My Tasks',
+          content: RichTextUtils.deltaToJson(doc.toDelta()),
+          dateCreated: now,
+          dateModified: now,
+          category: 'Notes',
+        );
+        await repo.createNote(newNote);
+      }
+
+      await updateTodoWidgetData();
+    } catch (e) {
+      debugPrint('Quick add task failed: $e');
+    }
+  }
+
+  /// Requests the host launcher to pin the Todo & Checklist widget to the home screen.
+  static Future<bool> pinTodoWidget() async {
+    try {
+      final res = await _channel.invokeMethod<bool>('pinTodoWidget');
+      return res ?? false;
+    } catch (e) {
+      debugPrint('Pin widget failed: $e');
+      return false;
     }
   }
 }

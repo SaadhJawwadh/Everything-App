@@ -32,6 +32,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../../../utils/app_globals.dart';
 import 'package:flutter/services.dart';
 import '../../../../widgets/bouncing_widget.dart';
+import '../../../../core/services/app_haptics.dart';
 
 import '../../../../widgets/editor/editor_table_dialog.dart';
 import '../../../../widgets/editor/editor_note_details_sheet.dart';
@@ -452,7 +453,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     final docLen = _quillController.document.length;
     if (!selection.isValid || docLen <= 0) return;
 
-    HapticFeedback.selectionClick();
+    AppHaptics.selectionClick();
     _focusNode.requestFocus();
 
     final currentExtent = selection.extentOffset;
@@ -485,7 +486,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     final docLen = _quillController.document.length;
     if (!selection.isValid || docLen <= 0) return;
 
-    HapticFeedback.selectionClick();
+    AppHaptics.selectionClick();
     _focusNode.requestFocus();
 
     final currentExtent = selection.extentOffset;
@@ -518,7 +519,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     final text = _quillController.document.toPlainText();
     if (!selection.isValid || text.isEmpty) return;
 
-    HapticFeedback.selectionClick();
+    AppHaptics.selectionClick();
     _focusNode.requestFocus();
 
     final currentOffset = selection.extentOffset.clamp(0, text.length - 1);
@@ -550,7 +551,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     final text = _quillController.document.toPlainText();
     if (!selection.isValid || text.isEmpty) return;
 
-    HapticFeedback.selectionClick();
+    AppHaptics.selectionClick();
     _focusNode.requestFocus();
 
     final currentOffset = selection.extentOffset.clamp(0, text.length - 1);
@@ -663,7 +664,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   void _executeSlashCommand(String command) {
-    HapticFeedback.lightImpact();
+    AppHaptics.lightImpact();
     final currentCursor = _quillController.selection.baseOffset;
     final deleteLength = currentCursor - _slashLineStart;
     if (deleteLength > 0 && deleteLength <= currentCursor) {
@@ -1141,7 +1142,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   Future<void> _pickReminder() async {
-    await HapticFeedback.selectionClick();
     final now = DateTime.now();
     final initial = _reminderAt ?? now.add(const Duration(hours: 1));
 
@@ -1175,7 +1175,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   void _clearReminder() {
-    HapticFeedback.selectionClick();
+    AppHaptics.selectionClick();
     setState(() => _reminderAt = null);
     _onContentChanged();
   }
@@ -1207,7 +1207,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   void _toggleCaseSensitive() {
-    HapticFeedback.selectionClick();
+    AppHaptics.selectionClick();
     setState(() {
       _isCaseSensitive = !_isCaseSensitive;
     });
@@ -1223,7 +1223,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
   void _nextSearchMatch() {
     if (_searchOffsets.isEmpty) return;
-    HapticFeedback.selectionClick();
+    AppHaptics.selectionClick();
     setState(() {
       _currentSearchIndex = (_currentSearchIndex + 1) % _searchOffsets.length;
       _jumpToMatch(_searchOffsets[_currentSearchIndex], _searchController.text.length);
@@ -1232,7 +1232,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
   void _previousSearchMatch() {
     if (_searchOffsets.isEmpty) return;
-    HapticFeedback.selectionClick();
+    AppHaptics.selectionClick();
     setState(() {
       _currentSearchIndex = (_currentSearchIndex - 1 + _searchOffsets.length) % _searchOffsets.length;
       _jumpToMatch(_searchOffsets[_currentSearchIndex], _searchController.text.length);
@@ -1240,7 +1240,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   void _closeSearch() {
-    HapticFeedback.selectionClick();
     setState(() {
       _isSearching = false;
       _searchController.clear();
@@ -1293,7 +1292,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   /// Jump-to-heading navigation for long notes.
   /// Displays word count, character count, reading time, and note timestamps.
   void _showNoteDetailsSheet() {
-    HapticFeedback.lightImpact();
     final plainText = _quillController.document.toPlainText();
     EditorNoteDetailsSheet.show(
       context,
@@ -1306,7 +1304,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
   /// Displays sharing options for exporting plain text, markdown, or copying to clipboard.
   void _showShareExportSheet() {
-    HapticFeedback.lightImpact();
     final title = _titleController.text.trim();
     final delta = _quillController.document.toDelta();
     final markdown = RichTextUtils.deltaToMarkdown(delta);
@@ -1403,7 +1400,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   void _openStoryCardStudio({bool selectedOnly = false}) {
-    HapticFeedback.lightImpact();
     final title = _titleController.text.trim();
     String textToExport = '';
 
@@ -1442,7 +1438,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
   /// Lets the user file the note into a folder (or create a new one).
   Future<void> _pickFolder() async {
-    await HapticFeedback.selectionClick();
     final folders = await NoteRepository.instance.getAllFolders();
     if (!mounted) return;
 
@@ -1523,7 +1518,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   /// Toggles the per-note biometric lock; toggling in either direction
   /// requires device authentication so a bystander can't unlock a note.
   Future<void> _toggleNoteLock() async {
-    await HapticFeedback.selectionClick();
+    AppHaptics.selectionClick();
     try {
       AppLockScreen.ignoreNextResumeLock();
       final didAuthenticate = await LocalAuthentication().authenticate(
@@ -2328,10 +2323,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         trailing: Icon(Icons.chevron_right_rounded,
             size: 18, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-        onTap: () {
-          HapticFeedback.lightImpact();
-          onTap();
-        },
+        onTap: onTap,
       ),
     );
   }
@@ -2757,7 +2749,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                             color: theme.colorScheme.onSurfaceVariant,
                                             tooltip: 'Clear search text',
                                             onPressed: () {
-                                              HapticFeedback.selectionClick();
                                               _searchController.clear();
                                               _performSearch('');
                                             },
@@ -2824,7 +2815,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                       ),
                                       color: theme.colorScheme.surfaceContainerHigh,
                                       onSelected: (value) {
-                                        HapticFeedback.selectionClick();
                                         switch (value) {
                                           case 'reminder':
                                             _pickReminder();
@@ -3131,7 +3121,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                               children: [
                                                 InkWell(
                                                   onTap: () {
-                                                    HapticFeedback.selectionClick();
                                                     setState(() {
                                                       _isCompletedCollapsed = !_isCompletedCollapsed;
                                                     });
@@ -3166,7 +3155,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                                             visualDensity: VisualDensity.compact,
                                                             color: noteScheme.onSurfaceVariant,
                                                             onPressed: () async {
-                                                              await HapticFeedback.mediumImpact();
+                                                              AppHaptics.mediumImpact();
                                                               if (!context.mounted) return;
                                                               final itemsToRestore = List<String>.from(_completedItems);
                                                               setState(() {
@@ -3197,7 +3186,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                                             visualDensity: VisualDensity.compact,
                                                             color: theme.colorScheme.error,
                                                             onPressed: () async {
-                                                              await HapticFeedback.mediumImpact();
+                                                              AppHaptics.mediumImpact();
                                                               if (!context.mounted) return;
                                                               final confirm = await showDialog<bool>(
                                                                 context: context,
@@ -3243,7 +3232,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                                               Checkbox(
                                                                 value: true,
                                                                 onChanged: (val) async {
-                                                                  await HapticFeedback.selectionClick();
+                                                                  AppHaptics.selectionClick();
                                                                   final itemToRestore = item;
                                                                   setState(() {
                                                                     _completedItems.remove(itemToRestore);
@@ -3279,7 +3268,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                                                 padding: EdgeInsets.zero,
                                                                 constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
                                                                 onPressed: () async {
-                                                                  await HapticFeedback.lightImpact();
+                                                                  AppHaptics.selectionClick();
                                                                   _completedItems.remove(item);
                                                                   await saveNote();
                                                                   if (context.mounted) setState(() {});
@@ -3479,9 +3468,8 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                                   child: InkWell(
                                                     customBorder:
                                                         const CircleBorder(),
-                                                    onTap: () async {
-                                                      await HapticFeedback
-                                                          .lightImpact();
+                                                    onTap: () {
+                                                      AppHaptics.selectionClick();
                                                       setState(() {
                                                         _dismissedUrls.add(url);
                                                         _noteUrls.remove(url);
@@ -4202,7 +4190,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                     onPressed: () async {
                                       final messenger =
                                           ScaffoldMessenger.of(context);
-                                      await HapticFeedback.lightImpact();
+                                      AppHaptics.selectionClick();
                                       await Clipboard.setData(
                                           ClipboardData(text: _aiSummary!));
                                       messenger.showSnackBar(
@@ -4219,7 +4207,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                     icon: const Icon(Icons.add, size: 16),
                                     label: const Text('Append'),
                                     onPressed: () async {
-                                      await HapticFeedback.lightImpact();
+                                      AppHaptics.mediumImpact();
                                       final currentLength =
                                           _quillController.document.length;
                                       _quillController.replaceText(
@@ -4303,9 +4291,9 @@ class RoundedImageEmbedBuilder extends EmbedBuilder {
           ),
         );
       },
-      onLongPress: () async {
+      onLongPress: () {
         if (!embedContext.readOnly) {
-          await HapticFeedback.mediumImpact();
+          AppHaptics.mediumImpact();
           if (context.mounted) {
             _showImageActions(context, controller, node, imageUrl, isUrl, file);
           }

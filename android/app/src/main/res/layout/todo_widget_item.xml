@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/todo_item_container"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="44dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="4dp"
+    android:paddingEnd="8dp"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp">
+
+    <FrameLayout
+        android:id="@+id/todo_item_check_touch"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:gravity="center">
+
+        <ImageView
+            android:id="@+id/todo_item_checkbox"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_checkbox_unchecked"
+            android:contentDescription="Toggle Task" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/todo_item_text_container"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="4dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/todo_item_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/google_sans_flex"
+            android:textSize="13.5sp"
+            android:textColor="@color/widget_text_primary"
+            android:maxLines="2"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/todo_item_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/google_sans_flex"
+            android:textSize="11sp"
+            android:textColor="@color/widget_primary"
+            android:textStyle="bold"
+            android:visibility="gone" />
+    </LinearLayout>
+
+</LinearLayout>

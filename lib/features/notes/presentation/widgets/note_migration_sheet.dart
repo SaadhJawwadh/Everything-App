@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../../../core/services/app_haptics.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_layout.dart';
@@ -34,7 +34,6 @@ class _NoteMigrationSheetState extends State<NoteMigrationSheet> {
 
   Future<void> _pickFiles() async {
     setState(() => _isLoading = true);
-    await HapticFeedback.lightImpact();
     try {
       final notes = await NoteMigrationService.pickAndParseNotes();
       if (!mounted) return;
@@ -62,7 +61,6 @@ class _NoteMigrationSheetState extends State<NoteMigrationSheet> {
   }
 
   Future<void> _launchGoogleTakeout() async {
-    await HapticFeedback.lightImpact();
     AppLockScreen.ignoreNextResumeLock();
     final uri = Uri.parse('https://takeout.google.com/settings/takeout/custom/keep');
     try {
@@ -90,7 +88,7 @@ class _NoteMigrationSheetState extends State<NoteMigrationSheet> {
   Future<void> _performImport() async {
     if (_parsedNotes == null || _parsedNotes!.isEmpty) return;
     setState(() => _isLoading = true);
-    await HapticFeedback.mediumImpact();
+    AppHaptics.mediumImpact();
 
     try {
       final result = await NoteMigrationService.batchInsertNotes(_parsedNotes!);
@@ -117,7 +115,7 @@ class _NoteMigrationSheetState extends State<NoteMigrationSheet> {
                     label: 'UNDO',
                     textColor: theme.colorScheme.inversePrimary,
                     onPressed: () async {
-                      await HapticFeedback.mediumImpact();
+                      AppHaptics.mediumImpact();
                       final count = await NoteMigrationService.undoImport(result.importedNoteIds);
                       await noteProvider.refreshNotes();
                       messenger.showSnackBar(

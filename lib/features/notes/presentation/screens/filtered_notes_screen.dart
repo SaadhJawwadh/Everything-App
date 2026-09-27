@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:note_taking_app/core/services/app_haptics.dart';
 import 'package:provider/provider.dart';
 import 'package:note_taking_app/features/notes/data/note_repository.dart';
 import 'package:note_taking_app/data/note_model.dart';
@@ -46,7 +46,7 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
   }
 
   void _toggleSelection(String id) {
-    HapticFeedback.selectionClick();
+    AppHaptics.selectionClick();
     ScaffoldMessenger.of(context).clearSnackBars();
     setState(() {
       if (_selectedNoteIds.contains(id)) {
@@ -58,14 +58,14 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
   }
 
   void _clearSelection() {
-    HapticFeedback.selectionClick();
+    AppHaptics.selectionClick();
     setState(() {
       _selectedNoteIds.clear();
     });
   }
 
   void _selectAll() {
-    HapticFeedback.selectionClick();
+    AppHaptics.selectionClick();
     setState(() {
       _selectedNoteIds.clear();
       for (final n in displayedNotes) {
@@ -75,7 +75,7 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
   }
 
   Future<void> _bulkRestore() async {
-    await HapticFeedback.mediumImpact();
+    AppHaptics.mediumImpact();
     final count = _selectedNoteIds.length;
     final idsToRestore = List<String>.from(_selectedNoteIds);
     for (final id in idsToRestore) {
@@ -95,7 +95,7 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
   }
 
   Future<void> _bulkDeletePermanently() async {
-    await HapticFeedback.mediumImpact();
+    AppHaptics.mediumImpact();
     final count = _selectedNoteIds.length;
     final idsToDelete = List<String>.from(_selectedNoteIds);
 
@@ -141,7 +141,7 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
   }
 
   Future<void> _bulkUnarchive() async {
-    await HapticFeedback.mediumImpact();
+    AppHaptics.mediumImpact();
     final count = _selectedNoteIds.length;
     final idsToUnarchive = List<String>.from(_selectedNoteIds);
     for (final id in idsToUnarchive) {
@@ -161,7 +161,7 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
   }
 
   Future<void> _bulkMoveToTrash() async {
-    await HapticFeedback.mediumImpact();
+    AppHaptics.mediumImpact();
     final count = _selectedNoteIds.length;
     final idsToTrash = List<String>.from(_selectedNoteIds);
     for (final id in idsToTrash) {

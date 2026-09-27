@@ -32,7 +32,7 @@ class SavingsGoalsCard extends StatelessWidget {
         'Rs.';
 
     final provider = Provider.of<SavingsGoalProvider?>(context);
-    final goals = provider?.activeGoals ?? const <SavingsGoal>[];
+    final goals = provider?.goals ?? const <SavingsGoal>[];
 
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -263,14 +263,25 @@ class SavingsGoalsCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final goalColor = Color(goal.colorValue);
 
+    final settings = Provider.of<SettingsProvider?>(context);
+    final showDelight = settings?.showMilestoneDelight ?? true;
+    final isAchieved = goal.isCompleted || (goal.targetAmount > 0 && goal.currentAmount >= goal.targetAmount);
+    final isFinishLine = showDelight && !isAchieved && goal.progressPercent >= 75 && goal.remainingAmount > 0;
+
     return Container(
       padding: const EdgeInsets.all(AppLayout.spaceL),
       decoration: BoxDecoration(
         color: goalColor.withValues(alpha: isDark ? 0.12 : 0.05),
         borderRadius: BorderRadius.circular(AppLayout.radiusL),
         border: Border.all(
-          color: goalColor.withValues(alpha: isDark ? 0.35 : 0.22),
-          width: 1.2,
+          color: goalColor.withValues(
+            alpha: isAchieved && showDelight
+                ? (isDark ? 0.55 : 0.4)
+                : (isFinishLine
+                    ? (isDark ? 0.5 : 0.35)
+                    : (isDark ? 0.35 : 0.22)),
+          ),
+          width: (isAchieved && showDelight) || isFinishLine ? 1.5 : 1.2,
         ),
       ),
       child: Column(
@@ -418,7 +429,47 @@ class SavingsGoalsCard extends StatelessWidget {
               ),
               Row(
                 children: [
-                  if (goal.milestoneLabel.isNotEmpty)
+                  if (isAchieved && showDelight)
+                    Container(
+                      margin: const EdgeInsets.only(right: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                      decoration: BoxDecoration(
+                        color: goalColor.withValues(alpha: 0.22),
+                        borderRadius: BorderRadius.circular(AppLayout.radiusS),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.celebration_rounded, size: 11, color: goalColor),
+                          const SizedBox(width: 3),
+                          Text(
+                            'Fully Funded',
+                            style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: goalColor),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (isFinishLine)
+                    Container(
+                      margin: const EdgeInsets.only(right: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                      decoration: BoxDecoration(
+                        color: goalColor.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(AppLayout.radiusS),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.flag_circle_rounded, size: 12, color: goalColor),
+                          const SizedBox(width: 3),
+                          Text(
+                            'Only $currency ${goal.remainingAmount.toStringAsFixed(0)} left!',
+                            style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: goalColor),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (goal.milestoneLabel.isNotEmpty)
                     Container(
                       margin: const EdgeInsets.only(right: 6),
                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
@@ -458,45 +509,75 @@ class SavingsGoalsCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.speed_rounded, size: 14, color: colorScheme.onSurfaceVariant),
-                        const SizedBox(width: 4),
-                        Text(
-                          '$currency ${goal.effectiveMonthlyPace.toStringAsFixed(0)} / mo',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: colorScheme.onSurfaceVariant,
+                child: isAchieved
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.task_alt_rounded, size: 14, color: goalColor),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Goal Completed',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: goalColor,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '~${goal.estimatedMonthsRemaining} months left to reach target',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 11,
-                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Target of $currency ${goal.targetAmount.toStringAsFixed(0)} achieved',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 11,
+                              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.speed_rounded, size: 14, color: colorScheme.onSurfaceVariant),
+                              const SizedBox(width: 4),
+                              Text(
+                                '$currency ${goal.effectiveMonthlyPace.toStringAsFixed(0)} / mo',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '~${goal.estimatedMonthsRemaining} months left to reach target',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontSize: 11,
+                              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
               ),
               FilledButton.tonalIcon(
                 style: FilledButton.styleFrom(
                   visualDensity: VisualDensity.compact,
-                  backgroundColor: goalColor.withValues(alpha: 0.2),
+                  backgroundColor: goalColor.withValues(alpha: isAchieved ? 0.15 : 0.2),
                   foregroundColor: goalColor,
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppLayout.radiusM),
                   ),
                 ),
-                icon: const Icon(Icons.add_rounded, size: 16),
-                label: const Text('Deposit', style: TextStyle(fontWeight: FontWeight.bold)),
+                icon: Icon(isAchieved ? Icons.check_rounded : Icons.add_rounded, size: 16),
+                label: Text(
+                  isAchieved ? 'Completed' : 'Deposit',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 onPressed: () => SavingsGoalDepositSheet.show(context, goal: goal),
               ),
             ],

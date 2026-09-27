@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../services/app_haptics.dart';
 import '../theme/app_layout.dart';
 
 /// Material 3 Expressive Split Button.
@@ -58,7 +58,7 @@ class ExpressiveSplitButton<T> extends StatelessWidget {
               message: primaryTooltip ?? label,
               child: InkWell(
                 onTap: () {
-                  HapticFeedback.lightImpact();
+                  AppHaptics.lightImpact();
                   onPrimaryPressed();
                 },
                 child: Padding(
@@ -106,7 +106,7 @@ class ExpressiveSplitButton<T> extends StatelessWidget {
                 ),
               ),
               onSelected: (val) {
-                HapticFeedback.selectionClick();
+                AppHaptics.selectionClick();
                 onSelected(val);
               },
               itemBuilder: (context) => menuItems,

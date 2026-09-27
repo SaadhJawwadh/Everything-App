@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import '../../../../core/services/app_haptics.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../core/ui/app_card.dart';
@@ -18,7 +18,6 @@ class SavingsGoalEditorSheet extends StatefulWidget {
   const SavingsGoalEditorSheet({super.key, this.goal});
 
   static Future<void> show(BuildContext context, {SavingsGoal? goal}) {
-    HapticFeedback.lightImpact();
     return AppBottomSheet.show(
       context: context,
       isScrollControlled: true,
@@ -177,11 +176,12 @@ class _SavingsGoalEditorSheetState extends State<SavingsGoalEditorSheet> {
     final provider = context.read<SavingsGoalProvider>();
 
     if (widget.goal == null) {
+      final initialInGoal = _recordInitialInLedger ? 0.0 : initialAmount;
       final newGoal = SavingsGoal(
         id: const Uuid().v4(),
         title: title,
         targetAmount: targetAmount,
-        currentAmount: initialAmount,
+        currentAmount: initialInGoal,
         targetMonths: _targetMonths,
         monthlyContribution: monthlyPace,
         targetDate: _computeTargetDate(),
@@ -218,6 +218,7 @@ class _SavingsGoalEditorSheetState extends State<SavingsGoalEditorSheet> {
       await provider.updateGoal(updated);
     }
 
+    AppHaptics.mediumImpact();
     if (mounted) Navigator.pop(context);
   }
 
@@ -337,7 +338,6 @@ class _SavingsGoalEditorSheetState extends State<SavingsGoalEditorSheet> {
                         icon: Icon(_planByMonthlyPace ? Icons.timeline_rounded : Icons.calculate_outlined, size: 16),
                         label: Text(_planByMonthlyPace ? 'By Months' : 'By Monthly Pace', style: const TextStyle(fontSize: 12)),
                         onPressed: () {
-                          HapticFeedback.lightImpact();
                           setState(() {
                             _planByMonthlyPace = !_planByMonthlyPace;
                             if (!_planByMonthlyPace) _recalculatePacing();
@@ -360,7 +360,6 @@ class _SavingsGoalEditorSheetState extends State<SavingsGoalEditorSheet> {
                           label: Text('$m mos'),
                           selected: selected,
                           onSelected: (_) {
-                            HapticFeedback.lightImpact();
                             setState(() {
                               _targetMonths = m;
                               _recalculatePacing();
@@ -482,7 +481,6 @@ class _SavingsGoalEditorSheetState extends State<SavingsGoalEditorSheet> {
               ],
               selected: {_account},
               onSelectionChanged: (set) {
-                HapticFeedback.lightImpact();
                 setState(() => _account = set.first);
               },
             ),
@@ -501,7 +499,6 @@ class _SavingsGoalEditorSheetState extends State<SavingsGoalEditorSheet> {
                   label: Text(cat),
                   selected: selected,
                   onSelected: (_) {
-                    HapticFeedback.lightImpact();
                     setState(() => _category = cat);
                   },
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppLayout.radiusS)),
@@ -524,7 +521,6 @@ class _SavingsGoalEditorSheetState extends State<SavingsGoalEditorSheet> {
                         final selected = _colorValue == c;
                         return GestureDetector(
                           onTap: () {
-                            HapticFeedback.lightImpact();
                             setState(() => _colorValue = c);
                           },
                           child: Container(
@@ -576,7 +572,6 @@ class _SavingsGoalEditorSheetState extends State<SavingsGoalEditorSheet> {
                     ),
                     icon: Icon(ic, size: 22),
                     onPressed: () {
-                      HapticFeedback.lightImpact();
                       setState(() => _iconCodePoint = ic.codePoint);
                     },
                   );

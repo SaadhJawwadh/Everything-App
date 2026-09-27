@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../theme/app_layout.dart';
 
 /// Material 3 Expressive borderless surface top app bar.
@@ -36,7 +35,6 @@ class ExpressiveSliverAppBar extends StatelessWidget {
         tooltip: 'Back',
         onPressed: onBackPressed ??
             () {
-              HapticFeedback.selectionClick();
               Navigator.pop(context);
             },
       );

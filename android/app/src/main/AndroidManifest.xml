@@ -130,6 +130,30 @@
                 android:resource="@xml/notes_widget_info" />
         </receiver>
 
+        <!-- Todo & Checklist Home Screen Widget Provider -->
+        <receiver android:name=".TodoWidgetProvider" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/todo_widget_info" />
+        </receiver>
+
+        <!-- Todo Widget Action Receiver for 0ms Desktop Interaction -->
+        <receiver android:name=".TodoWidgetActionReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="com.saadhjawwadh.notebook.ACTION_CYCLE_NOTE" />
+                <action android:name="com.saadhjawwadh.notebook.ACTION_ITEM_CLICK" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Todo Widget RemoteViews Collection Service -->
+        <service
+            android:name=".TodoWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
+
         <!-- FileProvider for Story Cards clipboard & local image sharing -->
         <provider
             android:name="androidx.core.content.FileProvider"

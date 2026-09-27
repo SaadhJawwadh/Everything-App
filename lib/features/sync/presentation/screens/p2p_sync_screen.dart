@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:note_taking_app/core/services/app_haptics.dart';
 import 'package:note_taking_app/core/theme/app_layout.dart';
 import 'package:note_taking_app/core/ui/app_card.dart';
 import 'package:note_taking_app/core/ui/app_bottom_sheet.dart';
@@ -523,7 +524,7 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                  icon: const Icon(Icons.refresh_rounded),
                                  tooltip: 'Refresh Wi-Fi IP Address',
                                  onPressed: () async {
-                                   await HapticFeedback.lightImpact();
+                                   AppHaptics.mediumImpact();
                                    await syncProvider.refreshDiagnostics();
                                    if (context.mounted) {
                                      final ip = syncProvider.localIpAddress;
@@ -587,7 +588,7 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                           visualDensity: VisualDensity.compact,
                                           tooltip: 'Copy Pair Code',
                                           onPressed: () {
-                                            HapticFeedback.selectionClick();
+                                            AppHaptics.selectionClick();
                                             Clipboard.setData(ClipboardData(text: syncProvider.currentPairCode));
                                             ScaffoldMessenger.of(context).showSnackBar(
                                               const SnackBar(
@@ -636,7 +637,7 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                             visualDensity: VisualDensity.compact,
                                             tooltip: 'Copy IP Address',
                                             onPressed: () {
-                                              HapticFeedback.selectionClick();
+                                              AppHaptics.selectionClick();
                                               Clipboard.setData(ClipboardData(text: syncProvider.localIpAddress!));
                                               ScaffoldMessenger.of(context).showSnackBar(
                                                 const SnackBar(

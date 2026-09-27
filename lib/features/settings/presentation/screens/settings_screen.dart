@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
+import '../../../../core/services/app_haptics.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:io';
@@ -116,7 +116,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
                   : null,
               onTap: () {
-                HapticFeedback.selectionClick();
+                AppHaptics.selectionClick();
                 settings.setTrashAutoPurgeDays(opt.days);
                 Navigator.pop(context);
               },
@@ -166,7 +166,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
                 : null,
             onTap: () {
-              HapticFeedback.selectionClick();
+              AppHaptics.selectionClick();
               settings.setThemeMode(opt.mode);
               Navigator.pop(context);
             },
@@ -288,7 +288,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     onSelected: (selected) {
                       if (selected) {
-                        HapticFeedback.selectionClick();
+                        AppHaptics.selectionClick();
                         setSheetState(() => currentSize = p.size);
                         settings.setTextSize(p.size);
                       }
@@ -381,7 +381,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             constraints: const BoxConstraints(),
                             visualDensity: VisualDensity.compact,
                             onPressed: () {
-                              HapticFeedback.selectionClick();
+                              AppHaptics.selectionClick();
                               _searchController.clear();
                               setState(() {
                                 _searchQuery = '';
@@ -411,7 +411,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             label: cat,
                             isSelected: isSelected,
                             onTap: () {
-                              HapticFeedback.selectionClick();
+                              AppHaptics.selectionClick();
                               setState(() {
                                 _selectedSearchCategory = cat;
                               });
@@ -464,7 +464,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                               label: Text(term),
                                               avatar: const Icon(Icons.search, size: 14),
                                               onPressed: () {
-                                                HapticFeedback.selectionClick();
+                                                AppHaptics.selectionClick();
                                                 _searchController.text = term;
                                                 setState(() {
                                                   _searchQuery = term;
@@ -497,11 +497,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   currentThemeMode: settings.themeMode,
                                   onThemeModeChanged: settings.setThemeMode,
                                   onAppLockTap: () {
-                                    HapticFeedback.selectionClick();
+                                    AppHaptics.selectionClick();
                                     settings.setAppLockEnabled(!settings.appLockEnabled);
                                   },
                                   onBackupTap: () {
-                                    HapticFeedback.selectionClick();
+                                    AppHaptics.selectionClick();
                                     BackupService.exportBackup(context);
                                   },
                                 ),
@@ -519,6 +519,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       subtitle: 'Match app colors with device wallpaper (Android 12+)',
                                       value: settings.useDynamicColor,
                                       onChanged: settings.setUseDynamicColor,
+                                    ),
+                                    const _Divider(),
+                                    SettingsSwitchTile(
+                                      icon: Icons.vibration_rounded,
+                                      iconColor: colorScheme.tertiary,
+                                      title: 'Tactile Haptics',
+                                      subtitle: 'Restrained physical feedback for sliders, long-press, and actions',
+                                      value: settings.enableHaptics,
+                                      onChanged: settings.setEnableHaptics,
                                     ),
                                     const _Divider(),
                                     SettingsSegmentedTile<double>(
@@ -586,6 +595,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       subtitle: 'Move finished to-do items to a bottom section',
                                       value: settings.moveCompletedChecklistsToBottom,
                                       onChanged: settings.setMoveCompletedChecklistsToBottom,
+                                    ),
+                                    const _Divider(),
+                                    SettingsSwitchTile(
+                                      icon: Icons.celebration_outlined,
+                                      iconColor: const Color(0xFFF59E0B),
+                                      title: 'Milestone Celebrations',
+                                      subtitle: 'Calm celebrations when reaching savings goals and settling debts',
+                                      value: settings.showMilestoneDelight,
+                                      onChanged: settings.setShowMilestoneDelight,
+                                    ),
+                                    const _Divider(),
+                                    SettingsSwitchTile(
+                                      icon: Icons.calendar_view_week_rounded,
+                                      iconColor: colorScheme.primary,
+                                      title: 'Days of Clarity Strip',
+                                      subtitle: 'Visualize 14-day mindfulness activity without stressful streak countdowns',
+                                      value: settings.showClarityMosaic,
+                                      onChanged: settings.setShowClarityMosaic,
                                     ),
                                     const _Divider(),
                                     SettingsTile(
@@ -917,7 +944,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           subtitle: 'Trigger and verify background auto-backup immediately',
                                           showArrow: true,
                                           onTap: () async {
-                                            await HapticFeedback.selectionClick();
+                                            AppHaptics.selectionClick();
                                             if (context.mounted) {
                                               await BackupService.performAutoBackupNow(context);
                                             }
@@ -966,7 +993,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       subtitle: 'Trigger a sample diagnostic alert immediately',
                                       showArrow: true,
                                       onTap: () async {
-                                        await HapticFeedback.selectionClick();
+                                        AppHaptics.selectionClick();
                                         await NotificationService.showTestNotification();
                                         if (context.mounted) {
                                           ScaffoldMessenger.of(context).clearSnackBars();
@@ -1136,6 +1163,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'Appearance',
       'Dynamic Wallpaper Theme',
       'Match app colors with device wallpaper (Android 12+)',
+    );
+    addTile(
+      SettingsSwitchTile(
+        icon: Icons.vibration_rounded,
+        title: 'Tactile Haptics',
+        subtitle: 'Restrained physical feedback for sliders, long-press, and actions',
+        value: settings.enableHaptics,
+        onChanged: settings.setEnableHaptics,
+      ),
+      'Appearance',
+      'Tactile Haptics',
+      'Restrained physical feedback for sliders, long-press, and actions vibration',
     );
     addTile(
       SettingsTile(
@@ -1528,7 +1567,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         subtitle: 'Trigger a sample diagnostic alert immediately',
         showArrow: true,
         onTap: () async {
-          await HapticFeedback.selectionClick();
+          AppHaptics.selectionClick();
           await NotificationService.showTestNotification();
           if (context.mounted) {
             ScaffoldMessenger.of(context).clearSnackBars();
@@ -1737,7 +1776,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
                   : null,
               onTap: () {
-                HapticFeedback.selectionClick();
+                AppHaptics.selectionClick();
                 settings.setSelectedLanguage(code);
                 Navigator.pop(context);
               },
@@ -1796,7 +1835,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
                     : null,
                 onTap: () {
-                  HapticFeedback.selectionClick();
+                  AppHaptics.selectionClick();
                   Navigator.pop(context);
                   _showCustomCurrencyDialog(context, settings);
                 },
@@ -1845,7 +1884,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
                   : null,
               onTap: () {
-                HapticFeedback.selectionClick();
+                AppHaptics.selectionClick();
                 settings.setCurrency(info.code);
                 WidgetHelper.updateWidgetData();
                 Navigator.pop(context);
@@ -1897,7 +1936,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(width: 8),
               FilledButton(
                 onPressed: () {
-                  HapticFeedback.selectionClick();
+                  AppHaptics.selectionClick();
                   final val = controller.text.trim().toUpperCase();
                   if (val.isNotEmpty) {
                     settings.setCurrency(val);
@@ -1953,7 +1992,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(width: 8),
               FilledButton(
                 onPressed: () {
-                  HapticFeedback.selectionClick();
+                  AppHaptics.selectionClick();
                   if (controller.text.trim().isNotEmpty) {
                     settings.setDiscreetNotificationText(controller.text.trim());
                   }
@@ -2029,7 +2068,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
                 : null,
             onTap: () async {
-              await HapticFeedback.selectionClick();
+              AppHaptics.selectionClick();
               await settings.setAutoBackupFrequency(opt.value);
               await syncAutoBackupSchedule();
               if (context.mounted) Navigator.pop(context);
@@ -2071,7 +2110,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
                 : null,
             onTap: () async {
-              await HapticFeedback.selectionClick();
+              AppHaptics.selectionClick();
               await settings.setAutoBackupPath(null);
               await syncAutoBackupSchedule();
               if (context.mounted) Navigator.pop(context);
@@ -2100,7 +2139,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
                 : null,
             onTap: () async {
-              await HapticFeedback.selectionClick();
+              AppHaptics.selectionClick();
               if (context.mounted) Navigator.pop(context);
               AppLockScreen.ignoreNextResumeLock();
               final dir = await FilePicker.platform.getDirectoryPath();
@@ -2171,7 +2210,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
                 : null,
             onTap: () {
-              HapticFeedback.selectionClick();
+              AppHaptics.selectionClick();
               settings.setAppLockTimeout(opt.value);
               Navigator.pop(context);
             },
@@ -2235,7 +2274,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final routingMap = Map<String, String>.from(settings.categoryAccountRouting);
 
     Future<void> saveAndClose(BuildContext ctx) async {
-      await HapticFeedback.lightImpact();
+      AppHaptics.mediumImpact();
       await settings.setAccount1Name(acc1Controller.text.trim());
       await settings.setAccount2Name(acc2Controller.text.trim());
       for (final cat in TransactionCategory.allNames) {
@@ -2355,7 +2394,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ],
                           selected: {currentAccount},
                           onSelectionChanged: (selected) {
-                            HapticFeedback.selectionClick();
+                            AppHaptics.selectionClick();
                             setModalState(() {
                               final sel = selected.first;
                               if (sel == null) {

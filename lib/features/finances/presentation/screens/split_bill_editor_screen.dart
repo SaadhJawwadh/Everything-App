@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/services.dart';
+import '../../../../core/services/app_haptics.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -167,7 +167,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
       return;
     }
 
-    HapticFeedback.lightImpact();
+    AppHaptics.selectionClick();
     setState(() {
       _participantsData.add({
         'id': const Uuid().v4(),
@@ -183,7 +183,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
   }
 
   void _removeParticipant(int index) {
-    HapticFeedback.lightImpact();
+    AppHaptics.selectionClick();
     setState(() {
       final removed = _participantsData.removeAt(index);
       final name = removed['name'] as String;
@@ -247,7 +247,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
   void _distributeRemainder() {
     final rem = _remainingToAllocate;
     if (rem.abs() < 0.005) return;
-    HapticFeedback.lightImpact();
+    AppHaptics.selectionClick();
 
     // If only user share is unallocated, fill it into user share
     final userText = _userExactAmountController.text.trim();
@@ -517,7 +517,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
                               });
 
                               Navigator.pop(context);
-                              HapticFeedback.mediumImpact();
+                              AppHaptics.mediumImpact();
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Tax, tip, and fees distributed proportionally!'),
@@ -691,7 +691,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
                                 label: Text(cat),
                                 selected: isSelected,
                                 onSelected: (_) {
-                                  HapticFeedback.lightImpact();
+                                  AppHaptics.selectionClick();
                                   setState(() => _selectedCategory = cat);
                                 },
                                 selectedColor: catColor.withValues(alpha: 0.2),
@@ -738,7 +738,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
                           ],
                           selected: {_isPayerUser},
                           onSelectionChanged: (set) {
-                            HapticFeedback.lightImpact();
+                            AppHaptics.selectionClick();
                             setState(() => _isPayerUser = set.first);
                           },
                         ),
@@ -797,7 +797,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
                                             label: Text(name),
                                             selected: isPayer,
                                             onSelected: (sel) {
-                                              HapticFeedback.selectionClick();
+                                              AppHaptics.selectionClick();
                                               setState(() {
                                                 _payerFriendController.text = sel ? name : '';
                                                 if (sel) {
@@ -848,7 +848,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
                           ],
                           selected: {_splitMode},
                           onSelectionChanged: (set) {
-                            HapticFeedback.lightImpact();
+                            AppHaptics.selectionClick();
                             setState(() {
                               _splitMode = set.first;
                               if (_splitMode == SplitMode.exact) {
@@ -1183,7 +1183,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
 
     final splitProvider = Provider.of<SplitBillProvider>(context, listen: false);
     setState(() => _isSaving = true);
-    await HapticFeedback.mediumImpact();
+    AppHaptics.mediumImpact();
 
     try {
       final billId = widget.existingBill?.id ?? const Uuid().v4();

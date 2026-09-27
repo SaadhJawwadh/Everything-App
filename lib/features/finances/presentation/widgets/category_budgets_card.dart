@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
+import '../../../../core/services/app_haptics.dart';
 import '../../../../data/transaction_category.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -22,7 +22,6 @@ class CategoryBudgetsCard extends StatelessWidget {
   });
 
   void _showSetBudgetDialog(BuildContext context, String category, double currentBudget) {
-    HapticFeedback.lightImpact();
     final controller = TextEditingController(
       text: currentBudget > 0 ? currentBudget.toStringAsFixed(0) : '',
     );
@@ -52,6 +51,7 @@ class CategoryBudgetsCard extends StatelessWidget {
               onPressed: () async {
                 final val = double.tryParse(controller.text.trim()) ?? 0.0;
                 await settings.setCategoryBudget(category, val);
+                AppHaptics.mediumImpact();
                 onBudgetChanged();
                 if (ctx.mounted) Navigator.pop(ctx);
               },

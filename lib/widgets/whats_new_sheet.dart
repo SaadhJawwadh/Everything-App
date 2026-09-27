@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:provider/provider.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
+import '../core/services/app_haptics.dart';
 import '../core/theme/app_layout.dart';
 import '../core/ui/app_card.dart';
 import '../widgets/bouncing_widget.dart';
@@ -17,7 +17,7 @@ class WhatsNewSheet extends StatelessWidget {
 
   void _finishWhatsNew(BuildContext context) async {
     final settings = context.read<SettingsProvider>();
-    await HapticFeedback.mediumImpact();
+    AppHaptics.mediumImpact();
     await settings.setLastSeenVersion(currentVersion);
     if (context.mounted) {
       Navigator.pop(context);
@@ -37,19 +37,19 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.language_rounded,
-            title: "Expanded Languages",
-            desc: "Full in-app support for English, Tamil, Chinese, Portuguese, Spanish, German, and French under Settings.",
+            icon: Icons.checklist_rounded,
+            title: "Interactive Home Widget",
+            desc: "Check off to-dos, monitor completion progress, and quick-add tasks directly from your home screen.",
           ),
           _WhatsNewItem(
-            icon: Icons.savings_outlined,
-            title: "Dedicated Savings Tab",
-            desc: "Manage savings goals in a dedicated tab under Budgets with 24 colors, aggregate vault analytics, and zero whitespace.",
+            icon: Icons.wb_sunny_outlined,
+            title: "Days of Clarity Strip",
+            desc: "Calm 14-day mindfulness progression strip celebrating consistency without stressful streak countdowns.",
           ),
           _WhatsNewItem(
-            icon: Icons.keyboard_arrow_down_rounded,
-            title: "Dual-State Editor Keyboard",
-            desc: "Disambiguated formatting dismiss arrow from keyboard toggle with streamlined menu controls.",
+            icon: Icons.vibration_rounded,
+            title: "Tactile Haptics Control",
+            desc: "Restrained, natural micro-vibrations across the app with a dedicated toggle under Settings.",
           ),
         ],
       ),
@@ -60,14 +60,14 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.tertiaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.translate_rounded,
-            title: "Reactive Language Switching",
-            desc: "Instant app-wide localization updates across all tabs and menus without restarting.",
+            icon: Icons.psychology_outlined,
+            title: "Calm Task Psychology",
+            desc: "Strike-through animation and collapsible completed checklist sections for focused writing.",
           ),
           _WhatsNewItem(
-            icon: Icons.auto_awesome_rounded,
-            title: "Toolbar AI Refine",
-            desc: "Refine selected transactions directly from SQLite with instant UI refresh notifications.",
+            icon: Icons.sync_rounded,
+            title: "Instant Bi-Directional Sync",
+            desc: "Real-time synchronization between the home screen widget and encrypted SQLite storage.",
           ),
         ],
       ),
@@ -78,14 +78,14 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.secondaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.account_balance_wallet_outlined,
-            title: "Savings Goal Schema",
-            desc: "Complete SQLite database persistence and direct menu integration for goal creation and deposits.",
+            icon: Icons.flash_on_rounded,
+            title: "Zero Async Haptic Overhead",
+            desc: "Eliminated UI thread pauses and unawaited futures across all interactions.",
           ),
           _WhatsNewItem(
-            icon: Icons.cleaning_services_outlined,
-            title: "Streamlined App Binary",
-            desc: "Removed unused audio dependencies and recording permissions for lighter app storage.",
+            icon: Icons.format_list_bulleted_rounded,
+            title: "Checklist Parsing Reliability",
+            desc: "Lossless to-do detection and bullet point formatting across all note types.",
           ),
         ],
       ),

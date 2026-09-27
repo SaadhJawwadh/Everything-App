@@ -158,6 +158,21 @@ void main() {
       await tester.pumpAndSettle();
       expect(settings.minimalEditorMode, isTrue);
 
+      // Test Days of Clarity Strip and Collapse Completed Checklists
+      expect(settings.showClarityMosaic, isTrue);
+      final clarityFinder = find.widgetWithText(SwitchListTile, 'Days of Clarity Strip');
+      expect(clarityFinder, findsOneWidget);
+      await tester.tap(clarityFinder, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(settings.showClarityMosaic, isFalse);
+
+      expect(settings.moveCompletedChecklistsToBottom, isFalse);
+      final collapseFinder = find.widgetWithText(SwitchListTile, 'Collapse Completed Checklists');
+      expect(collapseFinder, findsOneWidget);
+      await tester.tap(collapseFinder, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(settings.moveCompletedChecklistsToBottom, isTrue);
+
       expect(settings.showFinancialManager, isFalse);
 
       // Tap switch tile for Financial Manager
@@ -167,6 +182,37 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(settings.showFinancialManager, isTrue);
+    });
+
+    testWidgets('Toggling Tactile Haptics and selecting language inside onboarding updates settings', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 1920);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      // Go to page 2 (Personalization)
+      await tester.tap(find.text('Next'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+
+      // Test Tactile Haptics toggle
+      expect(settings.enableHaptics, isTrue);
+      final hapticsFinder = find.widgetWithText(SwitchListTile, 'Tactile Haptics');
+      expect(hapticsFinder, findsOneWidget);
+      await tester.tap(hapticsFinder, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(settings.enableHaptics, isFalse);
+
+      // Test Language selection (e.g. தமிழ்)
+      expect(settings.selectedLanguageCode, 'system');
+      final tamilFinder = find.widgetWithText(FilterChip, 'தமிழ்');
+      expect(tamilFinder, findsOneWidget);
+      await tester.ensureVisible(tamilFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(tamilFinder, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(settings.selectedLanguageCode, 'ta');
     });
 
     testWidgets('Tapping Configure P2P Sync on page 4 navigates to P2pSyncScreen', (WidgetTester tester) async {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:note_taking_app/core/services/app_haptics.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:provider/provider.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
@@ -735,7 +736,7 @@ class _SmsRulesScreenState extends State<SmsRulesScreen> {
                                         Switch.adaptive(
                                           value: rule.isEnabled,
                                           onChanged: (val) {
-                                            HapticFeedback.selectionClick();
+                                            AppHaptics.selectionClick();
                                             settings.toggleCustomSmsRule(rule.id);
                                             SmsService.reloadSmsContacts();
                                           },

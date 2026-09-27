@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../services/app_haptics.dart';
 import '../theme/app_layout.dart';
 
 /// Standardized M3 Expressive Morphing Floating Action Button.
@@ -63,7 +63,7 @@ class AppMorphingFab extends StatelessWidget {
                     icon: Icon(collapsedIcon ?? icon, color: fg),
                     tooltip: tooltip ?? label,
                     onPressed: () {
-                      HapticFeedback.lightImpact();
+                      AppHaptics.lightImpact();
                       onPressed();
                     },
                   ),
@@ -81,7 +81,7 @@ class AppMorphingFab extends StatelessWidget {
                         ),
                       ),
                       onPressed: () {
-                        HapticFeedback.lightImpact();
+                        AppHaptics.lightImpact();
                         onPressed();
                       },
                       icon: Icon(icon, color: fg),

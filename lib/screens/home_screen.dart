@@ -14,12 +14,15 @@ import 'package:note_taking_app/features/settings/providers/settings_provider.da
 import '../providers/note_provider.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/app_layout.dart';
+import '../core/services/app_haptics.dart';
 import '../core/ui/app_chip.dart';
 import '../core/ui/app_morphing_fab.dart';
 import '../core/ui/expressive_floating_toolbar.dart';
 import '../widgets/tag_filter_bar.dart';
+import '../widgets/clarity_mosaic_strip.dart';
 import '../widgets/home/home_app_bar.dart';
 import '../widgets/home/note_view_builder.dart';
+import '../widgets/home/quick_add_todo_sheet.dart';
 import '../widgets/home/universal_search_overlay.dart';
 import '../widgets/home/home_tip_card.dart';
 import 'package:note_taking_app/features/notes/presentation/screens/note_editor_screen.dart';
@@ -91,10 +94,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       debugPrint('getMediaStream error: $err');
     });
 
+    const widgetChannel = MethodChannel('com.saadhjawwadh.notebook/widget');
+    widgetChannel.setMethodCallHandler((call) async {
+      if (call.method == 'onWidgetToggle') {
+        await WidgetHelper.syncPendingTodoToggles();
+        if (mounted) {
+          await Provider.of<NoteProvider>(context, listen: false).refreshNotes();
+        }
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         unawaited(WidgetHelper.updateWidgetData());
-        _checkAndProcessPendingIntents();
+        unawaited(WidgetHelper.updateTodoWidgetData());
+        unawaited(_checkAndProcessPendingIntents());
       }
     });
   }
@@ -308,6 +322,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           );
         }
+      } else if (action != null && action.startsWith('quick_add_todo') && mounted) {
+        final parts = action.split(':');
+        final targetNoteId = parts.length > 1 ? parts[1] : 'ALL_NOTES';
+        unawaited(QuickAddTodoSheet.show(context, targetNoteId));
       }
     } catch (e) {
       debugPrint('Error getting pending widget action: $e');
@@ -317,7 +335,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
-      context.read<NoteProvider>().refreshNotes();
+      unawaited(() async {
+        await WidgetHelper.syncPendingTodoToggles();
+        if (mounted) {
+          await context.read<NoteProvider>().refreshNotes();
+        }
+      }());
       FinancialManagerScreen.refreshNotifier.value++;
       final settings = Provider.of<SettingsProvider>(context, listen: false);
       final bool isLocked = settings.appLockEnabled && !AppLockScreen.sessionAuthenticated.value;
@@ -416,7 +439,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           borderRadius: BorderRadius.circular(AppLayout.radiusM),
                         ),
                         onTap: () {
-                          HapticFeedback.selectionClick();
                           Navigator.pop(ctx, 'All Notes');
                         },
                       ),
@@ -430,7 +452,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               borderRadius: BorderRadius.circular(AppLayout.radiusM),
                             ),
                             onTap: () {
-                              HapticFeedback.selectionClick();
                               Navigator.pop(ctx, f);
                             },
                           ),
@@ -770,7 +791,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               NavigationRail(
                 selectedIndex: _currentIndex,
                 onDestinationSelected: (index) {
-                  HapticFeedback.selectionClick();
                   if (noteProvider.isSelectionMode) noteProvider.clearSelection();
                   if (finProvider.isSelectionMode) finProvider.clearSelection();
                   setState(() => _currentIndex = index);
@@ -833,7 +853,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     elevation: 0,
                     selectedIndex: _currentIndex,
                     onDestinationSelected: (index) {
-                      HapticFeedback.selectionClick();
                       if (noteProvider.isSelectionMode) noteProvider.clearSelection();
                       if (finProvider.isSelectionMode) finProvider.clearSelection();
                       setState(() => _currentIndex = index);
@@ -859,7 +878,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             icon: Icons.push_pin_outlined,
             tooltip: 'Pin / unpin selected',
             onPressed: () {
-              HapticFeedback.lightImpact();
+              AppHaptics.lightImpact();
               noteProvider.bulkTogglePin();
             },
           ),
@@ -867,7 +886,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             icon: Icons.archive_outlined,
             tooltip: 'Archive selected',
             onPressed: () {
-              HapticFeedback.lightImpact();
+              AppHaptics.lightImpact();
               noteProvider.bulkArchive();
             },
           ),
@@ -875,7 +894,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             icon: Icons.label_outline,
             tooltip: 'Tag selected',
             onPressed: () {
-              HapticFeedback.selectionClick();
+              AppHaptics.selectionClick();
               bulkTag();
             },
           ),
@@ -883,7 +902,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             icon: Icons.drive_file_move_outlined,
             tooltip: 'Move to folder',
             onPressed: () {
-              HapticFeedback.selectionClick();
+              AppHaptics.selectionClick();
               bulkMoveToFolder();
             },
           ),
@@ -893,7 +912,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             tooltip: 'Delete selected',
             color: colorScheme.error,
             onPressed: () {
-              HapticFeedback.mediumImpact();
+              AppHaptics.mediumImpact();
               _bulkDeleteWithUndo(noteProvider);
             },
           ),
@@ -977,6 +996,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               SliverToBoxAdapter(
                 child: UniversalSearchOverlay(query: noteProvider.searchQuery),
               ),
+            if (settings.showClarityMosaic &&
+                noteProvider.searchQuery.isEmpty &&
+                !noteProvider.isSelectionMode)
+              const SliverToBoxAdapter(child: ClarityMosaicStrip()),
             if (settings.showTagFilterBar)
               SliverToBoxAdapter(child: TagFilterBar(onTagLongPress: _showTagOptions)),
             if (settings.showProTips &&
@@ -1050,6 +1073,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               );
               if (context.mounted) {
                 await context.read<FinancialManagerProvider>().loadTransactions();
+                FinancialManagerScreen.refreshNotifier.value++;
               }
             }
           },
@@ -1059,7 +1083,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   tooltip: l10n?.categories ?? 'Categories',
                   icon: Icon(Icons.category_outlined, color: colorScheme.onPrimaryContainer, size: 20),
                   onPressed: () {
-                    HapticFeedback.lightImpact();
                     AppRoute.push(context, const CategoryManagementScreen());
                   },
                 ),
@@ -1084,7 +1107,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         tooltip: 'Jump to Today',
         icon: Icon(Icons.today, color: colorScheme.onTertiaryContainer, size: 20),
         onPressed: () async {
-          await HapticFeedback.lightImpact();
           PeriodTrackerScreen.selectTodayNotifier.value++;
         },
       ),
@@ -1111,7 +1133,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         tooltip: 'Templates',
         icon: Icon(Icons.style_outlined, color: colorScheme.onPrimaryContainer, size: 20),
         onPressed: () {
-          HapticFeedback.lightImpact();
           _showTemplateSheet();
         },
       ),
@@ -1148,7 +1169,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 title: Text(t.name),
                 subtitle: Text(t.description),
                 onTap: () async {
-                  unawaited(HapticFeedback.selectionClick());
                   Navigator.pop(sheetContext);
                   final noteProvider = Provider.of<NoteProvider>(context, listen: false);
                   await Navigator.push(
@@ -1206,13 +1226,10 @@ class NoteCard extends StatelessWidget {
     final totalChecklistItems = checkedCount + uncheckedCount;
 
     return BouncingWidget(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
+      onTap: onTap,
       onLongPress: onLongPress != null
           ? () {
-              HapticFeedback.mediumImpact();
+              AppHaptics.mediumImpact();
               onLongPress!();
             }
           : null,

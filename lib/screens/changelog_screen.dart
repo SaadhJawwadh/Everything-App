@@ -28,9 +28,40 @@ class ChangelogScreen extends StatelessWidget {
               delegate: SliverChildListDelegate([
                 _buildVersionSection(
                   context,
+                  version: 'v2.44.0',
+                  date: 'September 27, 2026',
+                  isLatest: true,
+                  changes: [
+                    _ChangelogGroup(
+                      title: "What's New",
+                      items: [
+                        'Interactive Home Screen To-Do Widget: Glanceable Android home screen widget to review your daily checklists, tick off tasks directly from your home screen with instant progress feedback, and launch quick-add with one tap.',
+                        'Days of Clarity Strip: Calm 14-day mindfulness progression strip displayed at the top of your Notes workspace, celebrating everyday focus without stressful streak countdowns.',
+                        'Tactile Haptics Preferences: Unified physical vibration system with an explicit on/off switch under Settings > Appearance & UI, delivering subtle, satisfying tactile feedback.',
+                      ],
+                    ),
+                    _ChangelogGroup(
+                      title: 'Improvements',
+                      items: [
+                        'Smart Completed Task Collapsing: Optional automatic collapsing of checked items in note checklists, keeping your active thoughts clear and uncluttered.',
+                        'Bi-Directional Widget & Database Synchronization: Ticking items on your home screen or within the app immediately updates both your notes and widgets in real time.',
+                        'Synchronous Haptic Responsiveness: Zero frame drops or lag when performing quick interactions, gestures, and note formatting.',
+                      ],
+                    ),
+                    _ChangelogGroup(
+                      title: 'Fixes',
+                      items: [
+                        'Checklist Formatting Fidelity: Enhanced checklist parsing and bullet list consistency across notes, preventing accidental indentation or spacing shifts.',
+                        'Settings State Persistence: Resolved toggle state responsiveness so haptic and display preferences apply instantaneously without requiring an app reload.',
+                      ],
+                    ),
+                  ],
+                ),
+                _buildVersionSection(
+                  context,
                   version: 'v2.43.0',
                   date: 'September 26, 2026',
-                  isLatest: true,
+                  isLatest: false,
                   changes: [
                     _ChangelogGroup(
                       title: "What's New",

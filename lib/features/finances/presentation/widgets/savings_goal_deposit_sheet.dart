@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/services/app_haptics.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
@@ -18,7 +18,6 @@ class SavingsGoalDepositSheet extends StatefulWidget {
   const SavingsGoalDepositSheet({super.key, required this.goal});
 
   static Future<void> show(BuildContext context, {required SavingsGoal goal}) {
-    HapticFeedback.lightImpact();
     return AppBottomSheet.show(
       context: context,
       isScrollControlled: true,
@@ -36,6 +35,7 @@ class _SavingsGoalDepositSheetState extends State<SavingsGoalDepositSheet> {
   final _noteController = TextEditingController();
   _PocketAction _action = _PocketAction.deposit;
   bool _recordInLedger = true;
+  bool _isGoalCelebration = false;
   late String _liquidationCategory;
 
   @override
@@ -61,7 +61,7 @@ class _SavingsGoalDepositSheetState extends State<SavingsGoalDepositSheet> {
   }
 
   void _setAmount(double val) {
-    HapticFeedback.selectionClick();
+    AppHaptics.selectionClick();
     _amountController.text = val.toStringAsFixed(val.truncateToDouble() == val ? 0 : 2);
     setState(() {});
   }
@@ -78,6 +78,13 @@ class _SavingsGoalDepositSheetState extends State<SavingsGoalDepositSheet> {
     final provider = context.read<SavingsGoalProvider>();
     final note = _noteController.text.trim().isEmpty ? null : _noteController.text.trim();
     final goal = widget.goal;
+
+    final settings = Provider.of<SettingsProvider?>(context, listen: false);
+    final showDelight = settings?.showMilestoneDelight ?? true;
+    final willComplete = _action == _PocketAction.deposit &&
+        goal.targetAmount > 0 &&
+        (goal.currentAmount + amount) >= goal.targetAmount &&
+        goal.currentAmount < goal.targetAmount;
 
     if (_action == _PocketAction.deposit) {
       final fromAcc = goal.account == AccountType.savings ? AccountType.daily : AccountType.savings;
@@ -106,6 +113,14 @@ class _SavingsGoalDepositSheetState extends State<SavingsGoalDepositSheet> {
         category: _liquidationCategory,
         merchantTitle: goal.title,
       );
+    }
+
+    if (mounted && willComplete && showDelight) {
+      setState(() => _isGoalCelebration = true);
+      AppHaptics.heavyImpact();
+      await Future.delayed(const Duration(milliseconds: 500));
+    } else {
+      AppHaptics.mediumImpact();
     }
 
     if (mounted) Navigator.pop(context);
@@ -152,7 +167,6 @@ class _SavingsGoalDepositSheetState extends State<SavingsGoalDepositSheet> {
             ],
             selected: {_action},
             onSelectionChanged: (set) {
-              HapticFeedback.lightImpact();
               setState(() {
                 _action = set.first;
                 if (_action == _PocketAction.liquidate) {
@@ -311,7 +325,6 @@ class _SavingsGoalDepositSheetState extends State<SavingsGoalDepositSheet> {
                               ),
                               label: Text(cat, style: const TextStyle(fontSize: 12)),
                               onSelected: (_) {
-                                HapticFeedback.selectionClick();
                                 setState(() => _liquidationCategory = cat);
                               },
                             ),
@@ -371,25 +384,31 @@ class _SavingsGoalDepositSheetState extends State<SavingsGoalDepositSheet> {
           FilledButton.icon(
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
-              backgroundColor: _action == _PocketAction.liquidate ? colorScheme.primary : goalColor,
+              backgroundColor: _isGoalCelebration
+                  ? const Color(0xFF10B981)
+                  : (_action == _PocketAction.liquidate ? colorScheme.primary : goalColor),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppLayout.radiusM)),
             ),
             icon: Icon(
-              _action == _PocketAction.deposit
-                  ? Icons.check_circle_outline_rounded
-                  : _action == _PocketAction.withdraw
-                      ? Icons.arrow_downward_rounded
-                      : Icons.shopping_cart_checkout_rounded,
+              _isGoalCelebration
+                  ? Icons.celebration_rounded
+                  : (_action == _PocketAction.deposit
+                      ? Icons.check_circle_outline_rounded
+                      : _action == _PocketAction.withdraw
+                          ? Icons.arrow_downward_rounded
+                          : Icons.shopping_cart_checkout_rounded),
             ),
             label: Text(
-              _action == _PocketAction.deposit
-                  ? 'Confirm Deposit'
-                  : _action == _PocketAction.withdraw
-                      ? 'Confirm Withdrawal'
-                      : 'Liquidate & Mark Completed',
+              _isGoalCelebration
+                  ? 'Target Achieved! Fully Funded'
+                  : (_action == _PocketAction.deposit
+                      ? 'Confirm Deposit'
+                      : _action == _PocketAction.withdraw
+                          ? 'Confirm Withdrawal'
+                          : 'Liquidate & Mark Completed'),
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            onPressed: _submit,
+            onPressed: _isGoalCelebration ? null : _submit,
           ),
           const SizedBox(height: AppLayout.spaceM),
         ],

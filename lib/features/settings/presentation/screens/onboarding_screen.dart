@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../../../core/services/app_haptics.dart';
 import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -40,7 +40,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _nextPage() {
-    HapticFeedback.lightImpact();
+    AppHaptics.selectionClick();
     if (_currentPage < _totalPages - 1) {
       _pageController.nextPage(
         duration: AppLayout.animDefault,
@@ -52,7 +52,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _previousPage() {
-    HapticFeedback.lightImpact();
+    AppHaptics.selectionClick();
     if (_currentPage > 0) {
       _pageController.previousPage(
         duration: AppLayout.animDefault,
@@ -63,7 +63,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _finishOnboarding() async {
     final settings = context.read<SettingsProvider>();
-    await HapticFeedback.mediumImpact();
+    AppHaptics.mediumImpact();
     await settings.setHasSeenOnboarding(true);
     try {
       final packageInfo = await PackageInfo.fromPlatform();
@@ -454,10 +454,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           padding: const EdgeInsets.symmetric(horizontal: AppLayout.spaceXL),
           child: Column(
             children: [
-              const SizedBox(height: AppLayout.spaceL),
+              const SizedBox(height: AppLayout.spaceM),
               Container(
-                width: 72,
-                height: 72,
+                width: 64,
+                height: 64,
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primaryContainer,
                   shape: BoxShape.circle,
@@ -465,10 +465,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: Icon(
                   Icons.palette_outlined,
                   color: theme.colorScheme.onPrimaryContainer,
-                  size: 32,
+                  size: 30,
                 ),
               ),
-              const SizedBox(height: AppLayout.spaceXL),
+              const SizedBox(height: AppLayout.spaceL),
               Text(
                 'Personalize Your Look',
                 style: theme.textTheme.headlineSmall?.copyWith(
@@ -476,7 +476,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: AppLayout.spaceS),
+              const SizedBox(height: AppLayout.spaceXS),
               Text(
                 'Select your preferred appearance mode. Changes apply immediately in real-time.',
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -484,7 +484,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: AppLayout.spaceXL),
+              const SizedBox(height: AppLayout.spaceL),
 
               // Theme Mode Options
               AppCard(
@@ -529,33 +529,108 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: AppLayout.spaceM),
+              const SizedBox(height: AppLayout.spaceS),
 
-              // Dynamic Color Tile
+              // Dynamic Color & Haptics Grouped Card
               AppCard(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppLayout.spaceL,
-                  vertical: AppLayout.spaceS,
+                  vertical: AppLayout.spaceXS,
                 ),
-                child: SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  secondary: Icon(
-                    Icons.color_lens_outlined,
-                    color: theme.colorScheme.primary,
-                  ),
-                  title: Text(
-                    'Material You Dynamic Colors',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(
-                    'Extract colors dynamically from your device wallpaper (Android 12+).',
-                    style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                  ),
-                  value: settings.useDynamicColor,
-                  onChanged: (val) {
-                    HapticFeedback.lightImpact();
-                    settings.setUseDynamicColor(val);
-                  },
+                child: Column(
+                  children: [
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      secondary: Icon(
+                        Icons.color_lens_outlined,
+                        color: theme.colorScheme.primary,
+                      ),
+                      title: Text(
+                        'Material You Dynamic Colors',
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        'Extract colors dynamically from your device wallpaper (Android 12+).',
+                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                      value: settings.useDynamicColor,
+                      onChanged: (val) {
+                        AppHaptics.selectionClick();
+                        settings.setUseDynamicColor(val);
+                      },
+                    ),
+                    Divider(
+                      height: 1,
+                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      secondary: Icon(
+                        Icons.vibration_rounded,
+                        color: theme.colorScheme.secondary,
+                      ),
+                      title: Text(
+                        'Tactile Haptics',
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        'Restrained physical micro-feedback for sliders, toggles, and actions.',
+                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                      value: settings.enableHaptics,
+                      onChanged: (val) {
+                        if (val) {
+                          AppHaptics.mediumImpact();
+                        }
+                        settings.setEnableHaptics(val);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppLayout.spaceS),
+
+              // App Language Choice Card
+              AppCard(
+                padding: AppLayout.paddingAllL,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.language_rounded, color: theme.colorScheme.primary, size: 20),
+                        const SizedBox(width: AppLayout.spaceM),
+                        Expanded(
+                          child: Text(
+                            'App Language',
+                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppLayout.spaceXS),
+                    Text(
+                      'Choose your language. Updates immediately across all tabs and tools.',
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                    const SizedBox(height: AppLayout.spaceM),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        children: [
+                          _buildLanguageChip(theme, 'System', 'system', settings),
+                          _buildLanguageChip(theme, 'English', 'en', settings),
+                          _buildLanguageChip(theme, 'தமிழ்', 'ta', settings),
+                          _buildLanguageChip(theme, 'Español', 'es', settings),
+                          _buildLanguageChip(theme, 'Português', 'pt', settings),
+                          _buildLanguageChip(theme, 'Deutsch', 'de', settings),
+                          _buildLanguageChip(theme, 'Français', 'fr', settings),
+                          _buildLanguageChip(theme, '中文', 'zh', settings),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -652,7 +727,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       value: settings.showTagFilterBar,
                       onChanged: (val) {
-                        HapticFeedback.lightImpact();
+                        AppHaptics.selectionClick();
                         settings.setShowTagFilterBar(val);
                       },
                     ),
@@ -673,8 +748,50 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       value: settings.minimalEditorMode,
                       onChanged: (val) {
-                        HapticFeedback.lightImpact();
+                        AppHaptics.selectionClick();
                         settings.setMinimalEditorMode(val);
+                      },
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      secondary: Icon(
+                        Icons.calendar_view_week_rounded,
+                        color: theme.colorScheme.tertiary,
+                        size: 20,
+                      ),
+                      title: Text(
+                        'Days of Clarity Strip',
+                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        'Visualize 14-day mindfulness progression without stressful streak countdowns.',
+                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                      value: settings.showClarityMosaic,
+                      onChanged: (val) {
+                        AppHaptics.selectionClick();
+                        settings.setShowClarityMosaic(val);
+                      },
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      secondary: Icon(
+                        Icons.checklist_rtl_rounded,
+                        color: theme.colorScheme.primary,
+                        size: 20,
+                      ),
+                      title: Text(
+                        'Collapse Completed Checklists',
+                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        'Move finished to-do items to a bottom section.',
+                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                      value: settings.moveCompletedChecklistsToBottom,
+                      onChanged: (val) {
+                        AppHaptics.selectionClick();
+                        settings.setMoveCompletedChecklistsToBottom(val);
                       },
                     ),
                   ],
@@ -727,7 +844,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   value: settings.showFinancialManager,
                   onChanged: (val) {
-                    HapticFeedback.lightImpact();
+                    AppHaptics.selectionClick();
                     settings.setShowFinancialManager(val);
                   },
                 ),
@@ -757,7 +874,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                     value: settings.enableSmsImport,
                     onChanged: (val) {
-                      HapticFeedback.lightImpact();
+                      AppHaptics.selectionClick();
                       settings.setEnableSmsImport(val);
                     },
                   ),
@@ -787,7 +904,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       value: settings.dailySyncEnabled,
                       onChanged: (val) {
-                        HapticFeedback.lightImpact();
+                        AppHaptics.selectionClick();
                         settings.setDailySyncEnabled(val);
                       },
                     ),
@@ -817,7 +934,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                     value: settings.enableBudgetsAndAnalytics,
                     onChanged: (val) {
-                      HapticFeedback.lightImpact();
+                      AppHaptics.selectionClick();
                       settings.setEnableBudgetsAndAnalytics(val);
                     },
                   ),
@@ -846,7 +963,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                     value: settings.enableRecurringRules,
                     onChanged: (val) {
-                      HapticFeedback.lightImpact();
+                      AppHaptics.selectionClick();
                       settings.setEnableRecurringRules(val);
                     },
                   ),
@@ -875,7 +992,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                     value: settings.enableSavingsVault,
                     onChanged: (val) {
-                      HapticFeedback.lightImpact();
+                      AppHaptics.selectionClick();
                       settings.setEnableSavingsVault(val);
                     },
                   ),
@@ -904,7 +1021,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                     value: settings.showSplitBills,
                     onChanged: (val) {
-                      HapticFeedback.lightImpact();
+                      AppHaptics.selectionClick();
                       settings.setShowSplitBills(val);
                     },
                   ),
@@ -941,7 +1058,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       TextButton(
                         onPressed: () {
-                          HapticFeedback.lightImpact();
+                          AppHaptics.selectionClick();
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (_) => const SmsRulesScreen()),
@@ -1000,7 +1117,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   value: settings.isPeriodTrackerEnabled,
                   onChanged: (val) {
-                    HapticFeedback.lightImpact();
+                    AppHaptics.selectionClick();
                     settings.setIsPeriodTrackerEnabled(val);
                   },
                 ),
@@ -1052,7 +1169,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   value: settings.showSplitBills,
                   onChanged: (val) {
-                    HapticFeedback.lightImpact();
+                    AppHaptics.selectionClick();
                     settings.setShowSplitBills(val);
                   },
                 ),
@@ -1163,7 +1280,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   value: settings.useOnDeviceAi,
                   onChanged: (val) {
-                    HapticFeedback.lightImpact();
+                    AppHaptics.selectionClick();
                     settings.setUseOnDeviceAi(val);
                   },
                 ),
@@ -1217,6 +1334,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             icon: Icons.dashboard_customize_outlined,
             title: 'Modular Sub-Features Architecture',
             desc: 'Tailor every screen to your taste. Keep everything enabled for complete control, or turn off budgets, charts, and tags for pure minimalist simplicity.',
+          ),
+          const SizedBox(height: AppLayout.spaceM),
+          _buildFeatureCard(
+            theme,
+            icon: Icons.checklist_rounded,
+            title: 'Interactive Home Screen Widget',
+            desc: 'Add the To-Do widget to your home screen to tick off tasks, view completion progress, and quick-add tasks directly with instant offline sync.',
+          ),
+          const SizedBox(height: AppLayout.spaceM),
+          _buildFeatureCard(
+            theme,
+            icon: Icons.calendar_view_week_rounded,
+            title: 'Days of Clarity & Mindful Focus',
+            desc: 'Build focus without anxiety. An ambient 14-day mosaic strip celebrates your daily consistency without streak shaming or broken-chain guilt.',
+          ),
+          const SizedBox(height: AppLayout.spaceM),
+          _buildFeatureCard(
+            theme,
+            icon: Icons.vibration_rounded,
+            title: 'Restrained Tactile Haptics',
+            desc: 'Satisfying mechanical micro-vibrations for sliders, chips, and actions synthesize the feel of physical tools. Turn off anytime in Settings.',
           ),
           const SizedBox(height: AppLayout.spaceM),
           _buildFeatureCard(
@@ -1367,7 +1505,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Expanded(
       child: BouncingWidget(
         onTap: () {
-          HapticFeedback.lightImpact();
+          AppHaptics.selectionClick();
           onTap();
         },
         child: Container(
@@ -1408,6 +1546,44 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageChip(
+    ThemeData theme,
+    String label,
+    String code,
+    SettingsProvider settings,
+  ) {
+    final isSelected = settings.selectedLanguageCode == code;
+    return Padding(
+      padding: const EdgeInsets.only(right: AppLayout.spaceS),
+      child: FilterChip(
+        selected: isSelected,
+        showCheckmark: false,
+        label: Text(
+          label,
+          style: theme.textTheme.labelMedium?.copyWith(
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected
+                ? theme.colorScheme.onPrimaryContainer
+                : theme.colorScheme.onSurface,
+          ),
+        ),
+        backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        selectedColor: theme.colorScheme.primaryContainer,
+        shape: const StadiumBorder(),
+        side: BorderSide(
+          color: isSelected
+              ? theme.colorScheme.primary
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+          width: isSelected ? 1.5 : 1.0,
+        ),
+        onSelected: (_) {
+          AppHaptics.selectionClick();
+          settings.setSelectedLanguage(code);
+        },
       ),
     );
   }

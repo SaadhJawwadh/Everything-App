@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/services/app_haptics.dart';
 import '../../../../core/ui/expressive_floating_toolbar.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../data/transaction_category.dart';
@@ -34,7 +34,7 @@ class LedgerFloatingToolbar extends StatelessWidget {
               avatar: Icon(icon, size: 16, color: color),
               label: Text(cat),
               onSelected: (_) async {
-                await HapticFeedback.mediumImpact();
+                AppHaptics.mediumImpact();
                 if (context.mounted) Navigator.pop(context);
                 final count = provider.selectedCount;
                 await provider.bulkUpdateCategory(cat);
@@ -78,7 +78,7 @@ class LedgerFloatingToolbar extends StatelessWidget {
             title: const Text('Daily Operating Account', style: TextStyle(fontWeight: FontWeight.w600)),
             subtitle: const Text('Primary everyday spending & debit account', style: TextStyle(fontSize: 12)),
             onTap: () async {
-              await HapticFeedback.mediumImpact();
+              AppHaptics.mediumImpact();
               if (context.mounted) Navigator.pop(context);
               final count = provider.selectedCount;
               await provider.bulkUpdateAccount(AccountType.daily);
@@ -107,7 +107,7 @@ class LedgerFloatingToolbar extends StatelessWidget {
             title: const Text('Savings Vault', style: TextStyle(fontWeight: FontWeight.w600)),
             subtitle: const Text('Protected reserve & goal allocation vault', style: TextStyle(fontSize: 12)),
             onTap: () async {
-              await HapticFeedback.mediumImpact();
+              AppHaptics.mediumImpact();
               if (context.mounted) Navigator.pop(context);
               final count = provider.selectedCount;
               await provider.bulkUpdateAccount(AccountType.savings);
@@ -154,7 +154,6 @@ class LedgerFloatingToolbar extends StatelessWidget {
             onPressed: provider.isBulkAiRefining
                 ? null
                 : () {
-                    HapticFeedback.selectionClick();
                     _showCategoryPicker(context, provider);
                   },
           ),
@@ -166,7 +165,6 @@ class LedgerFloatingToolbar extends StatelessWidget {
             onPressed: provider.isBulkAiRefining
                 ? null
                 : () {
-                    HapticFeedback.selectionClick();
                     _showAccountPicker(context, provider);
                   },
           ),
@@ -190,7 +188,7 @@ class LedgerFloatingToolbar extends StatelessWidget {
               onPressed: provider.isBulkAiRefining
                   ? null
                   : () async {
-                      await HapticFeedback.mediumImpact();
+                      AppHaptics.mediumImpact();
                       if (!context.mounted) return;
                       final messenger = ScaffoldMessenger.of(context);
                       final selectedCount = provider.selectedCount;
@@ -232,7 +230,7 @@ class LedgerFloatingToolbar extends StatelessWidget {
                 ? null
                 : () async {
                     final messenger = ScaffoldMessenger.of(context);
-                    await HapticFeedback.mediumImpact();
+                    AppHaptics.mediumImpact();
                     final deletedIds = await provider.bulkDeleteSelected();
                     if (deletedIds.isEmpty) return;
                     onActionCompleted?.call();

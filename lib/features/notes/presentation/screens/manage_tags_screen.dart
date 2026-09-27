@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:note_taking_app/core/services/app_haptics.dart';
 import 'package:note_taking_app/features/notes/data/note_repository.dart';
 import 'package:note_taking_app/core/theme/app_theme.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
@@ -64,8 +64,8 @@ class _ManageTagsScreenState extends State<ManageTagsScreen> {
                   final bool isSystem = c.toARGB32() == 0;
                   final bool isSelected = !isSystem && selectedColor == c.toARGB32();
                   return GestureDetector(
-                    onTap: () async {
-                      await HapticFeedback.selectionClick();
+                    onTap: () {
+                      AppHaptics.selectionClick();
                       if (isSystem) {
                         final nonZeroColors = AppTheme.noteColors.where((color) => color.toARGB32() != 0).toList();
                         final randomColor = (nonZeroColors..shuffle()).first;
@@ -136,7 +136,7 @@ class _ManageTagsScreenState extends State<ManageTagsScreen> {
                     await NoteRepository.instance
                         .setTagColor(newName, selectedColor);
                   }
-                  await HapticFeedback.mediumImpact();
+                  AppHaptics.mediumImpact();
                   if (!context.mounted) return;
                   Navigator.pop(context);
                   await _loadTags();
@@ -172,7 +172,7 @@ class _ManageTagsScreenState extends State<ManageTagsScreen> {
     );
 
     if (confirmed == true) {
-      await HapticFeedback.mediumImpact();
+      AppHaptics.mediumImpact();
       await NoteRepository.instance.deleteTag(tag);
       await _loadTags();
     }
@@ -254,18 +254,12 @@ class _ManageTagsScreenState extends State<ManageTagsScreen> {
                                       IconButton(
                                         icon: const Icon(Icons.edit_outlined),
                                         tooltip: 'Edit',
-                                        onPressed: () async {
-                                          await HapticFeedback.lightImpact();
-                                          await _editTag(tag);
-                                        },
+                                        onPressed: () => _editTag(tag),
                                       ),
                                       IconButton(
                                         icon: const Icon(Icons.delete_outline),
                                         tooltip: 'Delete',
-                                        onPressed: () async {
-                                          await HapticFeedback.lightImpact();
-                                          await _deleteTag(tag);
-                                        },
+                                        onPressed: () => _deleteTag(tag),
                                       ),
                                     ],
                                   ),

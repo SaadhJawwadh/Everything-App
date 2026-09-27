@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="160dp"
+    android:minResizeWidth="160dp"
+    android:minResizeHeight="100dp"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/todo_widget_layout"
+    android:previewImage="@mipmap/ic_launcher"
+    android:previewLayout="@layout/todo_widget_layout"
+    android:description="@string/todo_widget_description"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen">
+</appwidget-provider>

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../core/services/app_haptics.dart';
 import '../core/theme/app_layout.dart';
 import '../core/ui/app_chip.dart';
 import 'bouncing_widget.dart';
@@ -266,7 +266,7 @@ class SettingsHeroCard extends StatelessWidget {
                           ],
                           selected: {currentThemeMode},
                           onSelectionChanged: (Set<ThemeMode> newSelection) {
-                            HapticFeedback.selectionClick();
+                            AppHaptics.selectionClick();
                             onThemeModeChanged(newSelection.first);
                           },
                           style: ButtonStyle(
@@ -485,21 +485,13 @@ class SettingsTile extends StatelessWidget {
             ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        onTap: onTap == null
-            ? null
-            : () {
-                HapticFeedback.selectionClick();
-                onTap!();
-              },
+        onTap: onTap,
       ),
     );
 
     if (onTap != null) {
       return BouncingWidget(
-        onTap: () {
-          HapticFeedback.selectionClick();
-          onTap!();
-        },
+        onTap: onTap,
         child: tileChild,
       );
     }
@@ -568,7 +560,7 @@ class SettingsSwitchTile extends StatelessWidget {
             : null,
         value: value,
         onChanged: (v) {
-          HapticFeedback.selectionClick();
+          AppHaptics.selectionClick();
           onChanged(v);
         },
         contentPadding:
@@ -649,7 +641,7 @@ class SettingsSegmentedTile<T> extends StatelessWidget {
               segments: segments,
               selected: {selectedValue},
               onSelectionChanged: (Set<T> newSelection) {
-                HapticFeedback.selectionClick();
+                AppHaptics.selectionClick();
                 onSelectionChanged(newSelection.first);
               },
               style: const ButtonStyle(

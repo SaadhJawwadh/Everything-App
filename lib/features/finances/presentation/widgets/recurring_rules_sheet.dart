@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
+import '../../../../core/services/app_haptics.dart';
 import '../../../../data/recurring_rule_model.dart';
 import '../../../../data/repositories/recurring_rule_repository.dart';
 import '../../../../data/transaction_category.dart';
@@ -62,7 +62,7 @@ class _RecurringRulesSheetState extends State<RecurringRulesSheet> {
   }
 
   Future<void> _materializeNow() async {
-    await HapticFeedback.mediumImpact();
+    AppHaptics.mediumImpact();
     final count = await RecurringRuleRepository.instance.materializeDueRules();
     widget.onRulesUpdated();
     await _loadRules();
@@ -189,7 +189,6 @@ class _RecurringRulesSheetState extends State<RecurringRulesSheet> {
                               fontSize: 13,
                             ),
                             onSelected: (_) {
-                              HapticFeedback.selectionClick();
                               setDialogState(() => selectedCategory = c);
                             },
                           ),
@@ -215,7 +214,6 @@ class _RecurringRulesSheetState extends State<RecurringRulesSheet> {
                       }).toList(),
                       selected: {selectedFreq},
                       onSelectionChanged: (val) {
-                        HapticFeedback.selectionClick();
                         setDialogState(() => selectedFreq = val.first);
                       },
                       style: SegmentedButton.styleFrom(
@@ -364,7 +362,6 @@ class _RecurringRulesSheetState extends State<RecurringRulesSheet> {
                               fontSize: 13,
                             ),
                             onSelected: (_) {
-                              HapticFeedback.selectionClick();
                               setDialogState(() => selectedCategory = c);
                             },
                           ),
@@ -390,7 +387,6 @@ class _RecurringRulesSheetState extends State<RecurringRulesSheet> {
                       }).toList(),
                       selected: {selectedFreq},
                       onSelectionChanged: (val) {
-                        HapticFeedback.selectionClick();
                         setDialogState(() => selectedFreq = val.first);
                       },
                       style: SegmentedButton.styleFrom(

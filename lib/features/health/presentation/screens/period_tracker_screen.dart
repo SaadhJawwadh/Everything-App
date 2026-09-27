@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../../../core/services/app_haptics.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_layout.dart';
@@ -295,7 +295,6 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                                       child: InkWell(
                                         borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
                                         onTap: () {
-                                          HapticFeedback.selectionClick();
                                           _showPhaseGuideDialog(context);
                                         },
                                         child: Container(
@@ -352,7 +351,6 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                                 constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                                 visualDensity: VisualDensity.compact,
                                 onPressed: () async {
-                                  await HapticFeedback.selectionClick();
                                   setState(() {
                                     _focusedDay = DateTime.now();
                                     _selectedDay = DateTime.now();
@@ -382,7 +380,6 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                                 ),
                                 color: colorScheme.surfaceContainerHigh,
                                 onSelected: (value) {
-                                  HapticFeedback.selectionClick();
                                   if (value == 'log_period') {
                                     PeriodLogEditorSheet.show(
                                       context: context,
@@ -439,7 +436,6 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                                 constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                                 visualDensity: VisualDensity.compact,
                                 onPressed: () {
-                                  HapticFeedback.selectionClick();
                                   AppRoute.push(context, const SettingsScreen())
                                       .then((_) => provider.loadData());
                                 },
@@ -527,14 +523,13 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                             selectedDay: _selectedDay,
                             provider: provider,
                             onDaySelected: (selected, focused) {
-                              HapticFeedback.selectionClick();
+                              AppHaptics.selectionClick();
                               setState(() {
                                 _selectedDay = selected;
                                 _focusedDay = focused;
                               });
                             },
                             onPageChanged: (focused) {
-                              HapticFeedback.selectionClick();
                               setState(() {
                                 _focusedDay = focused;
                               });

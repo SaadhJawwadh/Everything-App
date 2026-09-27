@@ -50,8 +50,23 @@ class NoteProvider extends ChangeNotifier {
   Map<String, int> get folderCounts => _folderCounts;
   int get archivedCount => _archivedCount;
   int get trashCount => _trashCount;
+  bool _filterChecklistsOnly = false;
+  bool get filterChecklistsOnly => _filterChecklistsOnly;
+  int get checklistNotesCount => _notes.where((n) =>
+      n.content.contains('"list":"checked"') ||
+      n.content.contains('"list":"unchecked"') ||
+      n.content.contains('- [ ]') ||
+      n.content.contains('- [x]')).length;
+
+  void setFilterChecklistsOnly(bool value) {
+    if (_filterChecklistsOnly == value) return;
+    _filterChecklistsOnly = value;
+    _applySearchFilter();
+    notifyListeners();
+  }
 
   void setFolder(String? folder) {
+    _filterChecklistsOnly = false;
     _selectedFolder = folder;
     SharedPreferences.getInstance().then((prefs) {
       if (folder == null) {
@@ -186,16 +201,27 @@ class NoteProvider extends ChangeNotifier {
   }
 
   void _applySearchFilter() {
-    if (_searchQuery.isEmpty) {
-      _filteredNotes = List.from(_notes);
-    } else {
-      _filteredNotes = _notes.where((note) {
+    Iterable<Note> result = _notes;
+
+    if (_filterChecklistsOnly) {
+      result = result.where((note) {
+        return note.content.contains('"list":"checked"') ||
+               note.content.contains('"list":"unchecked"') ||
+               note.content.contains('- [ ]') ||
+               note.content.contains('- [x]');
+      });
+    }
+
+    if (_searchQuery.isNotEmpty) {
+      result = result.where((note) {
         final titleMatch = note.title.toLowerCase().contains(_searchQuery);
         final contentMatch = note.content.toLowerCase().contains(_searchQuery);
         final tagMatch = note.tags.any((t) => t.toLowerCase().contains(_searchQuery));
         return titleMatch || contentMatch || tagMatch;
-      }).toList();
+      });
     }
+
+    _filteredNotes = result.toList();
   }
 
   void setTag(String tag) {

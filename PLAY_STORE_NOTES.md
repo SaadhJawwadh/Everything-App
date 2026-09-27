@@ -1,20 +1,20 @@
 <en-US>
 🌟 What's New
-• Expanded Languages: Added Chinese, Portuguese, Spanish, German, and French alongside English and Tamil.
-• Savings Goals Tab: Dedicated savings tab in Budgets with 24 colors and instant progress tracking.
-• Cleaner Note Editor: Streamlined menus, down-arrow toolbar toggle, and simplified typing.
+• Interactive Home Widget: Tick off tasks and quick-add to-dos right from your home screen.
+• Days of Clarity: Calm 14-day mindfulness progression without streak anxiety.
+• Tactile Haptics: Refined physical feedback with a dedicated on/off switch in Settings.
 
 🚀 Improvements
-• Instant language switching without app restarts.
-• Smarter AI transaction tools.
+• Auto-collapsing completed checklist items.
+• Instant local widget sync and faster editor responsiveness.
 </en-US>
 <ta-IN>
 🌟 புதிய அம்சங்கள்
-• புதிய மொழிகள்: சீனம், போர்த்துகீசியம், ஸ்பானிஷ், ஜெர்மன் மற்றும் பிரெஞ்சு மொழிகள் சேர்க்கப்பட்டன.
-• சேமிப்பு இலக்குகள்: 24 வண்ணங்களுடன் கூடிய புதிய சேமிப்புப் பிரிவு.
-• எளிய குறிப்பு திருத்தி: சீரான விசைப்பலகை மற்றும் மெனு கட்டுப்பாடுகள்.
+• முகப்புத்திரை விட்ஜெட்: முகப்புத்திரையிலிருந்தே பணிகளைச் சரிபார்க்கவும் புதிய பணிகளைச் சேர்க்கவும்.
+• தெளிவான நாட்கள்: மன அமைதியூட்டும் 14 நாள் தொடர் முன்னேற்றப் பாதை.
+• தொடு உணர்வு அதிர்வு: நுட்பமான தொடு உணர்வு மற்றும் அமைப்புகள் கட்டுப்பாடு.
 
 🚀 மேம்பாடுகள்
-• செயலி மறுதொடக்கமின்றி உடனடி மொழி மாற்றம்.
-• மேம்பட்ட AI பரிவர்த்தனை கருவிகள்.
+• முடிந்த பணிகளைத் தானாக சுருக்கும் வசதி.
+• உடனடி விட்ஜெட் ஒத்திசைவு மற்றும் விரைவான செயல்பாடு.
 </ta-IN>

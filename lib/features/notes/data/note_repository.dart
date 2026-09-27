@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import '../../../data/database_helper.dart';
 import '../../../data/note_model.dart';
 import '../../../data/database_constants.dart';
 import '../../../utils/rich_text_utils.dart';
+import '../../../utils/widget_helper.dart';
 import '../../../services/notification_service.dart';
 
 class NoteRepository {
@@ -24,6 +26,7 @@ class NoteRepository {
         await txn.insert('note_tags', {'note_id': enrichedNote.id, 'tag_name': tag}, conflictAlgorithm: ConflictAlgorithm.ignore);
       }
     });
+    unawaited(WidgetHelper.updateTodoWidgetData());
   }
 
   Future<Note?> readNote(String id) async {
@@ -100,7 +103,7 @@ class NoteRepository {
   Future<int> updateNote(Note note) async {
     final enrichedNote = enrichNoteWithPreview(note);
     final db = await _db;
-    return await db.transaction((txn) async {
+    final res = await db.transaction((txn) async {
       final res = await txn.update(TableNames.notes, enrichedNote.toMap(), where: '${NoteFields.id} = ?', whereArgs: [enrichedNote.id]);
       await txn.delete('note_tags', where: 'note_id = ?', whereArgs: [enrichedNote.id]);
       for (final tag in enrichedNote.tags) {
@@ -108,22 +111,26 @@ class NoteRepository {
       }
       return res;
     });
+    unawaited(WidgetHelper.updateTodoWidgetData());
+    return res;
   }
 
   Future<int> deleteNote(String id) async {
     final db = await _db;
     final now = DateTime.now().toIso8601String();
-    return await db.transaction((txn) async {
+    final res = await db.transaction((txn) async {
       await txn.delete('note_tags', where: 'note_id = ?', whereArgs: [id]);
       await txn.insert('deleted_notes', {'id': id, 'deletedAt': now}, conflictAlgorithm: ConflictAlgorithm.replace);
       return await txn.delete(TableNames.notes, where: '${NoteFields.id} = ?', whereArgs: [id]);
     });
+    unawaited(WidgetHelper.updateTodoWidgetData());
+    return res;
   }
 
   Future<int> archiveNote(String id, bool archive) async {
     final db = await _db;
     final now = DateTime.now().toIso8601String();
-    return await db.update(
+    final res = await db.update(
       TableNames.notes,
       {
         NoteFields.isArchived: archive ? 1 : 0,
@@ -132,13 +139,15 @@ class NoteRepository {
       where: '${NoteFields.id} = ?',
       whereArgs: [id],
     );
+    unawaited(WidgetHelper.updateTodoWidgetData());
+    return res;
   }
 
   Future<int> softDeleteNote(String id) async {
     await NotificationService.cancelNoteReminder(id);
     final db = await _db;
     final now = DateTime.now().toIso8601String();
-    return await db.update(
+    final res = await db.update(
       TableNames.notes,
       {
         NoteFields.deletedAt: now,
@@ -147,12 +156,14 @@ class NoteRepository {
       where: '${NoteFields.id} = ?',
       whereArgs: [id],
     );
+    unawaited(WidgetHelper.updateTodoWidgetData());
+    return res;
   }
 
   Future<int> restoreNote(String id) async {
     final db = await _db;
     final now = DateTime.now().toIso8601String();
-    return await db.update(
+    final res = await db.update(
       TableNames.notes,
       {
         NoteFields.deletedAt: null,
@@ -161,6 +172,8 @@ class NoteRepository {
       where: '${NoteFields.id} = ?',
       whereArgs: [id],
     );
+    unawaited(WidgetHelper.updateTodoWidgetData());
+    return res;
   }
 
   Future<List<String>> getAllFolders() async {

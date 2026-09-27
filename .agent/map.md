@@ -101,8 +101,7 @@ lib/
 │   │   │   └── widgets/              # Editor modular presentation widgets
 │   │   │       ├── note_color_picker_sheet.dart# Standardized M3 palette seed picker modal
 │   │   │       ├── note_migration_sheet.dart # Google Keep & Markdown file import modal sheet
-│   │   │       ├── note_search_replace_bar.dart# Keyboard-shortcut aware find/replace toolbar
-│   │   │       └── voice_dictation_pill.dart # Floating live speech-to-text recording status pill
+│   │   │       └── note_search_replace_bar.dart# Keyboard-shortcut aware find/replace toolbar
 │   │   └── providers/
 │   │       └── note_editor_provider.dart# Editor state, dirty tracking, auto-save timer
 │   ├── settings/                     # App Settings & Preferences Feature Module

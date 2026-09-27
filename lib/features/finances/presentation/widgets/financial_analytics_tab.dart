@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../../../data/transaction_model.dart';
 import '../../../../data/transaction_category.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
+import '../../../../core/services/app_haptics.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_card.dart';
 import 'burn_rate_forecast_card.dart';
@@ -216,7 +216,6 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
               isSelected: _activeDeckIndex == 0,
               onTap: () {
                 if (_activeDeckIndex != 0) {
-                  HapticFeedback.selectionClick();
                   setState(() => _activeDeckIndex = 0);
                 }
               },
@@ -231,7 +230,6 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
               isSelected: _activeDeckIndex == 1,
               onTap: () {
                 if (_activeDeckIndex != 1) {
-                  HapticFeedback.selectionClick();
                   setState(() => _activeDeckIndex = 1);
                 }
               },
@@ -246,7 +244,6 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
               isSelected: _activeDeckIndex == 2,
               onTap: () {
                 if (_activeDeckIndex != 2) {
-                  HapticFeedback.selectionClick();
                   setState(() => _activeDeckIndex = 2);
                 }
               },
@@ -458,7 +455,7 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
                                 .touchedSection!.touchedSectionIndex;
                             if (idx >= 0 && idx < sortedEntries.length) {
                               if (_touchedPieIndex != idx) {
-                                HapticFeedback.selectionClick();
+                                AppHaptics.selectionClick();
                                 _touchedPieIndex = idx;
                               }
                             } else {
@@ -587,7 +584,7 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () {
-              HapticFeedback.selectionClick();
+              AppHaptics.selectionClick();
               setState(() {
                 _touchedPieIndex = isSelected ? null : i;
               });
