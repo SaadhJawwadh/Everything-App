@@ -63,6 +63,7 @@ lib/
   - Connected Corner Morphing for grouped lists (first item rounded top, middle items flat, last item rounded bottom).
 * **Velocity-Aware Spring Physics**: Micro-interactions and press states must use `SpringDescription` tokens (`AppLayout.springFast` / `AppLayout.springSpatial`) and `AppLayout.curveEmphasizedDecelerate`, reacting naturally to gesture momentum.
 * **Dynamic Hero Card Opacities**: Hero cards (`SettingsHeroCard`, Net Balance, P2P Sync Status, Cycle Moon Phase, Trash Auto-Purge Banner) must dynamically adjust container opacity (50%–55% alpha in Light Mode; 20%–22% alpha in Dark Mode) with subtle 1.2px accent borders.
+* **Checklist Collapsible Grouping & Drag Scoping**: In the rich text note editor, completed checklist items collapse cleanly into a grouped `${count} completed items` card without in-app drag handles. Drag-and-drop reordering is scoped strictly to native Android Home screen widgets to maintain clean, uninterrupted note editing.
 
 ### 🏗️ Invariant 2: Feature-Driven Domain Architecture & Root Provider Registration
 * **Domain Modularization**: Place domain models, repositories, providers, and presentation screens inside `lib/features/<module>/`.
@@ -104,7 +105,7 @@ lib/
   - **Minor/Patch Releases (`X.Y.Z`)**: Existing users bypass onboarding. `PLAY_STORE_NOTES.md` and `WhatsNewSheet` present the **cumulative headline features from the current minor cycle (`X.Y.x`)** alongside the latest patch fixes.
 * **5-Point Release Parity & Test Guardrail**: Atomically update `PLAY_STORE_NOTES.md` (`<en-US>` and `<ta-IN>`, < 450 characters each), `lib/screens/changelog_screen.dart`, `lib/widgets/whats_new_sheet.dart`, `CHANGELOG.md`, and the version assertion in `test/upgrade_backward_compatibility_test.dart` before compiling release APKs or running `./deploy.sh`.
 * **Play Store VersionCode Immutability**: Google Play Developer Console strictly disallows re-uploading an existing `versionCode` (even if an earlier run failed at a later step or only partially completed). Never attempt to re-deploy or re-tag with an existing version code. If a release fails at or after upload, the patch version MUST be incremented (`X.Y.Z+W` where $W = X \times 10000 + Y \times 100 + Z$).
-* **Emulator Clean Shutdown Protocol**: When verifying on an Android virtual device, always cleanly terminate the emulator (`adb -s <device> emu kill`) and kill any background daemon process once testing and release tasks conclude, preventing orphaned QEMU processes from draining system CPU and memory.
+* **Emulator Lifecycle & Clean Shutdown Protocol**: Keep the Android virtual device (`emulator-5554`) active in the background throughout testing, development, and smoke-testing sessions—NEVER terminate or quit the emulator between test runs or while iterating. ONLY execute clean emulator shutdown (`adb -s <device> emu kill`) and kill background daemons AFTER the release deployment has been fully completed.
 
 ### 🔘 Invariant 8: Standard FAB Bottom Clearance & Universal Morphing Protocol
 * **No Obscured Content**: Bottom scrollable content must never be clipped or obscured by floating buttons or bottom navigation chrome. Always apply `AppLayout.fabBottomPadding = 96.0` to sliver lists or bottom padding containers.
@@ -156,6 +157,7 @@ lib/
   - Outer horizontal padding MUST be strictly `16dp` left and `16dp` right with ZERO inner edge spacers.
   - All top bar action icons MUST enforce `constraints: const BoxConstraints(minWidth: 40, minHeight: 40)`, `visualDensity: VisualDensity.compact`, and `padding: EdgeInsets.zero` to maintain uniform inter-button gaps without overlapping hitboxes.
 * **Top Bar Sub-Pixel Headroom**: SliverAppBar headers hosting title + scope pill columns MUST enforce `toolbarHeight: MediaQuery.of(context).padding.top + 72.0` and inner container `height: 60.0` (with vertical padding `top: padding.top + 6.0, bottom: 6.0`) to eliminate sub-pixel layout overflows.
+* **Contextual Menu Hygiene vs. Settings Centralization**: Do not overload contextual app bar overflow menus (`PopupMenuButton`) with persistent feature configuration switches or display toggles. Screen/editor menus are reserved strictly for contextual utilities directly relevant to the current artifact (details, folder move, share/export, lock, delete). All global feature preferences and module display toggles MUST live exclusively in `SettingsScreen` (`SettingsProvider`).
 
 ### 📥 Invariant 15: Google Takeout & Note Migration Standards
 * **ZIP Directory Path Invariant**: Never filter ZIP entries on broad substrings like `!name.contains('takeout')`, as Google Takeout stores all Keep notes under `Takeout/Keep/<note>.json`. Only exclude the top-level index file (`baseName != 'takeout.json'`).

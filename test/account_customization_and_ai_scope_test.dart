@@ -1,9 +1,15 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:note_taking_app/data/database_helper.dart';
 import 'package:note_taking_app/data/transaction_model.dart';
 import 'package:note_taking_app/data/custom_sms_rule.dart';
 import 'package:note_taking_app/services/sms_parser.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
+import 'package:note_taking_app/features/finances/presentation/widgets/account_transfer_sheet.dart';
+import 'package:note_taking_app/features/finances/providers/financial_manager_provider.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -129,6 +135,72 @@ void main() {
 
       await settings.setCategoryAccountRouting('Investments', null);
       expect(settings.categoryAccountRouting.containsKey('Investments'), isFalse);
+    });
+  });
+
+  group('AccountTransferSheet Widget Tests', () {
+    late Database testDb;
+
+    setUp(() async {
+      sqfliteFfiInit();
+      databaseFactory = databaseFactoryFfi;
+      testDb = await openDatabase(
+        inMemoryDatabasePath,
+        version: 19,
+        onCreate: (db, version) async {
+          await DatabaseHelper.instance.createTestDatabase(db);
+        },
+      );
+      DatabaseHelper.setMockDatabase(testDb);
+    });
+
+    tearDown(() async {
+      await testDb.close();
+      DatabaseHelper.setMockDatabase(null);
+    });
+
+    testWidgets('Renders connected flow card, swaps accounts, and responds to preset chips', (tester) async {
+      final settings = SettingsProvider();
+      final finance = FinancialManagerProvider();
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<SettingsProvider>.value(value: settings),
+            ChangeNotifierProvider<FinancialManagerProvider>.value(value: finance),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(
+              body: AccountTransferSheet(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Check account headers
+      expect(find.text('FROM ACCOUNT'), findsOneWidget);
+      expect(find.text('TO ACCOUNT'), findsOneWidget);
+
+      // Check preset chips
+      expect(find.text('+100'), findsOneWidget);
+      expect(find.text('+500'), findsOneWidget);
+      expect(find.text('+1,000'), findsOneWidget);
+      expect(find.text('+5,000'), findsOneWidget);
+
+      // Tap preset chip +500
+      await tester.tap(find.text('+500'));
+      await tester.pumpAndSettle();
+
+      // Verify amount updated to 500
+      expect(find.text('500'), findsOneWidget);
+
+      // Tap swap accounts button
+      await tester.tap(find.byIcon(Icons.swap_vert_rounded));
+      await tester.pumpAndSettle();
+
+      // Check CTA label
+      expect(find.text('Transfer to Daily'), findsOneWidget);
     });
   });
 }

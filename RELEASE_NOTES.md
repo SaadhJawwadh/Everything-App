@@ -1,13 +1,12 @@
 
 ### 🌟 What's New
-- **Publication Quotes in Story Card Studio**: Share memorable excerpts and quotes with magazine-style typography, subtle watermark quotation glyphs, and elegant note attribution.
-- **Android Checklist Widget Multi-Note Cycling**: Tap the widget header to smoothly cycle between all action items and specific note checklists with live progress counters.
+- **Connected Account Transfers**: Redesigned transfer sheet with a vertical connected M3 flow card, interactive tactile rotation swap, live projected balance calculation, and quick preset chips.
+- **Collapsible Completed Tasks**: Restored automatic grouping of completed checklist items into an expandable bottom card (`> completed items`), keeping your writing space uncluttered.
 
 ### 🚀 Improvements
-- **In-Place Checklist Completion**: Checking off items strikes them through in-place without removing them from view, keeping checklists consistent across the note editor, note list, and home widget.
-- **Streamlined Note Interface**: Removed redundant chips and uncluttered the note workspace for a cleaner, faster writing experience.
+- **Zero In-App Drag Clutter**: Removed intrusive drag-and-drop handles from the in-app editor, maintaining pure and natural text typing while keeping drag reordering native to the Android home screen widget.
+- **Focused Note Editor Menu**: Kept the note overflow dropdown uncluttered by centralizing checklist display options strictly in Settings.
 
 ### 🐛 Fixes
-- **Checklist Item Retention**: Fixed an issue where completed tasks could disappear when saving notes.
-- **Home Widget Responsiveness**: Enhanced widget title updates and tap detection when cycling between note lists.
+- **Checklist Sync & Storage Fidelity**: Completed items append cleanly to Delta documents upon save, ensuring lossless persistence in SQLite and instant sync with the Android home widget.
 

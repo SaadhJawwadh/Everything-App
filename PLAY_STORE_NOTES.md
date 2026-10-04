@@ -1,18 +1,18 @@
 <en-US>
 🌟 What's New
-• Story Card Reader & Quotes: Share notes as magazine-grade story cards with Reader Mode and elegant quote watermarks.
-• Android Checklist Widget: Cycle between all action items and individual checklists with instant progress sync.
-• Inter-Vault Transfers: Move funds between Daily and Savings with instant ledger logs.
+• Connected Transfers: Redesigned transfer sheet with live balance projections and quick preset chips.
+• Collapsible Checklists: Completed tasks tuck neatly into an expandable bottom card.
+• Story Card Studio: Share notes as magazine-grade story cards with Reader Mode & Quotes.
 
 🚀 Improvements
-• In-place checklist completion and P2P sync audit activity.
+• Android home widget checklist cycling and clutter-free note editing.
 </en-US>
 <ta-IN>
 🌟 புதிய அம்சங்கள்
-• கதை அட்டை வாசிப்பான் & மேற்கோள்கள்: குறிப்புகளை அழகான இதழ் பாணி அட்டைகளாகப் பகிரலாம்.
-• முகப்புத்திரை சரிபார்ப்புப் பட்டியல்: நேரடி ஒத்திசைவு மற்றும் குறிப்புகளை எளிதாக மாற்றும் வசதி.
-• சேமிப்புப் பரிமாற்றம்: தினசரி மற்றும் சேமிப்புக் கணக்குகளுக்கு இடையே நேரடி நிதி மாற்றம்.
+• சேமிப்புப் பரிமாற்றம்: நேரடி இருப்பு கணிப்பு மற்றும் புதிய வடிவமைப்பு.
+• சரிபார்ப்புப் பட்டியல்: முடிந்த வேலைகளை சுருக்கி வைக்கும் வசதி.
+• கதை அட்டை: குறிப்புகளை இதழ் பாணியில் பகிரும் வசதி.
 
 🚀 மேம்பாடுகள்
-• சரிபார்ப்புப் பட்டியல் மேம்பாடு மற்றும் P2P ஒத்திசைவு பதிவு.
+• முகப்புத்திரை விட்ஜெட் மற்றும் எளிய குறிப்புப் பக்கம்.
 </ta-IN>

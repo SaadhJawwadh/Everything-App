@@ -220,6 +220,15 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
     _noteUrls = _extractUrls();
 
+    // Initial checklist extraction (only if moveCompletedChecklistsToBottom is enabled)
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    if (settings.moveCompletedChecklistsToBottom) {
+      final initialCompleted = QuillChecklistHelper.extractAndRemoveCheckedLines(_quillController);
+      if (initialCompleted.isNotEmpty) {
+        _completedItems.addAll(initialCompleted);
+      }
+    }
+
     // Auto-save & change listeners
     _titleController.addListener(_onContentChanged);
     _quillController.addListener(_onSelectionChanged); // Add selection listener
@@ -236,44 +245,63 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
       if (hasListOrNewlineChange) {
         if (!mounted) return;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted || _isUpdatingProgrammatically) return;
-          _isUpdatingProgrammatically = true;
-          try {
-            final lines = QuillChecklistHelper.getDocumentLines(_quillController.document);
-            for (final line in lines) {
-              final listAttr = line.style.attributes['list']?.value;
-              if (listAttr == 'checked' || listAttr == 'unchecked') {
-                final isChecked = listAttr == 'checked';
-                final hasStrike = line.children.any((node) =>
-                    node is Leaf && (node.style.attributes['strike']?.value == true));
-                if (isChecked && !hasStrike) {
-                  final textLen = (line.length - 1).clamp(0, double.infinity).toInt();
-                  if (textLen > 0) {
-                    _quillController.document.format(
-                      line.documentOffset,
-                      textLen,
-                      Attribute.strikeThrough,
-                    );
-                  }
-                } else if (!isChecked && hasStrike) {
-                  final textLen = (line.length - 1).clamp(0, double.infinity).toInt();
-                  if (textLen > 0) {
-                    _quillController.document.format(
-                      line.documentOffset,
-                      textLen,
-                      Attribute.clone(Attribute.strikeThrough, null),
-                    );
+        final currentSettings = Provider.of<SettingsProvider>(context, listen: false);
+        if (currentSettings.moveCompletedChecklistsToBottom) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || _isUpdatingProgrammatically) return;
+            _isUpdatingProgrammatically = true;
+            try {
+              final newlyChecked = QuillChecklistHelper.extractAndRemoveCheckedLines(_quillController);
+              if (newlyChecked.isNotEmpty) {
+                _completedItems.addAll(newlyChecked);
+                if (mounted) setState(() {});
+              }
+            } catch (e) {
+              debugPrint('Error syncing checklists: $e');
+            } finally {
+              _isUpdatingProgrammatically = false;
+            }
+          });
+        } else {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || _isUpdatingProgrammatically) return;
+            _isUpdatingProgrammatically = true;
+            try {
+              final lines = QuillChecklistHelper.getDocumentLines(_quillController.document);
+              for (final line in lines) {
+                final listAttr = line.style.attributes['list']?.value;
+                if (listAttr == 'checked' || listAttr == 'unchecked') {
+                  final isChecked = listAttr == 'checked';
+                  final hasStrike = line.children.any((node) =>
+                      node is Leaf && (node.style.attributes['strike']?.value == true));
+                  if (isChecked && !hasStrike) {
+                    final textLen = (line.length - 1).clamp(0, double.infinity).toInt();
+                    if (textLen > 0) {
+                      _quillController.document.format(
+                        line.documentOffset,
+                        textLen,
+                        Attribute.strikeThrough,
+                      );
+                    }
+                  } else if (!isChecked && hasStrike) {
+                    final textLen = (line.length - 1).clamp(0, double.infinity).toInt();
+                    if (textLen > 0) {
+                      _quillController.document.format(
+                        line.documentOffset,
+                        textLen,
+                        Attribute.clone(Attribute.strikeThrough, null),
+                      );
+                    }
                   }
                 }
               }
+            } catch (e) {
+              debugPrint('Error syncing checklist strikethrough formatting: $e');
+            } finally {
+              _isUpdatingProgrammatically = false;
             }
-          } catch (e) {
-            debugPrint('Error syncing checklist strikethrough formatting: $e');
-          } finally {
-            _isUpdatingProgrammatically = false;
-          }
-        });
+          });
+        }
       }
       if (event.source == ChangeSource.local) {
         _checkCodeBlockAutoExit(event.change);
@@ -2853,16 +2881,16 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                         ),
                                       ),
                                       color: theme.colorScheme.surfaceContainerHigh,
-                                      onSelected: (value) {
+                                      onSelected: (value) async {
                                         switch (value) {
                                           case 'reminder':
-                                            _pickReminder();
+                                            await _pickReminder();
                                             break;
                                           case 'clear_reminder':
                                             _clearReminder();
                                             break;
                                           case 'folder':
-                                            _pickFolder();
+                                            await _pickFolder();
                                             break;
                                           case 'details':
                                             _showNoteDetailsSheet();
@@ -2871,13 +2899,13 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                             _showShareExportSheet();
                                             break;
                                           case 'lock':
-                                            _toggleNoteLock();
+                                            await _toggleNoteLock();
                                             break;
                                           case 'table':
-                                            _showTableInsertionDialog();
+                                            await _showTableInsertionDialog();
                                             break;
                                           case 'delete':
-                                            _deleteNote();
+                                            await _deleteNote();
                                             break;
                                           case 'search':
                                             setState(() {

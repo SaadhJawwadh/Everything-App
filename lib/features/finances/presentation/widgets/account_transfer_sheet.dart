@@ -5,13 +5,12 @@ import 'package:provider/provider.dart';
 import '../../../../core/services/app_haptics.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
-import '../../../../core/ui/expressive_wavy_slider.dart';
 import '../../../../data/transaction_model.dart';
 import '../../../settings/providers/settings_provider.dart';
 import '../../providers/financial_manager_provider.dart';
 
 /// Modal bottom sheet allowing instantaneous double-entry fund transfers
-/// between Daily Operating Account and Savings Vault.
+/// between Daily Operating Account and Savings Vault with live balance preview.
 class AccountTransferSheet extends StatefulWidget {
   const AccountTransferSheet({super.key});
 
@@ -32,13 +31,13 @@ class _AccountTransferSheetState extends State<AccountTransferSheet> {
   final TextEditingController _noteController = TextEditingController();
   String _fromAccount = AccountType.daily;
   String _toAccount = AccountType.savings;
-  double _sliderValue = 0.0;
+  double _swapTurns = 0.0;
   bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
-    _amountController.text = '0';
+    _amountController.text = '';
   }
 
   @override
@@ -54,14 +53,20 @@ class _AccountTransferSheetState extends State<AccountTransferSheet> {
       final temp = _fromAccount;
       _fromAccount = _toAccount;
       _toAccount = temp;
+      _swapTurns += 0.5;
     });
   }
 
-  void _setAmount(double val, double maxCap) {
-    final clamped = val.clamp(0.0, maxCap > 0 ? maxCap : 1000000.0);
+  void _addAmount(double addVal) {
+    AppHaptics.selectionClick();
+    final current = double.tryParse(_amountController.text) ?? 0.0;
+    final total = current + addVal;
+    _setAbsoluteAmount(total);
+  }
+
+  void _setAbsoluteAmount(double val) {
     setState(() {
-      _sliderValue = clamped;
-      _amountController.text = clamped.toStringAsFixed(clamped.truncateToDouble() == clamped ? 0 : 2);
+      _amountController.text = val.toStringAsFixed(val.truncateToDouble() == val ? 0 : 2);
     });
   }
 
@@ -87,7 +92,8 @@ class _AccountTransferSheetState extends State<AccountTransferSheet> {
         ? financeProvider.dailyCashFlow
         : financeProvider.savingsVaultCashFlow;
 
-    final maxSlider = fromBalance > 0 ? fromBalance : 50000.0;
+    final amount = double.tryParse(_amountController.text) ?? 0.0;
+    final isOverBalance = fromBalance > 0 && amount > fromBalance;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -100,125 +106,242 @@ class _AccountTransferSheetState extends State<AccountTransferSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ── Account Direction Cards ──
-          Row(
+          // ── Connected Vertical Flow Card ──
+          Stack(
+            alignment: Alignment.center,
             children: [
-              Expanded(
-                child: _buildAccountBox(
-                  theme: theme,
-                  label: 'From',
-                  accountName: fromName,
-                  balance: fromBalance,
-                  currency: currency,
-                  icon: _fromAccount == AccountType.daily
-                      ? Icons.credit_card_outlined
-                      : Icons.account_balance_outlined,
-                  color: cs.primary,
+              Container(
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainer,
+                  borderRadius: BorderRadius.circular(AppLayout.radiusL),
+                  border: Border.all(
+                    color: cs.outlineVariant.withValues(alpha: 0.4),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    // FROM Account Row
+                    _buildAccountRow(
+                      theme: theme,
+                      label: 'From Account',
+                      accountName: fromName,
+                      balance: fromBalance,
+                      currency: currency,
+                      icon: _fromAccount == AccountType.daily
+                          ? Icons.credit_card_rounded
+                          : Icons.savings_outlined,
+                      isFrom: true,
+                    ),
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: cs.outlineVariant.withValues(alpha: 0.25),
+                    ),
+                    // TO Account Row
+                    _buildAccountRow(
+                      theme: theme,
+                      label: 'To Account',
+                      accountName: toName,
+                      balance: toBalance,
+                      currency: currency,
+                      icon: _toAccount == AccountType.daily
+                          ? Icons.credit_card_rounded
+                          : Icons.savings_outlined,
+                      isFrom: false,
+                    ),
+                  ],
                 ),
               ),
-              IconButton.filledTonal(
-                tooltip: 'Swap Direction',
-                onPressed: _swapAccounts,
-                icon: const Icon(Icons.swap_horiz_rounded),
-              ),
-              Expanded(
-                child: _buildAccountBox(
-                  theme: theme,
-                  label: 'To',
-                  accountName: toName,
-                  balance: toBalance,
-                  currency: currency,
-                  icon: _toAccount == AccountType.daily
-                      ? Icons.credit_card_outlined
-                      : Icons.account_balance_outlined,
-                  color: cs.secondary,
+
+              // Floating overlapping swap button
+              Positioned(
+                child: Material(
+                  color: cs.surfaceContainerHighest,
+                  shape: const CircleBorder(),
+                  elevation: 2,
+                  shadowColor: cs.shadow.withValues(alpha: 0.15),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: _swapAccounts,
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: cs.outlineVariant.withValues(alpha: 0.5),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: AnimatedRotation(
+                        turns: _swapTurns,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOutBack,
+                        child: Icon(
+                          Icons.swap_vert_rounded,
+                          size: 20,
+                          color: cs.primary,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 18),
 
-          // ── Amount Input Display ──
+          // ── Hero Amount Input Display ──
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
               color: cs.surfaceContainerLowest,
               borderRadius: BorderRadius.circular(AppLayout.radiusL),
               border: Border.all(
-                color: cs.outlineVariant.withValues(alpha: 0.5),
+                color: isOverBalance
+                    ? cs.error.withValues(alpha: 0.6)
+                    : cs.outlineVariant.withValues(alpha: 0.45),
+                width: isOverBalance ? 1.5 : 1.0,
               ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
                   currency,
                   style: tt.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: cs.primary,
+                    fontWeight: FontWeight.w800,
+                    color: isOverBalance ? cs.error : cs.primary,
                   ),
                 ),
                 const SizedBox(width: 8),
-                IntrinsicWidth(
-                  child: TextField(
-                    controller: _amountController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-                    ],
-                    style: tt.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: cs.onSurface,
+                Flexible(
+                  child: IntrinsicWidth(
+                    child: TextField(
+                      controller: _amountController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      textAlign: TextAlign.center,
+                      autofocus: false,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                      ],
+                      style: tt.displaySmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: isOverBalance ? cs.error : cs.onSurface,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: '0',
+                        hintStyle: tt.displaySmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: cs.outlineVariant.withValues(alpha: 0.7),
+                        ),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      onChanged: (text) {
+                        setState(() {});
+                      },
                     ),
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    onChanged: (text) {
-                      final parsed = double.tryParse(text) ?? 0.0;
-                      setState(() {
-                        _sliderValue = parsed.clamp(0.0, maxSlider);
-                      });
-                    },
                   ),
                 ),
+                if (amount > 0) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.cancel_rounded, size: 20),
+                    color: cs.onSurfaceVariant,
+                    onPressed: () {
+                      AppHaptics.selectionClick();
+                      setState(() {
+                        _amountController.text = '';
+                      });
+                    },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    tooltip: 'Clear',
+                  ),
+                ],
               ],
             ),
           ),
-          const SizedBox(height: 12),
 
-          // ── Tactile Sinusoidal Slider ──
-          ExpressiveWavySlider(
-            value: _sliderValue.clamp(0.0, maxSlider),
-            min: 0.0,
-            max: maxSlider,
-            onChanged: (val) {
-              _setAmount(val, maxSlider);
-            },
-          ),
-          const SizedBox(height: 8),
+          // ── Dynamic Projected Balance or Warning ──
+          if (amount > 0) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: isOverBalance
+                    ? cs.errorContainer.withValues(alpha: 0.35)
+                    : cs.primaryContainer.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(AppLayout.radiusM),
+                border: Border.all(
+                  color: isOverBalance
+                      ? cs.error.withValues(alpha: 0.4)
+                      : cs.primary.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    isOverBalance ? Icons.warning_amber_rounded : Icons.info_outline_rounded,
+                    size: 16,
+                    color: isOverBalance ? cs.error : cs.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      isOverBalance
+                          ? 'Transfer exceeds available balance ($currency ${fromBalance.toStringAsFixed(2)})'
+                          : 'New balance: $fromName $currency ${(fromBalance - amount).toStringAsFixed(0)} • $toName $currency ${(toBalance + amount).toStringAsFixed(0)}',
+                      style: tt.bodySmall?.copyWith(
+                        color: isOverBalance ? cs.error : cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
 
           // ── Preset Amount Quick Chips ──
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
-            children: [
-              _buildPresetChip('+100', 100, maxSlider),
-              _buildPresetChip('+500', 500, maxSlider),
-              _buildPresetChip('+1,000', 1000, maxSlider),
-              _buildPresetChip('+5,000', 5000, maxSlider),
-              if (fromBalance > 0)
-                ActionChip(
-                  label: const Text('All Available'),
-                  avatar: const Icon(Icons.all_inclusive_rounded, size: 14),
-                  onPressed: () {
-                    AppHaptics.lightImpact();
-                    _setAmount(fromBalance, maxSlider);
-                  },
-                ),
-            ],
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildPresetChip('+100', 100),
+                const SizedBox(width: 8),
+                _buildPresetChip('+500', 500),
+                const SizedBox(width: 8),
+                _buildPresetChip('+1,000', 1000),
+                const SizedBox(width: 8),
+                _buildPresetChip('+5,000', 5000),
+                if (fromBalance > 0) ...[
+                  const SizedBox(width: 8),
+                  ActionChip(
+                    label: Text(
+                      'Max ($currency ${fromBalance.toStringAsFixed(0)})',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSecondaryContainer,
+                      ),
+                    ),
+                    backgroundColor: cs.secondaryContainer.withValues(alpha: 0.55),
+                    side: BorderSide(color: cs.secondary.withValues(alpha: 0.35)),
+                    avatar: Icon(Icons.flash_on_rounded, size: 16, color: cs.secondary),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
+                    ),
+                    onPressed: () {
+                      AppHaptics.lightImpact();
+                      _setAbsoluteAmount(fromBalance);
+                    },
+                  ),
+                ],
+              ],
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -226,10 +349,24 @@ class _AccountTransferSheetState extends State<AccountTransferSheet> {
           TextField(
             controller: _noteController,
             decoration: InputDecoration(
-              hintText: 'Optional transfer memo (e.g. Monthly savings)',
-              prefixIcon: const Icon(Icons.edit_note_rounded, size: 20),
+              hintText: 'Transfer memo (e.g. Monthly savings)',
+              hintStyle: tt.bodyMedium?.copyWith(
+                color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+              ),
+              prefixIcon: Icon(Icons.edit_note_rounded, size: 22, color: cs.primary),
+              filled: true,
+              fillColor: cs.surfaceContainerLowest,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppLayout.radiusM),
+                borderSide: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.4)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppLayout.radiusM),
+                borderSide: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.4)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppLayout.radiusM),
+                borderSide: BorderSide(color: cs.primary, width: 1.5),
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             ),
@@ -238,10 +375,9 @@ class _AccountTransferSheetState extends State<AccountTransferSheet> {
 
           // ── Confirm CTA ──
           FilledButton.icon(
-            onPressed: _isSubmitting
+            onPressed: _isSubmitting || amount <= 0
                 ? null
                 : () async {
-                    final amount = double.tryParse(_amountController.text) ?? 0.0;
                     if (amount <= 0) {
                       AppHaptics.lightImpact();
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -279,10 +415,16 @@ class _AccountTransferSheetState extends State<AccountTransferSheet> {
                       }
                     }
                   },
-            icon: const Icon(Icons.check_circle_rounded),
+            icon: _isSubmitting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.arrow_forward_rounded),
             label: Text(
-              _isSubmitting ? 'Transferring...' : 'Confirm Transfer',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              _isSubmitting ? 'Transferring...' : 'Transfer to $toName',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -296,71 +438,97 @@ class _AccountTransferSheetState extends State<AccountTransferSheet> {
     );
   }
 
-  Widget _buildAccountBox({
+  Widget _buildAccountRow({
     required ThemeData theme,
     required String label,
     required String accountName,
     required double balance,
     required String currency,
     required IconData icon,
-    required Color color,
+    required bool isFrom,
   }) {
     final cs = theme.colorScheme;
     final tt = theme.textTheme;
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainer,
-        borderRadius: BorderRadius.circular(AppLayout.radiusL),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.35)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.all(14),
+      child: Row(
         children: [
-          Row(
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: isFrom
+                  ? cs.primaryContainer.withValues(alpha: 0.5)
+                  : cs.secondaryContainer.withValues(alpha: 0.5),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              size: 20,
+              color: isFrom ? cs.primary : cs.secondary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label.toUpperCase(),
+                  style: tt.labelSmall?.copyWith(
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  accountName,
+                  style: tt.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: cs.onSurface,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Icon(icon, size: 16, color: color),
-              const SizedBox(width: 4),
               Text(
-                label,
+                'Available',
                 style: tt.labelSmall?.copyWith(
                   color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '$currency ${balance.toStringAsFixed(2)}',
+                style: tt.bodyMedium?.copyWith(
+                  color: balance >= 0 ? cs.onSurface : cs.error,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            accountName,
-            style: tt.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            '$currency ${balance.toStringAsFixed(0)}',
-            style: tt.bodySmall?.copyWith(
-              color: balance >= 0 ? cs.primary : cs.error,
-              fontWeight: FontWeight.w600,
-            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPresetChip(String label, double addAmount, double maxSlider) {
+  Widget _buildPresetChip(String label, double addAmount) {
     return ActionChip(
-      label: Text(label),
-      onPressed: () {
-        AppHaptics.selectionClick();
-        final current = double.tryParse(_amountController.text) ?? 0.0;
-        _setAmount(current + addAmount, maxSlider);
-      },
+      label: Text(
+        label,
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
+      ),
+      onPressed: () => _addAmount(addAmount),
     );
   }
 }

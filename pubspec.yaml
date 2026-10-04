@@ -1,7 +1,7 @@
 name: note_taking_app
 description: "Everything App: A fully local offline-first note-taking, financial manager, and health tracker app with offline AI and SMS auto-import."
 publish_to: "none"
-version: 2.45.1+24501
+version: 2.45.2+24502
 
 
 environment:
