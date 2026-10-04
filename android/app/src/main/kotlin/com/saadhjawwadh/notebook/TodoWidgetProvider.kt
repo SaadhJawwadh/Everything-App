@@ -85,6 +85,7 @@ class TodoWidgetProvider : AppWidgetProvider() {
             if (ids.isNotEmpty()) {
                 for (id in ids) {
                     updateAppWidget(context, appWidgetManager, id)
+                    updateHeader(context, appWidgetManager, id)
                 }
                 appWidgetManager.notifyAppWidgetViewDataChanged(ids, R.id.todo_widget_list)
             }
@@ -162,6 +163,7 @@ class TodoWidgetProvider : AppWidgetProvider() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             views.setOnClickPendingIntent(R.id.todo_widget_switcher, cyclePendingIntent)
+            views.setOnClickPendingIntent(R.id.todo_widget_title, cyclePendingIntent)
 
             // Add button click: Open quick add dialog in MainActivity
             val addIntent = Intent(context, MainActivity::class.java).apply {

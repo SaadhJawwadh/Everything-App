@@ -119,7 +119,7 @@ void main() {
       expect(settings.trashAutoPurgeDays, 30);
     });
 
-    testWidgets('WhatsNewSheet renders v2.45.0 cards and records version on dismiss', (tester) async {
+    testWidgets('WhatsNewSheet renders v2.45.1 cards and records version on dismiss', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -136,7 +136,7 @@ void main() {
           value: settings,
           child: const MaterialApp(
             home: Scaffold(
-              body: WhatsNewSheet(currentVersion: '2.45.0'),
+              body: WhatsNewSheet(currentVersion: '2.45.1'),
             ),
           ),
         ),
@@ -151,8 +151,8 @@ void main() {
       // Check marquee items
       expect(find.text("Story Card Reader Mode"), findsOneWidget);
       expect(find.text("Inter-Vault Account Transfers"), findsOneWidget);
-      expect(find.text("In-Note Links & Expenses"), findsOneWidget);
-      expect(find.text("Checklist Drag & Drop"), findsOneWidget);
+      expect(find.text("Android Checklist Widget"), findsOneWidget);
+      expect(find.text("Publication Quotes"), findsOneWidget);
       expect(find.text("P2P Sync Audit Activity"), findsOneWidget);
 
       // Tap "Awesome, Got It!" to finish
@@ -162,7 +162,7 @@ void main() {
       });
       await tester.pumpAndSettle();
 
-      expect(settings.lastSeenVersion, '2.45.0');
+      expect(settings.lastSeenVersion, '2.45.1');
     });
   });
 }

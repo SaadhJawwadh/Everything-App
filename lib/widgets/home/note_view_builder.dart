@@ -233,9 +233,7 @@ class NoteViewBuilder extends StatelessWidget {
       openColor: Theme.of(context).colorScheme.surface,
       closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppLayout.radiusL)),
       onClosed: (returned) async {
-        if (returned == true) {
-          refresh();
-        }
+        refresh();
       },
       closedBuilder: (context, openContainer) {
         return NoteCard(

@@ -394,9 +394,7 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
                                         borderRadius: BorderRadius.circular(AppLayout.radiusL),
                                       ),
                                       onClosed: (returned) async {
-                                        if (returned == true) {
-                                          await refreshNotes();
-                                        }
+                                        await refreshNotes();
                                       },
                                       closedBuilder: (context, openContainer) {
                                         return NoteCard(

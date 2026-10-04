@@ -80,11 +80,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
     _textController = TextEditingController(text: trimmedText);
     _titleController = TextEditingController(text: widget.noteTitle.trim());
 
-    final totalWords = StoryCardConfig.countWords(trimmedText);
     final autoLayoutMode = StoryCardLayoutMode.autoDetect(trimmedText);
-    final initialWordLimit = autoLayoutMode == StoryCardLayoutMode.article
-        ? StoryCardWordLimit.all
-        : (totalWords > 60 ? StoryCardWordLimit.w50 : StoryCardWordLimit.all);
 
     _config = StoryCardConfig(
       title: widget.noteTitle.trim(),
@@ -94,7 +90,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
       noteColorValue: widget.noteColorValue,
       aspectRatio: StoryCardAspectRatio.story,
       themePreset: StoryCardThemePreset.editorial,
-      wordLimit: initialWordLimit,
+      wordLimit: StoryCardWordLimit.all,
       fontStyle: StoryCardFontStyle.auto,
       layoutMode: autoLayoutMode,
       showTitle: true,
@@ -374,12 +370,8 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                 onSelectionChanged: (set) {
                   AppHaptics.selectionClick();
                   setState(() {
-                    final newMode = set.first;
                     _config = _config.copyWith(
-                      layoutMode: newMode,
-                      wordLimit: newMode == StoryCardLayoutMode.article && _config.wordLimit != StoryCardWordLimit.all
-                          ? StoryCardWordLimit.all
-                          : _config.wordLimit,
+                      layoutMode: set.first,
                     );
                   });
                 },
@@ -411,68 +403,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
             ),
             const SizedBox(height: AppLayout.spaceM),
 
-            // Controls 2: Word Limit Selector with Live Stats Badge
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'QUOTE LENGTH',
-                  style: textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.1,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-                  decoration: BoxDecoration(
-                    color: colorScheme.secondaryContainer.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                  ),
-                  child: Text(
-                    '📝 ${_config.displayedWordCount} / ${_config.totalWordCount} words',
-                    style: textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSecondaryContainer,
-                      fontSize: 10.5,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              child: Row(
-                children: StoryCardWordLimit.values.map((limit) {
-                  final isSelected = _config.wordLimit == limit;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 6.0),
-                    child: FilterChip(
-                      showCheckmark: false,
-                      label: Text(
-                        limit.label,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
-                      selected: isSelected,
-                      visualDensity: VisualDensity.compact,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      onSelected: (_) {
-                        AppHaptics.selectionClick();
-                        setState(() => _config = _config.copyWith(wordLimit: limit));
-                      },
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-            const SizedBox(height: AppLayout.spaceM),
-
-            // Controls 3: Typography Font Style Switcher
+            // Controls 2: Typography Font Style Switcher
             Text(
               'TYPOGRAPHY STYLE',
               style: textTheme.labelSmall?.copyWith(

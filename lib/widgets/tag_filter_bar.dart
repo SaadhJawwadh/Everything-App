@@ -30,7 +30,22 @@ class TagFilterBar extends StatelessWidget {
             itemCount: itemCount,
             itemBuilder: (context, index) {
               if (showChecklistChip && index == 1) {
-                final todoColors = AppChip.getTagColors(context, null, isSelected: isChecklistFiltered);
+                final theme = Theme.of(context);
+                final colorScheme = theme.colorScheme;
+                final isDark = theme.brightness == Brightness.dark;
+                final Color bg;
+                final Color fg;
+                final BorderSide border;
+                if (isChecklistFiltered) {
+                  bg = colorScheme.secondary;
+                  fg = colorScheme.onSecondary;
+                  border = BorderSide(color: colorScheme.secondary, width: 1.5);
+                } else {
+                  bg = colorScheme.secondaryContainer.withValues(alpha: isDark ? 0.45 : 0.65);
+                  fg = colorScheme.onSecondaryContainer;
+                  border = BorderSide(color: colorScheme.secondary.withValues(alpha: 0.5), width: 1.2);
+                }
+
                 return Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: AppChip(
@@ -38,10 +53,10 @@ class TagFilterBar extends StatelessWidget {
                     label: 'Checklists · $checklistCount',
                     isSelected: isChecklistFiltered,
                     isCompact: true,
-                    backgroundColor: todoColors.bg,
-                    selectedBackgroundColor: todoColors.bg,
-                    textColor: todoColors.fg,
-                    border: todoColors.border,
+                    backgroundColor: bg,
+                    selectedBackgroundColor: bg,
+                    textColor: fg,
+                    border: border,
                     onTap: () {
                       AppHaptics.selectionClick();
                       noteProvider.setFilterChecklistsOnly(!isChecklistFiltered);

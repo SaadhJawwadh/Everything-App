@@ -47,9 +47,9 @@ class WhatsNewSheet extends StatelessWidget {
             desc: "Move funds smoothly between Daily Cash Flow and Savings Vault with instant dual-entry ledger tracking.",
           ),
           _WhatsNewItem(
-            icon: Icons.link_rounded,
-            title: "In-Note Links & Expenses",
-            desc: "Connect notes with [[Note Title]] bidirectional links, and track running expense totals using {{\$amount}}.",
+            icon: Icons.checklist_rounded,
+            title: "Android Checklist Widget",
+            desc: "Cycle directly between all action items and individual checklists with live titles, progress counters, and 0ms completion.",
           ),
           _WhatsNewItem(
             icon: Icons.shield_moon_outlined,
@@ -65,9 +65,9 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.tertiaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.drag_indicator_rounded,
-            title: "Checklist Drag & Drop",
-            desc: "Effortlessly reorder tasks by dragging items or using the dedicated checklist reorder sheet.",
+            icon: Icons.format_quote_rounded,
+            title: "Publication Quotes",
+            desc: "Upgraded Quote mode with theme-matched ambient quotation marks, note attribution, and streamlined studio controls.",
           ),
           _WhatsNewItem(
             icon: Icons.history_rounded,

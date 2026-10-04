@@ -12,9 +12,6 @@ import '../../../../utils/quill_checklist_helper.dart';
 import '../../../../utils/rich_text_utils.dart';
 import '../screens/note_editor_screen.dart';
 import '../../../../providers/note_provider.dart';
-import 'checklist_reorder_sheet.dart';
-import '../../services/note_link_service.dart';
-import '../../services/note_expense_embed_service.dart';
 
 class NoteCard extends StatelessWidget {
   final Note note;
@@ -134,29 +131,6 @@ class NoteCard extends StatelessWidget {
                             ? Colors.green
                             : theme.colorScheme.onSecondaryContainer,
                       ),
-                      const Spacer(),
-                      Semantics(
-                        button: true,
-                        label: 'Reorder checklist tasks',
-                        child: InkWell(
-                          onTap: () {
-                            AppHaptics.selectionClick();
-                            ChecklistReorderSheet.showWithNote(
-                              context: context,
-                              note: note,
-                            );
-                          },
-                          borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                          child: Padding(
-                            padding: const EdgeInsets.all(AppLayout.spaceXS),
-                            child: Icon(
-                              Icons.drag_indicator_rounded,
-                              size: 16,
-                              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                            ),
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                   const SizedBox(height: AppLayout.spaceS),
@@ -172,94 +146,6 @@ class NoteCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                if (!note.isLocked) ...[
-                  Builder(
-                    builder: (context) {
-                      final rawContent = note.previewText ?? note.content;
-                      final links = NoteLinkService.scanLinks(rawContent);
-                      final expenseEmbeds = NoteExpenseEmbedService.scanExpenseEmbeds(rawContent);
-                      if (links.isEmpty && expenseEmbeds.isEmpty) return const SizedBox.shrink();
-
-                      return Padding(
-                        padding: const EdgeInsets.only(top: AppLayout.spaceS),
-                        child: Wrap(
-                          spacing: AppLayout.spaceXS,
-                          runSpacing: AppLayout.spaceXS,
-                          children: [
-                            ...links.take(2).map((link) => InkWell(
-                              onTap: () {
-                                AppHaptics.selectionClick();
-                                NoteLinkService.navigateToLinkedNote(context, link.targetTitle);
-                              },
-                              borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
-                                  borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                                  border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.link_rounded, size: 12, color: theme.colorScheme.primary),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      link.targetTitle,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: theme.colorScheme.primary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            )),
-                            ...expenseEmbeds.take(2).map((expense) => InkWell(
-                              onTap: () async {
-                                final ok = await NoteExpenseEmbedService.bookExpense(
-                                  context: context,
-                                  note: note,
-                                  embed: expense,
-                                );
-                                if (context.mounted && ok) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Booked ${expense.currencySymbol}${expense.amount} to Daily Account')),
-                                  );
-                                }
-                              },
-                              borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: Colors.amber.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                                  border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.payments_outlined, size: 12, color: Colors.amber),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${expense.currencySymbol}${expense.amount.toStringAsFixed(expense.amount.truncateToDouble() == expense.amount ? 0 : 2)}',
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.amber,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            )),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ],
                 if (note.tags.isNotEmpty) ...[
                   const SizedBox(height: AppLayout.spaceM),
                   Wrap(
@@ -343,12 +229,12 @@ class NoteCard extends StatelessWidget {
       return [
         ...previewItems.map((item) {
           return InkWell(
-            onTap: () {
+            onTap: () async {
               final noteProvider = context.read<NoteProvider>();
               if (noteProvider.isSelectionMode) {
                 noteProvider.toggleSelection(note.id);
               } else {
-                Navigator.push(
+                await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => NoteEditorScreen(
@@ -357,6 +243,9 @@ class NoteCard extends StatelessWidget {
                     ),
                   ),
                 );
+                if (context.mounted) {
+                  await context.read<NoteProvider>().refreshNotes();
+                }
               }
             },
             borderRadius: BorderRadius.circular(AppLayout.radiusS),

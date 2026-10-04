@@ -28,23 +28,52 @@ class ChangelogScreen extends StatelessWidget {
               delegate: SliverChildListDelegate([
                 _buildVersionSection(
                   context,
-                  version: 'v2.45.0',
+                  version: 'v2.45.1',
                   date: 'October 4, 2026',
                   isLatest: true,
                   changes: [
                     _ChangelogGroup(
                       title: "What's New",
                       items: [
+                        'Publication Quotes in Story Card Studio: Share memorable quotes and excerpts with magazine-grade typography, subtle watermark quotation glyphs, and elegant note attribution.',
+                        'Android Checklist Widget Multi-Note Cycling: Seamlessly switch between All Action Items and individual note checklists right from your home screen with live progress feedback.',
+                      ],
+                    ),
+                    _ChangelogGroup(
+                      title: 'Improvements',
+                      items: [
+                        'In-Place Checklist Completion: Checking off tasks strikes them through in-place without removing them from view, maintaining perfect sync across editor, note list, and home widget.',
+                        'Streamlined Writing Canvas: Decluttered note cards and editor interface by removing redundant chips and unused link shortcuts.',
+                      ],
+                    ),
+                    _ChangelogGroup(
+                      title: 'Fixes',
+                      items: [
+                        'Checklist Persistence: Resolved task retention issues so completed items remain visible upon saving.',
+                        'Widget Gesture Accuracy: Improved touch bounds and title chip responsiveness when switching checklists on the home screen.',
+                      ],
+                    ),
+                  ],
+                ),
+                _buildVersionSection(
+                  context,
+                  version: 'v2.45.0',
+                  date: 'October 4, 2026',
+                  isLatest: false,
+                  changes: [
+                    _ChangelogGroup(
+                      title: "What's New",
+                      items: [
                         'Story Card Studio Article & Reader Mode: Share long notes, checklists, and articles as high-resolution story cards with dedicated Reader Mode, clean divider layout, and dynamic font scaling.',
                         'Inter-Vault Account Transfers: Transfer funds smoothly between Daily Cash Flow and Savings Vault with instant dual-entry tracking and real-time balance calculations.',
-                        'In-Note Wiki Links & Expense Embeds: Connect your thoughts with [[Note Title]] bidirectional links, and embed live expense sums using {{\$amount}} tags.',
+                        'Android Home Screen Checklist Widget: Cycle directly between All Action Items and individual checklists with live titles, progress counters, and 0ms task completion.',
                         'Period Tracker Discreet Privacy Mode: Keep health tracking private with an ambient moon indicator, toggleable cycle details, and discreet notification alerts.',
                       ],
                     ),
                     _ChangelogGroup(
                       title: 'Improvements',
                       items: [
-                        'Checklist Drag-and-Drop Reordering: Seamlessly reorder to-do tasks using drag gestures or the convenient reorder sheet.',
+                        'Story Card Studio Publication Quotes: Upgraded Quote mode with theme-matched ambient quotation glyphs, note attribution, and streamlined controls.',
                         'P2P Wi-Fi Sync Audit Activity: Transparent sync logs detailing synced notes, ledger transactions, and connected peer devices.',
                         'Financial Ledger CSV & AI Export: Export complete transaction records to CSV or generate clean prompts for external financial analysis.',
                       ],

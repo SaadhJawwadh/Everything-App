@@ -149,63 +149,17 @@ class StoryCardPreview extends StatelessWidget {
                     )
                   else
                     Expanded(
-                      child: Center(
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            // Decorative quotation mark in Editorial theme
-                            if (style.isEditorial)
-                              Positioned(
-                                top: 0,
-                                left: 0,
-                                child: Text(
-                                  '“',
-                                  style: TextStyle(
-                                    fontSize: 48,
-                                    height: 0.7,
-                                    fontFamily: 'serif',
-                                    fontWeight: FontWeight.bold,
-                                    color: style.accent.withValues(alpha: 0.22),
-                                  ),
-                                ),
-                              ),
-
-                            Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: isStory ? 14.0 : 10.0,
-                                vertical: 8.0,
-                              ),
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: style.isEditorial
-                                    ? Alignment.centerLeft
-                                    : Alignment.center,
-                                child: ConstrainedBox(
-                                  constraints: BoxConstraints(
-                                    maxWidth: isStory ? 310.0 : (isPortrait ? 280.0 : 260.0),
-                                  ),
-                                  child: Text(
-                                    text.isEmpty ? 'No text selected.' : text,
-                                    textAlign: style.isEditorial
-                                        ? TextAlign.left
-                                        : TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: fontSize,
-                                      height: lineHeight,
-                                      fontWeight: fontWeight,
-                                      color: style.text,
-                                      fontFamily: resolvedFontFamily,
-                                      fontFamilyFallback: fontFallback,
-                                      letterSpacing: style.isTerminal
-                                          ? 0.0
-                                          : (isTamil ? 0.3 : -0.2),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      child: _buildQuoteBodyZone(
+                        text: text,
+                        style: style,
+                        isStory: isStory,
+                        isPortrait: isPortrait,
+                        isTamil: isTamil,
+                        fontSize: fontSize,
+                        lineHeight: lineHeight,
+                        fontWeight: fontWeight,
+                        resolvedFontFamily: resolvedFontFamily,
+                        fontFallback: fontFallback,
                       ),
                     ),
 
@@ -304,8 +258,8 @@ class StoryCardPreview extends StatelessWidget {
           ],
         ),
 
-        // Line 2: Note Title (if enabled)
-        if (config.showTitle) ...[
+        // Line 2: Note Title (in Article mode, rendered as headline; in Quote mode, rendered as attribution below quote)
+        if (config.showTitle && config.layoutMode == StoryCardLayoutMode.article) ...[
           const SizedBox(height: 8),
           Row(
             children: [
@@ -670,6 +624,139 @@ class StoryCardPreview extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
+      ),
+    );
+  }
+
+  /// Builds the publication-grade quote presentation with ambient quotation marks,
+  /// optional pull-quote accent border, and grounded title attribution.
+  Widget _buildQuoteBodyZone({
+    required String text,
+    required StoryCardThemeStyle style,
+    required bool isStory,
+    required bool isPortrait,
+    required bool isTamil,
+    required double fontSize,
+    required double lineHeight,
+    required FontWeight fontWeight,
+    required String resolvedFontFamily,
+    required List<String> fontFallback,
+  }) {
+    final bool isEditorial = style.isEditorial;
+    final bool hasTitleAttribution = config.showTitle && config.resolvedTitle.isNotEmpty;
+
+    return Center(
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Ambient watermark quotation mark behind text across all themes
+          Positioned(
+            top: isStory ? 8 : 4,
+            left: isEditorial ? 4 : null,
+            child: Text(
+              '“',
+              style: TextStyle(
+                fontSize: isStory ? 76 : 58,
+                height: 0.8,
+                fontFamily: isTamil ? AppTheme.fontNotoSerifTamil : 'serif',
+                fontWeight: FontWeight.bold,
+                color: style.accent.withValues(alpha: isEditorial ? 0.20 : 0.12),
+              ),
+            ),
+          ),
+
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: isStory ? 16.0 : 12.0,
+              vertical: 8.0,
+            ),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: isEditorial ? Alignment.centerLeft : Alignment.center,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: isStory ? 310.0 : (isPortrait ? 280.0 : 260.0),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: isEditorial
+                      ? CrossAxisAlignment.start
+                      : CrossAxisAlignment.center,
+                  children: [
+                    // Main Quote Content Container with optional editorial pull-quote bar
+                    Container(
+                      padding: isEditorial
+                          ? const EdgeInsets.only(left: 12.0)
+                          : EdgeInsets.zero,
+                      decoration: isEditorial
+                          ? BoxDecoration(
+                              border: Border(
+                                left: BorderSide(
+                                  color: style.accent.withValues(alpha: 0.5),
+                                  width: 2.5,
+                                ),
+                              ),
+                            )
+                          : null,
+                      child: Text(
+                        text.isEmpty ? 'No text selected.' : text,
+                        textAlign: isEditorial ? TextAlign.left : TextAlign.center,
+                        style: TextStyle(
+                          fontSize: fontSize,
+                          height: lineHeight,
+                          fontWeight: fontWeight,
+                          color: style.text,
+                          fontFamily: resolvedFontFamily,
+                          fontFamilyFallback: fontFallback,
+                          letterSpacing: style.isTerminal
+                              ? 0.0
+                              : (isTamil ? 0.3 : -0.2),
+                        ),
+                      ),
+                    ),
+
+                    // Grounded Source / Note Title Attribution
+                    if (hasTitleAttribution) ...[
+                      SizedBox(height: isStory ? 16.0 : 12.0),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: isEditorial
+                            ? MainAxisAlignment.start
+                            : MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 14,
+                            height: 1.5,
+                            decoration: BoxDecoration(
+                              color: style.accent.withValues(alpha: 0.7),
+                              borderRadius: BorderRadius.circular(1),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              config.resolvedTitle.toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: isStory ? 11.5 : 10.5,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.8,
+                                color: style.accent,
+                                fontFamily: resolvedFontFamily,
+                                fontFamilyFallback: fontFallback,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

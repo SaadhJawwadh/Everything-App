@@ -174,35 +174,28 @@ void main() {
     );
   });
 
-  testWidgets('StoryCardStudioSheet respects word limits and updates word count badge', (tester) async {
+  testWidgets('StoryCardStudioSheet renders Quote mode with ambient quotation mark and attribution', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    // 35-word paragraph
-    const longText = 'One two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twenty-one twenty-two twenty-three twenty-four twenty-five twenty-six twenty-seven twenty-eight twenty-nine thirty thirty-one thirty-two thirty-three thirty-four thirty-five';
-
-    await tester.pumpWidget(buildTestSheet(initialText: longText));
+    await tester.pumpWidget(buildTestSheet(
+      initialText: 'Design is not just what it looks like and feels like. Design is how it works.',
+      noteTitle: 'Steve Jobs',
+    ));
     await tester.pumpAndSettle();
 
-    // Word count pill shows total words
-    expect(find.text('📝 35 / 35 words'), findsOneWidget);
+    // Ambient watermark quotation mark is present
+    expect(find.text('“'), findsOneWidget);
 
-    // Tap 25 words chip
-    await tester.tap(find.text('25 words'));
-    await tester.pumpAndSettle();
+    // Title attribution is rendered below quote
+    expect(find.text('STEVE JOBS'), findsOneWidget);
 
-    // Stats pill shows trimmed counter
-    expect(find.text('📝 25 / 35 words'), findsOneWidget);
-
-    // Live preview ends with ellipsis
-    expect(find.textContaining('...'), findsOneWidget);
-
-    // Tap All words to restore full text
-    await tester.tap(find.text('All words'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('📝 35 / 35 words'), findsOneWidget);
+    // Full text is rendered without arbitrary truncation
+    expect(
+      find.text('Design is not just what it looks like and feels like. Design is how it works.'),
+      findsOneWidget,
+    );
   });
 
   test('StoryCardConfig guarantees structured title and Tamil detection', () {

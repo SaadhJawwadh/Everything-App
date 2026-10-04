@@ -1,16 +1,13 @@
 
 ### 🌟 What's New
-- **Story Card Studio Article & Reader Mode**: Share long-form notes, multi-paragraph articles, and interactive checklists as high-resolution social story cards with dedicated Reader Mode, hairline dividers, and dynamic font scaling.
-- **Inter-Vault Account Transfers**: Easily transfer funds between Daily Cash Flow and Savings Vault with instant dual-entry tracking, real-time balance updates, and optional quick notes.
-- **In-Note Wiki Links & Expense Embeds**: Connect your thoughts with bidirectional `[[Note Title]]` links that open target notes with one tap, and calculate running expense totals inline using `{{$amount}}` tags.
-- **Period Tracker Discreet Privacy Mode**: Keep health logs completely discreet with an ambient moon phase indicator, toggleable cycle details, and private notification headers.
+- **Publication Quotes in Story Card Studio**: Share memorable excerpts and quotes with magazine-style typography, subtle watermark quotation glyphs, and elegant note attribution.
+- **Android Checklist Widget Multi-Note Cycling**: Tap the widget header to smoothly cycle between all action items and specific note checklists with live progress counters.
 
 ### 🚀 Improvements
-- **Checklist Drag-and-Drop Reordering**: Long press or use the checklist reorder sheet to re-prioritize to-do items effortlessly.
-- **P2P Wi-Fi Sync Audit Activity**: Transparent audit sheet detailing synced notes, ledger transactions, and connected peer endpoints.
-- **Financial Ledger CSV & AI Export**: Export your complete financial transactions to CSV or generate clean, private prompts for external AI analysis.
+- **In-Place Checklist Completion**: Checking off items strikes them through in-place without removing them from view, keeping checklists consistent across the note editor, note list, and home widget.
+- **Streamlined Note Interface**: Removed redundant chips and uncluttered the note workspace for a cleaner, faster writing experience.
 
 ### 🐛 Fixes
-- **Checklist Multi-Level Task Integrity**: Resolved checklist nesting and checkmark state retention across note saves and widget sync.
-- **Dark Mode Card Contrast**: Polished surface tints and border alphas across mindfulness strips and finance hero metrics.
+- **Checklist Item Retention**: Fixed an issue where completed tasks could disappear when saving notes.
+- **Home Widget Responsiveness**: Enhanced widget title updates and tap detection when cycling between note lists.
 

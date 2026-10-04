@@ -41,7 +41,6 @@ import '../../../story_cards/story_cards.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../core/ui/app_snack_bar.dart';
 import '../widgets/note_editor_bottom_bar.dart';
-import '../widgets/checklist_reorder_sheet.dart';
 
 
 class NoteEditorScreen extends StatefulWidget {
@@ -221,15 +220,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
     _noteUrls = _extractUrls();
 
-    // Initial checklist extraction (only if moveCompletedChecklistsToBottom is enabled)
-    final settings = Provider.of<SettingsProvider>(context, listen: false);
-    if (settings.moveCompletedChecklistsToBottom) {
-      final initialCompleted = QuillChecklistHelper.extractAndRemoveCheckedLines(_quillController);
-      if (initialCompleted.isNotEmpty) {
-        _completedItems.addAll(initialCompleted);
-      }
-    }
-
     // Auto-save & change listeners
     _titleController.addListener(_onContentChanged);
     _quillController.addListener(_onSelectionChanged); // Add selection listener
@@ -246,24 +236,44 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
       if (hasListOrNewlineChange) {
         if (!mounted) return;
-        final currentSettings = Provider.of<SettingsProvider>(context, listen: false);
-        if (currentSettings.moveCompletedChecklistsToBottom) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted || _isUpdatingProgrammatically) return;
-            _isUpdatingProgrammatically = true;
-            try {
-              final newlyChecked = QuillChecklistHelper.extractAndRemoveCheckedLines(_quillController);
-              if (newlyChecked.isNotEmpty) {
-                _completedItems.addAll(newlyChecked);
-                if (mounted) setState(() {});
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _isUpdatingProgrammatically) return;
+          _isUpdatingProgrammatically = true;
+          try {
+            final lines = QuillChecklistHelper.getDocumentLines(_quillController.document);
+            for (final line in lines) {
+              final listAttr = line.style.attributes['list']?.value;
+              if (listAttr == 'checked' || listAttr == 'unchecked') {
+                final isChecked = listAttr == 'checked';
+                final hasStrike = line.children.any((node) =>
+                    node is Leaf && (node.style.attributes['strike']?.value == true));
+                if (isChecked && !hasStrike) {
+                  final textLen = (line.length - 1).clamp(0, double.infinity).toInt();
+                  if (textLen > 0) {
+                    _quillController.document.format(
+                      line.documentOffset,
+                      textLen,
+                      Attribute.strikeThrough,
+                    );
+                  }
+                } else if (!isChecked && hasStrike) {
+                  final textLen = (line.length - 1).clamp(0, double.infinity).toInt();
+                  if (textLen > 0) {
+                    _quillController.document.format(
+                      line.documentOffset,
+                      textLen,
+                      Attribute.clone(Attribute.strikeThrough, null),
+                    );
+                  }
+                }
               }
-            } catch (e) {
-              debugPrint('Error syncing checklists: $e');
-            } finally {
-              _isUpdatingProgrammatically = false;
             }
-          });
-        }
+          } catch (e) {
+            debugPrint('Error syncing checklist strikethrough formatting: $e');
+          } finally {
+            _isUpdatingProgrammatically = false;
+          }
+        });
       }
       if (event.source == ChangeSource.local) {
         _checkCodeBlockAutoExit(event.change);
@@ -2624,6 +2634,9 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           try {
             _debounce?.cancel();
             await saveNote();
+            if (context.mounted) {
+              await context.read<NoteProvider>().refreshNotes();
+            }
           } catch (e) {
             debugPrint('Error saving note on pop: $e');
           } finally {
@@ -2872,34 +2885,11 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                             });
                                             _searchFocusNode.requestFocus();
                                             break;
-                                          case 'reorder_checklist':
-                                            ChecklistReorderSheet.showWithController(
-                                              context: context,
-                                              controller: _quillController,
-                                              onReordered: () {
-                                                _onContentChanged();
-                                                setState(() {});
-                                              },
-                                            );
-                                            break;
                                         }
                                       },
                                       itemBuilder: (context) {
                                         final colorScheme = theme.colorScheme;
-                                        final hasChecklists = QuillChecklistHelper.getChecklistStats(_quillController.document).totalCount > 0;
                                         return [
-                                          if (hasChecklists)
-                                            PopupMenuItem(
-                                              value: 'reorder_checklist',
-                                              height: 48,
-                                              child: Row(
-                                                children: [
-                                                  Icon(Icons.sort_rounded, size: 20, color: colorScheme.primary),
-                                                  const SizedBox(width: 12),
-                                                  Text('Reorder Checklist', style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
-                                                ],
-                                              ),
-                                            ),
                                           PopupMenuItem(
                                             value: 'search',
                                             height: 48,

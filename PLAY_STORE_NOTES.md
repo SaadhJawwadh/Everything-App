@@ -1,20 +1,18 @@
 <en-US>
 🌟 What's New
-• Story Card Reader: Share text-heavy notes and checklists as beautiful story cards.
+• Story Card Reader & Quotes: Share notes as magazine-grade story cards with Reader Mode and elegant quote watermarks.
+• Android Checklist Widget: Cycle between all action items and individual checklists with instant progress sync.
 • Inter-Vault Transfers: Move funds between Daily and Savings with instant ledger logs.
-• In-Note Links & Expenses: Connect notes with [[Wiki Links]] and track totals with {{amount}}.
-• Period Tracker Privacy: One-tap discreet mode with hidden cycle details.
 
 🚀 Improvements
-• Drag-and-drop checklist reordering and P2P sync audit activity.
+• In-place checklist completion and P2P sync audit activity.
 </en-US>
 <ta-IN>
 🌟 புதிய அம்சங்கள்
-• கதை அட்டை வாசிப்பான்: பெரிய குறிப்புகள் மற்றும் பட்டியல்களை அழகான அட்டைகளாகப் பகிரலாம்.
+• கதை அட்டை வாசிப்பான் & மேற்கோள்கள்: குறிப்புகளை அழகான இதழ் பாணி அட்டைகளாகப் பகிரலாம்.
+• முகப்புத்திரை சரிபார்ப்புப் பட்டியல்: நேரடி ஒத்திசைவு மற்றும் குறிப்புகளை எளிதாக மாற்றும் வசதி.
 • சேமிப்புப் பரிமாற்றம்: தினசரி மற்றும் சேமிப்புக் கணக்குகளுக்கு இடையே நேரடி நிதி மாற்றம்.
-• குறிப்பு இணைப்புகள் & செலவுகள்: [[குறிப்புகள்]] இணைப்பு மற்றும் {{தொகை}} கணக்கீடு.
-• சுழற்சித் தனியுரிமை: ரகசிய முறை மற்றும் மறைக்கப்பட்ட விவரங்கள்.
 
 🚀 மேம்பாடுகள்
-• இழுத்து வரிசைப்படுத்தும் பட்டியல் மற்றும் P2P ஒத்திசைவு தகவல்.
+• சரிபார்ப்புப் பட்டியல் மேம்பாடு மற்றும் P2P ஒத்திசைவு பதிவு.
 </ta-IN>

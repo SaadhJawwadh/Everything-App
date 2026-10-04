@@ -453,7 +453,6 @@ class _HomeAppBarState extends State<HomeAppBar> {
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final noteProvider = context.watch<NoteProvider>();
-    final isChecklistsMode = noteProvider.filterChecklistsOnly;
     final displayFolder = noteProvider.selectedFolder ?? 'Notes';
     final count = noteProvider.folderCounts[displayFolder] ?? noteProvider.tagCounts['All'] ?? 0;
 
@@ -526,54 +525,6 @@ class _HomeAppBarState extends State<HomeAppBar> {
                         ),
                       ),
                     ),
-                    if (isChecklistsMode) ...[
-                      const SizedBox(width: 6),
-                      Tooltip(
-                        message: 'Remove checklist filter',
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                          onTap: () {
-                            AppHaptics.lightImpact();
-                            noteProvider.setFilterChecklistsOnly(false);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                            decoration: BoxDecoration(
-                              color: colorScheme.secondaryContainer.withValues(alpha: isDark ? 0.5 : 0.7),
-                              borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                              border: Border.all(
-                                color: colorScheme.secondary.withValues(alpha: 0.35),
-                                width: 1.0,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.checklist_rtl_rounded,
-                                  color: colorScheme.secondary,
-                                  size: 13,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Checklists · ${noteProvider.checklistNotesCount}',
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: colorScheme.onSecondaryContainer,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(width: 3),
-                                Icon(
-                                  Icons.close_rounded,
-                                  color: colorScheme.secondary,
-                                  size: 12,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),

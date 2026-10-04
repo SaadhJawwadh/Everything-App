@@ -1373,9 +1373,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           const SizedBox(height: AppLayout.spaceM),
           _buildFeatureCard(
             theme,
-            icon: Icons.link_rounded,
-            title: 'In-Note Wiki Links & Expense Embeds',
-            desc: 'Interconnect your notes using [[Note Title]] links and embed quick financial totals directly in your text with {{\$amount}} tags.',
+            icon: Icons.checklist_rounded,
+            title: 'Interactive Checklists & Android Widgets',
+            desc: 'Organize tasks with instant in-place strikethrough completion, clear progress metrics, and cycle notes directly from your home screen widget.',
           ),
           const SizedBox(height: AppLayout.spaceM),
           _buildFeatureCard(
