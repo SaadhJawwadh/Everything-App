@@ -55,6 +55,7 @@ lib/
 │   │   │   │   ├── split_bill_editor_screen.dart  # Group bill creator, equal/exact splits, smart tax/tip calculator & mini calc
 │   │   │   │   └── transaction_editor_screen.dart # Single transaction editor with inline split button
 │   │   │   └── widgets/              # Feature-specific finance UI widgets
+│   │   │       ├── account_transfer_sheet.dart    # Dual-account Daily ⇄ Savings inter-vault transfer modal sheet
 │   │   │       ├── burn_rate_forecast_card.dart   # Daily Safe-to-Spend burn rate & month-end pacing
 │   │   │       ├── category_budgets_card.dart     # Dynamic budget progress card with over-budget alerts
 │   │   │       ├── financial_analytics_tab.dart   # Centered interactive donut breakdown & ranked category spend
@@ -92,18 +93,24 @@ lib/
 │   │   ├── data/
 │   │   │   └── note_repository.dart  # Note database CRUD, tagging, trash rotation
 │   │   ├── services/
-│   │   │   └── note_migration_service.dart# Google Keep JSON & Markdown batch import & parsing
+│   │   │   ├── note_expense_embed_service.dart# In-note {{\$amount}} sum calculation & embed chips
+│   │   │   ├── note_link_service.dart         # [[Note Title]] bidirectional wiki links & search
+│   │   │   └── note_migration_service.dart    # Google Keep JSON & Markdown batch import & parsing
 │   │   ├── presentation/
 │   │   │   ├── screens/
-│   │   │   │   ├── filtered_notes_screen.dart# Dedicated viewer for Archive and Trash notes
-│   │   │   │   ├── manage_tags_screen.dart   # Tag editor (renaming, deleting)
-│   │   │   │   └── note_editor_screen.dart   # WYSIWYG Quill editor, AI actions, toolbar
+│   │   │   │   ├── filtered_notes_screen.dart # Dedicated viewer for Archive and Trash notes
+│   │   │   │   ├── manage_tags_screen.dart    # Tag editor (renaming, deleting)
+│   │   │   │   └── note_editor_screen.dart    # WYSIWYG Quill editor, AI actions, toolbar
 │   │   │   └── widgets/              # Editor modular presentation widgets
+│   │   │       ├── checklist_reorder_sheet.dart# Drag-and-drop checklist task reordering sheet
+│   │   │       ├── note_card.dart             # Extracted modular NoteCard list/grid tile
 │   │   │       ├── note_color_picker_sheet.dart# Standardized M3 palette seed picker modal
-│   │   │       ├── note_migration_sheet.dart # Google Keep & Markdown file import modal sheet
+│   │   │       ├── note_editor_bottom_bar.dart# Extracted modular formatting action pill dock
+│   │   │       ├── note_migration_sheet.dart  # Google Keep & Markdown file import modal sheet
 │   │   │       └── note_search_replace_bar.dart# Keyboard-shortcut aware find/replace toolbar
 │   │   └── providers/
-│   │       └── note_editor_provider.dart# Editor state, dirty tracking, auto-save timer
+│   │       ├── note_editor_provider.dart      # Editor state, dirty tracking, auto-save timer
+│   │       └── note_provider.dart             # Colocated core note collection & filter provider
 │   ├── settings/                     # App Settings & Preferences Feature Module
 │   │   ├── presentation/
 │   │   │   └── screens/
@@ -115,6 +122,7 @@ lib/
 │   │   ├── models/
 │   │   │   ├── story_card_aspect_ratio.dart # Aspect ratios (9:16, 1:1, 4:5) and typography presets
 │   │   │   ├── story_card_config.dart       # Live configuration, word limits, title resolution
+│   │   │   ├── story_card_layout_mode.dart  # Quote mode vs Article reader mode
 │   │   │   └── story_card_theme.dart        # Luxury presets (Editorial, Obsidian Aura, Velvet OLED, etc.)
 │   │   ├── services/
 │   │   │   ├── story_card_media_service.dart# MediaStore Gallery and Clipboard image saving channels
@@ -130,7 +138,8 @@ lib/
 │       │   ├── screens/
 │       │   │   └── p2p_sync_screen.dart# Master P2P control hub, status cards, peer devices
 │       │   └── widgets/
-│       │       └── qr_scanner_dialog.dart# Camera QR code scanner dialog
+│       │       ├── qr_scanner_dialog.dart   # Camera QR code scanner dialog
+│       │       └── sync_activity_sheet.dart # Live P2P sync audit activity sheet & endpoint logs
 │       └── providers/
 │           └── p2p_sync_provider.dart# Stable identity, pairing state, endpoint fallback & sync routing
 ├── data/                             # Models, Database Helpers & Repositories

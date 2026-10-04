@@ -40,12 +40,19 @@ Specialist skill governing the onboarding experience, setup screens, live theme 
    - Introduces offline privacy, zero cloud lock-in, and local SQLCipher database encryption.
    - **Primary Device Choice Card**: Set up as new Primary notebook (proceeds with wizard).
    - **Pair & Import Choice Card**: Launches camera QR scanner to pair and perform a non-destructive bi-directional sync from Primary phone in 1 step during onboarding.
-2. **Page 2: Personalization & Live Theme Preview**
+2. **Page 2: Personalization & Live Theme Preview (Zero-Scroll Viewport)**
    - **Theme Mode Selector**: System, Light, Dark options (`settings.setThemeMode(...)`).
    - **Real-Time Visual Feedback**: Toggling theme modes immediately updates `Theme.of(context)` across the active widget tree.
-   - **Dynamic Color Toggle**: Material You wallpaper color extraction (`settings.setUseDynamicColor(...)`).
+   - **Zero-Scroll Grouped Card Pattern**: Group paired micro-toggles (*Material You Dynamic Colors* + *Tactile Haptics*) into a single `AppCard` separated by a subtle `outlineVariant` (25% alpha) divider, tightening vertical rhythm so all personalization controls sit 100% within the visible screen area without scrolling on standard devices ($1080\times2400$).
+   - **Immediate Tactile Proof**: When toggling **Tactile Haptics** ON, immediately trigger an authentic physical vibration (`AppHaptics.mediumImpact()`) so the user feels what the setting does during setup.
+   - **App Language Selector**: Horizontal scrolling Stadium filter chips (`settings.selectedLanguageCode` / `settings.setSelectedLanguage(...)`) supporting `System`, `English`, `தமிழ்`, `Español`, `Português`, `Deutsch`, `Français`, `中文`.
 3. **Page 3: Modular Powerups**
-   - **Financial Manager**: Ledger, categories, and SMS parsing (`settings.setShowFinancialManager(...)`).
+   - **Notes & Writing Experience**:
+     - **Tag Filter Bar**: Quick tag carousel at top of notes list.
+     - **Minimal Editor Mode**: Streamlined writing dock for distraction-free typing.
+     - **Days of Clarity Strip**: Contextual toggle (`settings.setShowClarityMosaic(...)`) visualizing a 14-day rolling activity mosaic celebrating mindfulness without stressful streak countdowns or broken-chain guilt.
+     - **Collapse Completed Checklists**: Auto-moves checked to-do items to a bottom section (`settings.setMoveCompletedChecklistsToBottom(...)`).
+   - **Financial Manager**: Ledger, categories, dual accounts, and SMS parsing (`settings.setShowFinancialManager(...)`).
    - **Auto SMS Background Sync**: Contextual sub-card toggle (`settings.setDailySyncEnabled(...)`) when Financial Manager is enabled. Automatically triggers `SmsService.syncDailySyncSchedule()`.
    - **Split Bills & Shared Debts**: Contextual sub-card toggle (`settings.setShowSplitBills(...)`) for group expense splitting, local receipt OCR, and WhatsApp sharing.
    - **Period & Health Tracker**: Offline cycle predictions and discreet alerts (`settings.setIsPeriodTrackerEnabled(...)`).
@@ -53,8 +60,13 @@ Specialist skill governing the onboarding experience, setup screens, live theme 
    - **NPU / Hardware Detection Badge**: Checks `settings.isDeviceAiSupported` (Android AI Core support).
    - **Local AI Toggle**: Offline text summarization and smart SMS categorization (`settings.setUseOnDeviceAi(...)`).
 5. **Page 5: Ready to Explore & Pro-Tips**
-   - Pro-tips cards for **P2P Device Sync & Backups** (with a direct **"Configure P2P Sync ➔"** action button launching `P2pSyncScreen`), **App Lock & Security**, **Multi-Select Batch Actions**, and **Responsive Navigation**.
-   - Feature card for **Goal-Oriented Savings Pockets** (monthly auto-pacing) and **Interactive Mini Calculator** in amount fields (`+`, `-`, `*`, `/`).
+   - Feature spotlight cards for:
+     - **Interactive Home Screen Widget**: Add to-do widget to home screen to tick off tasks, view completion progress, and quick-add tasks directly with instant offline sync.
+     - **Days of Clarity & Mindful Focus**: Build focus without anxiety using ambient 14-day mosaic progression.
+     - **Restrained Tactile Haptics**: Subtle physical clicks and bounces that give weight to every action.
+     - **Modular Sub-Features Architecture**: Tailor every screen to taste.
+     - **P2P Device Sync & Backups**: With direct **"Configure P2P Sync ➔"** action button launching `P2pSyncScreen`.
+     - **Goal-Oriented Savings Pockets** and **Interactive Mini Calculator** in amount fields (`+`, `-`, `*`, `/`).
 6. **What's New Sheet Action Buttons (`WhatsNewSheet`)**:
    - `WhatsNewSheet` items support optional `actionLabel` (e.g. `"Try P2P Sync ➔"`) and `onAction` callbacks to launch feature screens directly from release update cards.
 

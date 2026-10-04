@@ -104,6 +104,7 @@ lib/
   - **Minor/Patch Releases (`X.Y.Z`)**: Existing users bypass onboarding. `PLAY_STORE_NOTES.md` and `WhatsNewSheet` present the **cumulative headline features from the current minor cycle (`X.Y.x`)** alongside the latest patch fixes.
 * **5-Point Release Parity & Test Guardrail**: Atomically update `PLAY_STORE_NOTES.md` (`<en-US>` and `<ta-IN>`, < 450 characters each), `lib/screens/changelog_screen.dart`, `lib/widgets/whats_new_sheet.dart`, `CHANGELOG.md`, and the version assertion in `test/upgrade_backward_compatibility_test.dart` before compiling release APKs or running `./deploy.sh`.
 * **Play Store VersionCode Immutability**: Google Play Developer Console strictly disallows re-uploading an existing `versionCode` (even if an earlier run failed at a later step or only partially completed). Never attempt to re-deploy or re-tag with an existing version code. If a release fails at or after upload, the patch version MUST be incremented (`X.Y.Z+W` where $W = X \times 10000 + Y \times 100 + Z$).
+* **Emulator Clean Shutdown Protocol**: When verifying on an Android virtual device, always cleanly terminate the emulator (`adb -s <device> emu kill`) and kill any background daemon process once testing and release tasks conclude, preventing orphaned QEMU processes from draining system CPU and memory.
 
 ### 🔘 Invariant 8: Standard FAB Bottom Clearance & Universal Morphing Protocol
 * **No Obscured Content**: Bottom scrollable content must never be clipped or obscured by floating buttons or bottom navigation chrome. Always apply `AppLayout.fabBottomPadding = 96.0` to sliver lists or bottom padding containers.
@@ -166,6 +167,10 @@ lib/
 * **Static App Shortcuts (`app_shortcuts.xml`)**: Support high-priority launcher shortcuts: `NEW_NOTE` (`app://open/new_note`), `ADD_TRANSACTION` (`app://open/new_transaction`), `SCAN_RECEIPT` (`app://open/scan_receipt`), and `SYNC_DEVICES` (`app://open/sync_devices`).
 * **Dual-Phase Intent Ingestion**: `MainActivity.kt` handles intents across cold launches (`onCreate`) and warm resume (`onNewIntent`), passing the URI via Flutter method channel `pendingWidgetAction`. `HomeScreen._checkAndProcessPendingIntents()` dispatches the action immediately to the target view.
 
+### 📝 Invariant 17: Interactive Home Screen Widget & Native Bridge Contract
+* **Native RemoteViews Architecture**: The interactive checklist widget (`TodoWidgetProvider`, `TodoWidgetService`, `TodoWidgetActionReceiver`) renders directly on the Android home screen launcher. Interactive checkbox clicks execute in the background via standalone `BroadcastReceiver` without launching the Flutter engine, immediately updating `RemoteViews` and recording pending state in `FlutterSharedPreferences` (`flutter.todo_widget_data`, `flutter.pending_todo_action_...`).
+* **Zero-Drift Synchronization**: Whenever the app returns to foreground (`HomeScreen._checkAndProcessPendingIntents()` / `NoteProvider.refreshNotes()`), `WidgetHelper.processPendingWidgetActions()` MUST execute immediately, reconciling launcher actions with the persistent SQLCipher database and Quill Delta documents.
+* **Calm Habit Gamification**: Habit and mindfulness features (`ClarityMosaicStrip`) MUST adhere to Calm Technology principles: rolling 14-day consistency mosaics celebrating intentionality without stressful streak countdowns, broken-chain guilt, or dopamine traps.
 
 ---
 

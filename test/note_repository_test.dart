@@ -184,5 +184,70 @@ void main() {
       final deletedMod = DateTime.parse(deletedRows.first[NoteFields.dateModified] as String);
       expect(deletedMod.isAfter(preDeleteTime), true);
     });
+
+    test('getChecklistNotesCount returns accurate count of active checklist notes', () async {
+      final now = DateTime.now();
+
+      // Note 1: Active with checklist
+      await repository.createNote(Note(
+        id: 'chk_1',
+        title: 'Groceries',
+        content: '[{"insert":"Milk"},{"attributes":{"list":"unchecked"},"insert":"\\n"}]',
+        dateCreated: now,
+        dateModified: now,
+        category: 'Personal',
+      ));
+
+      // Note 2: Active with markdown checklist
+      await repository.createNote(Note(
+        id: 'chk_2',
+        title: 'Work Tasks',
+        content: '- [ ] Complete design review\n- [x] Send invoice',
+        dateCreated: now,
+        dateModified: now,
+        category: 'Work',
+      ));
+
+      // Note 3: Active plain note (no checklist)
+      await repository.createNote(Note(
+        id: 'chk_3',
+        title: 'Meeting Notes',
+        content: 'Just general discussion notes here.',
+        dateCreated: now,
+        dateModified: now,
+        category: 'Work',
+      ));
+
+      // Note 4: Archived checklist note
+      await repository.createNote(Note(
+        id: 'chk_4',
+        title: 'Old Tasks',
+        content: '- [x] Done task',
+        dateCreated: now,
+        dateModified: now,
+        isArchived: true,
+        category: 'Work',
+      ));
+
+      // Note 5: Trashed checklist note
+      await repository.createNote(Note(
+        id: 'chk_5',
+        title: 'Trashed Tasks',
+        content: '- [ ] Dropped task',
+        dateCreated: now,
+        dateModified: now,
+        deletedAt: now,
+        category: 'Personal',
+      ));
+
+      final totalCount = await repository.getChecklistNotesCount();
+      expect(totalCount, 2);
+
+      final workCount = await repository.getChecklistNotesCount(folder: 'Work');
+      expect(workCount, 1);
+
+      final personalCount = await repository.getChecklistNotesCount(folder: 'Personal');
+      expect(personalCount, 1);
+    });
   });
 }

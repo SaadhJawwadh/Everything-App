@@ -40,7 +40,8 @@ import '../widgets/story_card_creator_sheet.dart';
 import '../../../story_cards/story_cards.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../core/ui/app_snack_bar.dart';
-import '../../../../core/ui/expressive_floating_toolbar.dart';
+import '../widgets/note_editor_bottom_bar.dart';
+import '../widgets/checklist_reorder_sheet.dart';
 
 
 class NoteEditorScreen extends StatefulWidget {
@@ -56,6 +57,7 @@ class NoteEditorScreen extends StatefulWidget {
   final String? templateTitle;
   final String? templateContent;
   final String? initialFolder;
+  final int? targetLineIndex;
 
   const NoteEditorScreen({
     super.key,
@@ -65,6 +67,7 @@ class NoteEditorScreen extends StatefulWidget {
     this.templateTitle,
     this.templateContent,
     this.initialFolder,
+    this.targetLineIndex,
   });
 
   @override
@@ -183,6 +186,29 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     if (!_lockAuthPassed) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _authenticateForLockedNote();
+      });
+    } else if (widget.targetLineIndex != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        try {
+          final targetIndex = widget.targetLineIndex!;
+          final plainText = _quillController.document.toPlainText();
+          final lines = plainText.split('\n');
+          if (targetIndex >= 0 && targetIndex < lines.length) {
+            int charOffset = 0;
+            for (int i = 0; i < targetIndex; i++) {
+              charOffset += lines[i].length + 1;
+            }
+            final clampedOffset = charOffset.clamp(0, _quillController.document.length - 1);
+            _quillController.updateSelection(
+              TextSelection.collapsed(offset: clampedOffset),
+              ChangeSource.local,
+            );
+            _focusNode.requestFocus();
+          }
+        } catch (e) {
+          debugPrint('Error jumping to targetLineIndex: $e');
+        }
       });
     } else if (widget.note == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -2846,11 +2872,34 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                             });
                                             _searchFocusNode.requestFocus();
                                             break;
+                                          case 'reorder_checklist':
+                                            ChecklistReorderSheet.showWithController(
+                                              context: context,
+                                              controller: _quillController,
+                                              onReordered: () {
+                                                _onContentChanged();
+                                                setState(() {});
+                                              },
+                                            );
+                                            break;
                                         }
                                       },
                                       itemBuilder: (context) {
                                         final colorScheme = theme.colorScheme;
+                                        final hasChecklists = QuillChecklistHelper.getChecklistStats(_quillController.document).totalCount > 0;
                                         return [
+                                          if (hasChecklists)
+                                            PopupMenuItem(
+                                              value: 'reorder_checklist',
+                                              height: 48,
+                                              child: Row(
+                                                children: [
+                                                  Icon(Icons.sort_rounded, size: 20, color: colorScheme.primary),
+                                                  const SizedBox(width: 12),
+                                                  Text('Reorder Checklist', style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
+                                                ],
+                                              ),
+                                            ),
                                           PopupMenuItem(
                                             value: 'search',
                                             height: 48,
@@ -3501,624 +3550,34 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                       if (_showSlashMenu && !_isImageSelected)
                         _buildSlashMenuOverlay(theme, noteScheme),
 
-                      // Secondary Floating Glassmorphism Formatting Bar
-                      AnimatedSwitcher(
-                        duration: AppLayout.animShort,
-                        reverseDuration: const Duration(milliseconds: 150),
-                        switchInCurve: Curves.easeOutCubic,
-                        switchOutCurve: Curves.easeInCubic,
-                        transitionBuilder: (child, animation) {
-                          return SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0, 0.35),
-                              end: Offset.zero,
-                            ).animate(animation),
-                            child: FadeTransition(
-                              opacity: animation,
-                              child: child,
-                            ),
-                          );
+                      // Note Editor Bottom Bar (Formatting sub-tier + Main Pill Toolbar)
+                      NoteEditorBottomBar(
+                        quillController: _quillController,
+                        showFormattingBar: _showFormattingBar,
+                        isImageSelected: _isImageSelected,
+                        isSystemDefault: isSystemDefault,
+                        color: color,
+                        textColor: textColor,
+                        noteScheme: noteScheme,
+                        isKeyboardOpen: isKeyboardOpen,
+                        isAiActive: settings.isAiActive,
+                        minimalEditorMode: settings.minimalEditorMode,
+                        onToggleFormattingBar: () {
+                          setState(() {
+                            _isFormattingBarPinnedManually = !_isFormattingBarPinnedManually;
+                            _showFormattingBar = _isFormattingBarPinnedManually;
+                          });
                         },
-                        child: (_showFormattingBar && !_isImageSelected)
-                            ? SafeArea(
-                                key: const ValueKey('floating_formatting_bar'),
-                                top: false,
-                                bottom: false,
-                                child: ExpressiveFloatingToolbar(
-                                  margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                  backgroundColor: (isSystemDefault
-                                          ? theme.colorScheme.surfaceContainerHigh
-                                          : ColorScheme.fromSeed(
-                                                  seedColor: Color(color),
-                                                  brightness: theme.brightness)
-                                              .surfaceContainerHigh)
-                                      .withValues(alpha: 0.95),
-                                  children: [
-                                            // ── FIXED LEFT: Horizontal Stepper [ ‹ ] [ › ] ──
-                                            Tooltip(
-                                              message: 'Nudge left (Double-tap / long-press for word)',
-                                              child: InkResponse(
-                                                radius: 16,
-                                                onTap: () => _nudgeSelectionLeft(byWord: false),
-                                                onDoubleTap: () => _nudgeSelectionLeft(byWord: true),
-                                                onLongPress: () => _nudgeSelectionLeft(byWord: true),
-                                                child: SizedBox(
-                                                  width: 32,
-                                                  height: 36,
-                                                  child: Icon(
-                                                    Icons.chevron_left_rounded,
-                                                    color: textColor,
-                                                    size: 22,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            Tooltip(
-                                              message: 'Nudge right (Double-tap / long-press for word)',
-                                              child: InkResponse(
-                                                radius: 16,
-                                                onTap: () => _nudgeSelectionRight(byWord: false),
-                                                onDoubleTap: () => _nudgeSelectionRight(byWord: true),
-                                                onLongPress: () => _nudgeSelectionRight(byWord: true),
-                                                child: SizedBox(
-                                                  width: 32,
-                                                  height: 36,
-                                                  child: Icon(
-                                                    Icons.chevron_right_rounded,
-                                                    color: textColor,
-                                                    size: 22,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8.0),
-
-                                            // ── SCROLLABLE CENTER: Formatting Tools ──
-                                            Expanded(
-                                              child: SingleChildScrollView(
-                                                scrollDirection: Axis.horizontal,
-                                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                                child: Row(
-                                                  children: [
-                                                    // Cluster 1: Header Hierarchy Switcher
-                                                    ListenableBuilder(
-                                                      listenable: _quillController,
-                                                      builder: (context, _) {
-                                                        final style = _quillController.getSelectionStyle();
-                                                        final headerAttr = style.attributes[Attribute.header.key];
-                                                        final int currentLevel;
-                                                        final String currentLabel;
-                                                        final IconData currentIcon;
-                                                        if (headerAttr == Attribute.h1) {
-                                                          currentLevel = 1;
-                                                          currentLabel = 'H1';
-                                                          currentIcon = Icons.title;
-                                                        } else if (headerAttr == Attribute.h2) {
-                                                          currentLevel = 2;
-                                                          currentLabel = 'H2';
-                                                          currentIcon = Icons.title;
-                                                        } else if (headerAttr == Attribute.h3) {
-                                                          currentLevel = 3;
-                                                          currentLabel = 'H3';
-                                                          currentIcon = Icons.title;
-                                                        } else {
-                                                          currentLevel = 0;
-                                                          currentLabel = 'Body';
-                                                          currentIcon = Icons.short_text;
-                                                        }
-
-                                                        return MenuAnchor(
-                                                          builder: (context, menu, child) {
-                                                            return TextButton.icon(
-                                                              onPressed: () {
-                                                                if (menu.isOpen) {
-                                                                  menu.close();
-                                                                } else {
-                                                                  menu.open();
-                                                                }
-                                                              },
-                                                              icon: Icon(
-                                                                currentIcon,
-                                                                size: 18,
-                                                                color: currentLevel > 0
-                                                                    ? theme.colorScheme.primary
-                                                                    : textColor,
-                                                              ),
-                                                              label: Row(
-                                                                mainAxisSize: MainAxisSize.min,
-                                                                children: [
-                                                                  Text(
-                                                                    currentLabel,
-                                                                    style: TextStyle(
-                                                                      fontSize: 13,
-                                                                      fontWeight: currentLevel > 0
-                                                                          ? FontWeight.bold
-                                                                          : FontWeight.normal,
-                                                                      color: currentLevel > 0
-                                                                          ? theme.colorScheme.primary
-                                                                          : textColor,
-                                                                    ),
-                                                                  ),
-                                                                  Icon(
-                                                                    Icons.keyboard_arrow_down_rounded,
-                                                                    size: 16,
-                                                                    color: textColor,
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                              style: TextButton.styleFrom(
-                                                                padding: const EdgeInsets.symmetric(
-                                                                    horizontal: 8, vertical: 4),
-                                                                minimumSize: Size.zero,
-                                                                tapTargetSize:
-                                                                    MaterialTapTargetSize.shrinkWrap,
-                                                              ),
-                                                            );
-                                                          },
-                                                          menuChildren: [
-                                                            MenuItemButton(
-                                                              leadingIcon: Icon(
-                                                                Icons.short_text,
-                                                                size: 18,
-                                                                color: currentLevel == 0
-                                                                    ? theme.colorScheme.primary
-                                                                    : null,
-                                                              ),
-                                                              child: Text(
-                                                                'Body Text',
-                                                                style: TextStyle(
-                                                                  fontWeight: currentLevel == 0
-                                                                      ? FontWeight.bold
-                                                                      : FontWeight.normal,
-                                                                ),
-                                                              ),
-                                                              onPressed: () {
-                                                                _quillController.formatSelection(
-                                                                  Attribute.header,
-                                                                );
-                                                              },
-                                                            ),
-                                                            MenuItemButton(
-                                                              leadingIcon: Icon(
-                                                                Icons.title,
-                                                                size: 18,
-                                                                color: currentLevel == 1
-                                                                    ? theme.colorScheme.primary
-                                                                    : null,
-                                                              ),
-                                                              child: Text(
-                                                                'Heading 1',
-                                                                style: TextStyle(
-                                                                  fontWeight: currentLevel == 1
-                                                                      ? FontWeight.bold
-                                                                      : FontWeight.normal,
-                                                                ),
-                                                              ),
-                                                              onPressed: () {
-                                                                _quillController.formatSelection(
-                                                                  Attribute.h1,
-                                                                );
-                                                              },
-                                                            ),
-                                                            MenuItemButton(
-                                                              leadingIcon: Icon(
-                                                                Icons.title,
-                                                                size: 16,
-                                                                color: currentLevel == 2
-                                                                    ? theme.colorScheme.primary
-                                                                    : null,
-                                                              ),
-                                                              child: Text(
-                                                                'Heading 2',
-                                                                style: TextStyle(
-                                                                  fontWeight: currentLevel == 2
-                                                                      ? FontWeight.bold
-                                                                      : FontWeight.normal,
-                                                                ),
-                                                              ),
-                                                              onPressed: () {
-                                                                _quillController.formatSelection(
-                                                                  Attribute.h2,
-                                                                );
-                                                              },
-                                                            ),
-                                                            MenuItemButton(
-                                                              leadingIcon: Icon(
-                                                                Icons.title,
-                                                                size: 14,
-                                                                color: currentLevel == 3
-                                                                    ? theme.colorScheme.primary
-                                                                    : null,
-                                                              ),
-                                                              child: Text(
-                                                                'Heading 3',
-                                                                style: TextStyle(
-                                                                  fontWeight: currentLevel == 3
-                                                                      ? FontWeight.bold
-                                                                      : FontWeight.normal,
-                                                                ),
-                                                              ),
-                                                              onPressed: () {
-                                                                _quillController.formatSelection(
-                                                                  Attribute.h3,
-                                                                );
-                                                              },
-                                                            ),
-                                                          ],
-                                                        );
-                                                      },
-                                                    ),
-                                                    const SizedBox(width: AppLayout.spaceS),
-                                                    // Cluster 2: Inline Styles
-                                                    QuillToolbarToggleStyleButton(
-                                                      attribute: Attribute.bold,
-                                                      controller: _quillController,
-                                                      options: QuillToolbarToggleStyleButtonOptions(
-                                                          iconData: Icons.format_bold,
-                                                          iconTheme: QuillIconTheme(
-                                                              iconButtonUnselectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: textColor)),
-                                                              iconButtonSelectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: theme
-                                                                              .colorScheme
-                                                                              .onPrimary)))),
-                                                    ),
-                                                    QuillToolbarToggleStyleButton(
-                                                      attribute: Attribute.italic,
-                                                      controller: _quillController,
-                                                      options: QuillToolbarToggleStyleButtonOptions(
-                                                          iconData: Icons.format_italic,
-                                                          iconTheme: QuillIconTheme(
-                                                              iconButtonUnselectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: textColor)),
-                                                              iconButtonSelectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: theme
-                                                                              .colorScheme
-                                                                              .onPrimary)))),
-                                                    ),
-                                                    QuillToolbarToggleStyleButton(
-                                                      attribute: Attribute.underline,
-                                                      controller: _quillController,
-                                                      options: QuillToolbarToggleStyleButtonOptions(
-                                                          iconData: Icons.format_underlined,
-                                                          iconTheme: QuillIconTheme(
-                                                              iconButtonUnselectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: textColor)),
-                                                              iconButtonSelectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: theme
-                                                                              .colorScheme
-                                                                              .onPrimary)))),
-                                                    ),
-                                                    QuillToolbarToggleStyleButton(
-                                                      attribute: Attribute.strikeThrough,
-                                                      controller: _quillController,
-                                                      options: QuillToolbarToggleStyleButtonOptions(
-                                                          iconData: Icons.format_strikethrough,
-                                                          iconTheme: QuillIconTheme(
-                                                              iconButtonUnselectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: textColor)),
-                                                              iconButtonSelectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: theme
-                                                                              .colorScheme
-                                                                              .onPrimary)))),
-                                                    ),
-
-                                                    const SizedBox(width: AppLayout.spaceS),
-                                                    // Cluster 3: Paragraph & Alignment
-                                                    QuillToolbarToggleStyleButton(
-                                                      attribute: Attribute.ol,
-                                                      controller: _quillController,
-                                                      options: QuillToolbarToggleStyleButtonOptions(
-                                                          iconData: Icons.format_list_numbered,
-                                                          iconTheme: QuillIconTheme(
-                                                              iconButtonUnselectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: textColor)),
-                                                              iconButtonSelectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: theme
-                                                                              .colorScheme
-                                                                              .onPrimary)))),
-                                                    ),
-                                                    QuillToolbarToggleStyleButton(
-                                                      attribute: Attribute.ul,
-                                                      controller: _quillController,
-                                                      options: QuillToolbarToggleStyleButtonOptions(
-                                                          iconData: Icons.format_list_bulleted,
-                                                          iconTheme: QuillIconTheme(
-                                                              iconButtonUnselectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: textColor)),
-                                                              iconButtonSelectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: theme
-                                                                              .colorScheme
-                                                                              .onPrimary)))),
-                                                    ),
-                                                    QuillToolbarIndentButton(
-                                                      controller: _quillController,
-                                                      isIncrease: false,
-                                                      options: QuillToolbarIndentButtonOptions(
-                                                          iconData: Icons.format_indent_decrease,
-                                                          iconTheme: QuillIconTheme(
-                                                              iconButtonUnselectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: textColor)))),
-                                                    ),
-                                                    QuillToolbarIndentButton(
-                                                      controller: _quillController,
-                                                      isIncrease: true,
-                                                      options: QuillToolbarIndentButtonOptions(
-                                                          iconData: Icons.format_indent_increase,
-                                                          iconTheme: QuillIconTheme(
-                                                              iconButtonUnselectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: textColor)))),
-                                                    ),
-                                                    QuillToolbarToggleStyleButton(
-                                                      attribute: Attribute.leftAlignment,
-                                                      controller: _quillController,
-                                                      options: QuillToolbarToggleStyleButtonOptions(
-                                                          iconData: Icons.format_align_left,
-                                                          iconTheme: QuillIconTheme(
-                                                              iconButtonUnselectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: textColor)),
-                                                              iconButtonSelectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: theme
-                                                                              .colorScheme
-                                                                              .onPrimary)))),
-                                                    ),
-                                                    QuillToolbarToggleStyleButton(
-                                                      attribute: Attribute.centerAlignment,
-                                                      controller: _quillController,
-                                                      options: QuillToolbarToggleStyleButtonOptions(
-                                                          iconData: Icons.format_align_center,
-                                                          iconTheme: QuillIconTheme(
-                                                              iconButtonUnselectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: textColor)),
-                                                              iconButtonSelectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: theme
-                                                                              .colorScheme
-                                                                              .onPrimary)))),
-                                                    ),
-                                                    QuillToolbarToggleStyleButton(
-                                                      attribute: Attribute.rightAlignment,
-                                                      controller: _quillController,
-                                                      options: QuillToolbarToggleStyleButtonOptions(
-                                                          iconData: Icons.format_align_right,
-                                                          iconTheme: QuillIconTheme(
-                                                              iconButtonUnselectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: textColor)),
-                                                              iconButtonSelectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: theme
-                                                                              .colorScheme
-                                                                              .onPrimary)))),
-                                                    ),
-                                                    QuillToolbarToggleStyleButton(
-                                                      attribute: Attribute.justifyAlignment,
-                                                      controller: _quillController,
-                                                      options: QuillToolbarToggleStyleButtonOptions(
-                                                          iconData: Icons.format_align_justify,
-                                                          iconTheme: QuillIconTheme(
-                                                              iconButtonUnselectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: textColor)),
-                                                              iconButtonSelectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: theme
-                                                                              .colorScheme
-                                                                              .onPrimary)))),
-                                                    ),
-                                                    QuillToolbarToggleStyleButton(
-                                                      attribute: Attribute.blockQuote,
-                                                      controller: _quillController,
-                                                      options: QuillToolbarToggleStyleButtonOptions(
-                                                          iconData: Icons.format_quote,
-                                                          iconTheme: QuillIconTheme(
-                                                              iconButtonUnselectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: textColor)),
-                                                              iconButtonSelectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: theme
-                                                                              .colorScheme
-                                                                              .onPrimary)))),
-                                                    ),
-                                                    QuillToolbarToggleStyleButton(
-                                                      attribute: Attribute.codeBlock,
-                                                      controller: _quillController,
-                                                      options: QuillToolbarToggleStyleButtonOptions(
-                                                          iconData: Icons.code,
-                                                          iconTheme: QuillIconTheme(
-                                                              iconButtonUnselectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: textColor)),
-                                                              iconButtonSelectedData:
-                                                                  IconButtonData(
-                                                                      style: IconButton.styleFrom(
-                                                                          foregroundColor: theme
-                                                                              .colorScheme
-                                                                              .onPrimary)))),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-
-                                            // ── FIXED RIGHT: Vertical Stepper [ ▲ ] [ ▼ ] ──
-                                            const SizedBox(width: 8.0),
-                                            Tooltip(
-                                              message: 'Expand selection line up',
-                                              child: InkResponse(
-                                                radius: 16,
-                                                onTap: _nudgeSelectionUp,
-                                                child: SizedBox(
-                                                  width: 32,
-                                                  height: 36,
-                                                  child: Icon(
-                                                    Icons.keyboard_arrow_up_rounded,
-                                                    color: textColor,
-                                                    size: 22,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            Tooltip(
-                                              message: 'Expand selection line down',
-                                              child: InkResponse(
-                                                radius: 16,
-                                                onTap: _nudgeSelectionDown,
-                                                child: SizedBox(
-                                                  width: 32,
-                                                  height: 36,
-                                                  child: Icon(
-                                                    Icons.keyboard_arrow_down_rounded,
-                                                    color: textColor,
-                                                    size: 22,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                            : const SizedBox.shrink(key: ValueKey('empty_formatting_bar')),
-                      ),
-                      // Bottom Toolbar (Pill)
-                      Visibility(
-                        visible: !_isImageSelected,
-                        child: SafeArea(
-                          top: false,
-                          child: ExpressiveFloatingToolbar(
-                            backgroundColor: isSystemDefault
-                                ? theme.colorScheme.surfaceContainerHighest
-                                : ColorScheme.fromSeed(
-                                        seedColor: Color(color),
-                                        brightness: theme.brightness)
-                                    .surfaceContainerHighest,
-                            margin: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            isScrollable: true,
-                            children: [
-                              IconButton(
-                                icon: Icon(_showFormattingBar
-                                    ? Icons.keyboard_arrow_down_rounded
-                                    : Icons.text_format_rounded),
-                                tooltip: _showFormattingBar ? 'Hide formatting' : 'Formatting',
-                                onPressed: () {
-                                  setState(() {
-                                    _isFormattingBarPinnedManually = !_isFormattingBarPinnedManually;
-                                    _showFormattingBar = _isFormattingBarPinnedManually;
-                                  });
-                                },
-                                style: IconButton.styleFrom(
-                                  foregroundColor: _showFormattingBar
-                                      ? theme.colorScheme.primary
-                                      : textColor,
-                                ),
-                              ),
-                              if (settings.isAiActive && !settings.minimalEditorMode) ...[
-                                IconButton.filledTonal(
-                                  icon: const Icon(Icons.auto_awesome_rounded, size: 20),
-                                  tooltip: 'Gemini AI Assist',
-                                  onPressed: _showAiOptionsSheet,
-                                  style: IconButton.styleFrom(
-                                    backgroundColor: noteScheme.primaryContainer,
-                                    foregroundColor: noteScheme.onPrimaryContainer,
-                                  ),
-                                ),
-                                ExpressiveFloatingToolbar.spacer(),
-                              ],
-                              if (!settings.minimalEditorMode)
-                                IconButton(
-                                  icon: const Icon(Icons.table_chart_outlined),
-                                  tooltip: 'Insert Table',
-                                  onPressed: _showTableInsertionDialog,
-                                  style: IconButton.styleFrom(
-                                    foregroundColor: textColor,
-                                  ),
-                                ),
-                              QuillToolbarToggleCheckListButton(
-                                controller: _quillController,
-                                options: QuillToolbarToggleCheckListButtonOptions(
-                                    iconData: Icons.check_box_outlined,
-                                    iconTheme: QuillIconTheme(
-                                        iconButtonUnselectedData:
-                                            IconButtonData(
-                                                style: IconButton.styleFrom(
-                                                    foregroundColor:
-                                                        textColor)),
-                                        iconButtonSelectedData:
-                                            IconButtonData(
-                                                style: IconButton.styleFrom(
-                                                    foregroundColor: theme
-                                                        .colorScheme
-                                                        .onPrimary)))),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.image_outlined),
-                                tooltip: 'Attach Image',
-                                onPressed: _showImageOptions,
-                                style: IconButton.styleFrom(
-                                  foregroundColor: textColor,
-                                ),
-                              ),
-
-                              if (isKeyboardOpen)
-                                IconButton(
-                                  icon: const Icon(Icons.keyboard_hide_rounded),
-                                  tooltip: 'Hide Keyboard',
-                                  onPressed: () {
-                                    FocusScope.of(context).unfocus();
-                                  },
-                                  style: IconButton.styleFrom(
-                                    foregroundColor: textColor,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
+                        onNudgeLeft: _nudgeSelectionLeft,
+                        onNudgeRight: _nudgeSelectionRight,
+                        onNudgeUp: _nudgeSelectionUp,
+                        onNudgeDown: _nudgeSelectionDown,
+                        onShowAiOptions: _showAiOptionsSheet,
+                        onInsertTable: _showTableInsertionDialog,
+                        onShowImageOptions: _showImageOptions,
+                        onHideKeyboard: () {
+                          FocusScope.of(context).unfocus();
+                        },
                       ),
                     ],
                   ),

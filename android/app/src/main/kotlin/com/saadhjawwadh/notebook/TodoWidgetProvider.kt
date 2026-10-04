@@ -19,6 +19,7 @@ class TodoWidgetProvider : AppWidgetProvider() {
     companion object {
         const val ACTION_CYCLE_NOTE = "com.saadhjawwadh.notebook.ACTION_CYCLE_NOTE"
         const val ACTION_ITEM_CLICK = "com.saadhjawwadh.notebook.ACTION_ITEM_CLICK"
+        const val ACTION_OPEN_NOTE = "com.saadhjawwadh.notebook.ACTION_OPEN_NOTE"
         const val ACTION_QUICK_ADD = "com.saadhjawwadh.notebook.QUICK_ADD_TODO"
         const val PREFS_NAME = "FlutterSharedPreferences"
 
@@ -83,7 +84,7 @@ class TodoWidgetProvider : AppWidgetProvider() {
             Log.d("TodoWidget", "updateAllWidgets called, found ids: ${ids.joinToString()}")
             if (ids.isNotEmpty()) {
                 for (id in ids) {
-                    updateHeader(context, appWidgetManager, id)
+                    updateAppWidget(context, appWidgetManager, id)
                 }
                 appWidgetManager.notifyAppWidgetViewDataChanged(ids, R.id.todo_widget_list)
             }

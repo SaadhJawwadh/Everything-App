@@ -52,5 +52,25 @@ void main() {
       expect(stats.uncheckedCount, equals(2));
       expect(controller.document.toPlainText().startsWith('Task 1\nTask 2\n'), isTrue);
     });
+
+    test('reorderChecklistLines - reorders checklist items correctly in document', () {
+      final doc = Document.fromDelta(Delta()
+        ..insert('Task A\n', {'list': 'unchecked'})
+        ..insert('Task B\n', {'list': 'checked'})
+        ..insert('Task C\n', {'list': 'unchecked'})
+      );
+
+      // Reorder to: Task C (idx 2), Task A (idx 0), Task B (idx 1)
+      QuillChecklistHelper.reorderChecklistLines(doc, [2, 0, 1]);
+
+      final items = QuillChecklistHelper.extractChecklistData(doc);
+      expect(items.length, equals(3));
+      expect(items[0].text, equals('Task C'));
+      expect(items[0].isDone, isFalse);
+      expect(items[1].text, equals('Task A'));
+      expect(items[1].isDone, isFalse);
+      expect(items[2].text, equals('Task B'));
+      expect(items[2].isDone, isTrue);
+    });
   });
 }

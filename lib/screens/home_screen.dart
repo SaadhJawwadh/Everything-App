@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
-import 'dart:io';
 
 import '../data/note_model.dart';
 import '../data/note_templates.dart';
@@ -15,16 +12,16 @@ import '../providers/note_provider.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/app_layout.dart';
 import '../core/services/app_haptics.dart';
-import '../core/ui/app_chip.dart';
+import '../core/services/app_intent_dispatcher.dart';
 import '../core/ui/app_morphing_fab.dart';
 import '../core/ui/expressive_floating_toolbar.dart';
 import '../widgets/tag_filter_bar.dart';
 import '../widgets/clarity_mosaic_strip.dart';
 import '../widgets/home/home_app_bar.dart';
 import '../widgets/home/note_view_builder.dart';
-import '../widgets/home/quick_add_todo_sheet.dart';
 import '../widgets/home/universal_search_overlay.dart';
 import '../widgets/home/home_tip_card.dart';
+export 'package:note_taking_app/features/notes/presentation/widgets/note_card.dart';
 import 'package:note_taking_app/features/notes/presentation/screens/note_editor_screen.dart';
 import 'package:note_taking_app/features/finances/presentation/screens/financial_manager_screen.dart';
 import 'package:note_taking_app/features/finances/providers/financial_manager_provider.dart';
@@ -36,17 +33,12 @@ import 'package:note_taking_app/features/finances/presentation/screens/transacti
 import 'package:note_taking_app/features/finances/presentation/screens/split_bill_editor_screen.dart';
 import '../utils/app_route.dart';
 import '../features/notes/data/note_repository.dart';
-import '../widgets/bouncing_widget.dart';
 import '../features/settings/presentation/screens/onboarding_screen.dart';
 import '../utils/widget_helper.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/whats_new_sheet.dart';
 import '../services/update_rating_service.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:note_taking_app/features/finances/presentation/widgets/receipt_scanner_sheet.dart';
-import 'package:note_taking_app/features/sync/presentation/screens/p2p_sync_screen.dart';
-import 'package:note_taking_app/data/transaction_model.dart';
-import 'package:note_taking_app/data/category_constants.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -88,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final isLocked =
           settings.appLockEnabled && !AppLockScreen.sessionAuthenticated.value;
       if (!isLocked) {
-        unawaited(_openSharedAsNote(files));
+        unawaited(AppIntentDispatcher.handleSharedMedia(context, files));
       }
     }, onError: (err) {
       debugPrint('getMediaStream error: $err');
@@ -100,6 +92,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         await WidgetHelper.syncPendingTodoToggles();
         if (mounted) {
           await Provider.of<NoteProvider>(context, listen: false).refreshNotes();
+        }
+      } else if (call.method == 'onPendingAction') {
+        if (mounted) {
+          final settings = Provider.of<SettingsProvider>(context, listen: false);
+          final isLocked = settings.appLockEnabled && !AppLockScreen.sessionAuthenticated.value;
+          if (!isLocked) {
+            unawaited(_checkAndProcessPendingIntents());
+          }
         }
       }
     });
@@ -129,207 +129,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// Turns shared media (text, links, images) into a prefilled new note.
-  Future<void> _openSharedAsNote(List<SharedMediaFile> files) async {
-    final textParts = <String>[];
-    final imagePaths = <String>[];
-
-    for (final file in files) {
-      switch (file.type) {
-        case SharedMediaType.text:
-        case SharedMediaType.url:
-          if (file.path.trim().isNotEmpty) textParts.add(file.path.trim());
-          break;
-        case SharedMediaType.image:
-          final copied = await _copySharedImage(file.path);
-          if (copied != null) imagePaths.add(copied);
-          break;
-        default:
-          break;
-      }
-    }
-
-    if (textParts.isEmpty && imagePaths.isEmpty) return;
-    if (!mounted) return;
-
-    unawaited(
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) {
-            final noteProvider = Provider.of<NoteProvider>(context, listen: false);
-            return NoteEditorScreen(
-              initialSharedText: textParts.isEmpty ? null : textParts.join('\n'),
-              initialSharedImagePaths: imagePaths.isEmpty ? null : imagePaths,
-              initialFolder: noteProvider.selectedFolder,
-            );
-          },
-        ),
-      ),
+  Future<void> _checkAndProcessPendingIntents() async {
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    await AppIntentDispatcher.processPendingIntents(
+      context: context,
+      onSwitchTab: (idx) {
+        if (mounted) setState(() => _currentIndex = idx);
+      },
+      destinations: _buildDestinations(settings),
     );
   }
 
-  /// Copies a shared image out of the transient share cache into app
-  /// documents so the note's embed doesn't break when the cache is purged.
-  Future<String?> _copySharedImage(String sourcePath) async {
-    try {
-      final source = File(sourcePath);
-      if (!await source.exists()) return null;
-      final docs = await getApplicationDocumentsDirectory();
-      final dir = Directory(p.join(docs.path, 'shared_images'));
-      if (!await dir.exists()) {
-        await dir.create(recursive: true);
-      }
-      final target = p.join(dir.path,
-          '${DateTime.now().millisecondsSinceEpoch}_${p.basename(sourcePath)}');
-      await source.copy(target);
-      return target;
-    } catch (e) {
-      debugPrint('Error copying shared image: $e');
-      return sourcePath; // fall back to the cache path rather than dropping it
-    }
-  }
-
-  Future<void> _checkAndProcessPendingIntents() async {
-    // Shares parked by AppLockScreen (cold start or arrived-while-locked).
-    final pendingShared = AppLockScreen.pendingSharedMedia;
-    if (pendingShared != null && pendingShared.isNotEmpty) {
-      AppLockScreen.pendingSharedMedia = null;
-      unawaited(_openSharedAsNote(pendingShared));
-      return;
-    }
-
-    try {
-      const widgetChannel = MethodChannel('com.saadhjawwadh.notebook/widget');
-      final String? action = await widgetChannel.invokeMethod<String>('getPendingAction');
-      if (action == 'add_transaction' && mounted) {
-        final settings = Provider.of<SettingsProvider>(context, listen: false);
-        if (settings.showFinancialManager) {
-          final List<Widget> destinations = _buildDestinations(settings);
-          int financesIndex = -1;
-          for (int i = 0; i < destinations.length; i++) {
-            if (destinations[i] is FinancialManagerScreen) {
-              financesIndex = i;
-              break;
-            }
-          }
-          if (financesIndex != -1) {
-            setState(() {
-              _currentIndex = financesIndex;
-            });
-          }
-        }
-        if (mounted) {
-          unawaited(
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const TransactionEditorScreen()),
-            ),
-          );
-        }
-      } else if ((action == 'view_trends' || action == 'view_budgets' || action == 'view_ledger') && mounted) {
-        final settings = Provider.of<SettingsProvider>(context, listen: false);
-        if (settings.showFinancialManager) {
-          final List<Widget> destinations = _buildDestinations(settings);
-          int financesIndex = -1;
-          for (int i = 0; i < destinations.length; i++) {
-            if (destinations[i] is FinancialManagerScreen) {
-              financesIndex = i;
-              break;
-            }
-          }
-          if (financesIndex != -1) {
-            setState(() {
-              _currentIndex = financesIndex;
-            });
-            FinancialManagerScreen.tabRedirectNotifier.value =
-                action == 'view_budgets' ? 'Budgets' : 'Ledger';
-          }
-        }
-      } else if (action == 'new_note' && mounted) {
-        final noteProvider = Provider.of<NoteProvider>(context, listen: false);
-        unawaited(
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => NoteEditorScreen(initialFolder: noteProvider.selectedFolder),
-            ),
-          ),
-        );
-      } else if (action == 'search' && mounted) {
-        HomeAppBar.searchRequestedNotifier.value = true;
-      } else if (action == 'scan_receipt' && mounted) {
-        final settings = Provider.of<SettingsProvider>(context, listen: false);
-        if (settings.showFinancialManager) {
-          final List<Widget> destinations = _buildDestinations(settings);
-          int financesIndex = -1;
-          for (int i = 0; i < destinations.length; i++) {
-            if (destinations[i] is FinancialManagerScreen) {
-              financesIndex = i;
-              break;
-            }
-          }
-          if (financesIndex != -1) {
-            setState(() {
-              _currentIndex = financesIndex;
-            });
-          }
-        }
-        unawaited(
-          ReceiptScannerSheet.show(context).then((res) {
-            if (res != null && mounted) {
-              final double? total = res['total'] as double?;
-              final String? merchant = res['merchant'] as String?;
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => TransactionEditorScreen(
-                    transaction: TransactionModel(
-                      amount: total ?? 0.0,
-                      description: merchant ?? 'Scanned Receipt',
-                      date: DateTime.now(),
-                      isExpense: true,
-                      category: CategoryConstants.shopping,
-                    ),
-                  ),
-                ),
-              );
-            }
-          }),
-        );
-      } else if (action == 'sync_devices' && mounted) {
-        unawaited(
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const P2pSyncScreen()),
-          ),
-        );
-      } else if (action == 'process_text' && mounted) {
-        final String? sharedText =
-            await widgetChannel.invokeMethod<String>('getPendingSharedText');
-        if (sharedText != null && sharedText.trim().isNotEmpty && mounted) {
-          final noteProvider = Provider.of<NoteProvider>(context, listen: false);
-          unawaited(
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    NoteEditorScreen(
-                      initialSharedText: sharedText,
-                      initialFolder: noteProvider.selectedFolder,
-                    ),
-              ),
-            ),
-          );
-        }
-      } else if (action != null && action.startsWith('quick_add_todo') && mounted) {
-        final parts = action.split(':');
-        final targetNoteId = parts.length > 1 ? parts[1] : 'ALL_NOTES';
-        unawaited(QuickAddTodoSheet.show(context, targetNoteId));
-      }
-    } catch (e) {
-      debugPrint('Error getting pending widget action: $e');
-    }
+  @override
+  void didChangePlatformBrightness() {
+    super.didChangePlatformBrightness();
+    unawaited(WidgetHelper.updateWidgetData());
+    unawaited(WidgetHelper.updateTodoWidgetData());
   }
 
   @override
@@ -1193,182 +1008,3 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 }
 
-// Keep NoteCard and NoteViewMode for now as they are used in many places.
-class NoteCard extends StatelessWidget {
-  final Note note;
-  final VoidCallback onTap;
-  final VoidCallback? onLongPress;
-  final Map<String, int>? tagColors;
-  final bool isSelected;
-
-  const NoteCard({super.key, required this.note, required this.onTap, this.onLongPress, this.tagColors, this.isSelected = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final isSystemDefault = note.color == 0;
-    final theme = Theme.of(context);
-    Color backgroundColor;
-    Color borderColor;
-
-    if (isSystemDefault) {
-      backgroundColor = theme.colorScheme.surface;
-      borderColor = theme.colorScheme.outlineVariant.withValues(alpha: 0.3);
-    } else {
-      final scheme = ColorScheme.fromSeed(seedColor: Color(note.color), brightness: theme.brightness);
-      backgroundColor = scheme.surfaceContainerLow;
-      borderColor = scheme.outline.withValues(alpha: 0.2);
-    }
-
-    final searchQuery = context.watch<NoteProvider>().searchQuery;
-
-    final checkedCount = RegExp(r'"list"\s*:\s*"checked"').allMatches(note.content).length;
-    final uncheckedCount = RegExp(r'"list"\s*:\s*"unchecked"').allMatches(note.content).length;
-    final totalChecklistItems = checkedCount + uncheckedCount;
-
-    return BouncingWidget(
-      onTap: onTap,
-      onLongPress: onLongPress != null
-          ? () {
-              AppHaptics.mediumImpact();
-              onLongPress!();
-            }
-          : null,
-      child: Container(
-        padding: AppLayout.paddingAllL,
-        decoration: BoxDecoration(
-          color: isSelected ? theme.colorScheme.primaryContainer : backgroundColor,
-          borderRadius: BorderRadius.circular(AppLayout.radiusL),
-          border: Border.all(color: isSelected ? theme.colorScheme.primary : borderColor, width: isSelected ? 2 : 1),
-        ),
-        child: Stack(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (note.title.isNotEmpty)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: HighlightedText(
-                          text: note.title,
-                          query: searchQuery,
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold) ?? const TextStyle(),
-                          highlightStyle: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary) ?? const TextStyle(),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (note.isPinned)
-                        Padding(
-                          padding: EdgeInsets.only(
-                            left: AppLayout.spaceS,
-                            right: isSelected ? 22.0 : 0.0,
-                          ),
-                          child: Icon(
-                            Icons.push_pin,
-                            size: AppLayout.iconS,
-                            color: theme.colorScheme.primary,
-                          ),
-                        )
-                      else if (isSelected)
-                        const SizedBox(width: 22.0),
-                    ],
-                  ),
-                if (note.isLocked) ...[
-                  const SizedBox(height: AppLayout.spaceS),
-                  AppChip(
-                    label: 'Locked Note',
-                    icon: Icons.lock_outline,
-                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                    textColor: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ],
-                if (!note.isLocked && note.imagePath != null) ...[
-                  const SizedBox(height: AppLayout.spaceM),
-                  ClipRRect(borderRadius: BorderRadius.circular(AppLayout.radiusL), child: Image.file(File(note.imagePath!), cacheWidth: 400, height: 120, width: double.infinity, fit: BoxFit.cover, alignment: Alignment.topCenter, errorBuilder: (c, e, s) => const SizedBox.shrink())),
-                ],
-                if (!note.isLocked && totalChecklistItems > 0) ...[
-                  const SizedBox(height: AppLayout.spaceS),
-                  AppChip(
-                    label: '$checkedCount/$totalChecklistItems Done',
-                    icon: checkedCount == totalChecklistItems
-                        ? Icons.check_circle_outline_rounded
-                        : Icons.checklist_rounded,
-                    backgroundColor: checkedCount == totalChecklistItems
-                        ? Colors.green.withValues(alpha: 0.15)
-                        : theme.colorScheme.secondaryContainer.withValues(alpha: 0.4),
-                    textColor: checkedCount == totalChecklistItems
-                        ? Colors.green
-                        : theme.colorScheme.onSecondaryContainer,
-                  ),
-                ],
-                const SizedBox(height: AppLayout.spaceS),
-                if (!note.isLocked && ((note.previewText?.isNotEmpty ?? false) || note.content.isNotEmpty))
-                  Flexible(
-                    child: HighlightedText(
-                      text: note.previewText ?? '...',
-                      query: searchQuery,
-                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant) ?? const TextStyle(),
-                      highlightStyle: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary) ?? const TextStyle(),
-                      maxLines: 6,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                if (note.tags.isNotEmpty) ...[
-                  const SizedBox(height: AppLayout.spaceM),
-                  Wrap(
-                    spacing: AppLayout.spaceXS, runSpacing: AppLayout.spaceXS,
-                    children: [
-                      ...note.tags.take(3).map((tag) {
-                        final colorVal = tagColors?[tag];
-                        Color bg = theme.colorScheme.secondaryContainer.withValues(alpha: 0.5);
-                        Color fg = theme.colorScheme.onSecondaryContainer;
-                        if (colorVal != null && colorVal != 0) {
-                          final scheme = ColorScheme.fromSeed(seedColor: Color(colorVal), brightness: theme.brightness);
-                          bg = scheme.primaryContainer;
-                          fg = scheme.onPrimaryContainer;
-                        }
-                        return Container(padding: const EdgeInsets.symmetric(horizontal: AppLayout.spaceS, vertical: AppLayout.spaceXS), decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(AppLayout.radiusStadium)), child: Text(tag, style: TextStyle(fontSize: 11.5, color: fg, fontWeight: FontWeight.w600)));
-                      }),
-                      if (note.tags.length > 3)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: AppLayout.spaceS, vertical: AppLayout.spaceXS),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                          ),
-                          child: Text(
-                            '+${note.tags.length - 3}',
-                            style: TextStyle(fontSize: 11.5, color: theme.colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-            if (isSelected)
-              Positioned(
-                top: 0,
-                right: 0,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    shape: BoxShape.circle,
-                    boxShadow: AppLayout.softShadow(context),
-                  ),
-                  child: Icon(
-                    Icons.check_circle,
-                    color: theme.colorScheme.primary,
-                    size: 22,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}

@@ -247,6 +247,24 @@ class NoteRepository {
     return count ?? 0;
   }
 
+  Future<int> getChecklistNotesCount({String? folder}) async {
+    final db = await _db;
+    String where = '${NoteFields.deletedAt} IS NULL AND ${NoteFields.isArchived} = 0 AND ('
+        "${NoteFields.content} LIKE '%\"list\":\"checked\"%' OR "
+        "${NoteFields.content} LIKE '%\"list\":\"unchecked\"%' OR "
+        "${NoteFields.content} LIKE '%- [ ]%' OR "
+        "${NoteFields.content} LIKE '%- [x]%')";
+    final List<dynamic> whereArgs = [];
+
+    if (folder != null && folder.isNotEmpty && folder != 'All Notes' && folder != 'Notes') {
+      where += ' AND ${NoteFields.category} = ?';
+      whereArgs.add(folder);
+    }
+
+    final result = await db.rawQuery('SELECT COUNT(*) as count FROM ${TableNames.notes} WHERE $where', whereArgs);
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
   Future<void> bulkSetPinned(List<String> ids, bool pinned) async {
     final db = await _db;
     final now = DateTime.now().toIso8601String();

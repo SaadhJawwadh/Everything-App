@@ -85,6 +85,33 @@ Specialist skill governing domain modules, feature-driven architecture (`lib/fea
 * **Takeout Directory Hierarchy**: Google Takeout ZIP files place note JSON files inside `Takeout/Keep/`. Importers must inspect `baseName != 'takeout.json'` rather than checking `!name.contains('takeout')` to avoid rejecting all Keep notes.
 * **Resilient Path Resolution**: Always wrap `getApplicationDocumentsDirectory()` in a try-catch falling back to `Directory.systemTemp` to ensure isolated unit tests and background sync workers run cleanly without plugin channel dependencies.
 
+### 📱 Interactive Android Home Screen Widget Architecture
+* **Native Components**:
+  - `TodoWidgetProvider` (`android/.../TodoWidgetProvider.kt`): `AppWidgetProvider` subclass managing launcher widget updates, layout inflation (`R.layout.todo_widget_layout`), remote adapter connections, and pending intent dispatch.
+  - `TodoWidgetService` (`android/.../TodoWidgetService.kt`): `RemoteViewsService` and `RemoteViewsFactory` providing the collection view adapter for scrollable checklist items (`R.layout.todo_widget_item`) parsed from `flutter.todo_widget_data`.
+  - `TodoWidgetActionReceiver` (`android/.../TodoWidgetActionReceiver.kt`): Standalone `BroadcastReceiver` handling `ACTION_TOGGLE_TODO` directly from home screen taps without bringing the app to the foreground. Updates the in-memory JSON payload and issues `appWidgetManager.notifyAppWidgetViewDataChanged`.
+* **Flutter-to-Native Bridge (`WidgetHelper`)**:
+  - Located at `lib/utils/widget_helper.dart`.
+  - Serializes active checklist items from pinned notes to `FlutterSharedPreferences` under key `flutter.todo_widget_data`.
+  - Triggers native broadcast intent `android.appwidget.action.APPWIDGET_UPDATE` via `widget_helper.dart` platform channel or Android intent broadcast.
+  - On app launch and resume, `NoteProvider.refreshNotes()` calls `WidgetHelper.processPendingWidgetActions()` to synchronously reconcile any toggles made directly from the launcher with persistent note storage.
+* **Direct Deep Intent Routing**:
+  - Tapping the `+` button in the widget header fires a `PendingIntent` with `ACTION_QUICK_ADD_TODO`.
+  - `MainActivity.kt` routes this intent to `AppLockScreen.pendingQuickAddTodo` and pops up `QuickAddTodoSheet`, seamlessly adding tasks with auto-capitalization and saving back to the widget.
+
+### 🧘 Calm Habit Gamification & Restrained Tactility
+* **Days of Clarity Strip (`ClarityMosaicStrip`)**:
+  - Located at `lib/widgets/clarity_mosaic_strip.dart`.
+  - Implements a rolling 14-day activity mosaic directly below the Notes top app bar.
+  - Contextual toggle `settings.showClarityMosaic` in Settings and Onboarding Slide 3.
+  - **Calm Technology Invariant**: Celebrates daily consistency without streak countdowns, broken-chain guilt, or dopamine-trap gamification. If a user misses a day, the mosaic simply reflects rest without shaming badges.
+* **Auto-Collapse / Reorder Completed Checklists**:
+  - Located in `lib/utils/quill_checklist_helper.dart`.
+  - When `settings.moveCompletedChecklistsToBottom` is enabled, checking an item smoothly animates it to the bottom completed partition.
+* **Restrained Tactile Haptics (`AppHaptics`)**:
+  - Centralized in `lib/core/services/app_haptics.dart`.
+  - Gated globally by `settings.enableHaptics`. Provides `lightImpact()`, `mediumImpact()`, `heavyImpact()`, and `selectionClick()`.
+
 ---
 
 ## 3. Financial Manager & SMS Ledger (`lib/features/finances/`)

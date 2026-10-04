@@ -8,6 +8,7 @@ import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../utils/app_route.dart';
 import '../../../../widgets/skeleton_card.dart';
 import 'package:note_taking_app/features/settings/presentation/screens/settings_screen.dart';
+import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
 import '../../providers/period_tracker_provider.dart';
 import '../widgets/cycle_phase_hero_card.dart';
 import '../widgets/cycle_insights_card.dart';
@@ -231,6 +232,8 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
         final colorScheme = theme.colorScheme;
         final isDark = theme.brightness == Brightness.dark;
         final phaseColor = _resolvePhaseColor(context, provider.currentPhase);
+        final settings = context.watch<SettingsProvider>();
+        final isDiscreet = settings.isDiscreetHealthMode;
 
         final daysUntilNext = provider.daysUntilNext;
         final predictionStatus = provider.isPeriodActive
@@ -280,7 +283,7 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      'Period Tracker',
+                                      isDiscreet ? 'Wellness Tracker' : 'Period Tracker',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: theme.textTheme.titleLarge?.copyWith(
@@ -318,9 +321,11 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                                               const SizedBox(width: 4),
                                               Flexible(
                                                 child: Text(
-                                                  provider.currentCycleDay != null
-                                                      ? 'Day ${provider.currentCycleDay} • ${provider.currentPhase}'
-                                                      : provider.currentPhase,
+                                                  isDiscreet
+                                                      ? 'Wellness Insights'
+                                                      : (provider.currentCycleDay != null
+                                                          ? 'Day ${provider.currentCycleDay} • ${provider.currentPhase}'
+                                                          : provider.currentPhase),
                                                   maxLines: 1,
                                                   overflow: TextOverflow.ellipsis,
                                                   style: theme.textTheme.bodySmall?.copyWith(
@@ -364,6 +369,20 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                                   }
                                 },
                               ),
+                              IconButton(
+                                icon: Icon(
+                                  isDiscreet ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                  color: isDiscreet ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                                ),
+                                tooltip: isDiscreet ? 'Discreet Mode (Active)' : 'Enable Discreet Mode',
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                                visualDensity: VisualDensity.compact,
+                                onPressed: () {
+                                  AppHaptics.lightImpact();
+                                  settings.setIsDiscreetHealthMode(!isDiscreet);
+                                },
+                              ),
                               PopupMenuButton<String>(
                                 icon: const Icon(Icons.more_vert_rounded),
                                 tooltip: 'Health Tools',
@@ -380,7 +399,10 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                                 ),
                                 color: colorScheme.surfaceContainerHigh,
                                 onSelected: (value) {
-                                  if (value == 'log_period') {
+                                  if (value == 'toggle_discreet') {
+                                    AppHaptics.lightImpact();
+                                    settings.setIsDiscreetHealthMode(!isDiscreet);
+                                  } else if (value == 'log_period') {
                                     PeriodLogEditorSheet.show(
                                       context: context,
                                       defaultStartDate: _selectedDay ?? DateTime.now(),
@@ -394,6 +416,27 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                                   }
                                 },
                                 itemBuilder: (ctx) => [
+                                  PopupMenuItem(
+                                    value: 'toggle_discreet',
+                                    height: 48,
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          isDiscreet ? Icons.visibility_rounded : Icons.visibility_off_rounded,
+                                          size: 20,
+                                          color: colorScheme.primary,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          isDiscreet ? 'Disable Discreet Mode' : 'Discreet Privacy Mode',
+                                          style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                                                color: colorScheme.onSurface,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                   PopupMenuItem(
                                     value: 'log_period',
                                     height: 48,
@@ -462,6 +505,7 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                             avgCycleLength: provider.avgCycleLength,
                             phaseColor: phaseColor,
                             predictionStatus: predictionStatus,
+                            isDiscreetMode: isDiscreet,
                           ),
                         ),
                       ),

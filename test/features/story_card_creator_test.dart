@@ -224,4 +224,71 @@ void main() {
     expect(StoryCardConfig.containsTamil('பிறந்தநாள் வாழ்த்துக்கள்'), isTrue);
     expect(StoryCardConfig.containsTamil('Hello world'), isFalse);
   });
+
+  test('StoryCardLayoutMode auto-detects based on length, paragraphs, and list items', () {
+    // Short quote without breaks -> quote
+    expect(
+      StoryCardLayoutMode.autoDetect('Simplicity is the ultimate sophistication.'),
+      StoryCardLayoutMode.quote,
+    );
+
+    // Text with markdown list items -> article
+    expect(
+      StoryCardLayoutMode.autoDetect('Key takeaways:\n- First point\n- Second point'),
+      StoryCardLayoutMode.article,
+    );
+
+    // Text with checklist items -> article
+    expect(
+      StoryCardLayoutMode.autoDetect('[x] Ship the release\n[ ] Update docs'),
+      StoryCardLayoutMode.article,
+    );
+
+    // Text with multiple paragraphs -> article
+    expect(
+      StoryCardLayoutMode.autoDetect('Paragraph one.\n\nParagraph two with more details.'),
+      StoryCardLayoutMode.article,
+    );
+
+    // Long text > 40 words -> article
+    final longExcerpt = List.generate(45, (i) => 'word$i').join(' ');
+    expect(
+      StoryCardLayoutMode.autoDetect(longExcerpt),
+      StoryCardLayoutMode.article,
+    );
+  });
+
+  testWidgets('StoryCardStudioSheet toggles between Quote and Reader layout modes', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    const sampleNote = 'Meeting Notes:\n- Finalized roadmap\n[x] Completed review\n\nNext steps for team.';
+
+    await tester.pumpWidget(buildTestSheet(
+      initialText: sampleNote,
+      noteTitle: 'Weekly Sync',
+      category: 'Work',
+    ));
+    await tester.pumpAndSettle();
+
+    // Verify Reader mode is auto-detected
+    final segmentedButtonFinder = find.byType(SegmentedButton<StoryCardLayoutMode>);
+    expect(segmentedButtonFinder, findsOneWidget);
+    final segmentedButton = tester.widget<SegmentedButton<StoryCardLayoutMode>>(segmentedButtonFinder);
+    expect(segmentedButton.selected, contains(StoryCardLayoutMode.article));
+
+    // Verify checklist and bullet items are rendered
+    expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+    expect(find.text('Completed review'), findsOneWidget);
+    expect(find.text('Finalized roadmap'), findsOneWidget);
+
+    // Tap Quote mode
+    await tester.tap(find.text('Quote'));
+    await tester.pumpAndSettle();
+
+    final segmentedButtonAfter = tester.widget<SegmentedButton<StoryCardLayoutMode>>(segmentedButtonFinder);
+    expect(segmentedButtonAfter.selected, contains(StoryCardLayoutMode.quote));
+  });
 }
+

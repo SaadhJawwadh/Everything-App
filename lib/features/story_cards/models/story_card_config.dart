@@ -1,4 +1,5 @@
 import 'story_card_aspect_ratio.dart';
+import 'story_card_layout_mode.dart';
 import 'story_card_theme.dart';
 
 /// Immutable configuration representing all customization options for a Story Card.
@@ -12,6 +13,7 @@ class StoryCardConfig {
   final StoryCardThemePreset themePreset;
   final StoryCardWordLimit wordLimit;
   final StoryCardFontStyle fontStyle;
+  final StoryCardLayoutMode layoutMode;
   final bool showTitle;
   final bool showDate;
   final bool showWatermark;
@@ -26,6 +28,7 @@ class StoryCardConfig {
     this.themePreset = StoryCardThemePreset.editorial,
     this.wordLimit = StoryCardWordLimit.all,
     this.fontStyle = StoryCardFontStyle.auto,
+    this.layoutMode = StoryCardLayoutMode.quote,
     this.showTitle = true,
     this.showDate = true,
     this.showWatermark = false,
@@ -90,6 +93,7 @@ class StoryCardConfig {
     StoryCardThemePreset? themePreset,
     StoryCardWordLimit? wordLimit,
     StoryCardFontStyle? fontStyle,
+    StoryCardLayoutMode? layoutMode,
     bool? showTitle,
     bool? showDate,
     bool? showWatermark,
@@ -104,6 +108,7 @@ class StoryCardConfig {
       themePreset: themePreset ?? this.themePreset,
       wordLimit: wordLimit ?? this.wordLimit,
       fontStyle: fontStyle ?? this.fontStyle,
+      layoutMode: layoutMode ?? this.layoutMode,
       showTitle: showTitle ?? this.showTitle,
       showDate: showDate ?? this.showDate,
       showWatermark: showWatermark ?? this.showWatermark,
@@ -124,6 +129,7 @@ class StoryCardConfig {
           themePreset == other.themePreset &&
           wordLimit == other.wordLimit &&
           fontStyle == other.fontStyle &&
+          layoutMode == other.layoutMode &&
           showTitle == other.showTitle &&
           showDate == other.showDate &&
           showWatermark == other.showWatermark;
@@ -139,6 +145,7 @@ class StoryCardConfig {
         themePreset,
         wordLimit,
         fontStyle,
+        layoutMode,
         showTitle,
         showDate,
         showWatermark,

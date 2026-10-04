@@ -5,6 +5,7 @@ library;
 
 export 'models/story_card_aspect_ratio.dart';
 export 'models/story_card_config.dart';
+export 'models/story_card_layout_mode.dart';
 export 'models/story_card_theme.dart';
 export 'presentation/widgets/story_card_preview.dart';
 export 'presentation/widgets/story_card_studio_sheet.dart';

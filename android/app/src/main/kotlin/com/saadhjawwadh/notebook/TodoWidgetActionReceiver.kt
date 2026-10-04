@@ -39,8 +39,21 @@ class TodoWidgetActionReceiver : BroadcastReceiver() {
             }
 
             TodoWidgetProvider.ACTION_ITEM_CLICK -> {
+                val clickAction = intent.getStringExtra("click_action") ?: "toggle"
                 val noteId = intent.getStringExtra("note_id") ?: return
                 val lineIndex = intent.getIntExtra("line_index", -1)
+
+                if (clickAction == "open_note") {
+                    val openIntent = Intent(context, MainActivity::class.java).apply {
+                        action = TodoWidgetProvider.ACTION_OPEN_NOTE
+                        putExtra("open_note_id", noteId)
+                        putExtra("line_index", lineIndex)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    }
+                    context.startActivity(openIntent)
+                    return
+                }
+
                 val currentIsDone = intent.getBooleanExtra("is_done", false)
                 val newIsDone = !currentIsDone
 

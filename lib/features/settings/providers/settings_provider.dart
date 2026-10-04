@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/local_ai_service.dart';
@@ -110,6 +111,9 @@ class SettingsProvider extends ChangeNotifier {
 
   bool _isPeriodTrackerEnabled = false;
   bool get isPeriodTrackerEnabled => _isPeriodTrackerEnabled;
+
+  bool _isDiscreetHealthMode = false;
+  bool get isDiscreetHealthMode => _isDiscreetHealthMode;
 
   bool _appLockEnabled = false;
   bool get appLockEnabled => _appLockEnabled;
@@ -242,6 +246,7 @@ class SettingsProvider extends ChangeNotifier {
     _lastAutoBackupTime = prefs.getString('lastAutoBackupTime');
 
     _isPeriodTrackerEnabled = prefs.getBool('isPeriodTrackerEnabled') ?? false;
+    _isDiscreetHealthMode = prefs.getBool('isDiscreetHealthMode') ?? false;
     _appLockEnabled = prefs.getBool('appLockEnabled') ?? false;
     _useBiometrics = prefs.getBool('useBiometrics') ?? false;
     _appLockTimeout = prefs.getInt('appLockTimeout') ?? 0;
@@ -660,6 +665,10 @@ class SettingsProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('themeMode', _getIntFromThemeMode(mode));
     notifyListeners();
+    if (!kIsWeb) {
+      unawaited(WidgetHelper.updateWidgetData());
+      unawaited(WidgetHelper.updateTodoWidgetData());
+    }
   }
 
   Future<void> setUseDynamicColor(bool value) async {
@@ -667,6 +676,10 @@ class SettingsProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('useDynamicColor', value);
     notifyListeners();
+    if (!kIsWeb) {
+      unawaited(WidgetHelper.updateWidgetData());
+      unawaited(WidgetHelper.updateTodoWidgetData());
+    }
   }
 
   Future<void> setIsPeriodTrackerEnabled(bool enabled) async {
@@ -680,6 +693,13 @@ class SettingsProvider extends ChangeNotifier {
       }
       await NotificationService.schedulePeriodNotifications();
     }
+    notifyListeners();
+  }
+
+  Future<void> setIsDiscreetHealthMode(bool enabled) async {
+    _isDiscreetHealthMode = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isDiscreetHealthMode', enabled);
     notifyListeners();
   }
 
@@ -776,6 +796,7 @@ class SettingsProvider extends ChangeNotifier {
         'currency': _currency,
         'selectedLanguageCode': _selectedLanguageCode,
         'isPeriodTrackerEnabled': _isPeriodTrackerEnabled,
+        'isDiscreetHealthMode': _isDiscreetHealthMode,
         'appLockEnabled': _appLockEnabled,
         'useBiometrics': _useBiometrics,
         'appLockTimeout': _appLockTimeout,
@@ -869,6 +890,10 @@ class SettingsProvider extends ChangeNotifier {
       if (map.containsKey('isPeriodTrackerEnabled')) {
         final ptEnabled = map['isPeriodTrackerEnabled'];
         if (ptEnabled is bool) await setIsPeriodTrackerEnabled(ptEnabled);
+      }
+      if (map.containsKey('isDiscreetHealthMode')) {
+        final dMode = map['isDiscreetHealthMode'];
+        if (dMode is bool) await setIsDiscreetHealthMode(dMode);
       }
       if (map.containsKey('appLockTimeout')) {
         final timeout = (map['appLockTimeout'] as num?)?.toInt();

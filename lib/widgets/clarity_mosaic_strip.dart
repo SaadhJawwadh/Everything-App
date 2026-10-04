@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/services/app_haptics.dart';
 import '../core/theme/app_layout.dart';
 import '../providers/note_provider.dart';
 import '../features/finances/providers/financial_manager_provider.dart';
@@ -64,12 +65,14 @@ class ClarityMosaicStrip extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppLayout.spaceM, vertical: AppLayout.spaceXS),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerLow.withValues(alpha: isDark ? 0.4 : 0.6),
+          color: isDark ? colorScheme.surfaceContainer : colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
           border: Border.all(
-            color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.3 : 0.4),
+            color: isDark
+                ? colorScheme.primary.withValues(alpha: 0.28)
+                : colorScheme.outlineVariant.withValues(alpha: 0.4),
             width: 1.0,
           ),
         ),
@@ -77,15 +80,15 @@ class ClarityMosaicStrip extends StatelessWidget {
           children: [
             Icon(
               Icons.wb_sunny_outlined,
-              size: 14,
+              size: 15,
               color: colorScheme.primary,
             ),
             const SizedBox(width: AppLayout.spaceS),
             Text(
               '$activeCount of 14 mindful days',
               style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
               ),
             ),
             const Spacer(),
@@ -101,34 +104,61 @@ class ClarityMosaicStrip extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 2.0),
                   child: Tooltip(
                     message: '${_formatDayLabel(day)}: $activityCount action${activityCount == 1 ? '' : 's'}',
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(AppLayout.radiusXS),
-                      onTap: () {},
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        width: isToday ? 12 : 9,
-                        height: isToday ? 12 : 9,
-                        decoration: BoxDecoration(
-                          color: isActive
-                              ? (isToday
-                                  ? colorScheme.primary
-                                  : colorScheme.primary.withValues(alpha: isDark ? 0.75 : 0.65))
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(isToday ? 4 : 3),
-                          border: Border.all(
-                            color: isToday
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      width: isToday ? 12 : 9,
+                      height: isToday ? 12 : 9,
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? (isToday
                                 ? colorScheme.primary
-                                : (isActive
-                                    ? colorScheme.primary.withValues(alpha: isDark ? 0.9 : 0.8)
-                                    : colorScheme.outlineVariant.withValues(alpha: isDark ? 0.35 : 0.5)),
-                            width: isToday ? 1.4 : 1.0,
-                          ),
+                                : colorScheme.primary.withValues(alpha: isDark ? 0.9 : 0.75))
+                            : colorScheme.surfaceContainerHighest.withValues(alpha: isDark ? 0.8 : 0.6),
+                        borderRadius: BorderRadius.circular(isToday ? 4 : 3),
+                        border: Border.all(
+                          color: isToday
+                              ? (isActive ? colorScheme.primary : colorScheme.outline)
+                              : (isActive
+                                  ? colorScheme.primary
+                                  : colorScheme.outlineVariant.withValues(alpha: isDark ? 0.7 : 0.4)),
+                          width: isToday ? 1.4 : 1.0,
                         ),
                       ),
                     ),
                   ),
                 );
               }).toList(),
+            ),
+            const SizedBox(width: AppLayout.spaceXS),
+            Tooltip(
+              message: 'Hide Days of Clarity',
+              child: InkWell(
+                borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
+                onTap: () {
+                  AppHaptics.lightImpact();
+                  settings?.setShowClarityMosaic(false);
+                  ScaffoldMessenger.of(context).clearSnackBars();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Days of Clarity hidden. Re-enable anytime in Settings.'),
+                      action: SnackBarAction(
+                        label: 'UNDO',
+                        onPressed: () {
+                          settings?.setShowClarityMosaic(true);
+                        },
+                      ),
+                    ),
+                  );
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(3.0),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 14,
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: isDark ? 0.85 : 0.6),
+                  ),
+                ),
+              ),
             ),
           ],
         ),

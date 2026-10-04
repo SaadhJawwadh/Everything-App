@@ -157,6 +157,42 @@ class FinancialManagerProvider extends ChangeNotifier {
     await loadTransactions();
   }
 
+  /// Transfers funds between accounts using double-entry Transfer records.
+  Future<void> transferFunds({
+    required double amount,
+    required String fromAccount,
+    required String toAccount,
+    String? note,
+  }) async {
+    if (amount <= 0 || fromAccount == toAccount) return;
+    final now = DateTime.now();
+    final description = note?.trim().isNotEmpty == true
+        ? note!.trim()
+        : (fromAccount == AccountType.daily ? 'Vault Deposit' : 'Vault Withdrawal');
+
+    final withdrawal = TransactionModel(
+      amount: amount,
+      description: '$description (Transfer Out)',
+      date: now,
+      isExpense: true,
+      category: 'Transfer',
+      account: fromAccount,
+    );
+
+    final deposit = TransactionModel(
+      amount: amount,
+      description: '$description (Transfer In)',
+      date: now,
+      isExpense: false,
+      category: 'Transfer',
+      account: toAccount,
+    );
+
+    await _repository.createTransaction(withdrawal);
+    await _repository.createTransaction(deposit);
+    await loadTransactions();
+  }
+
   Future<void> deleteTransaction(int id) async {
     await _repository.softDeleteTransaction(id);
     await loadTransactions();

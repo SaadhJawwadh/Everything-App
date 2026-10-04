@@ -20,6 +20,7 @@ import 'package:note_taking_app/services/backup_service.dart';
 import 'package:note_taking_app/features/sync/providers/p2p_sync_provider.dart';
 import 'package:note_taking_app/features/sync/data/p2p_pairing_model.dart';
 import 'package:note_taking_app/features/sync/presentation/widgets/qr_scanner_dialog.dart';
+import '../widgets/sync_activity_sheet.dart';
 
 class P2pSyncScreen extends StatefulWidget {
   const P2pSyncScreen({super.key});
@@ -293,9 +294,19 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
         return Scaffold(
           body: CustomScrollView(
             slivers: [
-              const ExpressiveSliverAppBar(
+              ExpressiveSliverAppBar(
                 titleText: 'Master P2P Device Sync',
                 showBackButton: true,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.receipt_long_rounded),
+                    tooltip: 'Sync Audit & Activity',
+                    onPressed: () {
+                      AppHaptics.selectionClick();
+                      SyncActivitySheet.show(context);
+                    },
+                  ),
+                ],
               ),
               SliverPadding(
                 padding: const EdgeInsets.all(AppLayout.spaceM),

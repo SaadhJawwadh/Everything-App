@@ -11,6 +11,19 @@ import '../data/p2p_pairing_model.dart';
 
 enum SyncStatus { idle, hosting, connecting, syncing, completed, error }
 
+/// Represents an immutable audit entry of a P2P sync exchange.
+class SyncActivityEvent {
+  final DateTime timestamp;
+  final SyncResult result;
+  final String? peerName;
+
+  const SyncActivityEvent({
+    required this.timestamp,
+    required this.result,
+    this.peerName,
+  });
+}
+
 class P2pSyncProvider with ChangeNotifier {
   static const _storageKey = 'p2p_paired_devices_v2';
   static const _legacyStorageKey = 'p2p_paired_devices_v1';
@@ -21,6 +34,8 @@ class P2pSyncProvider with ChangeNotifier {
   final P2pSyncService _service = P2pSyncService.instance;
   List<PairedDevice> _pairedDevices = [];
   List<PairedDevice> get pairedDevices => List.unmodifiable(_pairedDevices);
+  final List<SyncActivityEvent> _recentActivity = [];
+  List<SyncActivityEvent> get recentActivity => List.unmodifiable(_recentActivity);
   SyncStatus _status = SyncStatus.idle;
   SyncStatus get status => _status;
   bool _isAutoSyncEnabled = true;
@@ -107,6 +122,18 @@ class P2pSyncProvider with ChangeNotifier {
   }
 
   void _handleSyncEvent(SyncResult result) {
+    _recentActivity.insert(
+      0,
+      SyncActivityEvent(
+        timestamp: DateTime.now(),
+        result: result,
+        peerName: _pairedDevices.isNotEmpty ? _pairedDevices.first.deviceName : null,
+      ),
+    );
+    if (_recentActivity.length > 20) {
+      _recentActivity.removeLast();
+    }
+
     if (result.success) {
       _status = SyncStatus.completed;
       _lastSyncedAt = DateTime.now();

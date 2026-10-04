@@ -341,6 +341,46 @@ void main() {
 
       expect(remaining, closeTo(33.34, 0.001));
     });
+
+    test('Custom split integer cent distribution sums to exactly totalAmount with zero penny variance', () {
+      List<double> distribute(double totalAmount, int count) {
+        final totalCents = (totalAmount * 100).round();
+        final baseCents = totalCents ~/ count;
+        final remCents = totalCents % count;
+
+        final result = <double>[];
+        for (int i = 0; i < count; i++) {
+          final cents = baseCents + (i < remCents ? 1 : 0);
+          result.add(cents / 100.0);
+        }
+        return result;
+      }
+
+      // Case 1: 100 split 3 ways
+      final split100 = distribute(100.0, 3);
+      expect(split100, [33.34, 33.33, 33.33]);
+      expect(split100.fold(0.0, (s, v) => s + v), closeTo(100.0, 0.0001));
+
+      // Case 2: 250 split 4 ways
+      final split250 = distribute(250.0, 4);
+      expect(split250, [62.50, 62.50, 62.50, 62.50]);
+      expect(split250.fold(0.0, (s, v) => s + v), closeTo(250.0, 0.0001));
+
+      // Case 3: 10 split 3 ways
+      final split10 = distribute(10.0, 3);
+      expect(split10, [3.34, 3.33, 3.33]);
+      expect(split10.fold(0.0, (s, v) => s + v), closeTo(10.0, 0.0001));
+
+      // Case 4: 0.05 split 2 ways
+      final split5c = distribute(0.05, 2);
+      expect(split5c, [0.03, 0.02]);
+      expect(split5c.fold(0.0, (s, v) => s + v), closeTo(0.05, 0.0001));
+
+      // Case 5: 1234.56 split 7 ways
+      final splitOdd = distribute(1234.56, 7);
+      expect(splitOdd.length, 7);
+      expect(splitOdd.fold(0.0, (s, v) => s + v), closeTo(1234.56, 0.0001));
+    });
   });
 
   group('BackupService & SyncMergeService Savings Goals Parity Tests', () {

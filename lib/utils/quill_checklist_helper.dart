@@ -226,6 +226,60 @@ class QuillChecklistHelper {
       doc.format(lineEndPos, 1, Attribute.unchecked);
     }
   }
+
+  /// Reorders the checklist lines in [doc] according to [newOrderIndices].
+  /// [newOrderIndices] maps the destination position to the original checklist index.
+  static void reorderChecklistLines(Document doc, List<int> newOrderIndices) {
+    final lines = getDocumentLines(doc);
+    final originalDelta = doc.toDelta();
+
+    final checklistLineIndices = <int>[];
+    for (int i = 0; i < lines.length; i++) {
+      final listAttr = lines[i].style.attributes['list']?.value;
+      if (listAttr == 'checked' || listAttr == 'unchecked') {
+        checklistLineIndices.add(i);
+      }
+    }
+
+    if (checklistLineIndices.length <= 1 || newOrderIndices.length != checklistLineIndices.length) {
+      return;
+    }
+
+    final checklistSlices = <Delta>[];
+    for (final lineIdx in checklistLineIndices) {
+      final line = lines[lineIdx];
+      checklistSlices.add(originalDelta.slice(line.documentOffset, line.documentOffset + line.length));
+    }
+
+    final reorderedSlices = <Delta>[];
+    for (final origIdx in newOrderIndices) {
+      reorderedSlices.add(checklistSlices[origIdx]);
+    }
+
+    var newDelta = Delta();
+    int checklistCounter = 0;
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i];
+      if (checklistLineIndices.contains(i)) {
+        newDelta = newDelta.concat(reorderedSlices[checklistCounter]);
+        checklistCounter++;
+      } else {
+        newDelta = newDelta.concat(originalDelta.slice(line.documentOffset, line.documentOffset + line.length));
+      }
+    }
+
+    if (newDelta.isEmpty) {
+      newDelta.insert('\n');
+    } else {
+      final lastOp = newDelta.last;
+      if (lastOp.data is! String || !(lastOp.data as String).endsWith('\n')) {
+        newDelta.insert('\n');
+      }
+    }
+
+    final diff = originalDelta.diff(newDelta);
+    doc.compose(diff, ChangeSource.local);
+  }
 }
 
 class ChecklistItemData {

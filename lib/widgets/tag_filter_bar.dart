@@ -30,6 +30,7 @@ class TagFilterBar extends StatelessWidget {
             itemCount: itemCount,
             itemBuilder: (context, index) {
               if (showChecklistChip && index == 1) {
+                final todoColors = AppChip.getTagColors(context, null, isSelected: isChecklistFiltered);
                 return Padding(
                   padding: const EdgeInsets.only(right: 6),
                   child: AppChip(
@@ -37,7 +38,12 @@ class TagFilterBar extends StatelessWidget {
                     label: 'Checklists · $checklistCount',
                     isSelected: isChecklistFiltered,
                     isCompact: true,
+                    backgroundColor: todoColors.bg,
+                    selectedBackgroundColor: todoColors.bg,
+                    textColor: todoColors.fg,
+                    border: todoColors.border,
                     onTap: () {
+                      AppHaptics.selectionClick();
                       noteProvider.setFilterChecklistsOnly(!isChecklistFiltered);
                     },
                   ),
@@ -46,7 +52,7 @@ class TagFilterBar extends StatelessWidget {
 
               final tagIndex = (showChecklistChip && index > 1) ? index - 1 : index;
               final tag = allTags[tagIndex];
-              final isSelected = tag == selectedTag && (!isChecklistFiltered || tag != 'All');
+              final isSelected = tag == selectedTag;
               final tagColorValue = tagColors[tag];
               final chipColors = AppChip.getTagColors(context, tagColorValue, isSelected: isSelected);
 
@@ -68,9 +74,7 @@ class TagFilterBar extends StatelessWidget {
                     textColor: chipColors.fg,
                     border: chipColors.border,
                     onTap: () {
-                      if (isChecklistFiltered) {
-                        noteProvider.setFilterChecklistsOnly(false);
-                      }
+                      AppHaptics.selectionClick();
                       noteProvider.setTag(tag);
                     },
                   ),

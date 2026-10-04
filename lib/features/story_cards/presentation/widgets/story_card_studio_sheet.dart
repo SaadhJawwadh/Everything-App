@@ -8,6 +8,7 @@ import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../core/ui/app_snack_bar.dart';
 import '../../models/story_card_aspect_ratio.dart';
 import '../../models/story_card_config.dart';
+import '../../models/story_card_layout_mode.dart';
 import '../../models/story_card_theme.dart';
 import '../../services/story_card_media_service.dart';
 import '../../services/story_card_render_service.dart';
@@ -80,8 +81,10 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
     _titleController = TextEditingController(text: widget.noteTitle.trim());
 
     final totalWords = StoryCardConfig.countWords(trimmedText);
-    final initialWordLimit =
-        totalWords > 60 ? StoryCardWordLimit.w50 : StoryCardWordLimit.all;
+    final autoLayoutMode = StoryCardLayoutMode.autoDetect(trimmedText);
+    final initialWordLimit = autoLayoutMode == StoryCardLayoutMode.article
+        ? StoryCardWordLimit.all
+        : (totalWords > 60 ? StoryCardWordLimit.w50 : StoryCardWordLimit.all);
 
     _config = StoryCardConfig(
       title: widget.noteTitle.trim(),
@@ -93,6 +96,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
       themePreset: StoryCardThemePreset.editorial,
       wordLimit: initialWordLimit,
       fontStyle: StoryCardFontStyle.auto,
+      layoutMode: autoLayoutMode,
       showTitle: true,
       showDate: true,
       showWatermark: false,
@@ -350,6 +354,38 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
               ),
             ),
             const SizedBox(height: AppLayout.spaceM),
+
+            // Controls 0: Layout Mode Switcher (Quote vs Reader)
+            Center(
+              child: SegmentedButton<StoryCardLayoutMode>(
+                segments: StoryCardLayoutMode.values.map((mode) {
+                  return ButtonSegment(
+                    value: mode,
+                    label: Text(mode.label, style: const TextStyle(fontSize: 11)),
+                    icon: Icon(mode.icon, size: 14),
+                  );
+                }).toList(),
+                selected: {_config.layoutMode},
+                showSelectedIcon: false,
+                style: const ButtonStyle(
+                  visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                onSelectionChanged: (set) {
+                  AppHaptics.selectionClick();
+                  setState(() {
+                    final newMode = set.first;
+                    _config = _config.copyWith(
+                      layoutMode: newMode,
+                      wordLimit: newMode == StoryCardLayoutMode.article && _config.wordLimit != StoryCardWordLimit.all
+                          ? StoryCardWordLimit.all
+                          : _config.wordLimit,
+                    );
+                  });
+                },
+              ),
+            ),
+            const SizedBox(height: AppLayout.spaceS),
 
             // Controls 1: Aspect Ratio Selector
             Center(

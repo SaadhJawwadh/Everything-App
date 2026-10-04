@@ -1,15 +1,16 @@
 
 ### 🌟 What's New
-- **Interactive Home Screen To-Do Widget**: A responsive, glanceable Android home screen widget to review your daily checklists, tick off tasks directly from your home screen with instant progress feedback, and launch quick-add with one tap.
-- **Days of Clarity Strip**: A calm 14-day mindfulness progression strip displayed at the top of your Notes workspace. Celebrates everyday focus and note activity without stressful streak countdowns or judgment.
-- **Tactile Haptics Preferences**: Unified, restrained physical vibration system with an explicit on/off switch under *Settings > Appearance & UI*. Delivers subtle, satisfying tactile feedback for sliders, buttons, and drag actions while remaining completely silent when preferred.
+- **Story Card Studio Article & Reader Mode**: Share long-form notes, multi-paragraph articles, and interactive checklists as high-resolution social story cards with dedicated Reader Mode, hairline dividers, and dynamic font scaling.
+- **Inter-Vault Account Transfers**: Easily transfer funds between Daily Cash Flow and Savings Vault with instant dual-entry tracking, real-time balance updates, and optional quick notes.
+- **In-Note Wiki Links & Expense Embeds**: Connect your thoughts with bidirectional `[[Note Title]]` links that open target notes with one tap, and calculate running expense totals inline using `{{$amount}}` tags.
+- **Period Tracker Discreet Privacy Mode**: Keep health logs completely discreet with an ambient moon phase indicator, toggleable cycle details, and private notification headers.
 
 ### 🚀 Improvements
-- **Smart Completed Task Collapsing**: Optional automatic collapsing of checked items in note checklists, keeping your active thoughts clear and uncluttered while preserving all completed history.
-- **Bi-Directional Widget & Database Synchronization**: Ticking items on your home screen or within the app immediately updates both your notes and widgets in real time.
-- **Synchronous Haptic Responsiveness**: Zero frame drops or lag when performing quick interactions, gestures, and note formatting.
+- **Checklist Drag-and-Drop Reordering**: Long press or use the checklist reorder sheet to re-prioritize to-do items effortlessly.
+- **P2P Wi-Fi Sync Audit Activity**: Transparent audit sheet detailing synced notes, ledger transactions, and connected peer endpoints.
+- **Financial Ledger CSV & AI Export**: Export your complete financial transactions to CSV or generate clean, private prompts for external AI analysis.
 
 ### 🐛 Fixes
-- **Checklist Formatting Fidelity**: Enhanced checklist parsing and bullet list consistency across notes, preventing accidental indentation or spacing shifts.
-- **Settings State Persistence**: Resolved toggle state responsiveness so haptic and display preferences apply instantaneously without requiring an app reload.
+- **Checklist Multi-Level Task Integrity**: Resolved checklist nesting and checkmark state retention across note saves and widget sync.
+- **Dark Mode Card Contrast**: Polished surface tints and border alphas across mindfulness strips and finance hero metrics.
 

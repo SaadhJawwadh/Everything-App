@@ -5,6 +5,7 @@ import '../../../../core/theme/app_layout.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../models/story_card_aspect_ratio.dart';
 import '../../models/story_card_config.dart';
+import '../../models/story_card_layout_mode.dart';
 import '../../models/story_card_theme.dart';
 
 /// Presentation widget rendering a publication-grade social media card.
@@ -132,68 +133,81 @@ class StoryCardPreview extends StatelessWidget {
                   ),
 
                   // ==========================================
-                  // 2. CENTER BODY ZONE (Vertically centered)
+                  // 2. CENTER BODY ZONE
                   // ==========================================
-                  Expanded(
-                    child: Center(
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          // Decorative quotation mark in Editorial theme
-                          if (style.isEditorial)
-                            Positioned(
-                              top: 0,
-                              left: 0,
-                              child: Text(
-                                '“',
-                                style: TextStyle(
-                                  fontSize: 48,
-                                  height: 0.7,
-                                  fontFamily: 'serif',
-                                  fontWeight: FontWeight.bold,
-                                  color: style.accent.withValues(alpha: 0.22),
+                  if (config.layoutMode == StoryCardLayoutMode.article)
+                    Expanded(
+                      child: _buildArticleBodyZone(
+                        text: text,
+                        style: style,
+                        isStory: isStory,
+                        isPortrait: isPortrait,
+                        isTamil: isTamil,
+                        resolvedFontFamily: resolvedFontFamily,
+                        fontFallback: fontFallback,
+                      ),
+                    )
+                  else
+                    Expanded(
+                      child: Center(
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            // Decorative quotation mark in Editorial theme
+                            if (style.isEditorial)
+                              Positioned(
+                                top: 0,
+                                left: 0,
+                                child: Text(
+                                  '“',
+                                  style: TextStyle(
+                                    fontSize: 48,
+                                    height: 0.7,
+                                    fontFamily: 'serif',
+                                    fontWeight: FontWeight.bold,
+                                    color: style.accent.withValues(alpha: 0.22),
+                                  ),
                                 ),
                               ),
-                            ),
 
-                          Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isStory ? 14.0 : 10.0,
-                              vertical: 8.0,
-                            ),
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: style.isEditorial
-                                  ? Alignment.centerLeft
-                                  : Alignment.center,
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  maxWidth: isStory ? 310.0 : (isPortrait ? 280.0 : 260.0),
-                                ),
-                                child: Text(
-                                  text.isEmpty ? 'No text selected.' : text,
-                                  textAlign: style.isEditorial
-                                      ? TextAlign.left
-                                      : TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: fontSize,
-                                    height: lineHeight,
-                                    fontWeight: fontWeight,
-                                    color: style.text,
-                                    fontFamily: resolvedFontFamily,
-                                    fontFamilyFallback: fontFallback,
-                                    letterSpacing: style.isTerminal
-                                        ? 0.0
-                                        : (isTamil ? 0.3 : -0.2),
+                            Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isStory ? 14.0 : 10.0,
+                                vertical: 8.0,
+                              ),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: style.isEditorial
+                                    ? Alignment.centerLeft
+                                    : Alignment.center,
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    maxWidth: isStory ? 310.0 : (isPortrait ? 280.0 : 260.0),
+                                  ),
+                                  child: Text(
+                                    text.isEmpty ? 'No text selected.' : text,
+                                    textAlign: style.isEditorial
+                                        ? TextAlign.left
+                                        : TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: fontSize,
+                                      height: lineHeight,
+                                      fontWeight: fontWeight,
+                                      color: style.text,
+                                      fontFamily: resolvedFontFamily,
+                                      fontFamilyFallback: fontFallback,
+                                      letterSpacing: style.isTerminal
+                                          ? 0.0
+                                          : (isTamil ? 0.3 : -0.2),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
 
                   // ==========================================
                   // 3. BOTTOM FOOTER ZONE (Watermark only)
@@ -322,8 +336,200 @@ class StoryCardPreview extends StatelessWidget {
             ],
           ),
         ],
+        if (config.layoutMode == StoryCardLayoutMode.article) ...[
+          const SizedBox(height: 8),
+          Container(
+            height: 1.0,
+            color: style.accent.withValues(alpha: 0.22),
+          ),
+        ],
         const SizedBox(height: 10),
       ],
+    );
+  }
+
+  /// Builds the structured reading layout for text-heavy article notes.
+  Widget _buildArticleBodyZone({
+    required String text,
+    required StoryCardThemeStyle style,
+    required bool isStory,
+    required bool isPortrait,
+    required bool isTamil,
+    required String resolvedFontFamily,
+    required List<String> fontFallback,
+  }) {
+    if (text.isEmpty) {
+      return Center(
+        child: Text(
+          'No text selected.',
+          style: TextStyle(
+            fontSize: 14,
+            color: style.subtext,
+            fontFamily: resolvedFontFamily,
+            fontFamilyFallback: fontFallback,
+          ),
+        ),
+      );
+    }
+
+    final double bodyFontSize = isStory ? 13.5 : (isPortrait ? 12.0 : 11.0);
+    final double bodyLineHeight = isTamil ? 1.55 : 1.48;
+
+    final rawLines = text.split('\n');
+    final List<Widget> blocks = [];
+
+    for (int i = 0; i < rawLines.length; i++) {
+      final line = rawLines[i];
+      final trimmed = line.trim();
+
+      if (trimmed.isEmpty) {
+        blocks.add(const SizedBox(height: 6));
+        continue;
+      }
+
+      // Heading detection: # Heading or ## Heading
+      if (trimmed.startsWith('# ') || trimmed.startsWith('## ') || trimmed.startsWith('### ')) {
+        final headingText = trimmed.replaceFirst(RegExp(r'^#+\s*'), '');
+        blocks.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 6.0, bottom: 3.0),
+            child: Text(
+              headingText,
+              style: TextStyle(
+                fontSize: bodyFontSize + 2.5,
+                fontWeight: FontWeight.bold,
+                color: style.accent,
+                fontFamily: resolvedFontFamily,
+                fontFamilyFallback: fontFallback,
+              ),
+            ),
+          ),
+        );
+        continue;
+      }
+
+      // Checklist item detection: [x], [X], ☑, [ ], ☐
+      final isChecked = trimmed.startsWith('[x] ') || trimmed.startsWith('[X] ') || trimmed.startsWith('☑ ');
+      final isUnchecked = trimmed.startsWith('[ ] ') || trimmed.startsWith('☐ ');
+
+      if (isChecked || isUnchecked) {
+        final itemText = trimmed.replaceFirst(RegExp(r'^(\[[ xX]\]|☑|☐)\s*'), '');
+        blocks.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 2.0),
+                  child: Icon(
+                    isChecked ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                    size: bodyFontSize + 1,
+                    color: isChecked ? (style.isEditorial ? style.accent : Colors.green) : style.subtext,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    itemText,
+                    style: TextStyle(
+                      fontSize: bodyFontSize,
+                      height: bodyLineHeight,
+                      fontWeight: FontWeight.normal,
+                      color: isChecked ? style.subtext : style.text,
+                      decoration: isChecked ? TextDecoration.lineThrough : null,
+                      fontFamily: resolvedFontFamily,
+                      fontFamilyFallback: fontFallback,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+        continue;
+      }
+
+      // Bullet item detection: •, -, *
+      final isBullet = trimmed.startsWith('• ') || trimmed.startsWith('- ') || trimmed.startsWith('* ');
+      if (isBullet) {
+        final itemText = trimmed.replaceFirst(RegExp(r'^[•\-\*]\s*'), '');
+        blocks.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  margin: EdgeInsets.only(top: bodyFontSize * 0.45, right: 8),
+                  width: 5,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: style.accent,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    itemText,
+                    style: TextStyle(
+                      fontSize: bodyFontSize,
+                      height: bodyLineHeight,
+                      fontWeight: FontWeight.normal,
+                      color: style.text,
+                      fontFamily: resolvedFontFamily,
+                      fontFamilyFallback: fontFallback,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+        continue;
+      }
+
+      // Standard body paragraph
+      blocks.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 3.5),
+          child: Text(
+            trimmed,
+            textAlign: TextAlign.left,
+            style: TextStyle(
+              fontSize: bodyFontSize,
+              height: bodyLineHeight,
+              fontWeight: FontWeight.normal,
+              color: style.text,
+              fontFamily: resolvedFontFamily,
+              fontFamilyFallback: fontFallback,
+              letterSpacing: style.isTerminal ? 0.0 : (isTamil ? 0.2 : -0.1),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return ClipRect(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.topLeft,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: constraints.maxWidth,
+                minWidth: constraints.maxWidth,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: blocks,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

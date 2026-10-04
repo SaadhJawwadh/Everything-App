@@ -1367,8 +1367,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           _buildFeatureCard(
             theme,
             icon: Icons.photo_library_outlined,
-            title: 'Story Card Studio & Social Share',
-            desc: 'Turn any note or selected quote into high-resolution social media cards (9:16 Story, 1:1 Square, 4:5 Portrait) with offline typography and 1-tap sharing.',
+            title: 'Story Card Studio & Article Reader',
+            desc: 'Turn quotes, full notes, or multi-item checklists into high-resolution social media cards with dedicated Reader & Quote layouts and 1-tap sharing.',
+          ),
+          const SizedBox(height: AppLayout.spaceM),
+          _buildFeatureCard(
+            theme,
+            icon: Icons.link_rounded,
+            title: 'In-Note Wiki Links & Expense Embeds',
+            desc: 'Interconnect your notes using [[Note Title]] links and embed quick financial totals directly in your text with {{\$amount}} tags.',
           ),
           const SizedBox(height: AppLayout.spaceM),
           _buildFeatureCard(

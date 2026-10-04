@@ -129,13 +129,23 @@ class TodoRemoteViewsFactory(
             views.setViewVisibility(R.id.todo_item_badge, View.GONE)
         }
 
-        // Fill-in Intent for clicking the item
-        val fillInIntent = Intent().apply {
+        // Fill-in Intent for checking/toggling the item
+        val checkFillInIntent = Intent().apply {
+            putExtra("click_action", "toggle")
             putExtra("note_id", item.noteId)
             putExtra("line_index", item.lineIndex)
             putExtra("is_done", item.isDone)
         }
-        views.setOnClickFillInIntent(R.id.todo_item_container, fillInIntent)
+        views.setOnClickFillInIntent(R.id.todo_item_check_touch, checkFillInIntent)
+
+        // Fill-in Intent for opening the note at this specific task
+        val openFillInIntent = Intent().apply {
+            putExtra("click_action", "open_note")
+            putExtra("note_id", item.noteId)
+            putExtra("line_index", item.lineIndex)
+        }
+        views.setOnClickFillInIntent(R.id.todo_item_text_container, openFillInIntent)
+        views.setOnClickFillInIntent(R.id.todo_item_container, openFillInIntent)
 
         return views
     }

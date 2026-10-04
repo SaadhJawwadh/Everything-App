@@ -454,12 +454,8 @@ class _HomeAppBarState extends State<HomeAppBar> {
     final isDark = theme.brightness == Brightness.dark;
     final noteProvider = context.watch<NoteProvider>();
     final isChecklistsMode = noteProvider.filterChecklistsOnly;
-    final displayFolder = isChecklistsMode
-        ? 'Checklists'
-        : (noteProvider.selectedFolder ?? 'Notes');
-    final count = isChecklistsMode
-        ? noteProvider.checklistNotesCount
-        : (noteProvider.folderCounts[displayFolder] ?? noteProvider.tagCounts['All'] ?? 0);
+    final displayFolder = noteProvider.selectedFolder ?? 'Notes';
+    final count = noteProvider.folderCounts[displayFolder] ?? noteProvider.tagCounts['All'] ?? 0;
 
     return Row(
       children: [
@@ -479,52 +475,106 @@ class _HomeAppBarState extends State<HomeAppBar> {
                     ),
               ),
               const SizedBox(height: 3),
-              Semantics(
-                button: true,
-                label: 'Folder: $displayFolder, $count notes. Tap to change folder',
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                  onTap: () {
-                    _showFolderPicker(context, noteProvider);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer.withValues(alpha: isDark ? 0.35 : 0.45),
-                      borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                      border: Border.all(
-                        color: colorScheme.primary.withValues(alpha: 0.28),
-                        width: 1.0,
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Semantics(
+                      button: true,
+                      label: 'Folder: $displayFolder, $count notes. Tap to change folder',
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
+                        onTap: () {
+                          _showFolderPicker(context, noteProvider);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primaryContainer.withValues(alpha: isDark ? 0.35 : 0.45),
+                            borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
+                            border: Border.all(
+                              color: colorScheme.primary.withValues(alpha: 0.28),
+                              width: 1.0,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.folder_outlined,
+                                color: colorScheme.primary,
+                                size: 13,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '$displayFolder • $count',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                      color: colorScheme.onSurface,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.2,
+                                    ),
+                              ),
+                              const SizedBox(width: 2),
+                              Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                color: colorScheme.primary,
+                                size: 14,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          isChecklistsMode
-                              ? Icons.checklist_rtl_rounded
-                              : Icons.folder_outlined,
-                          color: colorScheme.primary,
-                          size: 13,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '$displayFolder • $count',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                                color: colorScheme.onSurface,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.2,
+                    if (isChecklistsMode) ...[
+                      const SizedBox(width: 6),
+                      Tooltip(
+                        message: 'Remove checklist filter',
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
+                          onTap: () {
+                            AppHaptics.lightImpact();
+                            noteProvider.setFilterChecklistsOnly(false);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                            decoration: BoxDecoration(
+                              color: colorScheme.secondaryContainer.withValues(alpha: isDark ? 0.5 : 0.7),
+                              borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
+                              border: Border.all(
+                                color: colorScheme.secondary.withValues(alpha: 0.35),
+                                width: 1.0,
                               ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.checklist_rtl_rounded,
+                                  color: colorScheme.secondary,
+                                  size: 13,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Checklists · ${noteProvider.checklistNotesCount}',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: colorScheme.onSecondaryContainer,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 3),
+                                Icon(
+                                  Icons.close_rounded,
+                                  color: colorScheme.secondary,
+                                  size: 12,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 2),
-                        Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: colorScheme.primary,
-                          size: 14,
-                        ),
-                      ],
-                    ),
-                  ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],

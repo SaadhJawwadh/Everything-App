@@ -1,20 +1,20 @@
 <en-US>
 🌟 What's New
-• Interactive Home Widget: Tick off tasks and quick-add to-dos right from your home screen.
-• Days of Clarity: Calm 14-day mindfulness progression without streak anxiety.
-• Tactile Haptics: Refined physical feedback with a dedicated on/off switch in Settings.
+• Story Card Reader: Share text-heavy notes and checklists as beautiful story cards.
+• Inter-Vault Transfers: Move funds between Daily and Savings with instant ledger logs.
+• In-Note Links & Expenses: Connect notes with [[Wiki Links]] and track totals with {{amount}}.
+• Period Tracker Privacy: One-tap discreet mode with hidden cycle details.
 
 🚀 Improvements
-• Auto-collapsing completed checklist items.
-• Instant local widget sync and faster editor responsiveness.
+• Drag-and-drop checklist reordering and P2P sync audit activity.
 </en-US>
 <ta-IN>
 🌟 புதிய அம்சங்கள்
-• முகப்புத்திரை விட்ஜெட்: முகப்புத்திரையிலிருந்தே பணிகளைச் சரிபார்க்கவும் புதிய பணிகளைச் சேர்க்கவும்.
-• தெளிவான நாட்கள்: மன அமைதியூட்டும் 14 நாள் தொடர் முன்னேற்றப் பாதை.
-• தொடு உணர்வு அதிர்வு: நுட்பமான தொடு உணர்வு மற்றும் அமைப்புகள் கட்டுப்பாடு.
+• கதை அட்டை வாசிப்பான்: பெரிய குறிப்புகள் மற்றும் பட்டியல்களை அழகான அட்டைகளாகப் பகிரலாம்.
+• சேமிப்புப் பரிமாற்றம்: தினசரி மற்றும் சேமிப்புக் கணக்குகளுக்கு இடையே நேரடி நிதி மாற்றம்.
+• குறிப்பு இணைப்புகள் & செலவுகள்: [[குறிப்புகள்]] இணைப்பு மற்றும் {{தொகை}} கணக்கீடு.
+• சுழற்சித் தனியுரிமை: ரகசிய முறை மற்றும் மறைக்கப்பட்ட விவரங்கள்.
 
 🚀 மேம்பாடுகள்
-• முடிந்த பணிகளைத் தானாக சுருக்கும் வசதி.
-• உடனடி விட்ஜெட் ஒத்திசைவு மற்றும் விரைவான செயல்பாடு.
+• இழுத்து வரிசைப்படுத்தும் பட்டியல் மற்றும் P2P ஒத்திசைவு தகவல்.
 </ta-IN>

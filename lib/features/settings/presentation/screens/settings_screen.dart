@@ -810,6 +810,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     icon: Icons.calendar_month_outlined,
                                     accentColor: theme.extension<AppSemanticColors>()?.phaseMenstrual ?? colorScheme.tertiary,
                                     children: [
+                                      SettingsSwitchTile(
+                                        icon: Icons.visibility_off_outlined,
+                                        iconColor: theme.extension<AppSemanticColors>()?.phaseMenstrual ?? colorScheme.tertiary,
+                                        title: 'Discreet Privacy Mode',
+                                        subtitle: 'Conceal cycle day numbers and phases on dashboard with tap-to-reveal',
+                                        value: settings.isDiscreetHealthMode,
+                                        onChanged: settings.setIsDiscreetHealthMode,
+                                      ),
+                                      const _Divider(),
                                       SettingsTile(
                                         icon: Icons.notifications_none_outlined,
                                         iconColor: theme.extension<AppSemanticColors>()?.phaseMenstrual ?? colorScheme.tertiary,
@@ -1393,6 +1402,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'Optional cycle tracking & predictions',
     );
     if (settings.isPeriodTrackerEnabled) {
+      addTile(
+        SettingsSwitchTile(
+          icon: Icons.visibility_off_outlined,
+          title: 'Discreet Privacy Mode',
+          subtitle: 'Conceal cycle day numbers and phases on dashboard with tap-to-reveal',
+          value: settings.isDiscreetHealthMode,
+          onChanged: settings.setIsDiscreetHealthMode,
+        ),
+        'Features',
+        'Discreet Privacy Mode',
+        'Conceal cycle day numbers and phases on dashboard with tap-to-reveal health period tracker',
+      );
       addTile(
         SettingsTile(
           icon: Icons.notifications_none_outlined,

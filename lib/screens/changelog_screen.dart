@@ -28,9 +28,41 @@ class ChangelogScreen extends StatelessWidget {
               delegate: SliverChildListDelegate([
                 _buildVersionSection(
                   context,
+                  version: 'v2.45.0',
+                  date: 'October 4, 2026',
+                  isLatest: true,
+                  changes: [
+                    _ChangelogGroup(
+                      title: "What's New",
+                      items: [
+                        'Story Card Studio Article & Reader Mode: Share long notes, checklists, and articles as high-resolution story cards with dedicated Reader Mode, clean divider layout, and dynamic font scaling.',
+                        'Inter-Vault Account Transfers: Transfer funds smoothly between Daily Cash Flow and Savings Vault with instant dual-entry tracking and real-time balance calculations.',
+                        'In-Note Wiki Links & Expense Embeds: Connect your thoughts with [[Note Title]] bidirectional links, and embed live expense sums using {{\$amount}} tags.',
+                        'Period Tracker Discreet Privacy Mode: Keep health tracking private with an ambient moon indicator, toggleable cycle details, and discreet notification alerts.',
+                      ],
+                    ),
+                    _ChangelogGroup(
+                      title: 'Improvements',
+                      items: [
+                        'Checklist Drag-and-Drop Reordering: Seamlessly reorder to-do tasks using drag gestures or the convenient reorder sheet.',
+                        'P2P Wi-Fi Sync Audit Activity: Transparent sync logs detailing synced notes, ledger transactions, and connected peer devices.',
+                        'Financial Ledger CSV & AI Export: Export complete transaction records to CSV or generate clean prompts for external financial analysis.',
+                      ],
+                    ),
+                    _ChangelogGroup(
+                      title: 'Fixes',
+                      items: [
+                        'Checklist Multi-Level Task Integrity: Preserved sub-items and checklist status across note edits and widget sync.',
+                        'Visual Contrast & Theming: Refined dark mode card accents and surface container opacities across all modules.',
+                      ],
+                    ),
+                  ],
+                ),
+                _buildVersionSection(
+                  context,
                   version: 'v2.44.0',
                   date: 'September 27, 2026',
-                  isLatest: true,
+                  isLatest: false,
                   changes: [
                     _ChangelogGroup(
                       title: "What's New",

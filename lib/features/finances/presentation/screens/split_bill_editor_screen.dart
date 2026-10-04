@@ -244,10 +244,53 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
     }
   }
 
+  /// Automatically assigns the total bill amount equally among all active parties
+  /// (participants + user if included) with penny-perfect precision so the sum
+  /// of shares strictly equals [_totalAmount] without any rounding discrepancy.
+  void _assignEqualCustomShares() {
+    final total = _totalAmount;
+    final count = _totalSplitCount;
+    if (count <= 0 || total <= 0) return;
+
+    final totalCents = (total * 100).round();
+    final baseCents = totalCents ~/ count;
+    final remCents = totalCents % count;
+
+    int assignedCount = 0;
+
+    // Allocate to user first if included
+    if (_includeUserShare) {
+      final userCents = baseCents + (assignedCount < remCents ? 1 : 0);
+      assignedCount++;
+      final userShare = userCents / 100.0;
+      _userExactAmountController.text = userShare.toStringAsFixed(2).replaceAll('.00', '');
+    }
+
+    // Allocate to participants
+    for (final p in _participantsData) {
+      final name = p['name'] as String;
+      final ctrl = _exactAmountControllers[name];
+      if (ctrl != null) {
+        final pCents = baseCents + (assignedCount < remCents ? 1 : 0);
+        assignedCount++;
+        final pShare = pCents / 100.0;
+        ctrl.text = pShare.toStringAsFixed(2).replaceAll('.00', '');
+      }
+    }
+  }
+
   void _distributeRemainder() {
     final rem = _remainingToAllocate;
     if (rem.abs() < 0.005) return;
     AppHaptics.selectionClick();
+
+    // If custom amounts are unset or all 0, assign equally
+    if (_allocatedExactSum == 0.0) {
+      setState(() {
+        _assignEqualCustomShares();
+      });
+      return;
+    }
 
     // If only user share is unallocated, fill it into user share
     final userText = _userExactAmountController.text.trim();
@@ -259,25 +302,34 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
       return;
     }
 
-    // Distribute remaining evenly across all active parties
+    // Distribute remaining cents across active parties
     final count = _totalSplitCount;
     if (count <= 0) return;
-    final shareDelta = rem / count;
 
+    final remCents = (rem * 100).round();
+    final baseDeltaCents = remCents ~/ count;
+    final extraCents = remCents.abs() % count;
+
+    int allocated = 0;
     setState(() {
+      if (_includeUserShare) {
+        final curCents = ((double.tryParse(_userExactAmountController.text.trim()) ?? 0.0) * 100).round();
+        final delta = baseDeltaCents + (allocated < extraCents ? (remCents >= 0 ? 1 : -1) : 0);
+        allocated++;
+        final updatedCents = (curCents + delta).clamp(0, 999999999);
+        _userExactAmountController.text = (updatedCents / 100.0).toStringAsFixed(2).replaceAll('.00', '');
+      }
+
       for (final p in _participantsData) {
         final name = p['name'] as String;
         final ctrl = _exactAmountControllers[name];
         if (ctrl != null) {
-          final cur = double.tryParse(ctrl.text.trim()) ?? 0.0;
-          final updated = (cur + shareDelta).clamp(0.0, double.infinity);
-          ctrl.text = updated.toStringAsFixed(2).replaceAll('.00', '');
+          final curCents = ((double.tryParse(ctrl.text.trim()) ?? 0.0) * 100).round();
+          final delta = baseDeltaCents + (allocated < extraCents ? (remCents >= 0 ? 1 : -1) : 0);
+          allocated++;
+          final updatedCents = (curCents + delta).clamp(0, 999999999);
+          ctrl.text = (updatedCents / 100.0).toStringAsFixed(2).replaceAll('.00', '');
         }
-      }
-      if (_includeUserShare) {
-        final cur = double.tryParse(_userExactAmountController.text.trim()) ?? 0.0;
-        final updated = (cur + shareDelta).clamp(0.0, double.infinity);
-        _userExactAmountController.text = updated.toStringAsFixed(2).replaceAll('.00', '');
       }
     });
   }
@@ -642,7 +694,14 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
                                   ),
                                   border: const OutlineInputBorder(),
                                 ),
-                                onChanged: (_) => setState(() {}),
+                                onChanged: (_) {
+                                  setState(() {
+                                    if (_splitMode == SplitMode.exact &&
+                                        (_allocatedExactSum == 0.0 || _remainingToAllocate == _totalAmount)) {
+                                      _assignEqualCustomShares();
+                                    }
+                                  });
+                                },
                               ),
                             ),
                             const SizedBox(width: AppLayout.spaceS),
@@ -852,13 +911,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
                             setState(() {
                               _splitMode = set.first;
                               if (_splitMode == SplitMode.exact) {
-                                final eq = _equalShareAmount;
-                                for (final p in _participantsData) {
-                                  final name = p['name'] as String;
-                                  if (_exactAmountControllers[name]?.text.isEmpty ?? true) {
-                                    _exactAmountControllers[name]?.text = eq.toStringAsFixed(2).replaceAll('.00', '');
-                                  }
-                                }
+                                _assignEqualCustomShares();
                               }
                             });
                           },
@@ -898,6 +951,17 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
                             spacing: AppLayout.spaceS,
                             runSpacing: AppLayout.spaceXS,
                             children: [
+                              ActionChip(
+                                avatar: Icon(Icons.safety_divider_rounded, size: 16, color: colorScheme.primary),
+                                label: const Text('Split Equally'),
+                                tooltip: 'Assign total bill amount equally among all people with penny-perfect precision',
+                                onPressed: () {
+                                  AppHaptics.selectionClick();
+                                  setState(() {
+                                    _assignEqualCustomShares();
+                                  });
+                                },
+                              ),
                               ActionChip(
                                 avatar: Icon(Icons.calculate_outlined, size: 16, color: colorScheme.primary),
                                 label: const Text('Add Tax / Tip / Fee'),

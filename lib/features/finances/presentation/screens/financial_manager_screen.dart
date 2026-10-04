@@ -25,6 +25,7 @@ import '../../../../core/ui/expressive_wavy_progress.dart';
 import '../../../../widgets/bouncing_widget.dart';
 import '../widgets/sms_import_sheet.dart';
 import '../widgets/financial_trash_sheet.dart';
+import '../widgets/account_transfer_sheet.dart';
 import '../widgets/financial_ledger_tab.dart';
 import '../widgets/financial_analytics_tab.dart';
 import '../widgets/minimal_chart_deck.dart';
@@ -887,7 +888,34 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  Tooltip(
+                    message: 'Transfer between accounts',
+                    child: Semantics(
+                      button: true,
+                      label: 'Transfer funds between ${settings.account1Name} and ${settings.account2Name}',
+                      child: InkWell(
+                        onTap: () {
+                          AppHaptics.selectionClick();
+                          AccountTransferSheet.show(context);
+                        },
+                        borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
+                        child: Container(
+                          constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
+                          margin: const EdgeInsets.symmetric(horizontal: 6),
+                          decoration: BoxDecoration(
+                            color: onColor.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: onColor.withValues(alpha: 0.25)),
+                          ),
+                          child: Icon(
+                            Icons.swap_horiz_rounded,
+                            size: 18,
+                            color: onColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                   Expanded(
                     child: Semantics(
                       button: true,
@@ -1329,6 +1357,8 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                 _transactions,
                 currency: currency,
               );
+            } else if (value == 'transfer') {
+              AccountTransferSheet.show(context);
             } else if (value == 'trash') {
               FinancialTrashSheet.show(context).then((_) {
                 if (mounted) _refreshTransactions();
@@ -1371,6 +1401,18 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                       Icon(Icons.repeat_outlined, size: 20, color: colorScheme.onSurfaceVariant),
                       const SizedBox(width: 12),
                       Text('Recurring Subscriptions', style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ),
+              if (menuSettings.enableSavingsVault)
+                PopupMenuItem(
+                  value: 'transfer',
+                  height: 48,
+                  child: Row(
+                    children: [
+                      Icon(Icons.swap_horiz_rounded, size: 20, color: colorScheme.primary),
+                      const SizedBox(width: 12),
+                      Text('Transfer Between Accounts', style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),

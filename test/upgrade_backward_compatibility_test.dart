@@ -119,14 +119,14 @@ void main() {
       expect(settings.trashAutoPurgeDays, 30);
     });
 
-    testWidgets('WhatsNewSheet renders v2.44.0 cards and records version on dismiss', (tester) async {
+    testWidgets('WhatsNewSheet renders v2.45.0 cards and records version on dismiss', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
       SharedPreferences.setMockInitialValues({
-        'lastSeenVersion': '2.43.0',
+        'lastSeenVersion': '2.44.0',
       });
       final settings = SettingsProvider();
       await settings.loadSettings();
@@ -136,7 +136,7 @@ void main() {
           value: settings,
           child: const MaterialApp(
             home: Scaffold(
-              body: WhatsNewSheet(currentVersion: '2.44.0'),
+              body: WhatsNewSheet(currentVersion: '2.45.0'),
             ),
           ),
         ),
@@ -149,11 +149,11 @@ void main() {
       expect(find.text("Fixes"), findsOneWidget);
 
       // Check marquee items
-      expect(find.text("Interactive Home Widget"), findsOneWidget);
-      expect(find.text("Days of Clarity Strip"), findsOneWidget);
-      expect(find.text("Tactile Haptics Control"), findsOneWidget);
-      expect(find.text("Calm Task Psychology"), findsOneWidget);
-      expect(find.text("Instant Bi-Directional Sync"), findsOneWidget);
+      expect(find.text("Story Card Reader Mode"), findsOneWidget);
+      expect(find.text("Inter-Vault Account Transfers"), findsOneWidget);
+      expect(find.text("In-Note Links & Expenses"), findsOneWidget);
+      expect(find.text("Checklist Drag & Drop"), findsOneWidget);
+      expect(find.text("P2P Sync Audit Activity"), findsOneWidget);
 
       // Tap "Awesome, Got It!" to finish
       await tester.runAsync(() async {
@@ -162,7 +162,7 @@ void main() {
       });
       await tester.pumpAndSettle();
 
-      expect(settings.lastSeenVersion, '2.44.0');
+      expect(settings.lastSeenVersion, '2.45.0');
     });
   });
 }
