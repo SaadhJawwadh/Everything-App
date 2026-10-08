@@ -185,14 +185,57 @@ class QuillChecklistHelper {
     return items;
   }
 
-  /// Toggles a checklist line at [lineIndex] in [doc] to [isDone].
-  static bool toggleChecklistLine(Document doc, int lineIndex, bool isDone) {
+  /// Toggles a checklist line at [lineIndex] (or by matching [expectedText]) in [doc] to [isDone].
+  static bool toggleChecklistLine(Document doc, int lineIndex, bool isDone, {String? expectedText}) {
     final lines = getDocumentLines(doc);
-    if (lineIndex < 0 || lineIndex >= lines.length) return false;
-    final line = lines[lineIndex];
-    final listAttr = line.style.attributes['list']?.value;
-    if (listAttr != 'checked' && listAttr != 'unchecked') return false;
+    final plainText = doc.toPlainText();
 
+    // 1. Try direct lineIndex match if it's a valid checklist line
+    if (lineIndex >= 0 && lineIndex < lines.length) {
+      final line = lines[lineIndex];
+      final listAttr = line.style.attributes['list']?.value;
+      if (listAttr == 'checked' || listAttr == 'unchecked') {
+        if (expectedText == null || expectedText.trim().isEmpty) {
+          return _applyToggle(doc, line, isDone);
+        }
+        final start = line.documentOffset;
+        final end = (start + line.length).clamp(0, plainText.length);
+        final lineStr = plainText.substring(start, end).replaceAll('\n', '').trim();
+        if (lineStr == expectedText.trim()) {
+          return _applyToggle(doc, line, isDone);
+        }
+      }
+    }
+
+    // 2. Fallback: Search for checklist line by matching expectedText
+    if (expectedText != null && expectedText.trim().isNotEmpty) {
+      final target = expectedText.trim();
+      for (final line in lines) {
+        final listAttr = line.style.attributes['list']?.value;
+        if (listAttr == 'checked' || listAttr == 'unchecked') {
+          final start = line.documentOffset;
+          final end = (start + line.length).clamp(0, plainText.length);
+          final lineStr = plainText.substring(start, end).replaceAll('\n', '').trim();
+          if (lineStr == target) {
+            return _applyToggle(doc, line, isDone);
+          }
+        }
+      }
+    }
+
+    // 3. Fallback to direct lineIndex if expectedText was not found
+    if (lineIndex >= 0 && lineIndex < lines.length) {
+      final line = lines[lineIndex];
+      final listAttr = line.style.attributes['list']?.value;
+      if (listAttr == 'checked' || listAttr == 'unchecked') {
+        return _applyToggle(doc, line, isDone);
+      }
+    }
+
+    return false;
+  }
+
+  static bool _applyToggle(Document doc, Line line, bool isDone) {
     final targetAttr = isDone ? Attribute.checked : Attribute.unchecked;
     doc.format(line.documentOffset, 0, targetAttr);
 

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/services/app_haptics.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../core/ui/app_card.dart';
 import '../../../../core/ui/app_chip.dart';
 import '../../../../core/ui/app_dialog.dart';
@@ -625,11 +626,40 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
       );
     }
 
-    final personNames = balances.keys.toList();
+    final allPersonNames = balances.keys.toList();
     for (final c in contacts) {
-      if (!personNames.contains(c.name)) {
-        personNames.add(c.name);
+      if (!allPersonNames.contains(c.name)) {
+        allPersonNames.add(c.name);
       }
+    }
+
+    final personNames = allPersonNames.where((name) {
+      if (_searchQuery.isEmpty) return true;
+      return name.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+
+    if (personNames.isEmpty && _searchQuery.isNotEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        child: Center(
+          child: Column(
+            children: [
+              Icon(Icons.person_search_rounded, size: 48, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
+              const SizedBox(height: AppLayout.spaceM),
+              Text(
+                'No friends match "$_searchQuery"',
+                style: theme.textTheme.titleMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: AppLayout.spaceXS),
+              Text(
+                'Try searching with a different name or clear the search filter.',
+                style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     final semantic = theme.extension<AppSemanticColors>();
@@ -667,6 +697,13 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
               verticalOffset: 20.0,
               child: FadeInAnimation(
                 child: AppCard(
+                  onTap: () => _showContactBillsHistorySheet(
+                    context,
+                    name,
+                    splitProvider,
+                    netBalance,
+                    currency,
+                  ),
                   padding: const EdgeInsets.all(AppLayout.spaceM),
                   child: Row(
                     children: [
@@ -1255,4 +1292,188 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
     ),
   );
 }
+
+  void _showContactBillsHistorySheet(
+    BuildContext context,
+    String contactName,
+    SplitBillProvider splitProvider,
+    double netBalance,
+    String currency,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final semantic = theme.extension<AppSemanticColors>();
+    final successColor = semantic?.success ?? colorScheme.primary;
+    final debtColor = colorScheme.error;
+
+    final contactBills = splitProvider.bills.where((b) {
+      if (b.isPayerUser) {
+        return b.participants.any((p) => p.contactName.trim().toLowerCase() == contactName.trim().toLowerCase());
+      } else {
+        return b.payerName.trim().toLowerCase() == contactName.trim().toLowerCase() ||
+            b.participants.any((p) => p.contactName.trim().toLowerCase() == contactName.trim().toLowerCase());
+      }
+    }).toList();
+
+    AppBottomSheet.show<void>(
+      context: context,
+      title: '$contactName • Shared Bills',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppCard.tonal(
+            color: netBalance > 0
+                ? successColor.withValues(alpha: 0.15)
+                : (netBalance < 0
+                    ? debtColor.withValues(alpha: 0.15)
+                    : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)),
+            borderColor: netBalance > 0
+                ? successColor.withValues(alpha: 0.3)
+                : (netBalance < 0
+                    ? debtColor.withValues(alpha: 0.3)
+                    : colorScheme.outline.withValues(alpha: 0.2)),
+            padding: const EdgeInsets.all(AppLayout.spaceM),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      netBalance > 0
+                          ? 'Owes you in total'
+                          : (netBalance < 0 ? 'You owe in total' : 'All debts settled'),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      netBalance == 0
+                          ? '$currency 0'
+                          : (netBalance > 0
+                              ? '+$currency ${netBalance.toStringAsFixed(2).replaceAll('.00', '')}'
+                              : '-$currency ${netBalance.abs().toStringAsFixed(2).replaceAll('.00', '')}'),
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: netBalance > 0 ? successColor : (netBalance < 0 ? debtColor : colorScheme.onSurface),
+                      ),
+                    ),
+                  ],
+                ),
+                FilledButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SplitBillEditorScreen(
+                          initialTitle: 'Bill with $contactName',
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('New Split'),
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    shape: const StadiumBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppLayout.spaceM),
+          Text(
+            'Bill History (${contactBills.length})',
+            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: AppLayout.spaceS),
+          if (contactBills.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: Text(
+                  'No split bills recorded with $contactName yet.',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                ),
+              ),
+            )
+          else
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 320),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: contactBills.length,
+                separatorBuilder: (_, __) => const SizedBox(height: AppLayout.spaceXS),
+                itemBuilder: (context, idx) {
+                  final b = contactBills[idx];
+                  final isYouPayer = b.isPayerUser;
+                  final contactPart = b.participants.where(
+                    (p) => p.contactName.trim().toLowerCase() == contactName.trim().toLowerCase(),
+                  ).firstOrNull;
+
+                  final double shareAmt = contactPart?.shareAmount ?? (isYouPayer ? 0.0 : b.userShare);
+                  final bool isPaid = contactPart?.hasPaid ?? b.isUserSharePaid;
+
+                  return ListTile(
+                    dense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppLayout.radiusM)),
+                    leading: CircleAvatar(
+                      radius: 16,
+                      backgroundColor: isPaid
+                          ? successColor.withValues(alpha: 0.15)
+                          : colorScheme.surfaceContainerHighest,
+                      child: Icon(
+                        isPaid ? Icons.check_rounded : Icons.receipt_long_rounded,
+                        size: 16,
+                        color: isPaid ? successColor : colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    title: Text(b.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text(
+                      '${DateFormat('MMM d, yyyy').format(b.date)} • Paid by ${b.payerName}',
+                      style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
+                    ),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '$currency ${shareAmt.toStringAsFixed(2).replaceAll('.00', '')}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: isPaid ? successColor : colorScheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          isPaid ? 'Settled' : 'Unpaid',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: isPaid ? successColor : (isYouPayer ? colorScheme.tertiary : debtColor),
+                          ),
+                        ),
+                      ],
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => SplitBillEditorScreen(existingBill: b),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          const SizedBox(height: AppLayout.spaceS),
+        ],
+      ),
+    );
+  }
 }

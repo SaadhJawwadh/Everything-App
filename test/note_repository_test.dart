@@ -249,5 +249,54 @@ void main() {
       final personalCount = await repository.getChecklistNotesCount(folder: 'Personal');
       expect(personalCount, 1);
     });
+
+    test('readAllNotes filters by multiple tags intersecting notes that match all tags', () async {
+      final now = DateTime.now();
+
+      await repository.createNote(Note(
+        id: 'note_work_project',
+        title: 'Project Roadmap',
+        content: 'Work roadmap for Q4',
+        dateCreated: now,
+        dateModified: now,
+        tags: ['work', 'project'],
+      ));
+
+      await repository.createNote(Note(
+        id: 'note_work_only',
+        title: 'Meeting Notes',
+        content: 'Weekly 1:1',
+        dateCreated: now,
+        dateModified: now,
+        tags: ['work'],
+      ));
+
+      await repository.createNote(Note(
+        id: 'note_project_finance',
+        title: 'Budget Pitch',
+        content: 'Project financing plan',
+        dateCreated: now,
+        dateModified: now,
+        tags: ['project', 'finance'],
+      ));
+
+      // Single tag: 'work' -> notes with 'work' (note_work_project, note_work_only)
+      final workNotes = await repository.readAllNotes(tags: ['work']);
+      expect(workNotes.map((n) => n.id).toSet(), equals({'note_work_project', 'note_work_only'}));
+
+      // Multi-tag: ['work', 'project'] -> only note_work_project (AND logic)
+      final multiNotes = await repository.readAllNotes(tags: ['work', 'project']);
+      expect(multiNotes.length, equals(1));
+      expect(multiNotes.first.id, equals('note_work_project'));
+
+      // Multi-tag: ['project', 'finance'] -> only note_project_finance
+      final projFinNotes = await repository.readAllNotes(tags: ['project', 'finance']);
+      expect(projFinNotes.length, equals(1));
+      expect(projFinNotes.first.id, equals('note_project_finance'));
+
+      // Non-matching intersection: ['work', 'finance'] -> 0 notes
+      final emptyNotes = await repository.readAllNotes(tags: ['work', 'finance']);
+      expect(emptyNotes, isEmpty);
+    });
   });
 }

@@ -4,6 +4,7 @@ import 'package:note_taking_app/features/finances/data/models/split_bill_model.d
 import 'package:note_taking_app/features/finances/services/split_share_service.dart';
 import 'package:note_taking_app/features/finances/services/receipt_scanner_service.dart';
 import 'package:note_taking_app/features/finances/presentation/widgets/settle_up_sheet.dart';
+import 'package:note_taking_app/features/finances/presentation/screens/split_bill_editor_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
@@ -293,6 +294,68 @@ void main() {
 
       await settings.setEnableSavingsVault(true);
       expect(settings.enableSavingsVault, isTrue);
+    });
+  });
+
+  group('SplitBillEditorScreen Existing Friends Tests', () {
+    testWidgets('Populates existing participants and title when editing existing bill', (tester) async {
+      final bill = SplitBillModel(
+        id: 'bill-123',
+        title: 'Team Dinner',
+        totalAmount: 120.0,
+        payerName: 'You',
+        isPayerUser: true,
+        splitMode: SplitMode.equal,
+        date: DateTime.now(),
+        participants: const [
+          SplitParticipantModel(
+            id: 'p-1',
+            billId: 'bill-123',
+            contactName: 'You',
+            shareAmount: 40.0,
+            hasPaid: true,
+          ),
+          SplitParticipantModel(
+            id: 'p-2',
+            billId: 'bill-123',
+            contactName: 'Bob',
+            shareAmount: 40.0,
+            hasPaid: false,
+          ),
+          SplitParticipantModel(
+            id: 'p-3',
+            billId: 'bill-123',
+            contactName: 'Alice',
+            shareAmount: 40.0,
+            hasPaid: false,
+          ),
+        ],
+      );
+
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => SettingsProvider()),
+            ChangeNotifierProvider(create: (_) => FinancialManagerProvider()),
+            ChangeNotifierProvider(create: (_) => SplitBillProvider()),
+          ],
+          child: MaterialApp(
+            home: SplitBillEditorScreen(existingBill: bill),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Title & existing participants should be visible
+      expect(find.text('Edit Split Bill'), findsOneWidget);
+      expect(find.text('Team Dinner'), findsOneWidget);
+      expect(find.text('Bob'), findsOneWidget);
+      expect(find.text('Alice'), findsOneWidget);
+      expect(find.text('Update Bill'), findsOneWidget);
     });
   });
 }

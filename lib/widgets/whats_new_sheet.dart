@@ -37,6 +37,11 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.tag_rounded,
+            title: "Multi-Tag Notes Filtering",
+            desc: "Combine multiple tags simultaneously (#work + #project) in the filter bar for deep, pinpoint note discovery.",
+          ),
+          _WhatsNewItem(
             icon: Icons.photo_library_outlined,
             title: "Story Card Reader Mode",
             desc: "Share long notes, multi-paragraph thoughts, and checklists as high-resolution story cards with dedicated Reader & Quote layouts.",
@@ -51,11 +56,6 @@ class WhatsNewSheet extends StatelessWidget {
             title: "Android Checklist Widget",
             desc: "Cycle directly between all action items and individual checklists with live titles, progress counters, and 0ms completion.",
           ),
-          _WhatsNewItem(
-            icon: Icons.shield_moon_outlined,
-            title: "Period Tracker Privacy Mode",
-            desc: "One-tap discreet privacy mode with ambient moon indicator and concealed cycle details.",
-          ),
         ],
       ),
       _WhatsNewCategory(
@@ -65,9 +65,9 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.tertiaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.format_quote_rounded,
-            title: "Publication Quotes",
-            desc: "Upgraded Quote mode with theme-matched ambient quotation marks, note attribution, and streamlined studio controls.",
+            icon: Icons.sync_rounded,
+            title: "Live P2P & Widget Sync",
+            desc: "Incoming Wi-Fi sync updates refresh your home screen widgets in real time with drift-resistant task matching.",
           ),
           _WhatsNewItem(
             icon: Icons.history_rounded,
@@ -75,9 +75,9 @@ class WhatsNewSheet extends StatelessWidget {
             desc: "Transparent audit sheet showing detailed logs of synced notes, transactions, and connected peers.",
           ),
           _WhatsNewItem(
-            icon: Icons.file_download_outlined,
-            title: "Ledger CSV & AI Export",
-            desc: "Export your transaction ledger to CSV or copy clean prompts for external financial analysis.",
+            icon: Icons.format_quote_rounded,
+            title: "Publication Quotes",
+            desc: "Upgraded Quote mode with theme-matched ambient quotation marks, note attribution, and streamlined controls.",
           ),
         ],
       ),
@@ -88,14 +88,14 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.secondaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.checklist_rtl_rounded,
-            title: "Checklist Task Fidelity",
-            desc: "Preserved checkbox status and list formatting across note saves and home widget updates.",
+            icon: Icons.palette_outlined,
+            title: "Widget Zero-Lag Theme Contrast",
+            desc: "Fixed text contrast when switching between Light and Dark mode on home screen widgets.",
           ),
           _WhatsNewItem(
-            icon: Icons.palette_outlined,
-            title: "Theme Accent Contrast",
-            desc: "Polished card tints, outline opacity, and hero metric readability in dark and light modes.",
+            icon: Icons.group_rounded,
+            title: "Split Bills Friends Retention",
+            desc: "Preserved all friends and participant details when re-editing existing split bills.",
           ),
         ],
       ),

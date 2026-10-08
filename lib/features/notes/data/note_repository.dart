@@ -40,6 +40,7 @@ class NoteRepository {
     int? limit,
     int? offset,
     String? tag,
+    List<String>? tags,
     bool isArchived = false,
     bool isTrashed = false,
     String sortMode = 'modified',
@@ -56,9 +57,17 @@ class NoteRepository {
       whereClause = '${NoteFields.deletedAt} IS NULL AND ${NoteFields.isArchived} = ?';
       whereArgs.add(isArchived ? 1 : 0);
 
-      if (tag != null && tag != 'All') {
-        whereClause += ' AND ${NoteFields.id} IN (SELECT note_id FROM note_tags WHERE tag_name = ?)';
-        whereArgs.add(tag);
+      final effectiveTags = <String>{};
+      if (tag != null && tag != 'All') effectiveTags.add(tag);
+      if (tags != null) {
+        effectiveTags.addAll(tags.where((t) => t != 'All' && t.trim().isNotEmpty));
+      }
+
+      if (effectiveTags.isNotEmpty) {
+        for (final t in effectiveTags) {
+          whereClause += ' AND ${NoteFields.id} IN (SELECT note_id FROM note_tags WHERE tag_name = ?)';
+          whereArgs.add(t);
+        }
       }
 
       if (folder != null && folder != 'All Notes') {

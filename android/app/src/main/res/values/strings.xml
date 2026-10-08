@@ -13,4 +13,5 @@
     <string name="shortcut_scan_receipt_long">Scan physical receipt with OCR</string>
     <string name="shortcut_sync_devices_short">Sync devices</string>
     <string name="shortcut_sync_devices_long">P2P local Wi-Fi sync</string>
+    <string name="shortcut_new_checklist_short">New checklist</string>
 </resources>

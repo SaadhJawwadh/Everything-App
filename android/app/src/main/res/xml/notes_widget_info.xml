@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="180dp"
-    android:minHeight="40dp"
+    android:minHeight="48dp"
     android:minResizeWidth="140dp"
-    android:minResizeHeight="40dp"
+    android:minResizeHeight="48dp"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/notes_widget_layout"
     android:previewImage="@mipmap/ic_launcher"
     android:previewLayout="@layout/notes_widget_layout"
     android:description="@string/notes_widget_description"
-    android:resizeMode="horizontal"
+    android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen">
 </appwidget-provider>

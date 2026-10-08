@@ -3,18 +3,20 @@
     android:id="@+id/todo_item_container"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:minHeight="44dp"
+    android:minHeight="48dp"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:paddingStart="4dp"
+    android:paddingStart="2dp"
     android:paddingEnd="8dp"
-    android:paddingTop="4dp"
-    android:paddingBottom="4dp">
+    android:paddingTop="2dp"
+    android:paddingBottom="2dp">
 
     <FrameLayout
         android:id="@+id/todo_item_check_touch"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:minWidth="48dp"
+        android:minHeight="48dp"
         android:gravity="center">
 
         <ImageView
@@ -30,8 +32,11 @@
         android:id="@+id/todo_item_text_container"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:minHeight="48dp"
         android:layout_weight="1"
-        android:layout_marginStart="4dp"
+        android:gravity="center_vertical"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
         android:orientation="vertical">
 
         <TextView

@@ -1,18 +1,22 @@
 <en-US>
 🌟 What's New
-• Connected Transfers: Redesigned transfer sheet with live balance projections and quick preset chips.
-• Collapsible Checklists: Completed tasks tuck neatly into an expandable bottom card.
-• Story Card Studio: Share notes as magazine-grade story cards with Reader Mode & Quotes.
+• Multi-Tag Filter: Combine multiple tags for deep note searches.
+• Home Widgets: 1-tap receipt scan & quick checklist capture.
 
 🚀 Improvements
-• Android home widget checklist cycling and clutter-free note editing.
+• 48dp ergonomic widget touch buttons & live P2P sync refresh.
+
+🐛 Fixes
+• Fixed home widget dark mode text contrast & split bills friends edit.
 </en-US>
 <ta-IN>
 🌟 புதிய அம்சங்கள்
-• சேமிப்புப் பரிமாற்றம்: நேரடி இருப்பு கணிப்பு மற்றும் புதிய வடிவமைப்பு.
-• சரிபார்ப்புப் பட்டியல்: முடிந்த வேலைகளை சுருக்கி வைக்கும் வசதி.
-• கதை அட்டை: குறிப்புகளை இதழ் பாணியில் பகிரும் வசதி.
+• பல குறிச்சொல் தேடல்: குறிப்புகளை எளிதில் தேடும் வசதி.
+• முகப்பு விட்ஜெட்: ரசீது ஸ்கேன் மற்றும் விரைவுப் பட்டியல்.
 
 🚀 மேம்பாடுகள்
-• முகப்புத்திரை விட்ஜெட் மற்றும் எளிய குறிப்புப் பக்கம்.
+• பெரிய தொடு பொத்தான்கள் மற்றும் நேரடி ஒத்திசைவு.
+
+🐛 பிழை திருத்தங்கள்
+• விட்ஜெட் இருள் பயன்முறை மாறுதல் மற்றும் பகிர்வு கணக்கு பிழை திருத்தம்.
 </ta-IN>

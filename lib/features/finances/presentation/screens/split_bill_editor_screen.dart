@@ -16,6 +16,7 @@ import '../../../../data/transaction_category.dart';
 import '../../../../features/settings/providers/settings_provider.dart';
 import '../../../../widgets/calculator_dialog.dart';
 import '../../data/models/split_bill_model.dart';
+import '../../data/repositories/split_bill_repository.dart';
 import '../../providers/split_bill_provider.dart';
 import '../widgets/receipt_scanner_sheet.dart';
 import '../../../../data/transaction_model.dart';
@@ -58,6 +59,14 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
   String? _receiptImagePath;
   bool _isFabExpanded = true;
   bool _isSaving = false;
+  bool _isLoadingBill = false;
+  SplitBillModel? _loadedBill;
+
+  SplitBillModel? get _effectiveExistingBill => _loadedBill ?? widget.existingBill;
+
+  String? _userParticipantId;
+  bool _userHasPaid = false;
+  DateTime? _userPaidAt;
 
   final List<Map<String, dynamic>> _participantsData = [];
   final Map<String, TextEditingController> _exactAmountControllers = {};
@@ -66,44 +75,84 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
   void initState() {
     super.initState();
     if (widget.existingBill != null) {
-      final b = widget.existingBill!;
-      _titleController.text = b.title;
-      _amountController.text = b.totalAmount.toStringAsFixed(2).replaceAll('.00', '');
-      _selectedDate = b.date;
-      _isPayerUser = b.isPayerUser;
-      _splitMode = b.splitMode;
-      _selectedCategory = b.groupTag ?? CategoryConstants.food;
-      _notesController.text = b.notes ?? '';
-      _receiptImagePath = b.receiptImagePath;
-
-      if (!_isPayerUser) {
-        _payerFriendController.text = b.payerName;
-      }
-
-      bool foundUser = false;
-      for (final p in b.participants) {
-        if (p.contactName.trim().toLowerCase() == 'you') {
-          foundUser = true;
-          _userExactAmountController.text = p.shareAmount.toStringAsFixed(2).replaceAll('.00', '');
-        } else {
-          _participantsData.add({
-            'id': p.id,
-            'name': p.contactName,
-            'amount': p.shareAmount,
-            'hasPaid': p.hasPaid,
-          });
-          _exactAmountControllers[p.contactName] = TextEditingController(
-            text: p.shareAmount.toStringAsFixed(2).replaceAll('.00', ''),
-          );
-        }
-      }
-      _includeUserShare = foundUser;
+      _populateFromBill(widget.existingBill!);
     } else {
       if (widget.initialTitle != null) _titleController.text = widget.initialTitle!;
       if (widget.initialAmount != null && widget.initialAmount! > 0) {
         _amountController.text = widget.initialAmount!.toStringAsFixed(2).replaceAll('.00', '');
       }
       if (widget.initialDate != null) _selectedDate = widget.initialDate!;
+
+      if (widget.prelinkedTransactionId != null) {
+        _loadBillForPrelinkedTx(widget.prelinkedTransactionId!);
+      }
+    }
+  }
+
+  void _populateFromBill(SplitBillModel b) {
+    _titleController.text = b.title;
+    _amountController.text = b.totalAmount.toStringAsFixed(2).replaceAll('.00', '');
+    _selectedDate = b.date;
+    _isPayerUser = b.isPayerUser;
+    _splitMode = b.splitMode;
+    _selectedCategory = b.groupTag ?? CategoryConstants.food;
+    _notesController.text = b.notes ?? '';
+    _receiptImagePath = b.receiptImagePath;
+
+    if (!_isPayerUser) {
+      _payerFriendController.text = b.payerName;
+    }
+
+    // Clean previous controllers
+    for (final c in _exactAmountControllers.values) {
+      c.dispose();
+    }
+    _exactAmountControllers.clear();
+    _participantsData.clear();
+    _userParticipantId = null;
+    _userHasPaid = false;
+    _userPaidAt = null;
+
+    bool foundUser = false;
+    for (final p in b.participants) {
+      if (p.contactName.trim().toLowerCase() == 'you') {
+        foundUser = true;
+        _userParticipantId = p.id;
+        _userHasPaid = p.hasPaid;
+        _userPaidAt = p.paidAt;
+        _userExactAmountController.text = p.shareAmount.toStringAsFixed(2).replaceAll('.00', '');
+      } else {
+        _participantsData.add({
+          'id': p.id,
+          'name': p.contactName,
+          'amount': p.shareAmount,
+          'hasPaid': p.hasPaid,
+          'paidAt': p.paidAt,
+        });
+        _exactAmountControllers[p.contactName] = TextEditingController(
+          text: p.shareAmount.toStringAsFixed(2).replaceAll('.00', ''),
+        );
+      }
+    }
+    _includeUserShare = foundUser;
+  }
+
+  Future<void> _loadBillForPrelinkedTx(int txId) async {
+    setState(() => _isLoadingBill = true);
+    try {
+      final bill = await SplitBillRepository.instance.getBillByTransactionId(txId);
+      if (bill != null && mounted) {
+        setState(() {
+          _loadedBill = bill;
+          _populateFromBill(bill);
+        });
+      }
+    } catch (_) {
+      // Graceful fallback to initial values
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingBill = false);
+      }
     }
   }
 
@@ -620,11 +669,13 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     final currency = settings.currencySymbol;
 
+    final effectiveBill = _effectiveExistingBill;
+
     return Scaffold(
       floatingActionButton: AppMorphingFab(
         isExpanded: _isFabExpanded,
         icon: _isSaving ? Icons.hourglass_empty_rounded : Icons.check_rounded,
-        label: _isSaving ? 'Saving...' : (widget.existingBill != null ? 'Update Bill' : 'Save Split Bill'),
+        label: _isSaving ? 'Saving...' : (effectiveBill != null ? 'Update Bill' : 'Save Split Bill'),
         onPressed: _isSaving ? () {} : () => _saveBill(),
       ),
       body: NotificationListener<UserScrollNotification>(
@@ -632,7 +683,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
         child: CustomScrollView(
           slivers: [
             ExpressiveSliverAppBar(
-              titleText: widget.existingBill != null ? 'Edit Split Bill' : 'New Split Bill',
+              titleText: effectiveBill != null ? 'Edit Split Bill' : 'New Split Bill',
               showBackButton: true,
               actions: [
                 IconButton(
@@ -640,7 +691,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
                   tooltip: 'Scan Physical Receipt',
                   onPressed: _scanReceipt,
                 ),
-                if (widget.existingBill != null)
+                if (effectiveBill != null)
                   IconButton(
                     icon: const Icon(Icons.delete_outline_rounded),
                     tooltip: 'Delete Bill',
@@ -648,6 +699,10 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
                   ),
               ],
             ),
+            if (_isLoadingBill)
+              const SliverToBoxAdapter(
+                child: LinearProgressIndicator(),
+              ),
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: AppLayout.spaceM, vertical: AppLayout.spaceS),
               sliver: SliverList(
@@ -1250,7 +1305,8 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
     AppHaptics.mediumImpact();
 
     try {
-      final billId = widget.existingBill?.id ?? const Uuid().v4();
+      final existing = _effectiveExistingBill;
+      final billId = existing?.id ?? const Uuid().v4();
       final participantsList = <SplitParticipantModel>[];
 
       if (!_isPayerUser && _payerFriendController.text.trim().isNotEmpty) {
@@ -1260,14 +1316,16 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
       if (_splitMode == SplitMode.equal) {
         final share = _equalShareAmount;
         if (_includeUserShare) {
+          final userPaid = _isPayerUser || _userHasPaid;
+          final userPaidAt = _isPayerUser ? (_userPaidAt ?? DateTime.now()) : (_userHasPaid ? _userPaidAt : null);
           participantsList.add(
             SplitParticipantModel(
-              id: const Uuid().v4(),
+              id: _userParticipantId ?? const Uuid().v4(),
               billId: billId,
               contactName: 'You',
               shareAmount: share,
-              hasPaid: _isPayerUser, // If user paid, user share is already paid
-              paidAt: _isPayerUser ? DateTime.now() : null,
+              hasPaid: userPaid,
+              paidAt: userPaidAt,
             ),
           );
         }
@@ -1315,21 +1373,23 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
           final userShare = userText.isNotEmpty
               ? (double.tryParse(userText) ?? 0.0)
               : _remainingToAllocate;
+          final userPaid = _isPayerUser || _userHasPaid;
+          final userPaidAt = _isPayerUser ? (_userPaidAt ?? DateTime.now()) : (_userHasPaid ? _userPaidAt : null);
           participantsList.add(
             SplitParticipantModel(
-              id: const Uuid().v4(),
+              id: _userParticipantId ?? const Uuid().v4(),
               billId: billId,
               contactName: 'You',
               shareAmount: userShare > 0 ? userShare : 0.0,
-              hasPaid: _isPayerUser,
-              paidAt: _isPayerUser ? DateTime.now() : null,
+              hasPaid: userPaid,
+              paidAt: userPaidAt,
             ),
           );
         }
       }
 
       final payer = _isPayerUser ? 'You' : _payerFriendController.text.trim();
-      int? linkedTxId = widget.existingBill?.transactionId ?? widget.prelinkedTransactionId;
+      int? linkedTxId = existing?.transactionId ?? widget.prelinkedTransactionId;
 
       // Invariant 12 & User Requirement:
       // When the user pays for a group bill, automatically record full receipt total in personal ledger.
@@ -1379,7 +1439,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
         participants: participantsList,
       );
 
-      if (widget.existingBill != null) {
+      if (existing != null) {
         await splitProvider.updateBill(newBill);
       } else {
         await splitProvider.createBill(newBill);
@@ -1389,7 +1449,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(widget.existingBill != null ? 'Split bill updated.' : 'Split bill created.'),
+            content: Text(existing != null ? 'Split bill updated.' : 'Split bill created.'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -1411,7 +1471,8 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
   }
 
   Future<void> _confirmDelete() async {
-    final bill = widget.existingBill!;
+    final bill = _effectiveExistingBill;
+    if (bill == null) return;
     final hasLinkedTx = bill.transactionId != null;
     final confirmed = await AppDialog.showConfirm(
       context: context,

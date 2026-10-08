@@ -44,6 +44,7 @@ void callbackDispatcher() {
         // Recomputes widget prefs; the widget's own updatePeriodMillis cycle
         // redraws from them since the widget channel isn't available here.
         await WidgetHelper.updateWidgetData();
+        await WidgetHelper.updateTodoWidgetData();
         return true;
       }
       return Future.value(true);
@@ -161,6 +162,9 @@ Future<bool> performAutoBackup() async {
   try {
     final prefs = await SharedPreferences.getInstance();
     if (!(prefs.getBool('autoBackupEnabled') ?? false)) return true;
+
+    // Flush any pending widget checkbox changes into notes db before backup
+    await WidgetHelper.syncPendingTodoToggles();
 
     final appDir = await getApplicationDocumentsDirectory();
     final jsonContent = await generateBackupJson();
@@ -549,6 +553,7 @@ class BackupService {
     await TransactionCategory.reload();
     await SmsService.reloadSmsContacts();
     await WidgetHelper.updateWidgetData();
+    await WidgetHelper.updateTodoWidgetData();
 
     if (context != null && context.mounted) {
       final noteProvider = Provider.of<NoteProvider>(context, listen: false);

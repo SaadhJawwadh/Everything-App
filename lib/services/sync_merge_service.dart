@@ -1,6 +1,7 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import '../data/database_helper.dart';
 import '../utils/rich_text_utils.dart';
+import '../utils/widget_helper.dart';
 
 class SyncMergeResult {
   final int notesMerged;
@@ -393,6 +394,18 @@ class SyncMergeService {
         await batch.commit(noResult: true);
       }
     });
+
+    if (notesMerged > 0) {
+      try {
+        await WidgetHelper.updateTodoWidgetData();
+      } catch (_) {}
+    }
+
+    if (transactionsMerged > 0) {
+      try {
+        await WidgetHelper.updateWidgetData();
+      } catch (_) {}
+    }
 
     return SyncMergeResult(
       notesMerged: notesMerged,

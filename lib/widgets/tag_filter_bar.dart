@@ -14,7 +14,6 @@ class TagFilterBar extends StatelessWidget {
     return Consumer<NoteProvider>(
       builder: (context, noteProvider, child) {
         final allTags = noteProvider.allTags;
-        final selectedTag = noteProvider.selectedTag;
         final tagColors = noteProvider.tagColors;
         final checklistCount = noteProvider.checklistNotesCount;
         final isChecklistFiltered = noteProvider.filterChecklistsOnly;
@@ -67,7 +66,7 @@ class TagFilterBar extends StatelessWidget {
 
               final tagIndex = (showChecklistChip && index > 1) ? index - 1 : index;
               final tag = allTags[tagIndex];
-              final isSelected = tag == selectedTag;
+              final isSelected = noteProvider.isTagSelected(tag);
               final tagColorValue = tagColors[tag];
               final chipColors = AppChip.getTagColors(context, tagColorValue, isSelected: isSelected);
 
@@ -90,7 +89,7 @@ class TagFilterBar extends StatelessWidget {
                     border: chipColors.border,
                     onTap: () {
                       AppHaptics.selectionClick();
-                      noteProvider.setTag(tag);
+                      noteProvider.toggleTag(tag);
                     },
                   ),
                 ),

@@ -9,6 +9,7 @@ import '../data/note_model.dart';
 import '../features/finances/data/transaction_repository.dart';
 import '../features/finances/services/spending_forecast_service.dart';
 import '../features/notes/data/note_repository.dart';
+import 'package:uuid/uuid.dart';
 import 'quill_checklist_helper.dart';
 import 'rich_text_utils.dart';
 
@@ -193,19 +194,23 @@ class WidgetHelper {
       final List<dynamic> toggles = json.decode(pendingStr);
       if (toggles.isEmpty) return;
 
-      // Group toggles by noteId
-      final Map<String, List<Map<String, dynamic>>> byNote = {};
+      // Group toggles by noteId and squash redundant intermediate toggles for the same item
+      final Map<String, Map<String, Map<String, dynamic>>> byNoteSquashed = {};
       for (final t in toggles) {
         if (t is Map) {
           final noteId = t['noteId'] as String?;
           if (noteId != null && noteId.isNotEmpty) {
-            byNote.putIfAbsent(noteId, () => []).add(Map<String, dynamic>.from(t));
+            final lineIndex = t['lineIndex'] as int? ?? -1;
+            final text = (t['text'] as String?)?.trim();
+            // Distinct key: prefer text, fallback to lineIndex
+            final itemKey = (text != null && text.isNotEmpty) ? text : 'idx_$lineIndex';
+            byNoteSquashed.putIfAbsent(noteId, () => {})[itemKey] = Map<String, dynamic>.from(t);
           }
         }
       }
 
       final repo = NoteRepository.instance;
-      for (final entry in byNote.entries) {
+      for (final entry in byNoteSquashed.entries) {
         final note = await repo.readNote(entry.key);
         if (note == null) continue;
 
@@ -213,11 +218,17 @@ class WidgetHelper {
         final doc = Document.fromDelta(delta);
 
         bool changed = false;
-        for (final toggle in entry.value) {
+        for (final toggle in entry.value.values) {
           final lineIndex = toggle['lineIndex'] as int? ?? -1;
           final isDone = toggle['isDone'] as bool? ?? false;
-          if (lineIndex >= 0) {
-            final ok = QuillChecklistHelper.toggleChecklistLine(doc, lineIndex, isDone);
+          final expectedText = toggle['text'] as String?;
+          if (lineIndex >= 0 || (expectedText != null && expectedText.isNotEmpty)) {
+            final ok = QuillChecklistHelper.toggleChecklistLine(
+              doc,
+              lineIndex,
+              isDone,
+              expectedText: expectedText,
+            );
             if (ok) changed = true;
           }
         }
@@ -246,20 +257,33 @@ class WidgetHelper {
       final activeNotes = await repo.readAllNotes(isArchived: false, isTrashed: false);
 
       final List<Map<String, dynamic>> todoNotes = [];
+      int totalItemsCount = 0;
+      const int maxTotalItems = 100;
+      const int maxItemsPerNote = 30;
+
       for (final note in activeNotes) {
-        if (!note.content.contains('list') && !note.content.contains('- [')) {
-          continue;
-        }
+        // Privacy invariant: Never expose password or biometric-locked notes to unauthenticated widget
+        if (note.isLocked) continue;
+
+        // Strict checklist signature check (prevents false-positive matches on words like 'playlist')
+        final hasChecklist = note.content.contains('"list":"checked"') ||
+            note.content.contains('"list":"unchecked"') ||
+            note.content.contains('- [ ]') ||
+            note.content.contains('- [x]');
+        if (!hasChecklist) continue;
 
         final delta = RichTextUtils.contentToDelta(note.content);
         final doc = Document.fromDelta(delta);
         final items = QuillChecklistHelper.extractChecklistData(doc);
         if (items.isNotEmpty) {
+          final boundedItems = items.take(maxItemsPerNote).toList();
           todoNotes.add({
             'id': note.id,
             'title': note.title.trim().isEmpty ? 'Untitled Note' : note.title.trim(),
-            'items': items.map((it) => it.toJson()).toList(),
+            'items': boundedItems.map((it) => it.toJson()).toList(),
           });
+          totalItemsCount += boundedItems.length;
+          if (totalItemsCount >= maxTotalItems) break;
         }
       }
 
@@ -302,9 +326,11 @@ class WidgetHelper {
         // Find existing "My Tasks" or first checklist note
         final activeNotes = await repo.readAllNotes(isArchived: false, isTrashed: false);
         for (final n in activeNotes) {
-          if (n.title.trim().toLowerCase() == 'my tasks' ||
-              n.title.trim().toLowerCase() == 'todo' ||
-              n.title.trim().toLowerCase() == 'tasks') {
+          if (n.isLocked) continue;
+          final titleLower = n.title.trim().toLowerCase();
+          if (titleLower == 'my tasks' ||
+              titleLower == 'todo' ||
+              titleLower == 'tasks') {
             targetNote = n;
             break;
           }
@@ -312,7 +338,12 @@ class WidgetHelper {
 
         if (targetNote == null && activeNotes.isNotEmpty) {
           for (final n in activeNotes) {
-            if (n.content.contains('list') || n.content.contains('- [')) {
+            if (n.isLocked) continue;
+            // Strict checklist signature check
+            if (n.content.contains('"list":"checked"') ||
+                n.content.contains('"list":"unchecked"') ||
+                n.content.contains('- [ ]') ||
+                n.content.contains('- [x]')) {
               targetNote = n;
               break;
             }
@@ -328,12 +359,12 @@ class WidgetHelper {
         targetNote.dateModified = DateTime.now();
         await repo.updateNote(targetNote);
       } else {
-        // Create new "My Tasks" note
+        // Create new "My Tasks" note with authentic UUIDv4 identifier
         final now = DateTime.now();
         final doc = Document();
         QuillChecklistHelper.appendChecklistItem(doc, cleaned);
         final newNote = Note(
-          id: now.millisecondsSinceEpoch.toString(),
+          id: const Uuid().v4(),
           title: 'My Tasks',
           content: RichTextUtils.deltaToJson(doc.toDelta()),
           dateCreated: now,

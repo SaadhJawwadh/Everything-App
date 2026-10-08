@@ -12,7 +12,7 @@ class NoteProvider extends ChangeNotifier {
   List<Note> _notes = [];
   List<Note> _filteredNotes = [];
   bool _isLoading = true;
-  String _selectedTag = 'All';
+  Set<String> _selectedTags = {};
   List<String> _allTags = ['All'];
   final Set<String> _selectedNoteIds = {};
   bool _isSelectionMode = false;
@@ -36,7 +36,9 @@ class NoteProvider extends ChangeNotifier {
   List<Note> get notes => _notes;
   List<Note> get filteredNotes => _filteredNotes;
   bool get isLoading => _isLoading;
-  String get selectedTag => _selectedTag;
+  String get selectedTag => _selectedTags.isEmpty ? 'All' : (_selectedTags.length == 1 ? _selectedTags.first : 'All');
+  Set<String> get selectedTags => Set.unmodifiable(_selectedTags);
+  bool isTagSelected(String tag) => tag == 'All' ? _selectedTags.isEmpty : _selectedTags.contains(tag);
   List<String> get allTags => _allTags;
   Set<String> get selectedNoteIds => _selectedNoteIds;
   bool get isSelectionMode => _isSelectionMode;
@@ -119,8 +121,12 @@ class NoteProvider extends ChangeNotifier {
         final savedFolder = prefs.getString('lastActiveFolder');
         _selectedFolder = (savedFolder == null || savedFolder.isEmpty) ? null : savedFolder;
       }
-      if (prefs.containsKey('lastActiveTag')) {
-        _selectedTag = prefs.getString('lastActiveTag') ?? 'All';
+      if (prefs.containsKey('lastActiveTags')) {
+        final list = prefs.getStringList('lastActiveTags') ?? [];
+        _selectedTags = list.toSet();
+      } else if (prefs.containsKey('lastActiveTag')) {
+        final savedTag = prefs.getString('lastActiveTag') ?? 'All';
+        _selectedTags = (savedTag == 'All') ? {} : {savedTag};
       }
     } catch (_) {}
   }
@@ -154,9 +160,9 @@ class NoteProvider extends ChangeNotifier {
       final fetchedNotes = await _noteRepository.readAllNotes(
         limit: _pageSize,
         offset: 0,
-        tag: _selectedTag == 'All' || _selectedTag == 'Archived' || _selectedTag == 'Trash' ? null : _selectedTag,
-        isArchived: _selectedTag == 'Archived',
-        isTrashed: _selectedTag == 'Trash',
+        tags: _selectedTags.isEmpty ? null : _selectedTags.toList(),
+        isArchived: _selectedTags.contains('Archived'),
+        isTrashed: _selectedTags.contains('Trash'),
         sortMode: _sortMode,
         folder: _selectedFolder,
       );
@@ -176,9 +182,7 @@ class NoteProvider extends ChangeNotifier {
       }
 
       _allTags = ['All', ...tags];
-      if (!_allTags.contains(_selectedTag)) {
-        _selectedTag = 'All';
-      }
+      _selectedTags.removeWhere((t) => !tags.contains(t));
 
       _tagColors = colors;
       _notes = fetchedNotes;
@@ -229,11 +233,47 @@ class NoteProvider extends ChangeNotifier {
     _filteredNotes = result.toList();
   }
 
-  void setTag(String tag) {
-    _selectedTag = tag;
+  void _persistSelectedTags() {
     SharedPreferences.getInstance().then((prefs) {
-      prefs.setString('lastActiveTag', tag);
+      prefs.setStringList('lastActiveTags', _selectedTags.toList());
+      prefs.setString('lastActiveTag', _selectedTags.isEmpty ? 'All' : _selectedTags.first);
     });
+  }
+
+  /// Sets single tag filter (for backward compatibility). Passing 'All' clears all tags.
+  void setTag(String tag) {
+    if (tag == 'All') {
+      _selectedTags.clear();
+    } else {
+      _selectedTags = {tag};
+    }
+    _persistSelectedTags();
+    refreshNotes();
+  }
+
+  /// Toggles an individual tag in multi-select mode.
+  /// Tapping 'All' resets selection to empty (showing all notes).
+  /// Tapping an inactive tag adds it to the active filter set.
+  /// Tapping an already active tag removes it from the filter set.
+  void toggleTag(String tag) {
+    if (tag == 'All') {
+      _selectedTags.clear();
+    } else {
+      if (_selectedTags.contains(tag)) {
+        _selectedTags.remove(tag);
+      } else {
+        _selectedTags.add(tag);
+      }
+    }
+    _persistSelectedTags();
+    refreshNotes();
+  }
+
+  /// Clears all tag filters.
+  void clearSelectedTags() {
+    if (_selectedTags.isEmpty) return;
+    _selectedTags.clear();
+    _persistSelectedTags();
     refreshNotes();
   }
 
@@ -248,9 +288,9 @@ class NoteProvider extends ChangeNotifier {
       final moreNotes = await _noteRepository.readAllNotes(
         limit: _pageSize,
         offset: _currentPage * _pageSize,
-        tag: _selectedTag == 'All' || _selectedTag == 'Archived' || _selectedTag == 'Trash' ? null : _selectedTag,
-        isArchived: _selectedTag == 'Archived',
-        isTrashed: _selectedTag == 'Trash',
+        tags: _selectedTags.isEmpty ? null : _selectedTags.toList(),
+        isArchived: _selectedTags.contains('Archived'),
+        isTrashed: _selectedTags.contains('Trash'),
         sortMode: _sortMode,
         folder: _selectedFolder,
       );
@@ -337,8 +377,10 @@ class NoteProvider extends ChangeNotifier {
 
     try {
       await _noteRepository.renameTag(oldTag, newTag);
-      if (_selectedTag == oldTag) {
-        _selectedTag = newTag;
+      if (_selectedTags.contains(oldTag)) {
+        _selectedTags.remove(oldTag);
+        _selectedTags.add(newTag);
+        _persistSelectedTags();
       }
       await refreshNotes();
     } catch (e) {
@@ -349,8 +391,9 @@ class NoteProvider extends ChangeNotifier {
   Future<void> deleteTag(String tag) async {
     try {
       await _noteRepository.deleteTag(tag);
-      if (_selectedTag == tag) {
-        _selectedTag = 'All';
+      if (_selectedTags.contains(tag)) {
+        _selectedTags.remove(tag);
+        _persistSelectedTags();
       }
       await refreshNotes();
     } catch (e) {

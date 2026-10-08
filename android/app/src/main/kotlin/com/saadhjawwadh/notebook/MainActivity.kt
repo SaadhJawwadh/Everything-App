@@ -73,30 +73,8 @@ class MainActivity: FlutterFragmentActivity() {
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
         super.onConfigurationChanged(newConfig)
         val context = this
-        val appWidgetManager = AppWidgetManager.getInstance(context)
-
-        val financeIds = appWidgetManager.getAppWidgetIds(
-            ComponentName(context, FinanceWidgetProvider::class.java)
-        )
-        if (financeIds.isNotEmpty()) {
-            val financeIntent = Intent(context, FinanceWidgetProvider::class.java).apply {
-                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, financeIds)
-            }
-            context.sendBroadcast(financeIntent)
-        }
-
-        val notesIds = appWidgetManager.getAppWidgetIds(
-            ComponentName(context, NotesWidgetProvider::class.java)
-        )
-        if (notesIds.isNotEmpty()) {
-            val notesIntent = Intent(context, NotesWidgetProvider::class.java).apply {
-                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, notesIds)
-            }
-            context.sendBroadcast(notesIntent)
-        }
-
+        FinanceWidgetProvider.updateAllWidgets(context)
+        NotesWidgetProvider.updateAllWidgets(context)
         TodoWidgetProvider.updateAllWidgets(context)
     }
 
@@ -117,7 +95,8 @@ class MainActivity: FlutterFragmentActivity() {
             "com.saadhjawwadh.notebook.ACTION_OPEN_NOTE" -> {
                 val openNoteId = intent.getStringExtra("open_note_id") ?: ""
                 val lineIndex = intent.getIntExtra("line_index", -1)
-                pendingWidgetAction = "open_note:$openNoteId:$lineIndex"
+                val text = intent.getStringExtra("text") ?: ""
+                pendingWidgetAction = "open_note:$openNoteId:$lineIndex:$text"
             }
             "com.saadhjawwadh.notebook.PIN_TODO_WIDGET" -> {
                 requestPinTodoWidget()
@@ -182,33 +161,9 @@ class MainActivity: FlutterFragmentActivity() {
             when (call.method) {
                 "updateWidget" -> {
                     val context = this@MainActivity
-                    val appWidgetManager = AppWidgetManager.getInstance(context)
-
-                    val financeIds = appWidgetManager.getAppWidgetIds(
-                        ComponentName(context, FinanceWidgetProvider::class.java)
-                    )
-                    if (financeIds.isNotEmpty()) {
-                        val financeIntent = Intent(context, FinanceWidgetProvider::class.java).apply {
-                            action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                            putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, financeIds)
-                        }
-                        context.sendBroadcast(financeIntent)
-                    }
-
-                    val notesIds = appWidgetManager.getAppWidgetIds(
-                        ComponentName(context, NotesWidgetProvider::class.java)
-                    )
-                    if (notesIds.isNotEmpty()) {
-                        val notesIntent = Intent(context, NotesWidgetProvider::class.java).apply {
-                            action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                            putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, notesIds)
-                        }
-                        context.sendBroadcast(notesIntent)
-                    }
-
-                    // Update Todo & Checklist Widget
+                    FinanceWidgetProvider.updateAllWidgets(context)
+                    NotesWidgetProvider.updateAllWidgets(context)
                     TodoWidgetProvider.updateAllWidgets(context)
-
                     result.success(true)
                 }
                 "pinTodoWidget" -> {

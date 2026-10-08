@@ -57,6 +57,7 @@ class NoteEditorScreen extends StatefulWidget {
   final String? templateContent;
   final String? initialFolder;
   final int? targetLineIndex;
+  final String? targetChecklistText;
 
   const NoteEditorScreen({
     super.key,
@@ -67,6 +68,7 @@ class NoteEditorScreen extends StatefulWidget {
     this.templateContent,
     this.initialFolder,
     this.targetLineIndex,
+    this.targetChecklistText,
   });
 
   @override
@@ -186,29 +188,8 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _authenticateForLockedNote();
       });
-    } else if (widget.targetLineIndex != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        try {
-          final targetIndex = widget.targetLineIndex!;
-          final plainText = _quillController.document.toPlainText();
-          final lines = plainText.split('\n');
-          if (targetIndex >= 0 && targetIndex < lines.length) {
-            int charOffset = 0;
-            for (int i = 0; i < targetIndex; i++) {
-              charOffset += lines[i].length + 1;
-            }
-            final clampedOffset = charOffset.clamp(0, _quillController.document.length - 1);
-            _quillController.updateSelection(
-              TextSelection.collapsed(offset: clampedOffset),
-              ChangeSource.local,
-            );
-            _focusNode.requestFocus();
-          }
-        } catch (e) {
-          debugPrint('Error jumping to targetLineIndex: $e');
-        }
-      });
+    } else if (widget.targetLineIndex != null || widget.targetChecklistText != null) {
+      _jumpToTargetChecklist();
     } else if (widget.note == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && !_focusNode.hasFocus) {
@@ -1188,6 +1169,53 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     }
   }
 
+  void _jumpToTargetChecklist() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      try {
+        final plainText = _quillController.document.toPlainText();
+        final lines = plainText.split('\n');
+        int? targetIndex = widget.targetLineIndex;
+
+        // If targetChecklistText is provided, verify or find matching line
+        if (widget.targetChecklistText != null &&
+            widget.targetChecklistText!.trim().isNotEmpty) {
+          final query = widget.targetChecklistText!.trim();
+          bool matched = false;
+          if (targetIndex != null && targetIndex >= 0 && targetIndex < lines.length) {
+            if (lines[targetIndex].trim() == query) {
+              matched = true;
+            }
+          }
+          if (!matched) {
+            for (int i = 0; i < lines.length; i++) {
+              if (lines[i].trim() == query || lines[i].contains(query)) {
+                targetIndex = i;
+                break;
+              }
+            }
+          }
+        }
+
+        if (targetIndex != null && targetIndex >= 0 && targetIndex < lines.length) {
+          int charOffset = 0;
+          for (int i = 0; i < targetIndex; i++) {
+            charOffset += lines[i].length + 1;
+          }
+          final clampedOffset = charOffset.clamp(0, _quillController.document.length - 1);
+          _quillController.updateSelection(
+            TextSelection.collapsed(offset: clampedOffset),
+            ChangeSource.local,
+          );
+          _focusNode.requestFocus();
+          _debounceScrollToCursor();
+        }
+      } catch (e) {
+        debugPrint('Error jumping to target checklist item: $e');
+      }
+    });
+  }
+
   /// Authenticates before revealing a locked note's content.
   Future<void> _authenticateForLockedNote() async {
     try {
@@ -1199,6 +1227,9 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       if (!mounted) return;
       if (didAuthenticate) {
         setState(() => _lockAuthPassed = true);
+        if (widget.targetLineIndex != null || widget.targetChecklistText != null) {
+          _jumpToTargetChecklist();
+        }
       }
     } catch (e) {
       debugPrint('Locked-note auth error: $e');

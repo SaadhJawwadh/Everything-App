@@ -195,6 +195,7 @@ class AppIntentDispatcher {
         final parts = action.split(':');
         final noteId = parts.length > 1 ? parts[1] : '';
         final lineIndex = parts.length > 2 ? int.tryParse(parts[2]) : null;
+        final targetText = parts.length > 3 ? parts.sublist(3).join(':') : null;
         if (noteId.isNotEmpty) {
           final note = await NoteRepository.instance.readNote(noteId);
           if (note != null && context.mounted) {
@@ -204,6 +205,7 @@ class AppIntentDispatcher {
                 builder: (context) => NoteEditorScreen(
                   note: note,
                   targetLineIndex: lineIndex,
+                  targetChecklistText: targetText,
                 ),
               ),
             );

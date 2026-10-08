@@ -47,21 +47,51 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/widget_add_button"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
-            android:background="@drawable/widget_add_button_shape"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:fontFamily="@font/google_sans_flex"
-            android:text="+"
-            android:textColor="@color/widget_on_primary_container"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <FrameLayout
+                android:id="@+id/widget_scan_button"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/widget_category_chip_shape"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@string/shortcut_scan_receipt_short"
+                    android:src="@drawable/ic_shortcut_scan_receipt"
+                    android:tint="@color/widget_on_primary_container" />
+            </FrameLayout>
+
+            <FrameLayout
+                android:id="@+id/widget_add_button"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/widget_add_button_shape"
+                android:clickable="true"
+                android:focusable="true">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:fontFamily="@font/google_sans_flex"
+                    android:text="+"
+                    android:textColor="@color/widget_on_primary_container"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+        </LinearLayout>
     </RelativeLayout>
 
     <!-- Spendings Overview Grid -->
@@ -145,7 +175,7 @@
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/widget_month_net"
+                android:id="@+id/widget_month_net_positive"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
@@ -153,7 +183,20 @@
                 android:text="$0.00"
                 android:textColor="@color/widget_income"
                 android:textSize="15.5sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:visibility="visible" />
+
+            <TextView
+                android:id="@+id/widget_month_net_negative"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:fontFamily="@font/google_sans_flex"
+                android:text="$0.00"
+                android:textColor="@color/widget_expense"
+                android:textSize="15.5sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
 
@@ -200,7 +243,7 @@
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/widget_forecast_trend"
+                android:id="@+id/widget_forecast_trend_normal"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
@@ -208,7 +251,20 @@
                 android:text="On Track"
                 android:textColor="@color/widget_income"
                 android:textSize="10.5sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:visibility="visible" />
+
+            <TextView
+                android:id="@+id/widget_forecast_trend_alert"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:fontFamily="@font/inter"
+                android:text="Pacing Fast"
+                android:textColor="@color/widget_expense"
+                android:textSize="10.5sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
         </LinearLayout>
 
         <!-- Dynamic Mini Sparkline Curve Plot -->

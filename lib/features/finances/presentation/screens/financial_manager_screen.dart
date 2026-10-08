@@ -1669,8 +1669,10 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
               ),
 
             // ── Hero summary card (net + income/expense breakdown) ────────
-            SliverToBoxAdapter(
-              child: AnimationConfiguration.staggeredList(
+            // Only displayed for Ledger & Budgets tabs; Split Bills has its own dedicated Split Summary Hero Card
+            if (effectiveTab != 'Split Bills')
+              SliverToBoxAdapter(
+                child: AnimationConfiguration.staggeredList(
                   position: 2,
                   duration: const Duration(milliseconds: 220),
                   child: SlideAnimation(

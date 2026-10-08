@@ -11,7 +11,7 @@
     <LinearLayout
         android:id="@+id/notes_widget_new_note"
         android:layout_width="0dp"
-        android:layout_height="44dp"
+        android:layout_height="48dp"
         android:layout_weight="1"
         android:background="@drawable/widget_add_button_shape"
         android:clickable="true"
@@ -38,10 +38,28 @@
     </LinearLayout>
 
     <FrameLayout
+        android:id="@+id/notes_widget_new_checklist"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/widget_category_chip_shape"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_gravity="center"
+            android:contentDescription="@string/shortcut_new_checklist_short"
+            android:src="@drawable/ic_checklist"
+            android:tint="@color/widget_on_primary_container" />
+    </FrameLayout>
+
+    <FrameLayout
         android:id="@+id/notes_widget_search"
-        android:layout_width="44dp"
-        android:layout_height="44dp"
-        android:layout_marginStart="10dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="8dp"
         android:background="@drawable/widget_category_chip_shape"
         android:clickable="true"
         android:focusable="true">

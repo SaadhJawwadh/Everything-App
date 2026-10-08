@@ -240,6 +240,7 @@ class NoteCard extends StatelessWidget {
                     builder: (context) => NoteEditorScreen(
                       note: note,
                       targetLineIndex: item.lineIndex,
+                      targetChecklistText: item.text,
                     ),
                   ),
                 );

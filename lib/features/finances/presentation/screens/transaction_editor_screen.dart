@@ -20,6 +20,8 @@ import 'package:note_taking_app/core/ui/app_morphing_fab.dart';
 import 'package:note_taking_app/core/ui/expressive_sliver_app_bar.dart';
 import 'package:note_taking_app/utils/app_globals.dart';
 import 'package:note_taking_app/features/finances/providers/financial_manager_provider.dart';
+import 'package:note_taking_app/features/finances/data/models/split_bill_model.dart';
+import 'package:note_taking_app/features/finances/data/repositories/split_bill_repository.dart';
 import 'split_bill_editor_screen.dart';
 
 class TransactionEditorScreen extends StatefulWidget {
@@ -62,6 +64,7 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
   late final String _initCategory;
   late final String _initAccount;
   RecurringFrequency? _initRepeatFrequency;
+  SplitBillModel? _linkedSplitBill;
 
   @override
   void initState() {
@@ -75,6 +78,7 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
       _category = widget.transaction!.category;
       _account = widget.transaction!.account;
       _checkExistingRecurringRule();
+      _checkExistingSplitBill();
     }
     _initialCategory = _category;
     _initAmount = _amountController.text.trim();
@@ -84,6 +88,16 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
     _initCategory = _category;
     _initAccount = _account;
     _initRepeatFrequency = _repeatFrequency;
+  }
+
+  Future<void> _checkExistingSplitBill() async {
+    if (widget.transaction?.id == null) return;
+    try {
+      final bill = await SplitBillRepository.instance.getBillByTransactionId(widget.transaction!.id!);
+      if (bill != null && mounted) {
+        setState(() => _linkedSplitBill = bill);
+      }
+    } catch (_) {}
   }
 
   bool get _isDirty {
@@ -1144,12 +1158,13 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
                     if (settings.showSplitBills) ...[
                       const SizedBox(height: 20),
                       OutlinedButton.icon(
-                        onPressed: () {
+                        onPressed: () async {
                           final title = _descriptionController.text.trim();
                           final amount = double.tryParse(_amountController.text.trim());
-                          Navigator.of(context).push(
+                          await Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => SplitBillEditorScreen(
+                                existingBill: _linkedSplitBill,
                                 prelinkedTransactionId: widget.transaction?.id,
                                 initialTitle: title.isNotEmpty ? title : null,
                                 initialAmount: amount,
@@ -1157,9 +1172,12 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
                               ),
                             ),
                           );
+                          if (mounted) {
+                            await _checkExistingSplitBill();
+                          }
                         },
-                        icon: const Icon(Icons.pie_chart_outline_rounded),
-                        label: const Text('Split This Bill with Friends'),
+                        icon: Icon(_linkedSplitBill != null ? Icons.pie_chart_rounded : Icons.pie_chart_outline_rounded),
+                        label: Text(_linkedSplitBill != null ? 'View / Edit Split Bill (${_linkedSplitBill!.participants.length} people)' : 'Split This Bill with Friends'),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(

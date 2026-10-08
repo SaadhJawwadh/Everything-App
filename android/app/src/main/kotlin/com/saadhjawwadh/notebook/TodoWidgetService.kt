@@ -1,8 +1,8 @@
 package com.saadhjawwadh.notebook
 
+import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
 import android.text.SpannableString
 import android.text.style.StrikethroughSpan
 import android.view.View
@@ -45,7 +45,14 @@ class TodoRemoteViewsFactory(
         items.clear()
         val prefs = context.getSharedPreferences(TodoWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE)
         val notesJsonStr = prefs.getString("flutter.widget_todo_notes_json", "[]") ?: "[]"
-        val activeNoteId = prefs.getString("flutter.widget_active_note_id", "ALL_NOTES") ?: "ALL_NOTES"
+        
+        // Check for per-widget active note first, fallback to global active note
+        val appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
+        val activeNoteId = if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID && prefs.contains("flutter.widget_active_note_id_$appWidgetId")) {
+            prefs.getString("flutter.widget_active_note_id_$appWidgetId", "ALL_NOTES") ?: "ALL_NOTES"
+        } else {
+            prefs.getString("flutter.widget_active_note_id", "ALL_NOTES") ?: "ALL_NOTES"
+        }
 
         isAllNotesMode = activeNoteId == "ALL_NOTES" || activeNoteId.isEmpty()
         val pendingList = mutableListOf<TaskItem>()
@@ -109,16 +116,17 @@ class TodoRemoteViewsFactory(
             if (item.isDone) R.drawable.ic_checkbox_checked else R.drawable.ic_checkbox_unchecked
         )
 
-        // Text & Strikethrough
+        // Text & Strikethrough (Never override with static integer colors to preserve light/dark mode)
         if (item.isDone) {
             val spannable = SpannableString(item.text).apply {
                 setSpan(StrikethroughSpan(), 0, length, 0)
             }
             views.setTextViewText(R.id.todo_item_text, spannable)
-            views.setTextColor(R.id.todo_item_text, context.getColor(R.color.widget_text_secondary))
+            // Apply muted opacity for finished tasks while respecting dynamic theme colors
+            views.setFloat(R.id.todo_item_text, "setAlpha", 0.6f)
         } else {
             views.setTextViewText(R.id.todo_item_text, item.text)
-            views.setTextColor(R.id.todo_item_text, context.getColor(R.color.widget_text_primary))
+            views.setFloat(R.id.todo_item_text, "setAlpha", 1.0f)
         }
 
         // Source Note Badge (visible when aggregating all notes)
@@ -134,6 +142,7 @@ class TodoRemoteViewsFactory(
             putExtra("click_action", "toggle")
             putExtra("note_id", item.noteId)
             putExtra("line_index", item.lineIndex)
+            putExtra("text", item.text)
             putExtra("is_done", item.isDone)
         }
         views.setOnClickFillInIntent(R.id.todo_item_check_touch, checkFillInIntent)
@@ -143,15 +152,21 @@ class TodoRemoteViewsFactory(
             putExtra("click_action", "open_note")
             putExtra("note_id", item.noteId)
             putExtra("line_index", item.lineIndex)
+            putExtra("text", item.text)
         }
         views.setOnClickFillInIntent(R.id.todo_item_text_container, openFillInIntent)
-        views.setOnClickFillInIntent(R.id.todo_item_container, openFillInIntent)
 
         return views
     }
 
     override fun getLoadingView(): RemoteViews? = null
     override fun getViewTypeCount(): Int = 1
-    override fun getItemId(position: Int): Long = position.toLong()
-    override fun hasStableIds(): Boolean = false
+    override fun getItemId(position: Int): Long {
+        if (position in 0 until items.size) {
+            val item = items[position]
+            return (item.noteId + ":" + item.text).hashCode().toLong()
+        }
+        return position.toLong()
+    }
+    override fun hasStableIds(): Boolean = true
 }

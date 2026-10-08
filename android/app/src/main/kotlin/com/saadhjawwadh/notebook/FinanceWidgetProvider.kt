@@ -58,27 +58,39 @@ class FinanceWidgetProvider : AppWidgetProvider() {
 
         views.setTextViewText(R.id.widget_today_spent, spentToday)
         views.setTextViewText(R.id.widget_month_spent, spentMonth)
-        views.setTextViewText(R.id.widget_month_net, netMonth)
-        views.setTextColor(
-            R.id.widget_month_net,
-            context.getColor(if (netPositive) R.color.widget_income else R.color.widget_expense)
-        )
+
+        if (netPositive) {
+            views.setViewVisibility(R.id.widget_month_net_positive, android.view.View.VISIBLE)
+            views.setViewVisibility(R.id.widget_month_net_negative, android.view.View.GONE)
+            views.setTextViewText(R.id.widget_month_net_positive, netMonth)
+        } else {
+            views.setViewVisibility(R.id.widget_month_net_positive, android.view.View.GONE)
+            views.setViewVisibility(R.id.widget_month_net_negative, android.view.View.VISIBLE)
+            views.setTextViewText(R.id.widget_month_net_negative, netMonth)
+        }
 
         // Forecast & Pace Status
         val forecastAmount = prefs.getString("flutter.widget_forecast_amount", "") ?: ""
         val forecastTrend = prefs.getString("flutter.widget_forecast_trend", "") ?: ""
         val isTrendingUp = prefs.getBoolean("flutter.widget_is_trending_up", false)
 
-        if (forecastAmount.isNotEmpty()) {
-            views.setTextViewText(R.id.widget_forecast_amount, forecastAmount)
-            views.setTextViewText(R.id.widget_forecast_trend, forecastTrend)
-            views.setTextColor(
-                R.id.widget_forecast_trend,
-                context.getColor(if (isTrendingUp) R.color.widget_expense else R.color.widget_income)
+        val displayForecastAmount = if (forecastAmount.isNotEmpty()) forecastAmount else spentMonth
+        views.setTextViewText(R.id.widget_forecast_amount, displayForecastAmount)
+
+        if (isTrendingUp) {
+            views.setViewVisibility(R.id.widget_forecast_trend_alert, android.view.View.VISIBLE)
+            views.setViewVisibility(R.id.widget_forecast_trend_normal, android.view.View.GONE)
+            views.setTextViewText(
+                R.id.widget_forecast_trend_alert,
+                if (forecastTrend.isNotEmpty()) forecastTrend else "Pacing Fast"
             )
         } else {
-            views.setTextViewText(R.id.widget_forecast_amount, spentMonth)
-            views.setTextViewText(R.id.widget_forecast_trend, "On Track")
+            views.setViewVisibility(R.id.widget_forecast_trend_alert, android.view.View.GONE)
+            views.setViewVisibility(R.id.widget_forecast_trend_normal, android.view.View.VISIBLE)
+            views.setTextViewText(
+                R.id.widget_forecast_trend_normal,
+                if (forecastTrend.isNotEmpty()) forecastTrend else "On Track"
+            )
         }
 
         // Render Dynamic Mini Sparkline Plot
@@ -202,8 +214,7 @@ class FinanceWidgetProvider : AppWidgetProvider() {
             color = primaryColor
         }
         val dotHolePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.FILL
-            color = Color.WHITE
+            xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
         }
         for (i in 0 until (if (n >= 3) n - 1 else n)) {
             canvas.drawCircle(coords[i].x, coords[i].y, 7f, dotPaint)
@@ -228,6 +239,19 @@ class FinanceWidgetProvider : AppWidgetProvider() {
     }
 
     private fun setupIntents(context: Context, views: RemoteViews) {
+        // Intent for clicking the Scan Receipt button
+        val scanIntent = Intent(context, MainActivity::class.java).apply {
+            action = "com.saadhjawwadh.notebook.SCAN_RECEIPT"
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val scanPendingIntent = PendingIntent.getActivity(
+            context,
+            4,
+            scanIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        views.setOnClickPendingIntent(R.id.widget_scan_button, scanPendingIntent)
+
         // Intent for clicking the "+" quick-add button
         val addIntent = Intent(context, MainActivity::class.java).apply {
             action = "com.saadhjawwadh.notebook.ADD_TRANSACTION"
@@ -269,6 +293,21 @@ class FinanceWidgetProvider : AppWidgetProvider() {
 
         // Root fallback intent (opens Ledger)
         views.setOnClickPendingIntent(R.id.widget_root, ledgerPendingIntent)
+    }
+
+    companion object {
+        fun updateAllWidgets(context: Context) {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val thisWidget = android.content.ComponentName(context, FinanceWidgetProvider::class.java)
+            val allWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
+            if (allWidgetIds.isNotEmpty()) {
+                val intent = Intent(context, FinanceWidgetProvider::class.java).apply {
+                    action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, allWidgetIds)
+                }
+                context.sendBroadcast(intent)
+            }
+        }
     }
 }
 
