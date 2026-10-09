@@ -13,6 +13,7 @@ import 'package:note_taking_app/core/theme/app_layout.dart';
 import 'package:note_taking_app/core/ui/expressive_sliver_app_bar.dart';
 import 'package:note_taking_app/core/ui/expressive_floating_toolbar.dart';
 import 'package:note_taking_app/core/ui/app_card.dart';
+import 'package:note_taking_app/core/ui/app_dialog.dart';
 import 'package:note_taking_app/core/ui/expressive_shape_morph_indicator.dart';
 
 enum FilterType { archived, trash }
@@ -100,26 +101,12 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
     final idsToDelete = List<String>.from(_selectedNoteIds);
 
     if (!mounted) return;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await AppDialog.showConfirm(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Delete $count Note${count == 1 ? "" : "s"} Permanently?'),
-        content: const Text('These notes will be removed forever and cannot be recovered.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Theme.of(context).colorScheme.onError,
-            ),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete Forever'),
-          ),
-        ],
-      ),
+      title: 'Delete $count Note${count == 1 ? "" : "s"} Permanently?',
+      message: 'These notes will be removed forever and cannot be recovered.',
+      confirmLabel: 'Delete Forever',
+      isDestructive: true,
     );
 
     if (confirmed == true) {

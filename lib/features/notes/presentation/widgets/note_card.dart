@@ -10,7 +10,6 @@ import '../../../../widgets/bouncing_widget.dart';
 import '../../../../widgets/home/universal_search_overlay.dart';
 import '../../../../utils/quill_checklist_helper.dart';
 import '../../../../utils/rich_text_utils.dart';
-import '../screens/note_editor_screen.dart';
 import '../../../../providers/note_provider.dart';
 
 class NoteCard extends StatelessWidget {
@@ -19,6 +18,7 @@ class NoteCard extends StatelessWidget {
   final VoidCallback? onLongPress;
   final Map<String, int>? tagColors;
   final bool isSelected;
+  final void Function(int lineIndex, String text)? onChecklistTap;
 
   const NoteCard({
     super.key,
@@ -27,6 +27,7 @@ class NoteCard extends StatelessWidget {
     this.onLongPress,
     this.tagColors,
     this.isSelected = false,
+    this.onChecklistTap,
   });
 
   @override
@@ -229,53 +230,43 @@ class NoteCard extends StatelessWidget {
       return [
         ...previewItems.map((item) {
           return InkWell(
-            onTap: () async {
-              final noteProvider = context.read<NoteProvider>();
-              if (noteProvider.isSelectionMode) {
-                noteProvider.toggleSelection(note.id);
+            onTap: () {
+              if (onChecklistTap != null) {
+                onChecklistTap!(item.lineIndex, item.text);
               } else {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => NoteEditorScreen(
-                      note: note,
-                      targetLineIndex: item.lineIndex,
-                      targetChecklistText: item.text,
-                    ),
-                  ),
-                );
-                if (context.mounted) {
-                  await context.read<NoteProvider>().refreshNotes();
-                }
+                onTap();
               }
             },
             borderRadius: BorderRadius.circular(AppLayout.radiusS),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2.5),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Icon(
-                    item.isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                    size: 15,
-                    color: item.isDone ? Colors.green : theme.colorScheme.outline,
-                  ),
-                  const SizedBox(width: AppLayout.spaceS),
-                  Expanded(
-                    child: Text(
-                      item.text,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: item.isDone
-                            ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6)
-                            : theme.colorScheme.onSurface,
-                        decoration: item.isDone ? TextDecoration.lineThrough : null,
-                        decorationColor: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 48),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Icon(
+                      item.isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                      size: 16,
+                      color: item.isDone ? Colors.green : theme.colorScheme.outline,
+                    ),
+                    const SizedBox(width: AppLayout.spaceS),
+                    Expanded(
+                      child: Text(
+                        item.text,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: item.isDone
+                              ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6)
+                              : theme.colorScheme.onSurface,
+                          decoration: item.isDone ? TextDecoration.lineThrough : null,
+                          decorationColor: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           );

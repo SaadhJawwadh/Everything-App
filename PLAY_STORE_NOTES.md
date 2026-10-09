@@ -1,22 +1,24 @@
 <en-US>
 🌟 What's New
-• Multi-Tag Filter: Combine multiple tags for deep note searches.
-• Home Widgets: 1-tap receipt scan & quick checklist capture.
+• Checklist Jump: Tap tasks on note cards to jump straight to them.
+• Multi-Tag Filter: Combine tags for deeper note searches.
 
 🚀 Improvements
-• 48dp ergonomic widget touch buttons & live P2P sync refresh.
+• Seamless scroll position preservation when exiting note editor.
+• Instant home screen refresh when editing from universal search.
 
 🐛 Fixes
-• Fixed home widget dark mode text contrast & split bills friends edit.
+• Smoother dialog transitions and rock-solid checklist tap detection.
 </en-US>
 <ta-IN>
 🌟 புதிய அம்சங்கள்
-• பல குறிச்சொல் தேடல்: குறிப்புகளை எளிதில் தேடும் வசதி.
-• முகப்பு விட்ஜெட்: ரசீது ஸ்கேன் மற்றும் விரைவுப் பட்டியல்.
+• சரிபார்ப்பு பட்டியல் வழிசெலுத்தல்: குறிப்பிலுள்ள பணியை நேரடியாக திறக்கலாம்.
+• பல குறிச்சொல் தேடல்: விரைவான குறிப்பு தேடல் வசதி.
 
 🚀 மேம்பாடுகள்
-• பெரிய தொடு பொத்தான்கள் மற்றும் நேரடி ஒத்திசைவு.
+• குறிப்பை முடித்து திரும்பும்போது அதே இடத்தில் திரையிடும் வசதி.
+• தேடலில் மாற்றிய குறிப்புகள் உடனே முகப்பில் புதுப்பிப்பு.
 
 🐛 பிழை திருத்தங்கள்
-• விட்ஜெட் இருள் பயன்முறை மாறுதல் மற்றும் பகிர்வு கணக்கு பிழை திருத்தம்.
+• மேம்பட்ட உரையாடல் பெட்டிகள் மற்றும் நிலைத்தன்மை சரிசெய்தல்.
 </ta-IN>

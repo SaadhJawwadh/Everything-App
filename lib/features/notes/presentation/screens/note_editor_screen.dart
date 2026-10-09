@@ -39,6 +39,7 @@ import '../../../../widgets/editor/editor_note_details_sheet.dart';
 import '../widgets/story_card_creator_sheet.dart';
 import '../../../story_cards/story_cards.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
+import '../../../../core/ui/app_dialog.dart';
 import '../../../../core/ui/app_snack_bar.dart';
 import '../widgets/note_editor_bottom_bar.dart';
 
@@ -96,6 +97,8 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   List<String> _noteUrls = [];
   DateTime? _reminderAt;
   bool _isNoteLocked = false;
+  bool _isNoteInTrash = false;
+  bool _hasChanges = false;
   DateTime? _lastScheduledReminder;
   String _folder = 'All Notes';
 
@@ -181,6 +184,10 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     tags = List.from(widget.note?.tags ?? []);
     _reminderAt = widget.note?.reminderAt;
     _isNoteLocked = widget.note?.isLocked ?? false;
+    _isNoteInTrash = widget.note?.deletedAt != null;
+    if (_isNoteInTrash) {
+      _quillController.readOnly = true;
+    }
     _folder = widget.note?.category ?? widget.initialFolder ?? 'All Notes';
     _lastScheduledReminder = _reminderAt;
     _lockAuthPassed = !_isNoteLocked;
@@ -662,6 +669,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   void _onContentChanged() {
+    if (_isNoteInTrash) return;
     _checkSlashCommands();
 
     if (_debounce?.isActive ?? false) _debounce?.cancel();
@@ -1073,6 +1081,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   Future saveNote() async {
+    if (_isNoteInTrash) return;
     final title = _titleController.text.trim();
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     var delta = _quillController.document.toDelta();
@@ -1096,6 +1105,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
     if (isEmpty) {
       if (exists) {
+        _hasChanges = true;
         await NoteRepository.instance.deleteNote(_noteId);
       }
       return;
@@ -1129,6 +1139,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     if (!hasChanges) {
       return;
     }
+    _hasChanges = true;
 
     final note = Note(
       id: _noteId,
@@ -1643,50 +1654,75 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     }
   }
 
+  Future<void> _restoreNoteFromTrash() async {
+    await NoteRepository.instance.restoreNote(_noteId);
+    if (!mounted) return;
+    setState(() {
+      _isNoteInTrash = false;
+      _quillController.readOnly = false;
+    });
+    _hasChanges = true;
+    await context.read<NoteProvider>().refreshNotes();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Note restored from Trash'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Future<void> _deleteNote() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Move to Trash?'),
-        content: const Text('This note will be moved to Trash.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(
-                foregroundColor: Theme.of(context).colorScheme.error),
-            child: const Text('Move to Trash'),
-          ),
-        ],
+      builder: (context) => AppDialog(
+        title: _isNoteInTrash ? 'Delete Permanently?' : 'Move to Trash?',
+        content: Text(_isNoteInTrash
+            ? 'This note will be permanently deleted. This action cannot be undone.'
+            : 'This note will be moved to Trash.'),
+        cancelLabel: 'Cancel',
+        confirmLabel: _isNoteInTrash ? 'Delete Forever' : 'Move to Trash',
+        isDestructive: true,
+        onCancel: () => Navigator.pop(context, false),
+        onConfirm: () => Navigator.pop(context, true),
       ),
     );
 
     if (confirmed == true) {
-      await NoteRepository.instance.softDeleteNote(_noteId);
-      if (mounted) Navigator.pop(context, true);
-
-      // The editor is gone after the pop, so surface the undo on the
-      // app-level messenger.
-      final noteId = _noteId;
-      appScaffoldMessengerKey.currentState?.showSnackBar(
-        SnackBar(
-          content: const Text('Note moved to Trash'),
-          action: SnackBarAction(
-            label: 'Undo',
-            onPressed: () async {
-              await NoteRepository.instance.restoreNote(noteId);
-              final ctx = appScaffoldMessengerKey.currentContext;
-              if (ctx != null && ctx.mounted) {
-                await Provider.of<NoteProvider>(ctx, listen: false)
-                    .refreshNotes();
-              }
-            },
+      if (_isNoteInTrash) {
+        await NoteRepository.instance.deleteNote(_noteId);
+        if (mounted) Navigator.pop(context, true);
+        appScaffoldMessengerKey.currentState?.showSnackBar(
+          const SnackBar(
+            content: Text('Note permanently deleted'),
+            behavior: SnackBarBehavior.floating,
           ),
-        ),
-      );
+        );
+      } else {
+        await NoteRepository.instance.softDeleteNote(_noteId);
+        if (mounted) Navigator.pop(context, true);
+
+        // The editor is gone after the pop, so surface the undo on the
+        // app-level messenger.
+        final noteId = _noteId;
+        appScaffoldMessengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: const Text('Note moved to Trash'),
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'Undo',
+              onPressed: () async {
+                await NoteRepository.instance.restoreNote(noteId);
+                final ctx = appScaffoldMessengerKey.currentContext;
+                if (ctx != null && ctx.mounted) {
+                  await Provider.of<NoteProvider>(ctx, listen: false)
+                      .refreshNotes();
+                }
+              },
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -2692,14 +2728,16 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           if (didPop) return;
           try {
             _debounce?.cancel();
-            await saveNote();
+            if (!_isNoteInTrash) {
+              await saveNote();
+            }
             if (context.mounted) {
               await context.read<NoteProvider>().refreshNotes();
             }
           } catch (e) {
             debugPrint('Error saving note on pop: $e');
           } finally {
-            if (context.mounted) Navigator.pop(context, true);
+            if (context.mounted) Navigator.pop(context, _hasChanges);
           }
         },
         child: Scaffold(
@@ -2857,13 +2895,11 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                 )
                               : Row(
                                   children: [
-                                    BouncingWidget(
-                                      onTap: () => Navigator.maybePop(context),
-                                      child: IconButton(
-                                        icon: const Icon(Icons.arrow_back),
-                                        color: textColor,
-                                        onPressed: () => Navigator.maybePop(context),
-                                      ),
+                                    IconButton(
+                                      icon: const Icon(Icons.arrow_back),
+                                      tooltip: 'Back',
+                                      color: textColor,
+                                      onPressed: () => Navigator.maybePop(context),
                                     ),
                                     const SizedBox(width: AppLayout.spaceS),
                                     QuillToolbarHistoryButton(
@@ -3046,7 +3082,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                               children: [
                                                 Icon(Icons.delete_outline_rounded, size: 20, color: colorScheme.error),
                                                 const SizedBox(width: 12),
-                                                Text('Move to Trash', style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.error, fontWeight: FontWeight.w500)),
+                                                Text(_isNoteInTrash ? 'Delete Permanently' : 'Move to Trash', style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.error, fontWeight: FontWeight.w500)),
                                               ],
                                             ),
                                           ),
@@ -3057,6 +3093,48 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                 ),
                         ),
                       ),
+                      // Trash Warning Banner
+                      if (_isNoteInTrash)
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.errorContainer.withValues(alpha: 0.8),
+                            borderRadius: BorderRadius.circular(AppLayout.radiusM),
+                            border: Border.all(
+                              color: theme.colorScheme.error.withValues(alpha: 0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_outline_rounded, size: 20, color: theme.colorScheme.onErrorContainer),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Note is in Trash. Restore to make edits.',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onErrorContainer,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              FilledButton.tonal(
+                                onPressed: _restoreNoteFromTrash,
+                                style: FilledButton.styleFrom(
+                                  visualDensity: VisualDensity.compact,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppLayout.radiusS),
+                                  ),
+                                ),
+                                child: const Text('Restore'),
+                              ),
+                            ],
+                          ),
+                        ),
                       // Editor Area
                       Expanded(
                         child: SingleChildScrollView(
@@ -3092,6 +3170,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                   children: [
                                     TextField(
                                       controller: _titleController,
+                                      readOnly: _isNoteInTrash,
                                       style: Theme.of(context)
                                           .textTheme
                                           .headlineMedium
@@ -3596,11 +3675,12 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                           ),
                         ),
                       // Slash Commands Overlay Card
-                      if (_showSlashMenu && !_isImageSelected)
+                      if (_showSlashMenu && !_isImageSelected && !_isNoteInTrash)
                         _buildSlashMenuOverlay(theme, noteScheme),
 
                       // Note Editor Bottom Bar (Formatting sub-tier + Main Pill Toolbar)
-                      NoteEditorBottomBar(
+                      if (!_isNoteInTrash)
+                        NoteEditorBottomBar(
                         quillController: _quillController,
                         showFormattingBar: _showFormattingBar,
                         isImageSelected: _isImageSelected,

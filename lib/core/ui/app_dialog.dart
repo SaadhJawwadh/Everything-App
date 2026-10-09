@@ -10,6 +10,8 @@ class AppDialog extends StatelessWidget {
   final VoidCallback? onConfirm;
   final VoidCallback? onCancel;
   final bool isDestructive;
+  final bool showConfirmButton;
+  final List<Widget>? actions;
 
   const AppDialog({
     super.key,
@@ -21,6 +23,8 @@ class AppDialog extends StatelessWidget {
     this.onConfirm,
     this.onCancel,
     this.isDestructive = false,
+    this.showConfirmButton = true,
+    this.actions,
   });
 
   /// Standardized confirmation dialog prompt.
@@ -64,22 +68,24 @@ class AppDialog extends StatelessWidget {
                   style: theme.textTheme.bodyMedium,
                 )
               : null),
-      actions: [
-        TextButton(
-          onPressed: onCancel ?? () => Navigator.of(context).pop(),
-          child: Text(cancelLabel),
-        ),
-        FilledButton(
-          onPressed: onConfirm ?? () => Navigator.of(context).pop(true),
-          style: isDestructive
-              ? FilledButton.styleFrom(
-                  backgroundColor: theme.colorScheme.error,
-                  foregroundColor: theme.colorScheme.onError,
-                )
-              : null,
-          child: Text(confirmLabel),
-        ),
-      ],
+      actions: actions ??
+          [
+            TextButton(
+              onPressed: onCancel ?? () => Navigator.of(context).pop(),
+              child: Text(cancelLabel),
+            ),
+            if (showConfirmButton)
+              FilledButton(
+                onPressed: onConfirm ?? () => Navigator.of(context).pop(true),
+                style: isDestructive
+                    ? FilledButton.styleFrom(
+                        backgroundColor: theme.colorScheme.error,
+                        foregroundColor: theme.colorScheme.onError,
+                      )
+                    : null,
+                child: Text(confirmLabel),
+              ),
+          ],
     );
   }
 }

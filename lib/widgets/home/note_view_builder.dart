@@ -13,7 +13,7 @@ import '../../core/theme/app_layout.dart';
 import '../skeleton_card.dart';
 
 class NoteViewBuilder extends StatelessWidget {
-  final VoidCallback onRefresh;
+  final Future<void> Function({bool scrollOnModified}) onRefresh;
   final Function(Note, VoidCallback) onNoteTap;
   final Function(Note) onNoteLongPress;
 
@@ -46,51 +46,117 @@ class NoteViewBuilder extends StatelessWidget {
     }
 
     if (noteProvider.filteredNotes.isEmpty) {
+      final isSearching = noteProvider.searchQuery.isNotEmpty;
+      final selectedFolder = noteProvider.selectedFolder;
+      final isChecklistFiltered = noteProvider.filterChecklistsOnly;
+      final selectedTags = noteProvider.selectedTags;
+
+      final String emptyTitle;
+      final String emptySubtitle;
+      final Widget? actionButton;
+
+      if (isSearching) {
+        emptyTitle = 'No matching notes';
+        emptySubtitle = 'No notes found for "${noteProvider.searchQuery}"';
+        actionButton = OutlinedButton.icon(
+          onPressed: () => noteProvider.setSearchQuery(''),
+          icon: const Icon(Icons.clear_rounded, size: 18),
+          label: const Text('Clear Search'),
+        );
+      } else if (isChecklistFiltered) {
+        emptyTitle = 'No checklists found';
+        emptySubtitle = 'None of your notes currently contain checklist items';
+        actionButton = OutlinedButton.icon(
+          onPressed: () => noteProvider.setFilterChecklistsOnly(false),
+          icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+          label: const Text('Show All Notes'),
+        );
+      } else if (selectedTags.isNotEmpty) {
+        emptyTitle = 'No tagged notes';
+        emptySubtitle = 'No notes tagged with ${selectedTags.join(", ")}';
+        actionButton = OutlinedButton.icon(
+          onPressed: () => noteProvider.setTag('All'),
+          icon: const Icon(Icons.label_off_outlined, size: 18),
+          label: const Text('Clear Tag Filter'),
+        );
+      } else if (selectedFolder != null && selectedFolder != 'All Notes' && selectedFolder != 'Notes') {
+        emptyTitle = 'Folder is empty';
+        emptySubtitle = 'No notes in folder "$selectedFolder" yet';
+        actionButton = FilledButton.icon(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => NoteEditorScreen(
+                  initialFolder: selectedFolder,
+                ),
+              ),
+            ).then((_) => onRefresh());
+          },
+          icon: const Icon(Icons.add),
+          label: Text('Create Note in $selectedFolder'),
+        );
+      } else {
+        emptyTitle = 'No notes here yet';
+        emptySubtitle = 'Tap + to create your first note';
+        actionButton = FilledButton.icon(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => NoteEditorScreen(
+                  initialFolder: noteProvider.selectedFolder,
+                ),
+              ),
+            ).then((_) => onRefresh());
+          },
+          icon: const Icon(Icons.add),
+          label: const Text('Create My First Note'),
+        );
+      }
+
       return SliverFillRemaining(
         hasScrollBody: false,
         child: Center(
           key: const ValueKey('empty'),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.note_alt_outlined,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isSearching
+                      ? Icons.search_off_rounded
+                      : isChecklistFiltered
+                          ? Icons.checklist_rtl_rounded
+                          : Icons.note_alt_outlined,
                   size: 64,
-                  color: Theme.of(context).colorScheme.outlineVariant),
-              const SizedBox(height: 16),
-              Text(
-                'No notes here yet',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Tap + to create one',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color:
-                          Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-              ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => NoteEditorScreen(
-                        initialFolder: noteProvider.selectedFolder,
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  emptyTitle,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.bold,
                       ),
-                    ),
-                  ).then((_) => onRefresh());
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Create My First Note'),
-              ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  emptySubtitle,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+                const SizedBox(height: 24),
+                actionButton,
               ],
-              ),
-              ),
-              );
+            ),
+          ),
+        ),
+      );
     }
 
     return SliverPadding(
@@ -149,7 +215,7 @@ class NoteViewBuilder extends StatelessWidget {
     }
   }
 
-  Widget _buildDismissibleNoteCard(BuildContext context, Note note, VoidCallback refresh, NoteProvider noteProvider) {
+  Widget _buildDismissibleNoteCard(BuildContext context, Note note, Future<void> Function({bool scrollOnModified}) refresh, NoteProvider noteProvider) {
     final colorScheme = Theme.of(context).colorScheme;
     return Dismissible(
       key: ValueKey(note.id),
@@ -185,7 +251,7 @@ class NoteViewBuilder extends StatelessWidget {
                 label: 'Undo',
                 onPressed: () async {
                   await NoteRepository.instance.restoreNote(note.id);
-                  refresh();
+                  await refresh(scrollOnModified: true);
                 },
               ),
             ),
@@ -210,35 +276,51 @@ class NoteViewBuilder extends StatelessWidget {
                     dateModified: DateTime.now(),
                   );
                   await NoteRepository.instance.updateNote(reverted);
-                  refresh();
+                  await refresh(scrollOnModified: true);
                 },
               ),
             ),
           );
         }
-        refresh();
+        await refresh(scrollOnModified: true);
       },
       child: _buildOpenContainer(context, note, refresh, noteProvider),
     );
   }
 
-  Widget _buildOpenContainer(BuildContext context, Note note, VoidCallback refresh, NoteProvider noteProvider) {
+  Widget _buildOpenContainer(BuildContext context, Note note, Future<void> Function({bool scrollOnModified}) refresh, NoteProvider noteProvider) {
+    int? targetLineIndex;
+    String? targetChecklistText;
+
     return OpenContainer<bool>(
       transitionType: ContainerTransitionType.fadeThrough,
       transitionDuration: const Duration(milliseconds: 300),
-      openBuilder: (context, _) => NoteEditorScreen(note: note),
+      openBuilder: (context, _) => NoteEditorScreen(
+        note: note,
+        targetLineIndex: targetLineIndex,
+        targetChecklistText: targetChecklistText,
+      ),
       closedElevation: 0,
       openElevation: 0,
       closedColor: Colors.transparent,
       openColor: Theme.of(context).colorScheme.surface,
       closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppLayout.radiusL)),
       onClosed: (returned) async {
-        refresh();
+        await refresh(scrollOnModified: returned == true);
       },
       closedBuilder: (context, openContainer) {
         return NoteCard(
           note: note,
-          onTap: () => onNoteTap(note, openContainer),
+          onTap: () {
+            targetLineIndex = null;
+            targetChecklistText = null;
+            onNoteTap(note, openContainer);
+          },
+          onChecklistTap: (lineIdx, text) {
+            targetLineIndex = lineIdx;
+            targetChecklistText = text;
+            onNoteTap(note, openContainer);
+          },
           isSelected: noteProvider.selectedNoteIds.contains(note.id),
           tagColors: noteProvider.tagColors,
           onLongPress: () => onNoteLongPress(note),

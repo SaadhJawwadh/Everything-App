@@ -56,6 +56,11 @@ class WhatsNewSheet extends StatelessWidget {
             title: "Android Checklist Widget",
             desc: "Cycle directly between all action items and individual checklists with live titles, progress counters, and 0ms completion.",
           ),
+          _WhatsNewItem(
+            icon: Icons.touch_app_rounded,
+            title: "Direct Checklist Navigation",
+            desc: "Tap tasks directly on home note cards to jump straight into editing them in the note editor.",
+          ),
         ],
       ),
       _WhatsNewCategory(
@@ -78,6 +83,11 @@ class WhatsNewSheet extends StatelessWidget {
             icon: Icons.format_quote_rounded,
             title: "Publication Quotes",
             desc: "Upgraded Quote mode with theme-matched ambient quotation marks, note attribution, and streamlined controls.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.unfold_more_rounded,
+            title: "Seamless Viewport Preservation",
+            desc: "Returning from note editing preserves your exact scroll position smoothly with zero layout jumps.",
           ),
         ],
       ),

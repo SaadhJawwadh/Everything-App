@@ -28,9 +28,37 @@ class ChangelogScreen extends StatelessWidget {
               delegate: SliverChildListDelegate([
                 _buildVersionSection(
                   context,
+                  version: 'v2.45.4',
+                  date: 'October 9, 2026',
+                  isLatest: true,
+                  changes: [
+                    _ChangelogGroup(
+                      title: "What's New",
+                      items: [
+                        'Direct Checklist Tap Navigation: Tapping an uncompleted task on any note card now navigates directly into the note editor, focusing right on that checklist item.',
+                        'Instant Search Edit Refresh: Editing notes opened from the universal search overlay now immediately syncs and refreshes your home screen list.',
+                      ],
+                    ),
+                    _ChangelogGroup(
+                      title: 'Improvements',
+                      items: [
+                        'Viewport Scroll Preservation: Returning to the notes home screen preserves your exact scroll position smoothly with zero layout jumps.',
+                        'Unified Modern Dialogs: Migrated folder and tagging prompts to standardized Material 3 rounded dialogs with clear action buttons.',
+                      ],
+                    ),
+                    _ChangelogGroup(
+                      title: 'Fixes',
+                      items: [
+                        'Checklist Tap Hit Testing: Fixed checklist touch targets inside note preview cards so sub-item taps do not inadvertently trigger whole-note navigation.',
+                      ],
+                    ),
+                  ],
+                ),
+                _buildVersionSection(
+                  context,
                   version: 'v2.45.3',
                   date: 'October 8, 2026',
-                  isLatest: true,
+                  isLatest: false,
                   changes: [
                     _ChangelogGroup(
                       title: "What's New",

@@ -259,15 +259,20 @@ class NoteRepository {
   Future<int> getChecklistNotesCount({String? folder}) async {
     final db = await _db;
     String where = '${NoteFields.deletedAt} IS NULL AND ${NoteFields.isArchived} = 0 AND ('
-        "${NoteFields.content} LIKE '%\"list\":\"checked\"%' OR "
-        "${NoteFields.content} LIKE '%\"list\":\"unchecked\"%' OR "
+        "${NoteFields.content} LIKE '%\"list\"%\"checked\"%' OR "
+        "${NoteFields.content} LIKE '%\"list\"%\"unchecked\"%' OR "
         "${NoteFields.content} LIKE '%- [ ]%' OR "
         "${NoteFields.content} LIKE '%- [x]%')";
     final List<dynamic> whereArgs = [];
 
-    if (folder != null && folder.isNotEmpty && folder != 'All Notes' && folder != 'Notes') {
-      where += ' AND ${NoteFields.category} = ?';
-      whereArgs.add(folder);
+    if (folder != null && folder.isNotEmpty && folder != 'All Notes') {
+      if (folder == 'Notes') {
+        where += ' AND (${NoteFields.category} IS NULL OR ${NoteFields.category} = ? OR ${NoteFields.category} = ? OR ${NoteFields.category} = ?)';
+        whereArgs.addAll(['Notes', 'All Notes', '']);
+      } else {
+        where += ' AND ${NoteFields.category} = ?';
+        whereArgs.add(folder);
+      }
     }
 
     final result = await db.rawQuery('SELECT COUNT(*) as count FROM ${TableNames.notes} WHERE $where', whereArgs);

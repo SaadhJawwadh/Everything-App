@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/note_repository.dart';
@@ -58,8 +59,7 @@ class NoteProvider extends ChangeNotifier {
   int get checklistNotesCount {
     if (_checklistNotesCount > 0) return _checklistNotesCount;
     return _notes.where((n) =>
-        n.content.contains('"list":"checked"') ||
-        n.content.contains('"list":"unchecked"') ||
+        RegExp(r'"list"\s*:\s*"(checked|unchecked)"').hasMatch(n.content) ||
         n.content.contains('- [ ]') ||
         n.content.contains('- [x]')).length;
   }
@@ -139,13 +139,12 @@ class NoteProvider extends ChangeNotifier {
     await refreshNotes();
   }
 
-  Future<void> refreshNotes({bool showLoading = false}) async {
+  Future<void> refreshNotes({bool showLoading = false, bool preserveLoadedCount = true}) async {
     if (showLoading || _notes.isEmpty) {
       _isLoading = true;
       notifyListeners();
     }
-    _currentPage = 0;
-    _hasMoreNotes = true;
+    final targetLimit = preserveLoadedCount ? math.max(_pageSize, _notes.length) : _pageSize;
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -158,7 +157,7 @@ class NoteProvider extends ChangeNotifier {
       final colors = await _noteRepository.getAllTagColors();
 
       final fetchedNotes = await _noteRepository.readAllNotes(
-        limit: _pageSize,
+        limit: targetLimit,
         offset: 0,
         tags: _selectedTags.isEmpty ? null : _selectedTags.toList(),
         isArchived: _selectedTags.contains('Archived'),
@@ -188,15 +187,42 @@ class NoteProvider extends ChangeNotifier {
       _notes = fetchedNotes;
       _applySearchFilter();
       
+      _currentPage = fetchedNotes.isEmpty ? 0 : ((fetchedNotes.length - 1) ~/ _pageSize);
+      _hasMoreNotes = fetchedNotes.length >= targetLimit;
       _isLoading = false;
-      if (fetchedNotes.length < _pageSize) {
-        _hasMoreNotes = false;
-      }
       notifyListeners();
     } catch (e) {
       _isLoading = false;
       notifyListeners();
       debugPrint('Error refreshing notes: $e');
+    }
+  }
+
+  /// Updates a single note in memory without discarding loaded pagination.
+  void updateNoteInMemory(Note updatedNote) {
+    final idx = _notes.indexWhere((n) => n.id == updatedNote.id);
+    if (idx != -1) {
+      if (_sortMode == 'modified') {
+        _notes.removeAt(idx);
+        if (updatedNote.isPinned) {
+          _notes.insert(0, updatedNote);
+        } else {
+          final firstUnpinnedIdx = _notes.indexWhere((n) => !n.isPinned);
+          if (firstUnpinnedIdx == -1) {
+            _notes.add(updatedNote);
+          } else {
+            _notes.insert(firstUnpinnedIdx, updatedNote);
+          }
+        }
+      } else {
+        _notes[idx] = updatedNote;
+      }
+      _applySearchFilter();
+      notifyListeners();
+    } else {
+      _notes.insert(0, updatedNote);
+      _applySearchFilter();
+      notifyListeners();
     }
   }
 
@@ -214,8 +240,7 @@ class NoteProvider extends ChangeNotifier {
 
     if (_filterChecklistsOnly) {
       result = result.where((note) {
-        return note.content.contains('"list":"checked"') ||
-               note.content.contains('"list":"unchecked"') ||
+        return RegExp(r'"list"\s*:\s*"(checked|unchecked)"').hasMatch(note.content) ||
                note.content.contains('- [ ]') ||
                note.content.contains('- [x]');
       });
@@ -224,9 +249,13 @@ class NoteProvider extends ChangeNotifier {
     if (_searchQuery.isNotEmpty) {
       result = result.where((note) {
         final titleMatch = note.title.toLowerCase().contains(_searchQuery);
-        final contentMatch = note.content.toLowerCase().contains(_searchQuery);
         final tagMatch = note.tags.any((t) => t.toLowerCase().contains(_searchQuery));
-        return titleMatch || contentMatch || tagMatch;
+        if (note.isLocked) {
+          return titleMatch || tagMatch;
+        }
+        final previewMatch = (note.previewText?.toLowerCase() ?? '').contains(_searchQuery);
+        final contentMatch = !note.content.startsWith('[') && note.content.toLowerCase().contains(_searchQuery);
+        return titleMatch || tagMatch || previewMatch || contentMatch;
       });
     }
 

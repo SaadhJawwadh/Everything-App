@@ -16,6 +16,8 @@ import '../../features/health/presentation/screens/period_tracker_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/notes/presentation/screens/manage_tags_screen.dart';
 import '../../features/notes/presentation/screens/filtered_notes_screen.dart';
+import '../../features/notes/presentation/screens/note_editor_screen.dart';
+import '../../data/note_model.dart';
 import '../../features/sync/presentation/screens/p2p_sync_screen.dart';
 import '../../features/finances/presentation/widgets/recurring_rules_sheet.dart';
 import '../../services/backup_service.dart';
@@ -576,7 +578,44 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
             transactions.isEmpty &&
             periodLogs.isEmpty &&
             noteCount == 0) {
-          return const SizedBox.shrink();
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 48.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.search_off_rounded,
+                    size: 64,
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No results found',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Try searching with a different keyword',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      noteProvider.setSearchQuery('');
+                    },
+                    icon: const Icon(Icons.clear),
+                    label: const Text('Clear Search'),
+                  ),
+                ],
+              ),
+            ),
+          );
         }
 
         return Container(
@@ -595,9 +634,9 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
                             noteCount +
                             transactions.length +
                             periodLogs.length),
+                    if (noteCount > 0) _buildScopeChip('Notes', noteCount),
                     if (settingsResults.isNotEmpty)
                       _buildScopeChip('Settings', settingsResults.length),
-                    if (noteCount > 0) _buildScopeChip('Notes', noteCount),
                     if (transactions.isNotEmpty)
                       _buildScopeChip('Finances', transactions.length),
                     if (periodLogs.isNotEmpty)
@@ -608,6 +647,14 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
               const SizedBox(height: 12),
 
               // ── Results Sections ────────────────────────────────────────
+              if ((_selectedScope == 'All' || _selectedScope == 'Notes') &&
+                  noteCount > 0) ...[
+                _buildSectionHeader(
+                    context, 'Notes', Icons.notes_rounded),
+                const SizedBox(height: 8),
+                ...noteProvider.filteredNotes.map((n) => _buildNoteCard(context, n)),
+                const SizedBox(height: 12),
+              ],
               if ((_selectedScope == 'All' || _selectedScope == 'Settings') &&
                   settingsResults.isNotEmpty) ...[
                 _buildSectionHeader(
@@ -870,5 +917,98 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
       ),
     ),
   );
+  }
+
+  Widget _buildNoteCard(BuildContext context, Note note) {
+    final theme = Theme.of(context);
+    final primaryColor = theme.colorScheme.primary;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      color: theme.colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppLayout.radiusL),
+        side: BorderSide(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          width: 1.0,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
+          leading: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: note.isLocked
+                  ? theme.colorScheme.error.withValues(alpha: 0.15)
+                  : primaryColor.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: note.isLocked
+                    ? theme.colorScheme.error.withValues(alpha: 0.3)
+                    : primaryColor.withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+            child: Icon(
+              note.isLocked
+                  ? Icons.lock_outline_rounded
+                  : (note.isPinned ? Icons.push_pin_rounded : Icons.note_alt_outlined),
+              color: note.isLocked ? theme.colorScheme.error : primaryColor,
+              size: 18,
+            ),
+          ),
+          title: HighlightedText(
+            text: note.title.isNotEmpty ? note.title : 'Untitled',
+            query: widget.query,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            highlightStyle: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: primaryColor,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: note.isLocked
+              ? Text(
+                  'Locked Note (Tap to unlock)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontStyle: FontStyle.italic,
+                  ),
+                )
+              : HighlightedText(
+                  text: note.previewText ?? '',
+                  query: widget.query,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  highlightStyle: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: primaryColor,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+          trailing: Icon(
+            Icons.arrow_forward_ios,
+            size: 14,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          onTap: () {
+            AppRoute.push(context, NoteEditorScreen(note: note)).then((_) {
+              if (context.mounted) {
+                context.read<NoteProvider>().refreshNotes();
+              }
+            });
+          },
+        ),
+      ),
+    );
   }
 }

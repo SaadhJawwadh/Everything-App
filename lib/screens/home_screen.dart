@@ -14,6 +14,8 @@ import '../core/theme/app_layout.dart';
 import '../core/services/app_haptics.dart';
 import '../core/services/app_intent_dispatcher.dart';
 import '../core/ui/app_morphing_fab.dart';
+import '../core/ui/app_bottom_sheet.dart';
+import '../core/ui/app_dialog.dart';
 import '../core/ui/expressive_floating_toolbar.dart';
 import '../widgets/tag_filter_bar.dart';
 import '../widgets/clarity_mosaic_strip.dart';
@@ -191,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             for (final id in ids) {
               await NoteRepository.instance.restoreNote(id);
             }
-            await refreshNotes();
+            await refreshNotes(scrollOnModified: true);
           },
         ),
       ),
@@ -204,9 +206,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     settings.setNoteViewMode(values[nextIndex]);
   }
 
-  Future<void> refreshNotes() async {
+  Future<void> refreshNotes({bool scrollOnModified = false}) async {
     if (!mounted) return;
-    await context.read<NoteProvider>().refreshNotes();
+    final provider = context.read<NoteProvider>();
+    await provider.refreshNotes();
+    if (scrollOnModified && provider.sortMode == 'modified' && _scrollController.hasClients) {
+      await _scrollController.animateTo(
+        0,
+        duration: AppLayout.animDefault,
+        curve: AppLayout.curveEmphasizedDecelerate,
+      );
+    }
   }
 
   void onNoteTap(Note note, VoidCallback openContainer) {
@@ -231,11 +241,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final controller = TextEditingController();
     final chosen = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppLayout.radiusXXL),
-        ),
-        title: const Text('Move to folder'),
+      builder: (ctx) => AppDialog(
+        title: 'Move to folder',
+        confirmLabel: 'Create & Move',
+        onConfirm: () {
+          final v = controller.text.trim();
+          if (v.isNotEmpty) Navigator.pop(ctx, v);
+        },
         content: SizedBox(
           width: double.maxFinite,
           child: Column(
@@ -303,16 +315,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ],
           ),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () {
-              final v = controller.text.trim();
-              if (v.isNotEmpty) Navigator.pop(ctx, v);
-            },
-            child: const Text('Create & Move'),
-          ),
-        ],
       ),
     );
 
@@ -352,8 +354,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     final selectedNewTag = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Tag to Selected'),
+      builder: (context) => AppDialog(
+        title: 'Add Tag to Selected',
+        showConfirmButton: false,
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -368,7 +371,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ),
         ),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel'))],
       ),
     );
 
@@ -382,8 +384,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await showDialog(
       context: context,
       builder: (context) => StatefulBuilder(builder: (context, setDialogState) {
-        return AlertDialog(
-          title: const Text('Edit Tag'),
+        return AppDialog(
+          title: 'Edit Tag',
+          confirmLabel: 'Save',
+          onConfirm: () async {
+            final newName = controller.text.trim();
+            final noteProvider = context.read<NoteProvider>();
+            if (newName.isNotEmpty) {
+              if (newName != tag) await NoteRepository.instance.renameTag(tag, newName);
+              if (selectedColor != (noteProvider.tagColors[tag] ?? 0)) await NoteRepository.instance.setTagColor(newName, selectedColor);
+              if (!context.mounted) return;
+              Navigator.pop(context);
+              await noteProvider.refreshNotes();
+              if (noteProvider.selectedTag == tag) noteProvider.setTag(newName);
+            }
+          },
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -443,24 +458,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
             ],
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-            FilledButton(
-              onPressed: () async {
-                final newName = controller.text.trim();
-                final noteProvider = context.read<NoteProvider>();
-                if (newName.isNotEmpty) {
-                  if (newName != tag) await NoteRepository.instance.renameTag(tag, newName);
-                  if (selectedColor != (noteProvider.tagColors[tag] ?? 0)) await NoteRepository.instance.setTagColor(newName, selectedColor);
-                  if (!context.mounted) return;
-                  Navigator.pop(context);
-                  await noteProvider.refreshNotes();
-                  if (noteProvider.selectedTag == tag) noteProvider.setTag(newName);
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
         );
       }),
     );
@@ -469,13 +466,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Future<void> _deleteTag(String tag) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Tag?'),
+      builder: (context) => AppDialog(
+        title: 'Delete Tag?',
         content: Text('Are you sure you want to delete "$tag"? This will remove the tag from all notes.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          FilledButton(style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error, foregroundColor: Theme.of(context).colorScheme.onError), onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
-        ],
+        cancelLabel: 'Cancel',
+        confirmLabel: 'Delete',
+        isDestructive: true,
+        onCancel: () => Navigator.pop(context, false),
+        onConfirm: () => Navigator.pop(context, true),
       ),
     );
 
@@ -490,17 +488,31 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   void _showTagOptions(String tag) {
     if (tag == 'All' || tag == 'Archived' || tag == 'Trash') return;
-    showModalBottomSheet(
+    AppBottomSheet.show(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(leading: const Icon(Icons.edit_outlined), title: const Text('Edit Tag'), onTap: () { Navigator.pop(context); _editTag(tag); }),
-            ListTile(leading: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error), title: Text('Delete Tag', style: TextStyle(color: Theme.of(context).colorScheme.error)), onTap: () { Navigator.pop(context); _deleteTag(tag); }),
-          ],
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.edit_outlined),
+            title: const Text('Edit Tag'),
+            onTap: () {
+              Navigator.pop(context);
+              _editTag(tag);
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.delete_outline, color: Theme.of(context).colorScheme.error),
+            title: Text(
+              'Delete Tag',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              _deleteTag(tag);
+            },
+          ),
+        ],
       ),
     );
   }
@@ -796,6 +808,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       child: NotificationListener<UserScrollNotification>(
         onNotification: _onScrollNotification,
         child: CustomScrollView(
+          key: const PageStorageKey<String>('home_notes_scroll_view'),
           controller: _scrollController,
           slivers: [
             HomeAppBar(
@@ -815,7 +828,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 noteProvider.searchQuery.isEmpty &&
                 !noteProvider.isSelectionMode)
               const SliverToBoxAdapter(child: ClarityMosaicStrip()),
-            if (settings.showTagFilterBar)
+            if (settings.showTagFilterBar && noteProvider.searchQuery.isEmpty)
               SliverToBoxAdapter(child: TagFilterBar(onTagLongPress: _showTagOptions)),
             if (settings.showProTips &&
                 settings.isTipDue &&
@@ -829,11 +842,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   onDisable: () => settings.setShowProTips(false),
                 ),
               ),
-            NoteViewBuilder(
-              onRefresh: refreshNotes,
-              onNoteTap: onNoteTap,
-              onNoteLongPress: onNoteLongPress,
-            ),
+            if (noteProvider.searchQuery.isEmpty)
+              NoteViewBuilder(
+                onRefresh: refreshNotes,
+                onNoteTap: onNoteTap,
+                onNoteLongPress: onNoteLongPress,
+              ),
           ],
         ),
       ),
@@ -942,7 +956,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             builder: (context) => NoteEditorScreen(initialFolder: noteProvider.selectedFolder),
           ),
         );
-        if (returned == true) await refreshNotes();
+        if (returned == true) await refreshNotes(scrollOnModified: true);
       },
       secondaryAction: IconButton(
         tooltip: 'Templates',
@@ -955,54 +969,43 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _showTemplateSheet() {
-    showModalBottomSheet(
+    AppBottomSheet.show(
       context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                'Start from a template',
-                style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+      title: 'Start from a template',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ...NoteTemplate.all().map(
+            (t) => ListTile(
+              leading: CircleAvatar(
+                backgroundColor:
+                    Theme.of(context).colorScheme.primaryContainer,
+                child: Icon(t.icon,
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onPrimaryContainer),
               ),
-            ),
-            ...NoteTemplate.all().map(
-              (t) => ListTile(
-                leading: CircleAvatar(
-                  backgroundColor:
-                      Theme.of(sheetContext).colorScheme.primaryContainer,
-                  child: Icon(t.icon,
-                      color: Theme.of(sheetContext)
-                          .colorScheme
-                          .onPrimaryContainer),
-                ),
-                title: Text(t.name),
-                subtitle: Text(t.description),
-                onTap: () async {
-                  Navigator.pop(sheetContext);
-                  final noteProvider = Provider.of<NoteProvider>(context, listen: false);
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => NoteEditorScreen(
-                        templateTitle: t.title,
-                        templateContent: t.contentDeltaJson,
-                        initialFolder: noteProvider.selectedFolder,
-                      ),
+              title: Text(t.name),
+              subtitle: Text(t.description),
+              onTap: () async {
+                Navigator.pop(context);
+                final noteProvider = Provider.of<NoteProvider>(context, listen: false);
+                final returned = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => NoteEditorScreen(
+                      templateTitle: t.title,
+                      templateContent: t.contentDeltaJson,
+                      initialFolder: noteProvider.selectedFolder,
                     ),
-                  );
-                  await refreshNotes();
-                },
-              ),
+                  ),
+                );
+                if (returned == true) await refreshNotes(scrollOnModified: true);
+              },
             ),
-            const SizedBox(height: 8),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+        ],
       ),
     );
   }

@@ -13,6 +13,7 @@ import 'package:note_taking_app/features/notes/presentation/widgets/note_migrati
 import '../../core/theme/app_layout.dart';
 import '../../core/ui/app_chip.dart';
 import '../../core/ui/app_dialog.dart';
+import '../../core/ui/app_bottom_sheet.dart';
 import '../../utils/app_route.dart';
 import '../bouncing_widget.dart';
 import 'package:note_taking_app/l10n/app_localizations.dart';
@@ -300,151 +301,125 @@ class _HomeAppBarState extends State<HomeAppBar> {
   }
 
   void _showFolderPicker(BuildContext context, NoteProvider noteProvider) {
-    showModalBottomSheet(
+    final folders = ['Notes', 'All Notes', ...noteProvider.folders];
+    final currentFolder = noteProvider.selectedFolder ?? 'Notes';
+
+    AppBottomSheet.show(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        final folders = ['Notes', 'All Notes', ...noteProvider.folders];
-        final currentFolder = noteProvider.selectedFolder ?? 'Notes';
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Filter by folder',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    TextButton.icon(
-                      icon: const Icon(Icons.create_new_folder_outlined, size: 20),
-                      label: const Text('New Folder'),
-                      onPressed: () {
-                        Navigator.pop(context); // Close bottom sheet
-                        _showCreateFolderDialog(context, noteProvider);
-                      },
-                    ),
-                  ],
+      title: 'Filter by folder',
+      actions: [
+        TextButton.icon(
+          icon: const Icon(Icons.create_new_folder_outlined, size: 18),
+          label: const Text('New Folder'),
+          onPressed: () {
+            Navigator.pop(context); // Close bottom sheet
+            _showCreateFolderDialog(context, noteProvider);
+          },
+        ),
+      ],
+      child: ListView(
+        shrinkWrap: true,
+        padding: EdgeInsets.zero,
+        children: [
+          ...folders.map((folder) {
+            final isSelected = folder == currentFolder;
+            final count = noteProvider.folderCounts[folder];
+            return ListTile(
+              leading: Icon(
+                folder == 'Notes'
+                    ? Icons.folder_open_outlined
+                    : folder == 'All Notes'
+                        ? Icons.folder_copy_outlined
+                        : Icons.folder,
+                color: isSelected ? Theme.of(context).colorScheme.primary : null,
+              ),
+              title: Text(
+                folder,
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? Theme.of(context).colorScheme.primary : null,
                 ),
               ),
-              const SizedBox(height: AppLayout.spaceS),
-              Flexible(
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    ...folders.map((folder) {
-                      final isSelected = folder == currentFolder;
-                      final count = noteProvider.folderCounts[folder];
-                      return ListTile(
-                        leading: Icon(
-                          folder == 'Notes'
-                              ? Icons.folder_open_outlined
-                              : folder == 'All Notes'
-                                  ? Icons.folder_copy_outlined
-                                  : Icons.folder,
-                          color: isSelected ? Theme.of(context).colorScheme.primary : null,
-                        ),
-                        title: Text(
-                          folder,
-                          style: TextStyle(
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            color: isSelected ? Theme.of(context).colorScheme.primary : null,
-                          ),
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (count != null)
-                              Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: Text(
-                                  '$count',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                      ),
-                                ),
-                              ),
-                            if (isSelected)
-                              Icon(Icons.check, color: Theme.of(context).colorScheme.primary),
-                          ],
-                        ),
-                        onTap: () {
-                          noteProvider.setFolder(folder);
-                          Navigator.pop(context);
-                        },
-                      );
-                    }),
-                    const SizedBox(height: AppLayout.spaceM),
-                    ListTile(
-                      leading: Icon(
-                        Icons.checklist_rtl_rounded,
-                        color: noteProvider.filterChecklistsOnly
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (count != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Text(
+                        '$count',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
                       ),
-                      title: Text(
-                        'Checklists & Tasks',
-                        style: TextStyle(
-                          fontWeight: noteProvider.filterChecklistsOnly ? FontWeight.bold : FontWeight.normal,
-                          color: noteProvider.filterChecklistsOnly ? Theme.of(context).colorScheme.primary : null,
-                        ),
-                      ),
-                      trailing: noteProvider.checklistNotesCount > 0
-                          ? AppChip(
-                              label: '${noteProvider.checklistNotesCount}',
-                              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                            )
-                          : null,
-                      onTap: () {
-                        noteProvider.setFilterChecklistsOnly(true);
-                        Navigator.pop(context);
-                      },
                     ),
-                    ListTile(
-                      leading: Icon(Icons.archive_outlined, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                      title: const Text('Archived Notes'),
-                      trailing: noteProvider.archivedCount > 0
-                          ? AppChip(
-                              label: '${noteProvider.archivedCount}',
-                              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                            )
-                          : null,
-                      onTap: () {
-                        Navigator.pop(context);
-                        AppRoute.push(context, const FilteredNotesScreen(filterType: FilterType.archived));
-                      },
-                    ),
-                    ListTile(
-                      leading: Icon(Icons.delete_outline_rounded, color: Theme.of(context).colorScheme.error),
-                      title: Text('Trash Bin', style: TextStyle(color: Theme.of(context).colorScheme.error)),
-                      trailing: noteProvider.trashCount > 0
-                          ? AppChip(
-                              label: '${noteProvider.trashCount}',
-                              backgroundColor: Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.4),
-                              textColor: Theme.of(context).colorScheme.error,
-                            )
-                          : null,
-                      onTap: () {
-                        Navigator.pop(context);
-                        AppRoute.push(context, const FilteredNotesScreen(filterType: FilterType.trash));
-                      },
-                    ),
-                  ],
-                ),
+                  if (isSelected)
+                    Icon(Icons.check, color: Theme.of(context).colorScheme.primary),
+                ],
               ),
-            ],
+              onTap: () {
+                noteProvider.setFolder(folder);
+                Navigator.pop(context);
+              },
+            );
+          }),
+          const SizedBox(height: AppLayout.spaceM),
+          ListTile(
+            leading: Icon(
+              Icons.checklist_rtl_rounded,
+              color: noteProvider.filterChecklistsOnly
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            title: Text(
+              'Checklists & Tasks',
+              style: TextStyle(
+                fontWeight: noteProvider.filterChecklistsOnly ? FontWeight.bold : FontWeight.normal,
+                color: noteProvider.filterChecklistsOnly ? Theme.of(context).colorScheme.primary : null,
+              ),
+            ),
+            trailing: noteProvider.checklistNotesCount > 0
+                ? AppChip(
+                    label: '${noteProvider.checklistNotesCount}',
+                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  )
+                : null,
+            onTap: () {
+              noteProvider.setFilterChecklistsOnly(true);
+              Navigator.pop(context);
+            },
           ),
-        );
-      },
+          ListTile(
+            leading: Icon(Icons.archive_outlined, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            title: const Text('Archived Notes'),
+            trailing: noteProvider.archivedCount > 0
+                ? AppChip(
+                    label: '${noteProvider.archivedCount}',
+                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  )
+                : null,
+            onTap: () {
+              Navigator.pop(context);
+              AppRoute.push(context, const FilteredNotesScreen(filterType: FilterType.archived));
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.delete_outline_rounded, color: Theme.of(context).colorScheme.error),
+            title: Text('Trash Bin', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            trailing: noteProvider.trashCount > 0
+                ? AppChip(
+                    label: '${noteProvider.trashCount}',
+                    backgroundColor: Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.4),
+                    textColor: Theme.of(context).colorScheme.error,
+                  )
+                : null,
+            onTap: () {
+              Navigator.pop(context);
+              AppRoute.push(context, const FilteredNotesScreen(filterType: FilterType.trash));
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -543,66 +518,6 @@ class _HomeAppBarState extends State<HomeAppBar> {
             });
           },
         ),
-        Consumer<P2pSyncProvider>(
-          builder: (context, syncProvider, _) {
-            // Show when there are paired devices (regardless of auto-sync toggle)
-            if (syncProvider.pairedDevices.isEmpty) {
-              return const SizedBox.shrink();
-            }
-            final isSyncing = syncProvider.status == SyncStatus.syncing;
-            final isError = syncProvider.status == SyncStatus.error;
-            IconData syncIcon;
-            Color? iconColor;
-            if (isSyncing) {
-              syncIcon = Icons.sync_rounded;
-              iconColor = null;
-            } else if (isError) {
-              syncIcon = Icons.sync_problem_rounded;
-              iconColor = Theme.of(context).colorScheme.error;
-            } else if (syncProvider.status == SyncStatus.completed) {
-              syncIcon = Icons.sync_rounded;
-              iconColor = Theme.of(context).colorScheme.primary;
-            } else {
-              syncIcon = Icons.sync_rounded;
-              iconColor = null;
-            }
-            return ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-              child: Tooltip(
-                message: isSyncing
-                    ? 'Syncing...'
-                    : isError
-                        ? 'Sync failed — long-press for Sync settings'
-                        : 'Quick Sync (Tap) | P2P Sync Hub (Hold)',
-                child: BouncingWidget(
-                  onTap: isSyncing
-                      ? null
-                      : () async {
-                          await syncProvider.syncNow(onCompleted: () {
-                            noteProvider.refreshNotes();
-                          });
-                        },
-                  onLongPress: () {
-                    AppHaptics.mediumImpact();
-                    AppRoute.push(context, const P2pSyncScreen());
-                  },
-                  child: Center(
-                    child: isSyncing
-                        ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
-                            ),
-                          )
-                        : Icon(syncIcon, color: iconColor),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
         PopupMenuButton<String>(
           icon: const Icon(Icons.sort_rounded),
           tooltip: 'Sort notes',
@@ -662,6 +577,66 @@ class _HomeAppBarState extends State<HomeAppBar> {
                 ),
               );
             }).toList();
+          },
+        ),
+        Consumer<P2pSyncProvider>(
+          builder: (context, syncProvider, _) {
+            // Show when there are paired devices (regardless of auto-sync toggle)
+            if (syncProvider.pairedDevices.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            final isSyncing = syncProvider.status == SyncStatus.syncing;
+            final isError = syncProvider.status == SyncStatus.error;
+            IconData syncIcon;
+            Color? iconColor;
+            if (isSyncing) {
+              syncIcon = Icons.sync_rounded;
+              iconColor = null;
+            } else if (isError) {
+              syncIcon = Icons.sync_problem_rounded;
+              iconColor = Theme.of(context).colorScheme.error;
+            } else if (syncProvider.status == SyncStatus.completed) {
+              syncIcon = Icons.sync_rounded;
+              iconColor = Theme.of(context).colorScheme.primary;
+            } else {
+              syncIcon = Icons.sync_rounded;
+              iconColor = null;
+            }
+            return ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              child: Tooltip(
+                message: isSyncing
+                    ? 'Syncing...'
+                    : isError
+                        ? 'Sync failed — long-press for Sync settings'
+                        : 'Quick Sync (Tap) | P2P Sync Hub (Hold)',
+                child: BouncingWidget(
+                  onTap: isSyncing
+                      ? null
+                      : () async {
+                          await syncProvider.syncNow(onCompleted: () {
+                            noteProvider.refreshNotes();
+                          });
+                        },
+                  onLongPress: () {
+                    AppHaptics.mediumImpact();
+                    AppRoute.push(context, const P2pSyncScreen());
+                  },
+                  child: Center(
+                    child: isSyncing
+                        ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+                            ),
+                          )
+                        : Icon(syncIcon, color: iconColor),
+                  ),
+                ),
+              ),
+            );
           },
         ),
         PopupMenuButton<String>(
