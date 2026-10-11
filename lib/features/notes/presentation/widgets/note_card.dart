@@ -6,7 +6,6 @@ import '../../../../data/note_model.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/services/app_haptics.dart';
 import '../../../../core/ui/app_chip.dart';
-import '../../../../widgets/bouncing_widget.dart';
 import '../../../../widgets/home/universal_search_overlay.dart';
 import '../../../../utils/quill_checklist_helper.dart';
 import '../../../../utils/rich_text_utils.dart';
@@ -52,23 +51,32 @@ class NoteCard extends StatelessWidget {
     final uncheckedCount = RegExp(r'"list"\s*:\s*"unchecked"').allMatches(note.content).length;
     final totalChecklistItems = checkedCount + uncheckedCount;
 
-    return BouncingWidget(
-      onTap: onTap,
-      onLongPress: onLongPress != null
-          ? () {
-              AppHaptics.mediumImpact();
-              onLongPress!();
-            }
-          : null,
-      child: Container(
-        padding: AppLayout.paddingAllL,
-        decoration: BoxDecoration(
-          color: isSelected ? theme.colorScheme.primaryContainer : backgroundColor,
-          borderRadius: BorderRadius.circular(AppLayout.radiusL),
-          border: Border.all(color: isSelected ? theme.colorScheme.primary : borderColor, width: isSelected ? 2 : 1),
+    return Material(
+      color: isSelected ? theme.colorScheme.primaryContainer : backgroundColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppLayout.radiusL),
+        side: BorderSide(
+          color: isSelected ? theme.colorScheme.primary : borderColor,
+          width: isSelected ? 2 : 1,
         ),
-        child: Stack(
-          children: [
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        splashFactory: InkSparkle.splashFactory,
+        onTap: () {
+          AppHaptics.lightImpact();
+          onTap();
+        },
+        onLongPress: onLongPress != null
+            ? () {
+                AppHaptics.mediumImpact();
+                onLongPress!();
+              }
+            : null,
+        child: Padding(
+          padding: AppLayout.paddingAllL,
+          child: Stack(
+            children: [
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -200,8 +208,9 @@ class NoteCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   List<Widget> _buildChecklistPreview(BuildContext context, ThemeData theme, String searchQuery) {
     try {

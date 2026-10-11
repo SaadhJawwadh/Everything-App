@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:provider/provider.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
 import 'data/transaction_category.dart';
@@ -31,6 +32,16 @@ import 'data/repositories/recurring_rule_repository.dart';
 import 'utils/widget_helper.dart';
 import 'utils/app_globals.dart';
 
+Future<void> _unlockHighRefreshRate() async {
+  if (!kIsWeb && Platform.isAndroid) {
+    try {
+      await FlutterDisplayMode.setHighRefreshRate();
+    } catch (e) {
+      debugPrint('DisplayMode error: $e');
+    }
+  }
+}
+
 Future<void> main() async {
   try {
     WidgetsFlutterBinding.ensureInitialized();
@@ -49,8 +60,11 @@ Future<void> main() async {
           statusBarColor: Colors.transparent,
           systemNavigationBarColor: Colors.transparent,
           systemNavigationBarDividerColor: Colors.transparent,
+          systemNavigationBarContrastEnforced: false,
+          systemStatusBarContrastEnforced: false,
         ),
       );
+      unawaited(_unlockHighRefreshRate());
     }
 
     // Initialize services but don't let them block the app if they fail —
@@ -119,6 +133,39 @@ Future<void> main() async {
   );
 }
 
+class AppScrollBehavior extends MaterialScrollBehavior {
+  const AppScrollBehavior();
+
+  @override
+  Widget buildOverscrollIndicator(
+      BuildContext context, Widget child, ScrollableDetails details) {
+    switch (getPlatform(context)) {
+      case TargetPlatform.android:
+        return StretchingOverscrollIndicator(
+          axisDirection: details.direction,
+          child: child,
+        );
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+        return child;
+      default:
+        return super.buildOverscrollIndicator(context, child, details);
+    }
+  }
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    switch (getPlatform(context)) {
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+        return const BouncingScrollPhysics();
+      case TargetPlatform.android:
+      default:
+        return const ClampingScrollPhysics();
+    }
+  }
+}
+
 class NoteApp extends StatelessWidget {
   const NoteApp({super.key});
 
@@ -136,6 +183,7 @@ class NoteApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           navigatorKey: appNavigatorKey,
           scaffoldMessengerKey: appScaffoldMessengerKey,
+          scrollBehavior: const AppScrollBehavior(),
           theme: AppTheme.createTheme(
               settings.useDynamicColor ? lightDynamic : null, Brightness.light),
           darkTheme: AppTheme.createTheme(

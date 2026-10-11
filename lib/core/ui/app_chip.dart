@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_layout.dart';
+import '../services/app_haptics.dart';
 
 /// Reusable Chip/Pill component for tags, categories, phase badges, and filters.
 class AppChip extends StatelessWidget {
@@ -116,7 +117,12 @@ class AppChip extends StatelessWidget {
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(effectiveRadius),
         child: InkWell(
-          onTap: onTap,
+          onTap: onTap != null
+              ? () {
+                  AppHaptics.selectionClick();
+                  onTap!();
+                }
+              : null,
           borderRadius: BorderRadius.circular(effectiveRadius),
           child: Padding(
             padding: EdgeInsets.symmetric(
@@ -147,7 +153,10 @@ class AppChip extends StatelessWidget {
                     button: true,
                     label: 'Delete $label',
                     child: GestureDetector(
-                      onTap: onDelete,
+                      onTap: () {
+                        AppHaptics.lightImpact();
+                        onDelete!();
+                      },
                       behavior: HitTestBehavior.opaque,
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(

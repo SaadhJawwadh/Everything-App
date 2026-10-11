@@ -21,9 +21,15 @@ class AppRouter {
   static const String changelog = '/changelog';
   static const String p2pSync = '/p2p-sync';
 
-  /// Pushes [page] with a horizontal shared-axis transition (drill-in).
-  static Future<T?> push<T>(BuildContext context, Widget page) {
-    return Navigator.of(context).push<T>(sharedAxis<T>(page));
+  /// Pushes [page] respecting the platform's native page transition theme
+  /// (PredictiveBack on Android 14+, Cupertino swipe-to-pop on iOS).
+  static Future<T?> push<T>(BuildContext context, Widget page, {RouteSettings? settings}) {
+    return Navigator.of(context).push<T>(
+      MaterialPageRoute<T>(
+        builder: (_) => page,
+        settings: settings,
+      ),
+    );
   }
 
   /// Pushes named route [routeName] with optional [arguments].

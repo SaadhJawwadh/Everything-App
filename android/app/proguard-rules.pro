@@ -57,6 +57,8 @@
 -keep class io.flutter.plugins.urllauncher.** { *; }
 -keep class dev.fluttercommunity.plus.share.** { *; }
 -keep class gal.** { *; }
+-keep class com.rayfel.flutter_displaymode.** { *; }
+-dontwarn com.rayfel.flutter_displaymode.**
 
 # Google ML Kit & Text Recognition
 -keep class com.google_mlkit_text_recognition.** { *; }

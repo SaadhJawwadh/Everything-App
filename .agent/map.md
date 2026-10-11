@@ -115,7 +115,15 @@ lib/
 │   │   ├── presentation/
 │   │   │   └── screens/
 │   │   │       ├── onboarding_screen.dart    # Full-screen interactive wizard & setup choices
-│   │   │       └── settings_screen.dart      # App options, backup/restore, security controls
+│   │   │       ├── settings_dialogs.dart     # Centralized modal sheets & picker dialog helpers
+│   │   │       ├── settings_screen.dart      # Master 6-hub settings dashboard with live search
+│   │   │       └── sections/                 # Domain Settings Hub Sub-Screens
+│   │   │           ├── about_settings_screen.dart        # Changelog, test alerts, intro replay
+│   │   │           ├── appearance_settings_screen.dart   # Themes, dynamic wallpaper, haptics
+│   │   │           ├── finances_settings_screen.dart     # Dual accounts, categories, SMS auto-import
+│   │   │           ├── notes_settings_screen.dart        # Editor fonts, width, Google Takeout, trash
+│   │   │           ├── security_settings_screen.dart     # App lock, biometric auth, auto-lock timeouts
+│   │   │           └── sync_backup_settings_screen.dart  # P2P Wi-Fi sync, encrypted JSON backups
 │   │   └── providers/
 │   │       └── settings_provider.dart        # SharedPreferences state & global app options
 │   ├── story_cards/                  # Social Quote & Story Card Studio Module

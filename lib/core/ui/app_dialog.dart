@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/app_haptics.dart';
 
 /// Reusable Modal Dialog helper providing consistent M3 alert and input dialog styling.
 class AppDialog extends StatelessWidget {
@@ -76,7 +77,18 @@ class AppDialog extends StatelessWidget {
             ),
             if (showConfirmButton)
               FilledButton(
-                onPressed: onConfirm ?? () => Navigator.of(context).pop(true),
+                onPressed: () {
+                  if (isDestructive) {
+                    AppHaptics.mediumImpact();
+                  } else {
+                    AppHaptics.lightImpact();
+                  }
+                  if (onConfirm != null) {
+                    onConfirm!();
+                  } else {
+                    Navigator.of(context).pop(true);
+                  }
+                },
                 style: isDestructive
                     ? FilledButton.styleFrom(
                         backgroundColor: theme.colorScheme.error,

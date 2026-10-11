@@ -1,12 +1,15 @@
 
 ### 🌟 What's New
-- **Direct Checklist Tap Navigation**: Tapping an uncompleted task on any note card now navigates directly into the note editor, focusing right on that checklist item.
-- **Instant Search Edit Refresh**: Editing notes opened from the universal search overlay now immediately syncs and refreshes your home screen list.
+- **120Hz Ultra-Smooth Display Mode**: Unlocked high-refresh-rate rendering on Android flagships and smooth-display devices for silky 120 fps list scrolling and gestures.
+- **Predictive Back Navigation**: Enabled Android 14+ system predictive back gestures with interactive scale previews when edge-swiping out of notes and editors.
 
 ### 🚀 Improvements
-- **Viewport Scroll Preservation**: Returning to the notes home screen preserves your exact scroll position smoothly with zero layout jumps.
-- **Unified Modern Dialogs**: Migrated folder and tagging prompts to standardized Material 3 rounded dialogs with clear action buttons.
+- **True Borderless Edge-to-Edge**: Removed the translucent grey navigation bar scrim on Android 10-15+ for seamless wallpaper integration.
+- **Material 3 Touch & Ripple Polish**: Replaced card shrink gestures with authentic M3 InkSparkle ripple animations radiating from touch points.
+- **Universal Tactile Micro-Haptics**: Added subtle mechanical click feedback when switching navigation tabs, selecting filter chips, and confirming dialog actions.
+- **Variable Typography Optical Sizing**: Dynamic optical size scaling for Google Sans Flex across titles and headlines with robust font fallbacks.
 
 ### 🐛 Fixes
-- **Checklist Tap Hit Testing**: Fixed checklist touch targets inside note preview cards so sub-item taps don't inadvertently trigger whole-note navigation.
+- **Cold-Start Flash**: Fixed a color mismatch in light mode splash screens to eliminate window flashes during app launch.
+- **Monochrome Status Bar Icons**: Replaced colored launcher icons with clean white silhouette icons for notifications on modern Android trays.
 

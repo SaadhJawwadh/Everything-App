@@ -24,7 +24,7 @@ class NotificationService {
     tz.initializeTimeZones();
 
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('launcher_icon');
+        AndroidInitializationSettings('ic_notification');
 
     // For iOS
     const DarwinInitializationSettings initializationSettingsIOS =
@@ -160,6 +160,8 @@ class NotificationService {
       channelDescription: channelDescription,
       importance: Importance.max,
       priority: Priority.high,
+      icon: 'ic_notification',
+      largeIcon: DrawableResourceAndroidBitmap('launcher_icon'),
     );
     const DarwinNotificationDetails darwinPlatformChannelSpecifics =
         DarwinNotificationDetails(
@@ -211,6 +213,8 @@ class NotificationService {
       channelDescription: 'Reminders you set on individual notes',
       importance: Importance.max,
       priority: Priority.high,
+      icon: 'ic_notification',
+      largeIcon: DrawableResourceAndroidBitmap('launcher_icon'),
     );
 
     try {
@@ -249,6 +253,8 @@ class NotificationService {
       channelDescription: 'Notifications for daily transaction synchronization results',
       importance: Importance.max,
       priority: Priority.high,
+      icon: 'ic_notification',
+      largeIcon: DrawableResourceAndroidBitmap('launcher_icon'),
     );
     const NotificationDetails platformChannelSpecifics =
         NotificationDetails(android: androidPlatformChannelSpecifics);
@@ -273,6 +279,8 @@ class NotificationService {
       channelDescription: 'Notifications when automatic backups are completed',
       importance: Importance.defaultImportance,
       priority: Priority.defaultPriority,
+      icon: 'ic_notification',
+      largeIcon: DrawableResourceAndroidBitmap('launcher_icon'),
     );
     const NotificationDetails platformChannelSpecifics =
         NotificationDetails(android: androidPlatformChannelSpecifics);
@@ -302,6 +310,8 @@ class NotificationService {
       channelDescription: 'Diagnostics and test notifications',
       importance: Importance.max,
       priority: Priority.high,
+      icon: 'ic_notification',
+      largeIcon: DrawableResourceAndroidBitmap('launcher_icon'),
     );
     const DarwinNotificationDetails darwinDetails = DarwinNotificationDetails(
       presentAlert: true,
@@ -336,6 +346,8 @@ class NotificationService {
       channelDescription: 'Notifications for automated trash retention cleanup',
       importance: Importance.defaultImportance,
       priority: Priority.defaultPriority,
+      icon: 'ic_notification',
+      largeIcon: DrawableResourceAndroidBitmap('launcher_icon'),
     );
     const DarwinNotificationDetails darwinDetails = DarwinNotificationDetails(
       presentAlert: true,
@@ -395,6 +407,8 @@ class NotificationService {
         channelDescription: 'Actionable tips and powerup suggestions',
         importance: Importance.defaultImportance,
         priority: Priority.defaultPriority,
+        icon: 'ic_notification',
+        largeIcon: DrawableResourceAndroidBitmap('launcher_icon'),
       );
       const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
 

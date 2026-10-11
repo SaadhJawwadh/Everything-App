@@ -37,6 +37,16 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.speed_rounded,
+            title: "120Hz Ultra-Smooth Mode",
+            desc: "Silky 120 fps display refresh rate on Android flagships and smooth-display devices for ultra-fluid scrolling.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.arrow_back_rounded,
+            title: "Predictive Back Navigation",
+            desc: "Android 14+ gesture support with real-time interactive scaling previews when swiping back to home.",
+          ),
+          _WhatsNewItem(
             icon: Icons.tag_rounded,
             title: "Multi-Tag Notes Filtering",
             desc: "Combine multiple tags simultaneously (#work + #project) in the filter bar for deep, pinpoint note discovery.",
@@ -70,6 +80,16 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.tertiaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.border_clear_rounded,
+            title: "True Borderless Edge-to-Edge",
+            desc: "Transparent navigation bar without dark contrast scrims for seamless Android 15 wallpaper harmony.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.vibration_rounded,
+            title: "Universal Tactile Micro-Haptics",
+            desc: "Mechanical click feedback when switching navigation tabs, filter chips, and confirming dialog actions.",
+          ),
+          _WhatsNewItem(
             icon: Icons.sync_rounded,
             title: "Live P2P & Widget Sync",
             desc: "Incoming Wi-Fi sync updates refresh your home screen widgets in real time with drift-resistant task matching.",
@@ -97,6 +117,16 @@ class WhatsNewSheet extends StatelessWidget {
         categoryColor: theme.colorScheme.secondary,
         bgColor: theme.colorScheme.secondaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
+          _WhatsNewItem(
+            icon: Icons.flash_off_rounded,
+            title: "Cold-Start Splash Flash",
+            desc: "Fixed light mode splash screen color mismatch to eliminate window flashes during app launch.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.notifications_active_outlined,
+            title: "Monochrome Notification Icons",
+            desc: "Clean white silhouette icons for notifications on modern Android status trays.",
+          ),
           _WhatsNewItem(
             icon: Icons.palette_outlined,
             title: "Widget Zero-Lag Theme Contrast",

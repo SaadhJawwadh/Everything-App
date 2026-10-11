@@ -32,6 +32,12 @@ class AppBottomSheet extends StatelessWidget {
       isScrollControlled: isScrollControlled,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
+      sheetAnimationStyle: const AnimationStyle(
+        duration: AppLayout.animDefault,
+        reverseDuration: AppLayout.animShort,
+        curve: AppLayout.curveEmphasizedDecelerate,
+        reverseCurve: AppLayout.curveEmphasizedAccelerate,
+      ),
       builder: (context) => AppBottomSheet(
         title: title,
         actions: actions,

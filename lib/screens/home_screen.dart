@@ -618,6 +618,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               NavigationRail(
                 selectedIndex: _currentIndex,
                 onDestinationSelected: (index) {
+                  AppHaptics.selectionClick();
                   if (noteProvider.isSelectionMode) noteProvider.clearSelection();
                   if (finProvider.isSelectionMode) finProvider.clearSelection();
                   setState(() => _currentIndex = index);
@@ -680,6 +681,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     elevation: 0,
                     selectedIndex: _currentIndex,
                     onDestinationSelected: (index) {
+                      AppHaptics.selectionClick();
                       if (noteProvider.isSelectionMode) noteProvider.clearSelection();
                       if (finProvider.isSelectionMode) finProvider.clearSelection();
                       setState(() => _currentIndex = index);

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:animations/animations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_layout.dart';
@@ -82,6 +84,25 @@ class AppTheme {
   static const String fontNotoSansTamil = 'Noto Sans Tamil';
   static const String fontNotoSerifTamil = 'Noto Serif Tamil';
 
+  static const List<String> fontFallbacks = [
+    fontNotoSansTamil,
+    fontInter,
+    'Roboto',
+    'sans-serif',
+  ];
+
+  static List<FontVariation> _buildFontVariations({
+    required double size,
+    required Brightness brightness,
+    double weight = 400.0,
+  }) {
+    return [
+      FontVariation('wght', weight),
+      FontVariation('opsz', size.clamp(8.0, 144.0)),
+      FontVariation('GRAD', brightness == Brightness.dark ? 15.0 : 0.0),
+    ];
+  }
+
   // Note Color Seeds (Material 3 Expressive Curated Palette)
   static const List<Color> noteColors = [
     Color(0x00000000), // System Default (0)
@@ -140,46 +161,51 @@ class AppTheme {
       displayColor: scheme.onSurface,
     );
 
-    final fontVariations = brightness == Brightness.dark
-        ? const [FontVariation('GRAD', 15.0)]
-        : null;
-
     final textTheme = baseTextTheme.copyWith(
       displayLarge: baseTextTheme.displayLarge?.copyWith(
         fontFamily: fontGoogleSansFlex,
-        fontVariations: fontVariations,
+        fontFamilyFallback: fontFallbacks,
+        fontVariations: _buildFontVariations(size: 57.0, brightness: brightness, weight: 400),
       ),
       displayMedium: baseTextTheme.displayMedium?.copyWith(
         fontFamily: fontGoogleSansFlex,
-        fontVariations: fontVariations,
+        fontFamilyFallback: fontFallbacks,
+        fontVariations: _buildFontVariations(size: 45.0, brightness: brightness, weight: 400),
       ),
       displaySmall: baseTextTheme.displaySmall?.copyWith(
         fontFamily: fontGoogleSansFlex,
-        fontVariations: fontVariations,
+        fontFamilyFallback: fontFallbacks,
+        fontVariations: _buildFontVariations(size: 36.0, brightness: brightness, weight: 400),
       ),
       headlineLarge: baseTextTheme.headlineLarge?.copyWith(
         fontFamily: fontGoogleSansFlex,
-        fontVariations: fontVariations,
+        fontFamilyFallback: fontFallbacks,
+        fontVariations: _buildFontVariations(size: 32.0, brightness: brightness, weight: 600),
       ),
       headlineMedium: baseTextTheme.headlineMedium?.copyWith(
         fontFamily: fontGoogleSansFlex,
-        fontVariations: fontVariations,
+        fontFamilyFallback: fontFallbacks,
+        fontVariations: _buildFontVariations(size: 28.0, brightness: brightness, weight: 600),
       ),
       headlineSmall: baseTextTheme.headlineSmall?.copyWith(
         fontFamily: fontGoogleSansFlex,
-        fontVariations: fontVariations,
+        fontFamilyFallback: fontFallbacks,
+        fontVariations: _buildFontVariations(size: 24.0, brightness: brightness, weight: 600),
       ),
       titleLarge: baseTextTheme.titleLarge?.copyWith(
         fontFamily: fontGoogleSansFlex,
-        fontVariations: fontVariations,
+        fontFamilyFallback: fontFallbacks,
+        fontVariations: _buildFontVariations(size: 22.0, brightness: brightness, weight: 600),
       ),
       titleMedium: baseTextTheme.titleMedium?.copyWith(
         fontFamily: fontGoogleSansFlex,
-        fontVariations: fontVariations,
+        fontFamilyFallback: fontFallbacks,
+        fontVariations: _buildFontVariations(size: 16.0, brightness: brightness, weight: 500),
       ),
       labelLarge: baseTextTheme.labelLarge?.copyWith(
         fontFamily: fontGoogleSansFlex,
-        fontVariations: fontVariations,
+        fontFamilyFallback: fontFallbacks,
+        fontVariations: _buildFontVariations(size: 14.0, brightness: brightness, weight: 500),
       ),
     );
 
@@ -208,6 +234,19 @@ class AppTheme {
         backgroundColor: scheme.surface,
         elevation: 0,
         centerTitle: true,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarBrightness: brightness,
+          statusBarIconBrightness: brightness == Brightness.dark
+              ? Brightness.light
+              : Brightness.dark,
+          systemNavigationBarColor: Colors.transparent,
+          systemNavigationBarIconBrightness: brightness == Brightness.dark
+              ? Brightness.light
+              : Brightness.dark,
+          systemNavigationBarContrastEnforced: false,
+          systemStatusBarContrastEnforced: false,
+        ),
         titleTextStyle: textTheme.titleLarge?.copyWith(
           fontWeight: FontWeight.bold,
         ),
@@ -216,6 +255,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: scheme.surfaceContainerHigh,
         elevation: 0,
+        clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppLayout.radiusL),
           side: BorderSide(
@@ -411,9 +451,11 @@ class AppTheme {
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
-          TargetPlatform.android: FadeThroughPageTransitionsBuilder(),
-          TargetPlatform.iOS: FadeThroughPageTransitionsBuilder(),
-          TargetPlatform.macOS: FadeThroughPageTransitionsBuilder(),
+          TargetPlatform.android: PredictiveBackPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.linux: FadeThroughPageTransitionsBuilder(),
+          TargetPlatform.windows: FadeThroughPageTransitionsBuilder(),
         },
       ),
       extensions: [

@@ -1331,6 +1331,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           const SizedBox(height: AppLayout.spaceXL),
           _buildFeatureCard(
             theme,
+            icon: Icons.speed_rounded,
+            title: '120Hz Ultra-Smooth Mode & Fluid Navigation',
+            desc: 'Silky 120 fps display refresh rates, borderless edge-to-edge transparent system bars, and native Android 14+ predictive back gestures with scale previews.',
+          ),
+          const SizedBox(height: AppLayout.spaceM),
+          _buildFeatureCard(
+            theme,
             icon: Icons.dashboard_customize_outlined,
             title: 'Modular Sub-Features Architecture',
             desc: 'Tailor every screen to your taste. Keep everything enabled for complete control, or turn off budgets, charts, and tags for pure minimalist simplicity.',
