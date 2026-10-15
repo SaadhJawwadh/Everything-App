@@ -102,19 +102,20 @@ class TodoWidgetProvider : AppWidgetProvider() {
             views.setRemoteAdapter(R.id.todo_widget_list, serviceIntent)
             views.setEmptyView(R.id.todo_widget_list, R.id.todo_widget_empty)
 
-            // Switcher click: Cycle to next note for this widget
-            val cycleIntent = Intent(context, TodoWidgetActionReceiver::class.java).apply {
-                action = ACTION_CYCLE_NOTE
+            // Switcher click: Show Google Tasks-style list selection dropdown dialog
+            val pickerIntent = Intent(context, TodoListPickerActivity::class.java).apply {
                 putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+                data = Uri.parse("widget://todo_picker/$appWidgetId")
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
-            val cyclePendingIntent = PendingIntent.getBroadcast(
+            val pickerPendingIntent = PendingIntent.getActivity(
                 context,
                 appWidgetId * 10 + 1,
-                cycleIntent,
+                pickerIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            views.setOnClickPendingIntent(R.id.todo_widget_switcher, cyclePendingIntent)
-            views.setOnClickPendingIntent(R.id.todo_widget_title, cyclePendingIntent)
+            views.setOnClickPendingIntent(R.id.todo_widget_switcher, pickerPendingIntent)
+            views.setOnClickPendingIntent(R.id.todo_widget_title, pickerPendingIntent)
 
             // Add button click: Open quick add dialog in MainActivity
             val addIntent = Intent(context, MainActivity::class.java).apply {

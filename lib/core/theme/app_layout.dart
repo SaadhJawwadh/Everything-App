@@ -58,10 +58,23 @@ class AppLayout {
     damping: 14.0,
   );
 
-  // Layout Constraints
+  // Layout Constraints & Breakpoints
   static const double maxContentWidth = 600.0;
+  static const double breakpointCompact = 600.0;
+  static const double breakpointMedium = 840.0;
+  static const double breakpointExpanded = 1200.0;
   static const double cardElevation = 0.0;
   static const double floatingElevation = 6.0;
+
+  /// Returns true if the screen is wide enough for dual-pane presentation (foldables & tablets).
+  static bool isDualPane(BuildContext context) {
+    return MediaQuery.sizeOf(context).width >= breakpointCompact;
+  }
+
+  /// Returns true if the device has a physical hinge or display feature dividing the screen.
+  static bool hasHinge(BuildContext context) {
+    return MediaQuery.displayFeaturesOf(context).isNotEmpty;
+  }
 
   // Shared Padding
   static const double fabBottomPadding = 96.0;

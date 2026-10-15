@@ -239,18 +239,18 @@ class FinanceWidgetProvider : AppWidgetProvider() {
     }
 
     private fun setupIntents(context: Context, views: RemoteViews) {
-        // Intent for clicking the Scan Receipt button
-        val scanIntent = Intent(context, MainActivity::class.java).apply {
-            action = "com.saadhjawwadh.notebook.SCAN_RECEIPT"
+        // Intent for clicking the New Note button
+        val noteIntent = Intent(context, MainActivity::class.java).apply {
+            action = "com.saadhjawwadh.notebook.NEW_NOTE"
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
-        val scanPendingIntent = PendingIntent.getActivity(
+        val notePendingIntent = PendingIntent.getActivity(
             context,
             4,
-            scanIntent,
+            noteIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        views.setOnClickPendingIntent(R.id.widget_scan_button, scanPendingIntent)
+        views.setOnClickPendingIntent(R.id.widget_note_button, notePendingIntent)
 
         // Intent for clicking the "+" quick-add button
         val addIntent = Intent(context, MainActivity::class.java).apply {

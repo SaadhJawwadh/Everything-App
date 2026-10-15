@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_background_shape"
     android:orientation="vertical"
-    android:padding="14dp">
+    android:padding="12dp">
 
     <!-- Header Row -->
     <RelativeLayout
@@ -36,12 +36,12 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:background="@drawable/widget_category_chip_shape"
-                android:paddingLeft="6dp"
-                android:paddingRight="6dp"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp"
-                android:fontFamily="@font/inter"
-                android:text="Analytics"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
+                android:fontFamily="@font/google_sans_flex"
+                android:text="Daily Cash"
                 android:textColor="@color/widget_on_primary_container"
                 android:textSize="11sp"
                 android:textStyle="bold" />
@@ -55,41 +55,41 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
+            <!-- New Note Shortcut Button -->
             <FrameLayout
-                android:id="@+id/widget_scan_button"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+                android:id="@+id/widget_note_button"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:background="@drawable/widget_category_chip_shape"
                 android:clickable="true"
                 android:focusable="true">
 
                 <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:layout_gravity="center"
-                    android:contentDescription="@string/shortcut_scan_receipt_short"
-                    android:src="@drawable/ic_shortcut_scan_receipt"
+                    android:contentDescription="New Note"
+                    android:src="@drawable/ic_shortcut_new_note"
                     android:tint="@color/widget_on_primary_container" />
             </FrameLayout>
 
+            <!-- Add Transaction Action Button -->
             <FrameLayout
                 android:id="@+id/widget_add_button"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:layout_marginStart="8dp"
                 android:background="@drawable/widget_add_button_shape"
                 android:clickable="true"
                 android:focusable="true">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
                     android:layout_gravity="center"
-                    android:fontFamily="@font/google_sans_flex"
-                    android:text="+"
-                    android:textColor="@color/widget_on_primary_container"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
+                    android:contentDescription="Add Transaction"
+                    android:src="@drawable/ic_add_small"
+                    android:tint="@color/widget_on_primary_container" />
             </FrameLayout>
         </LinearLayout>
     </RelativeLayout>
@@ -113,9 +113,9 @@
                 android:layout_height="wrap_content"
                 android:text="TODAY"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="11sp"
-                android:letterSpacing="0.05"
-                android:fontFamily="@font/inter"
+                android:textSize="10.5sp"
+                android:letterSpacing="0.04"
+                android:fontFamily="@font/google_sans_flex"
                 android:textStyle="bold" />
 
             <TextView
@@ -141,9 +141,9 @@
                 android:layout_height="wrap_content"
                 android:text="SPENT (MO)"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="11sp"
-                android:letterSpacing="0.05"
-                android:fontFamily="@font/inter"
+                android:textSize="10.5sp"
+                android:letterSpacing="0.04"
+                android:fontFamily="@font/google_sans_flex"
                 android:textStyle="bold" />
 
             <TextView
@@ -169,9 +169,9 @@
                 android:layout_height="wrap_content"
                 android:text="NET"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="11sp"
-                android:letterSpacing="0.05"
-                android:fontFamily="@font/inter"
+                android:textSize="10.5sp"
+                android:letterSpacing="0.04"
+                android:fontFamily="@font/google_sans_flex"
                 android:textStyle="bold" />
 
             <TextView
@@ -207,11 +207,11 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:layout_marginTop="8dp"
-        android:background="@drawable/widget_category_chip_shape"
+        android:background="@drawable/widget_subcard_shape"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingLeft="10dp"
-        android:paddingRight="10dp"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
         android:paddingTop="6dp"
         android:paddingBottom="6dp">
 
@@ -226,9 +226,9 @@
                 android:layout_height="wrap_content"
                 android:text="THIS MONTH EST"
                 android:textColor="@color/widget_text_secondary"
-                android:textSize="10.5sp"
+                android:textSize="10sp"
                 android:letterSpacing="0.04"
-                android:fontFamily="@font/inter"
+                android:fontFamily="@font/google_sans_flex"
                 android:textStyle="bold" />
 
             <TextView
@@ -247,7 +247,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
-                android:fontFamily="@font/inter"
+                android:fontFamily="@font/google_sans_flex"
                 android:text="On Track"
                 android:textColor="@color/widget_income"
                 android:textSize="10.5sp"
@@ -259,7 +259,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
-                android:fontFamily="@font/inter"
+                android:fontFamily="@font/google_sans_flex"
                 android:text="Pacing Fast"
                 android:textColor="@color/widget_expense"
                 android:textSize="10.5sp"

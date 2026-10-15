@@ -55,9 +55,11 @@ class AppDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return AlertDialog(
-      title: Text(
-        title,
+    return DisplayFeatureSubScreen(
+      anchorPoint: Offset.zero,
+      child: AlertDialog(
+        title: Text(
+          title,
         style: theme.textTheme.titleLarge?.copyWith(
           fontWeight: FontWeight.bold,
         ),
@@ -98,6 +100,7 @@ class AppDialog extends StatelessWidget {
                 child: Text(confirmLabel),
               ),
           ],
-    );
+        ),
+      );
   }
 }

@@ -47,7 +47,12 @@ class TodoRemoteViewsFactory(
         val notesJsonStr = prefs.getString("flutter.widget_todo_notes_json", "[]") ?: "[]"
         
         // Check for per-widget active note first, fallback to global active note
-        val appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
+        val extraId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
+        val appWidgetId = if (extraId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+            extraId
+        } else {
+            intent.data?.lastPathSegment?.toIntOrNull() ?: AppWidgetManager.INVALID_APPWIDGET_ID
+        }
         val activeNoteId = if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID && prefs.contains("flutter.widget_active_note_id_$appWidgetId")) {
             prefs.getString("flutter.widget_active_note_id_$appWidgetId", "ALL_NOTES") ?: "ALL_NOTES"
         } else {

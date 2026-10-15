@@ -174,6 +174,30 @@ lib/
 * **Zero-Drift Synchronization**: Whenever the app returns to foreground (`HomeScreen._checkAndProcessPendingIntents()` / `NoteProvider.refreshNotes()`), `WidgetHelper.processPendingWidgetActions()` MUST execute immediately, reconciling launcher actions with the persistent SQLCipher database and Quill Delta documents.
 * **Calm Habit Gamification**: Habit and mindfulness features (`ClarityMosaicStrip`) MUST adhere to Calm Technology principles: rolling 14-day consistency mosaics celebrating intentionality without stressful streak countdowns, broken-chain guilt, or dopamine traps.
 
+### 🔔 Invariant 18: Android Status Bar Icons, Resource Shrinking & Notification Protocol
+* **Monochrome Alpha Silhouette Standard**: Android status bar icons MUST be pure alpha-transparent monochrome silhouettes (`ic_notification.png` across `mdpi`, `hdpi`, `xhdpi`, `xxhdpi`, `xxxhdpi`, and default `drawable/`). Never pass full-color launcher icons as status bar icons, as the system status bar compositor will tint them into unreadable solid white blocks.
+* **AGP Resource Shrinking Preservation (`keep.xml`)**: Because notification and launcher icons are resolved dynamically via string reflection at runtime, `android/app/src/main/res/raw/keep.xml` MUST explicitly declare:
+  ```xml
+  <?xml version="1.0" encoding="utf-8"?>
+  <resources xmlns:tools="http://schemas.android.com/tools"
+      tools:keep="@drawable/ic_notification,@drawable/launcher_icon,@drawable/ic_*" />
+  ```
+  This prevents Android Gradle Plugin (`isShrinkResources = true`) from stripping notification drawables during release compilation.
+* **Notification Resource Identifier Contract**: In `NotificationService` (`flutter_local_notifications`), resource names must always be passed as clean identifiers (e.g., `icon: 'ic_notification'`, `AndroidInitializationSettings('ic_notification')`), NEVER with an XML prefix like `'@drawable/ic_notification'`, which causes Android's `Resources.getIdentifier()` to fail with `PlatformException(invalid_icon)`.
+* **Runtime Permission Gate**: All notification triggers must account for Android 13+ (API 33+) `android.permission.POST_NOTIFICATIONS` runtime permission.
+
+### ⚙️ Invariant 19: Settings Domain Hubs Architecture & Universal Live Search
+* **Modular Domain Sub-Screens**: All domain preferences live in dedicated sub-screens under `lib/features/settings/presentation/screens/sections/`:
+  - `appearance_settings_screen.dart` (Theme, wallpaper, haptics, font scale, language)
+  - `notes_settings_screen.dart` (Fonts, width, tags, takeout migration, trash retention)
+  - `finances_settings_screen.dart` (Accounts, categories, recurring rules, SMS auto-import, cycle alerts)
+  - `security_settings_screen.dart` (App lock, biometrics, timeouts, discreet health mode)
+  - `sync_backup_settings_screen.dart` (P2P Wi-Fi sync, encrypted JSON backups, auto-backup schedule)
+  - `about_settings_screen.dart` (Changelog, test notifications, onboarding replay, version)
+* **Master Dashboard with Live Status Subtitles**: The root `SettingsScreen` presents a top Hero Status Card and 6 compact Domain Hub cards displaying real-time reactive subtitles summarizing active user state.
+* **Decoupled Picker Dialogs**: Modal sheets, input dialogs, and picker sheets reside in `settings_dialogs.dart` to prevent code duplication across sections.
+* **Zero-Latency Universal Search**: The search bar in `SettingsScreen` queries `settings_search_index.dart` to filter deep settings items across all 6 hubs simultaneously without requiring navigation into sub-screens.
+
 ---
 
 ## 4. Token & Command Economy (LLM OS Principles)

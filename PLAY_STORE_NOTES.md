@@ -1,24 +1,25 @@
 <en-US>
 🌟 What's New
-• 120Hz Ultra-Smooth Mode: Fluid scrolling & animations on all high-refresh screens.
-• Predictive Back Gesture: Smooth Android edge-swipe previews.
+• M3 Expressive Widgets: All-new Todo, Notes, Finance & Unified dual widgets.
+• Floating Checklist Picker: Switch lists via a clean Google Tasks-style dialog.
+• 120Hz Ultra-Smooth Mode: Fluid 120 fps animations.
 
 🚀 Improvements
-• Borderless Edge-to-Edge: Completely transparent navigation bar.
-• Tactile Touch Feedback: Crisp haptics on buttons, chips, & tabs.
+• Foldable & Tablet Polish: Responsive layouts on large screens.
+• Predictive Back: Smooth gesture previews.
 
 🐛 Fixes
-• Fixed cold-start splash flash & cleaned notification status icons.
+• Fixed friend auto-fill on split payments.
 </en-US>
 <ta-IN>
 🌟 புதிய அம்சங்கள்
-• 120Hz அதிவேக திரை: மென்மையான அனிமேஷன் மற்றும் சுழற்சி.
-• முன்கணிப்பு பின்நகர்வு: எளிதான விரல் சைகை திரும்புதல்.
+• நவீன விட்ஜெட்டுகள்: புதிய குறிப்புகள், நிதி மற்றும் ஒருங்கிணைந்த விட்ஜெட்டுகள்.
+• மிதக்கும் பட்டியல் தேர்வு: முகப்புத் திரையிலேயே சரிபார்ப்பு பட்டியல்களை மாற்றலாம்.
+• 120Hz அதிவேக திரை: மென்மையான அனிமேஷன்.
 
 🚀 மேம்பாடுகள்
-• விளிம்பு வரை பரவிய முழுத்திரை: கீழ் பட்டியில் கூடுதல் வெளிப்படைத்தன்மை.
-• தொடு அதிர்வு உணர்வு: பொத்தான்கள் மற்றும் தாவல்களில் மென்மையான உணர்வு.
+• மடிப்பு மற்றும் டேப்லெட் திரைகளுக்கான மேம்பட்ட வடிவமைப்பு.
 
 🐛 பிழை திருத்தங்கள்
-• செயலியை திறக்கும்போது ஏற்படும் திரை மின்னல் சரி செய்யப்பட்டது.
+• பில் பகிர்வில் நண்பர்கள் பெயர் தானாக நிரம்புவது சரி செய்யப்பட்டது.
 </ta-IN>

@@ -235,7 +235,13 @@ class NoteCard extends StatelessWidget {
         return const [];
       }
 
-      final previewItems = items.take(4).toList();
+      // Sort checklist items: pending tasks first, then completed tasks
+      final pendingItems = items.where((i) => !i.isDone).toList();
+      final completedItems = items.where((i) => i.isDone).toList();
+      final sortedItems = [...pendingItems, ...completedItems];
+      final previewItems = sortedItems.take(4).toList();
+      final remainingCount = items.length - previewItems.length;
+
       return [
         ...previewItems.map((item) {
           return InkWell(
@@ -255,9 +261,9 @@ class NoteCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Icon(
-                      item.isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                      size: 16,
-                      color: item.isDone ? Colors.green : theme.colorScheme.outline,
+                      item.isDone ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
+                      size: 18,
+                      color: item.isDone ? theme.colorScheme.primary : theme.colorScheme.outline,
                     ),
                     const SizedBox(width: AppLayout.spaceS),
                     Expanded(
@@ -280,14 +286,32 @@ class NoteCard extends StatelessWidget {
             ),
           );
         }),
-        if (items.length > 4)
+        if (remainingCount > 0)
           Padding(
-            padding: const EdgeInsets.only(top: 2.0),
-            child: Text(
-              '+ ${items.length - 4} more items',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.outline,
-                fontWeight: FontWeight.w500,
+            padding: const EdgeInsets.only(top: 4.0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(AppLayout.radiusS),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.checklist_rounded,
+                    size: 14,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '+$remainingCount more ${remainingCount == 1 ? "item" : "items"}',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

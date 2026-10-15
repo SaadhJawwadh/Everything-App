@@ -1,15 +1,13 @@
 
 ### 🌟 What's New
-- **120Hz Ultra-Smooth Display Mode**: Unlocked high-refresh-rate rendering on Android flagships and smooth-display devices for silky 120 fps list scrolling and gestures.
-- **Predictive Back Navigation**: Enabled Android 14+ system predictive back gestures with interactive scale previews when edge-swiping out of notes and editors.
+- **Material 3 Expressive Widgets**: Modernized all Android home screen widgets with tactile stadium pills, squircle subcards, and Google Sans Flex typography.
+- **Google Tasks-Style Checklist Selector**: Tap the checklist pill on your home screen to switch between lists via a clean floating dialog directly over your launcher.
+- **Unified Dual-Domain Widget**: Track your monthly cash flow, budgets, and actionable to-do items together with a 1-tap quick note entry point.
 
 ### 🚀 Improvements
-- **True Borderless Edge-to-Edge**: Removed the translucent grey navigation bar scrim on Android 10-15+ for seamless wallpaper integration.
-- **Material 3 Touch & Ripple Polish**: Replaced card shrink gestures with authentic M3 InkSparkle ripple animations radiating from touch points.
-- **Universal Tactile Micro-Haptics**: Added subtle mechanical click feedback when switching navigation tabs, selecting filter chips, and confirming dialog actions.
-- **Variable Typography Optical Sizing**: Dynamic optical size scaling for Google Sans Flex across titles and headlines with robust font fallbacks.
+- **Foldable & Large-Screen Responsive Polish**: Enhanced layout bounds, dialog widths, and modal sheets across foldables and tablets.
+- **Note Card Checklist Previews**: Synchronized checklist preview styling on note cards to match the rich text note editor.
 
 ### 🐛 Fixes
-- **Cold-Start Flash**: Fixed a color mismatch in light mode splash screens to eliminate window flashes during app launch.
-- **Monochrome Status Bar Icons**: Replaced colored launcher icons with clean white silhouette icons for notifications on modern Android trays.
+- **Split Bills Direct Conversion**: Fixed split payments so friends and participants pre-fill properly when converting directly from fetched transactions.
 

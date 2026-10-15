@@ -48,6 +48,7 @@ class TodoWidgetActionReceiver : BroadcastReceiver() {
                 editor.apply()
 
                 TodoWidgetProvider.updateAllWidgets(context)
+                UnifiedWidgetProvider.updateAllWidgets(context)
             }
 
             TodoWidgetProvider.ACTION_ITEM_CLICK -> {
@@ -68,8 +69,7 @@ class TodoWidgetActionReceiver : BroadcastReceiver() {
                     return
                 }
 
-                val currentIsDone = intent.getBooleanExtra("is_done", false)
-                val newIsDone = !currentIsDone
+                var newIsDone = !intent.getBooleanExtra("is_done", false)
 
                 if (lineIndex < 0 && text.isEmpty()) return
 
@@ -77,6 +77,7 @@ class TodoWidgetActionReceiver : BroadcastReceiver() {
                 val notesJsonStr = prefs.getString("flutter.widget_todo_notes_json", "[]") ?: "[]"
                 try {
                     val notesArr = JSONArray(notesJsonStr)
+                    var found = false
                     for (i in 0 until notesArr.length()) {
                         val noteObj = notesArr.getJSONObject(i)
                         if (noteObj.optString("id") == noteId) {
@@ -88,14 +89,19 @@ class TodoWidgetActionReceiver : BroadcastReceiver() {
                                 
                                 val matches = (text.isNotEmpty() && itemText == text) || (lineIndex >= 0 && itemLineIdx == lineIndex)
                                 if (matches) {
+                                    val currentLiveDone = itemObj.optBoolean("isDone", intent.getBooleanExtra("is_done", false))
+                                    newIsDone = !currentLiveDone
                                     itemObj.put("isDone", newIsDone)
+                                    found = true
                                     break
                                 }
                             }
                             break
                         }
                     }
-                    prefs.edit().putString("flutter.widget_todo_notes_json", notesArr.toString()).apply()
+                    if (found) {
+                        prefs.edit().putString("flutter.widget_todo_notes_json", notesArr.toString()).apply()
+                    }
                 } catch (_: Exception) {}
 
                 // 2. Queue toggle for Flutter persistence with squashing of rapid toggles
@@ -140,6 +146,7 @@ class TodoWidgetActionReceiver : BroadcastReceiver() {
                 
                 // 3. Immediately refresh widget UI
                 TodoWidgetProvider.updateAllWidgets(context)
+                UnifiedWidgetProvider.updateAllWidgets(context)
 
                 // 4. Notify Flutter engine if running
                 MainActivity.notifyWidgetToggle()

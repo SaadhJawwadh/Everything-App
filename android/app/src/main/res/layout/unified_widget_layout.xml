@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/unified_widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background_shape"
+    android:orientation="horizontal"
+    android:baselineAligned="false"
+    android:padding="12dp">
+
+    <!-- Left Column: Personal Finance Domain -->
+    <LinearLayout
+        android:id="@+id/unified_finance_section"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:clickable="true"
+        android:focusable="true"
+        android:orientation="vertical">
+
+        <!-- Finance Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/google_sans_flex"
+                android:text="Finances"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <!-- Quick Add Transaction Button -->
+            <FrameLayout
+                android:id="@+id/unified_btn_add_tx"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/widget_add_button_shape"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="Add Transaction"
+                    android:src="@drawable/ic_add_small"
+                    android:tint="@color/widget_on_primary_container" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- Net Cash Flow Label & Metric -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:fontFamily="@font/google_sans_flex"
+            android:text="NET CASH FLOW"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="10sp"
+            android:letterSpacing="0.04"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/unified_net_balance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/google_sans_flex"
+            android:text="+Rs. 0"
+            android:textColor="@color/widget_income"
+            android:textSize="18sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textStyle="bold" />
+
+        <!-- Today Spend Badge -->
+        <TextView
+            android:id="@+id/unified_today_spent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/widget_category_chip_shape"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:fontFamily="@font/google_sans_flex"
+            android:text="Today: Rs. 0"
+            android:textColor="@color/widget_on_primary_container"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/unified_month_spent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:fontFamily="@font/google_sans_flex"
+            android:text="Month: Rs. 0"
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="11sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+    </LinearLayout>
+
+    <!-- Divider Line -->
+    <FrameLayout
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:background="@color/widget_border" />
+
+    <!-- Right Column: Notes & Checklists Domain -->
+    <LinearLayout
+        android:id="@+id/unified_notes_section"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:clickable="true"
+        android:focusable="true"
+        android:orientation="vertical">
+
+        <!-- Notes Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/google_sans_flex"
+                android:text="Notes"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <!-- New Note Button -->
+            <FrameLayout
+                android:id="@+id/unified_btn_new_note"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/widget_category_chip_shape"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="New Note"
+                    android:src="@drawable/ic_shortcut_new_note"
+                    android:tint="@color/widget_on_primary_container" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- Active Note Title / Google Tasks-Style List Selector Pill -->
+        <LinearLayout
+            android:id="@+id/unified_list_selector"
+            android:layout_width="wrap_content"
+            android:layout_height="28dp"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/widget_category_chip_shape"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="6dp">
+
+            <TextView
+                android:id="@+id/unified_note_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="@font/google_sans_flex"
+                android:maxLines="1"
+                android:maxWidth="110dp"
+                android:text="Checklist"
+                android:textColor="@color/widget_on_primary_container"
+                android:textSize="11.5sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_marginStart="2dp"
+                android:src="@drawable/ic_arrow_drop_down"
+                android:tint="@color/widget_on_primary_container"
+                android:contentDescription="Select List" />
+        </LinearLayout>
+
+        <!-- Checklist Item 1 -->
+        <LinearLayout
+            android:id="@+id/unified_task_1_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/unified_task_1_check"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_checkbox_unchecked" />
+
+            <TextView
+                android:id="@+id/unified_task_1_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:fontFamily="@font/google_sans_flex"
+                android:text="Pending task..."
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11.5sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+        </LinearLayout>
+
+        <!-- Checklist Item 2 -->
+        <LinearLayout
+            android:id="@+id/unified_task_2_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/unified_task_2_check"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_checkbox_unchecked" />
+
+            <TextView
+                android:id="@+id/unified_task_2_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:fontFamily="@font/google_sans_flex"
+                android:text="Second task..."
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11.5sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+        </LinearLayout>
+
+        <!-- Empty Notes Fallback -->
+        <TextView
+            android:id="@+id/unified_notes_empty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:fontFamily="@font/google_sans_flex"
+            android:text="No pending checklist items."
+            android:textColor="@color/widget_text_secondary"
+            android:textSize="11.5sp"
+            android:visibility="gone" />
+    </LinearLayout>
+</LinearLayout>

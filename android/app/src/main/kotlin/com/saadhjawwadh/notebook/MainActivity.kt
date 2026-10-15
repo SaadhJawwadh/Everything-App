@@ -76,6 +76,7 @@ class MainActivity: FlutterFragmentActivity() {
         FinanceWidgetProvider.updateAllWidgets(context)
         NotesWidgetProvider.updateAllWidgets(context)
         TodoWidgetProvider.updateAllWidgets(context)
+        UnifiedWidgetProvider.updateAllWidgets(context)
     }
 
     private fun handleIntent(intent: Intent?) {
@@ -164,6 +165,7 @@ class MainActivity: FlutterFragmentActivity() {
                     FinanceWidgetProvider.updateAllWidgets(context)
                     NotesWidgetProvider.updateAllWidgets(context)
                     TodoWidgetProvider.updateAllWidgets(context)
+                    UnifiedWidgetProvider.updateAllWidgets(context)
                     result.success(true)
                 }
                 "pinTodoWidget" -> {

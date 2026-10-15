@@ -136,7 +136,7 @@ void main() {
           value: settings,
           child: const MaterialApp(
             home: Scaffold(
-              body: WhatsNewSheet(currentVersion: '2.46.0'),
+              body: WhatsNewSheet(currentVersion: '2.46.1'),
             ),
           ),
         ),
@@ -149,11 +149,10 @@ void main() {
       expect(find.text("Fixes"), findsOneWidget);
 
       // Check marquee items
-      expect(find.text("Story Card Reader Mode"), findsOneWidget);
-      expect(find.text("Inter-Vault Account Transfers"), findsOneWidget);
-      expect(find.text("Android Checklist Widget"), findsOneWidget);
-      expect(find.text("Publication Quotes"), findsOneWidget);
-      expect(find.text("P2P Sync Audit Activity"), findsOneWidget);
+      expect(find.text("Material 3 Expressive Widgets"), findsOneWidget);
+      expect(find.text("Floating Checklist Selector"), findsOneWidget);
+      expect(find.text("Unified Dual-Domain Widget"), findsOneWidget);
+      expect(find.text("Foldable & Tablet Responsive Polish"), findsOneWidget);
 
       // Tap "Awesome, Got It!" to finish
       await tester.runAsync(() async {
@@ -162,7 +161,7 @@ void main() {
       });
       await tester.pumpAndSettle();
 
-      expect(settings.lastSeenVersion, '2.46.0');
+      expect(settings.lastSeenVersion, '2.46.1');
     });
   });
 }

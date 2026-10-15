@@ -59,7 +59,11 @@ flutter build apk --release
 ```
 Provide the APK path (`build/app/outputs/flutter-apk/app-release.apk`) to the user for verification.
 
-**Release-mode emulator smoke test is mandatory, not optional.** Install the release APK on the emulator and cold-start it. Verify: first frame renders, the What's New sheet fires with the right version, and each module tab opens.
+**Release-mode emulator smoke test is mandatory, not optional.** Install the release APK on the emulator and cold-start it. Verify:
+* First frame renders without jank or white screen flashes.
+* The What's New sheet fires with the exact version matching `pubspec.yaml`.
+* Each module tab (Notes, Finances, Health, Settings) opens smoothly.
+* **Status Bar Notification & Silhouette Icon Verification**: Trigger a test notification via `Settings` $\rightarrow$ `About & Diagnostics` $\rightarrow$ `Test Notifications` (ensure `POST_NOTIFICATIONS` is granted). Verify the notification displays the transparent monochrome silhouette icon (`ic_notification.png`) in the Android status bar and shade, confirming that Android Gradle Plugin resource shrinking (`isShrinkResources = true`) did not strip dynamically referenced drawables preserved in `android/app/src/main/res/raw/keep.xml`.
 
 ### Step 3: Run Release Automation
 Execute the automated deploy script to bump, tag, and publish:
@@ -99,6 +103,7 @@ flutter analyze && ./deploy.sh <version>
 * **R8 Code & Resource Shrinking**: Release builds use `isMinifyEnabled = true` and `isShrinkResources = true`. When adding any new third-party Flutter plugin that uses native Android code, reflection, or native channels:
   1. Add a corresponding `-keep class <package_name>.** { *; }` rule to `android/app/proguard-rules.pro`.
   2. Always build a local release APK (`flutter build apk --release`) to verify R8 compiles without class-stripping errors.
+  3. Declare dynamically referenced drawables and icons (e.g., `@drawable/ic_notification`, `@drawable/launcher_icon`, `@drawable/ic_*`) in `android/app/src/main/res/raw/keep.xml` to prevent AGP resource shrinking from stripping assets resolved via string reflection at runtime.
 * **ProGuard Core Rules**: Ensure core drivers (SQLCipher, sqflite, Pigeon, WorkManager, LocalAuth, Google ML Kit) are protected in `android/app/proguard-rules.pro`:
   ```proguard
   -keep class net.sqlcipher.** { *; }

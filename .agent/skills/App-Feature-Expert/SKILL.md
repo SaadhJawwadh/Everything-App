@@ -222,6 +222,16 @@ Specialist skill governing domain modules, feature-driven architecture (`lib/fea
 
 ## 5. Settings & App Configuration (`lib/features/settings/`)
 
+- **Domain Hubs Architecture**: Monolithic flat settings screens are replaced by 6 modular sub-screens under `lib/features/settings/presentation/screens/sections/`:
+  1. `appearance_settings_screen.dart`: Themes, dynamic wallpaper, haptics, font scale, language.
+  2. `notes_settings_screen.dart`: Editor font pairings, reading width, tags, Google Takeout migration, auto-purge trash retention.
+  3. `finances_settings_screen.dart`: Financial toggles, dual account tagging, category routing, recurring rules, SMS auto-import, cycle alerts.
+  4. `security_settings_screen.dart`: App lock, biometric auth, auto-lock timeouts, discreet health mode.
+  5. `sync_backup_settings_screen.dart`: Local P2P Wi-Fi device sync, encrypted JSON backups, scheduled auto-backups.
+  6. `about_settings_screen.dart`: Changelog, test notifications, onboarding wizard replay, app version info.
+- **Master Dashboard with Live Status Subtitles**: The root `SettingsScreen` presents a top Hero Status Card and 6 compact Domain Hub cards displaying real-time reactive subtitles summarizing active user state.
+- **Decoupled Picker Dialogs (`settings_dialogs.dart`)**: All modal sheets, input dialogs, and picker sheets reside in `settings_dialogs.dart` to prevent code duplication across sections.
+- **Zero-Latency Universal Search**: The search bar in `SettingsScreen` queries `settings_search_index.dart` to filter deep settings items across all 6 hubs simultaneously without requiring navigation into sub-screens.
 - **Settings State (`SettingsProvider`)**: Manages theme mode, dynamic color schemes, currency selection, custom transaction rules, app lock timeouts, and category budgets.
 - **Resilient Auto-Backup Storage Contract**: `BackupService.performAutoBackup()` defaults to protected app storage (`getApplicationDocumentsDirectory()`), which Android guarantees is immune to Storage Access Framework (SAF) URI permission revocations across app updates and phone reboots. If custom external folders fail permission verification, the service gracefully falls back to app storage.
 - **Hardware-Aware AI Support State**: `checkAiCoreSupport(LocalAiService)` checks Android AICore on launch, setting `_isDeviceAiSupported`. `isAiActive` provides a single source of truth for both hardware capability and user preference.
@@ -354,13 +364,30 @@ Specialist skill governing domain modules, feature-driven architecture (`lib/fea
 
 ---
 
-## 14. Notification Diagnostics & Unit Test Isolation Guardrail
+## 14. Notification Diagnostics & Status Bar Protocol
 
 - **In-App Test Diagnostic Trigger**:
-  - Provide a direct "Test Notifications" action button in `SettingsScreen` (`NotificationService.showInstantTestNotification()`) that delivers a sample notification 3 seconds out, enabling instant validation without scheduling alarms.
+  - Provide a direct "Test Notifications" action button in `SettingsScreen` (`NotificationService.showTestNotification()`) that delivers a sample notification immediately, enabling instant validation without scheduling alarms.
 - **Unit Test Native Isolation Guardrail**:
   - Native notification platform plugins require initialized engine bindings that are absent in headless unit/widget tests.
   - In `NotificationService`, guard notification dispatch routines with `if (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST')) return;` to completely prevent `LateInitializationError` from aborting unit tests.
+- **Monochrome Alpha Silhouette Standard**:
+  - Android status bar icons MUST be pure alpha-transparent monochrome silhouettes (`ic_notification.png` across `mdpi`, `hdpi`, `xhdpi`, `xxhdpi`, `xxxhdpi`, and default `drawable/`).
+  - Never pass full-color launcher icons as status bar icons, as the system status bar compositor tints them solid white into an illegible block.
+- **Resource Shrinking Guardrail (`keep.xml`)**:
+  - Because notification and launcher icons are resolved dynamically via string reflection at runtime, `android/app/src/main/res/raw/keep.xml` MUST explicitly declare:
+    ```xml
+    <?xml version="1.0" encoding="utf-8"?>
+    <resources xmlns:tools="http://schemas.android.com/tools"
+        tools:keep="@drawable/ic_notification,@drawable/launcher_icon,@drawable/ic_*" />
+    ```
+  - This prevents Android Gradle Plugin (`isShrinkResources = true`) from stripping drawables during release compilation.
+- **Clean Resource Identifiers**:
+  - In `NotificationService` (`flutter_local_notifications`), resource names must always be passed as clean identifiers (e.g. `icon: 'ic_notification'`, `AndroidInitializationSettings('ic_notification')`), NEVER with an XML prefix like `'@drawable/ic_notification'`, which causes Android's `Resources.getIdentifier()` to fail with `PlatformException(invalid_icon)`.
+- **Runtime Notification Permission Gate**:
+  - Android 13+ (API 33+) requires runtime permission `android.permission.POST_NOTIFICATIONS` before any alert can appear in the status bar or notification shade.
+
+
 
 
 

@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_background_shape"
     android:orientation="vertical"
-    android:padding="10dp">
+    android:padding="12dp">
 
     <!-- Header Row -->
     <LinearLayout
@@ -14,18 +14,11 @@
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <ImageView
-            android:id="@+id/todo_widget_icon"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:contentDescription="Checklists"
-            android:src="@drawable/ic_checklist" />
-
+        <!-- Google Tasks-Style List Selector Stadium Pill -->
         <LinearLayout
             android:id="@+id/todo_widget_switcher"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
-            android:layout_marginStart="8dp"
             android:background="@drawable/widget_category_chip_shape"
             android:clickable="true"
             android:focusable="true"
@@ -34,6 +27,14 @@
             android:paddingStart="12dp"
             android:paddingEnd="12dp">
 
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginEnd="6dp"
+                android:src="@drawable/ic_checklist"
+                android:tint="@color/widget_on_primary_container"
+                android:contentDescription="List Icon" />
+
             <TextView
                 android:id="@+id/todo_widget_title"
                 android:layout_width="wrap_content"
@@ -41,20 +42,19 @@
                 android:ellipsize="end"
                 android:fontFamily="@font/google_sans_flex"
                 android:maxLines="1"
-                android:maxWidth="130dp"
+                android:maxWidth="160dp"
                 android:text="All Action Items"
                 android:textColor="@color/widget_on_primary_container"
-                android:textSize="13sp"
+                android:textSize="13.5sp"
                 android:textStyle="bold" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="4dp"
-                android:text="▾"
-                android:textColor="@color/widget_on_primary_container"
-                android:textSize="12sp"
-                android:textStyle="bold" />
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_marginStart="2dp"
+                android:src="@drawable/ic_arrow_drop_down"
+                android:tint="@color/widget_on_primary_container"
+                android:contentDescription="Select List" />
         </LinearLayout>
 
         <FrameLayout
@@ -62,44 +62,42 @@
             android:layout_height="1dp"
             android:layout_weight="1" />
 
+        <!-- Tasks Counter -->
         <TextView
             android:id="@+id/todo_widget_counter"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="6dp"
+            android:layout_marginEnd="8dp"
             android:fontFamily="@font/google_sans_flex"
-            android:text="0/0"
+            android:text="0/0 done"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="11.5sp" />
+            android:textSize="12sp"
+            android:textStyle="bold" />
 
+        <!-- Add Task Action Button -->
         <FrameLayout
             android:id="@+id/todo_widget_add"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/widget_add_button_shape"
             android:clickable="true"
             android:focusable="true">
 
-            <FrameLayout
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
                 android:layout_gravity="center"
-                android:background="@drawable/widget_category_chip_shape">
-
-                <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:layout_gravity="center"
-                    android:contentDescription="Add Task"
-                    android:src="@drawable/ic_add_small" />
-            </FrameLayout>
+                android:contentDescription="Add Task"
+                android:src="@drawable/ic_add_small"
+                android:tint="@color/widget_on_primary_container" />
         </FrameLayout>
     </LinearLayout>
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginTop="4dp"
-        android:layout_marginBottom="4dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="6dp"
         android:background="@color/widget_border" />
 
     <!-- Task List -->
@@ -127,7 +125,7 @@
             android:focusable="true"
             android:text="No pending tasks\nTap + to add one"
             android:textColor="@color/widget_text_secondary"
-            android:textSize="12.5sp"
+            android:textSize="13sp"
             android:visibility="gone" />
     </FrameLayout>
 

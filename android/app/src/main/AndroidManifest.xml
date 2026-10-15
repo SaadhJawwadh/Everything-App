@@ -143,6 +143,16 @@
                 android:resource="@xml/todo_widget_info" />
         </receiver>
 
+        <!-- Unified Dual-Domain (Finance + Notes) Widget Broadcast Receiver -->
+        <receiver android:name=".UnifiedWidgetProvider" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/unified_widget_info" />
+        </receiver>
+
         <!-- Todo Widget Action Receiver for 0ms Desktop Interaction -->
         <receiver android:name=".TodoWidgetActionReceiver" android:exported="false">
             <intent-filter>
@@ -156,6 +166,15 @@
             android:name=".TodoWidgetService"
             android:permission="android.permission.BIND_REMOTEVIEWS"
             android:exported="false" />
+
+        <!-- Google Tasks-Style Widget List Picker Dialog Activity -->
+        <activity
+            android:name=".TodoListPickerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TodoListPicker"
+            android:taskAffinity="com.saadhjawwadh.notebook.widget_picker"
+            android:launchMode="singleInstance"
+            android:excludeFromRecents="true" />
 
         <!-- FileProvider for Story Cards clipboard & local image sharing -->
         <provider

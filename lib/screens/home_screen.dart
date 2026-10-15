@@ -608,7 +608,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final List<Widget> destinations = _buildDestinations(settings);
       _currentIndex = _currentIndex.clamp(0, destinations.length - 1);
 
-      final bool isTablet = MediaQuery.sizeOf(context).width >= 600;
+      final bool isTablet = AppLayout.isDualPane(context);
 
       if (isTablet) {
         return Scaffold(

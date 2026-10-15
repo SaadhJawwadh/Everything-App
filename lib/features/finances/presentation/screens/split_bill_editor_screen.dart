@@ -47,6 +47,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
   final _newParticipantController = TextEditingController();
+  final _newParticipantFocusNode = FocusNode();
   final _payerFriendController = TextEditingController();
   final _notesController = TextEditingController();
   final _userExactAmountController = TextEditingController();
@@ -74,6 +75,14 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final splitProvider = Provider.of<SplitBillProvider>(context, listen: false);
+        if (splitProvider.recentContacts.isEmpty) {
+          splitProvider.loadSplitBills();
+        }
+      }
+    });
     if (widget.existingBill != null) {
       _populateFromBill(widget.existingBill!);
     } else {
@@ -161,6 +170,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
     _titleController.dispose();
     _amountController.dispose();
     _newParticipantController.dispose();
+    _newParticipantFocusNode.dispose();
     _payerFriendController.dispose();
     _notesController.dispose();
     _userExactAmountController.dispose();
@@ -1078,16 +1088,66 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
                         Row(
                           children: [
                             Expanded(
-                              child: TextField(
-                                controller: _newParticipantController,
-                                textCapitalization: TextCapitalization.words,
-                                decoration: const InputDecoration(
-                                  hintText: 'Enter friend name...',
-                                  prefixIcon: Icon(Icons.person_add_rounded),
-                                  border: OutlineInputBorder(),
-                                  isDense: true,
-                                ),
-                                onSubmitted: _addParticipant,
+                              child: RawAutocomplete<String>(
+                                textEditingController: _newParticipantController,
+                                focusNode: _newParticipantFocusNode,
+                                optionsBuilder: (TextEditingValue textEditingValue) {
+                                  if (textEditingValue.text.trim().isEmpty) {
+                                    return const Iterable<String>.empty();
+                                  }
+                                  final query = textEditingValue.text.trim().toLowerCase();
+                                  return splitProvider.recentContacts
+                                      .map((c) => c.name)
+                                      .where((name) =>
+                                          name.toLowerCase().contains(query) &&
+                                          !_participantsData.any((p) => p['name'].toString().toLowerCase() == name.toLowerCase()));
+                                },
+                                onSelected: (String selection) {
+                                  _addParticipant(selection);
+                                },
+                                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                                  return TextField(
+                                    controller: controller,
+                                    focusNode: focusNode,
+                                    textCapitalization: TextCapitalization.words,
+                                    decoration: const InputDecoration(
+                                      hintText: 'Enter friend name...',
+                                      prefixIcon: Icon(Icons.person_add_rounded),
+                                      border: OutlineInputBorder(),
+                                      isDense: true,
+                                    ),
+                                    onSubmitted: (val) {
+                                      _addParticipant(val);
+                                    },
+                                  );
+                                },
+                                optionsViewBuilder: (context, onSelected, options) {
+                                  return Align(
+                                    alignment: Alignment.topLeft,
+                                    child: Material(
+                                      elevation: 4.0,
+                                      borderRadius: BorderRadius.circular(AppLayout.radiusM),
+                                      color: colorScheme.surfaceContainerHigh,
+                                      child: ConstrainedBox(
+                                        constraints: const BoxConstraints(maxHeight: 180, maxWidth: 300),
+                                        child: ListView.builder(
+                                          padding: EdgeInsets.zero,
+                                          shrinkWrap: true,
+                                          itemCount: options.length,
+                                          itemBuilder: (BuildContext context, int index) {
+                                            final option = options.elementAt(index);
+                                            return ListTile(
+                                              dense: true,
+                                              leading: const Icon(Icons.person_outline_rounded, size: 18),
+                                              title: Text(option),
+                                              onTap: () => onSelected(option),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                             const SizedBox(width: AppLayout.spaceS),

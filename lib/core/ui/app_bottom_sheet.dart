@@ -51,13 +51,15 @@ class AppBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: AppLayout.maxContentWidth,
-          maxHeight: MediaQuery.sizeOf(context).height * 0.90,
-        ),
+    return DisplayFeatureSubScreen(
+      anchorPoint: Offset.zero,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: AppLayout.maxContentWidth,
+            maxHeight: MediaQuery.sizeOf(context).height * 0.90,
+          ),
         child: Material(
           color: theme.colorScheme.surfaceContainerHigh,
           borderRadius: const BorderRadius.vertical(
@@ -107,6 +109,7 @@ class AppBottomSheet extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

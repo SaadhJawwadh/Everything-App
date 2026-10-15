@@ -124,7 +124,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => NoteProvider()),
         ChangeNotifierProvider(create: (_) => P2pSyncProvider()),
         ChangeNotifierProvider(create: (_) => FinancialManagerProvider()),
-        ChangeNotifierProvider(create: (_) => SplitBillProvider()),
+        ChangeNotifierProvider(create: (_) => SplitBillProvider()..loadSplitBills()),
         ChangeNotifierProvider(create: (_) => SavingsGoalProvider()..loadGoals()),
         ChangeNotifierProvider(create: (_) => PeriodTrackerProvider()),
       ],

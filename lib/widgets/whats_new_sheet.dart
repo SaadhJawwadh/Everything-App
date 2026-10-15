@@ -37,39 +37,24 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.widgets_rounded,
+            title: "Material 3 Expressive Widgets",
+            desc: "Tactile stadium pills, squircle subcards, and Google Sans Flex across all 4 Android home screen widgets.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.arrow_drop_down_circle_outlined,
+            title: "Floating Checklist Selector",
+            desc: "Tap your home widget to switch checklists via an isolated Google Tasks-style floating picker dialog.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.dashboard_customize_rounded,
+            title: "Unified Dual-Domain Widget",
+            desc: "View live monthly finance balances, budget progress, and actionable to-dos with quick note entry.",
+          ),
+          _WhatsNewItem(
             icon: Icons.speed_rounded,
             title: "120Hz Ultra-Smooth Mode",
             desc: "Silky 120 fps display refresh rate on Android flagships and smooth-display devices for ultra-fluid scrolling.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.arrow_back_rounded,
-            title: "Predictive Back Navigation",
-            desc: "Android 14+ gesture support with real-time interactive scaling previews when swiping back to home.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.tag_rounded,
-            title: "Multi-Tag Notes Filtering",
-            desc: "Combine multiple tags simultaneously (#work + #project) in the filter bar for deep, pinpoint note discovery.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.photo_library_outlined,
-            title: "Story Card Reader Mode",
-            desc: "Share long notes, multi-paragraph thoughts, and checklists as high-resolution story cards with dedicated Reader & Quote layouts.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.swap_horiz_rounded,
-            title: "Inter-Vault Account Transfers",
-            desc: "Move funds smoothly between Daily Cash Flow and Savings Vault with instant dual-entry ledger tracking.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.checklist_rounded,
-            title: "Android Checklist Widget",
-            desc: "Cycle directly between all action items and individual checklists with live titles, progress counters, and 0ms completion.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.touch_app_rounded,
-            title: "Direct Checklist Navigation",
-            desc: "Tap tasks directly on home note cards to jump straight into editing them in the note editor.",
           ),
         ],
       ),
@@ -80,6 +65,16 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.tertiaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.aspect_ratio_rounded,
+            title: "Foldable & Tablet Responsive Polish",
+            desc: "Enhanced layout bounds, dialog widths, and modal sheets across foldables and large-screen tablets.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.checklist_rounded,
+            title: "Note Card Checklist Previews",
+            desc: "Synchronized checklist preview styling on note cards to match the rich text note editor.",
+          ),
+          _WhatsNewItem(
             icon: Icons.border_clear_rounded,
             title: "True Borderless Edge-to-Edge",
             desc: "Transparent navigation bar without dark contrast scrims for seamless Android 15 wallpaper harmony.",
@@ -88,26 +83,6 @@ class WhatsNewSheet extends StatelessWidget {
             icon: Icons.vibration_rounded,
             title: "Universal Tactile Micro-Haptics",
             desc: "Mechanical click feedback when switching navigation tabs, filter chips, and confirming dialog actions.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.sync_rounded,
-            title: "Live P2P & Widget Sync",
-            desc: "Incoming Wi-Fi sync updates refresh your home screen widgets in real time with drift-resistant task matching.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.history_rounded,
-            title: "P2P Sync Audit Activity",
-            desc: "Transparent audit sheet showing detailed logs of synced notes, transactions, and connected peers.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.format_quote_rounded,
-            title: "Publication Quotes",
-            desc: "Upgraded Quote mode with theme-matched ambient quotation marks, note attribution, and streamlined controls.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.unfold_more_rounded,
-            title: "Seamless Viewport Preservation",
-            desc: "Returning from note editing preserves your exact scroll position smoothly with zero layout jumps.",
           ),
         ],
       ),
@@ -118,6 +93,11 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.secondaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.group_rounded,
+            title: "Split Bills Friend Auto-Fill",
+            desc: "Fixed split payments so friends and participants pre-fill properly when converting directly from fetched transactions.",
+          ),
+          _WhatsNewItem(
             icon: Icons.flash_off_rounded,
             title: "Cold-Start Splash Flash",
             desc: "Fixed light mode splash screen color mismatch to eliminate window flashes during app launch.",
@@ -126,16 +106,6 @@ class WhatsNewSheet extends StatelessWidget {
             icon: Icons.notifications_active_outlined,
             title: "Monochrome Notification Icons",
             desc: "Clean white silhouette icons for notifications on modern Android status trays.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.palette_outlined,
-            title: "Widget Zero-Lag Theme Contrast",
-            desc: "Fixed text contrast when switching between Light and Dark mode on home screen widgets.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.group_rounded,
-            title: "Split Bills Friends Retention",
-            desc: "Preserved all friends and participant details when re-editing existing split bills.",
           ),
         ],
       ),
