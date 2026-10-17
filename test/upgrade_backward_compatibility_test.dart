@@ -119,14 +119,14 @@ void main() {
       expect(settings.trashAutoPurgeDays, 30);
     });
 
-    testWidgets('WhatsNewSheet renders v2.45.1 cards and records version on dismiss', (tester) async {
+    testWidgets('WhatsNewSheet renders v2.47.0 cards and records version on dismiss', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
       SharedPreferences.setMockInitialValues({
-        'lastSeenVersion': '2.44.0',
+        'lastSeenVersion': '2.46.1',
       });
       final settings = SettingsProvider();
       await settings.loadSettings();
@@ -136,7 +136,7 @@ void main() {
           value: settings,
           child: const MaterialApp(
             home: Scaffold(
-              body: WhatsNewSheet(currentVersion: '2.46.1'),
+              body: WhatsNewSheet(currentVersion: '2.47.0'),
             ),
           ),
         ),
@@ -149,9 +149,9 @@ void main() {
       expect(find.text("Fixes"), findsOneWidget);
 
       // Check marquee items
-      expect(find.text("Material 3 Expressive Widgets"), findsOneWidget);
+      expect(find.text("Material 3 Expressive Motion"), findsOneWidget);
+      expect(find.text("Next-Gen Android Widgets"), findsOneWidget);
       expect(find.text("Floating Checklist Selector"), findsOneWidget);
-      expect(find.text("Unified Dual-Domain Widget"), findsOneWidget);
       expect(find.text("Foldable & Tablet Responsive Polish"), findsOneWidget);
 
       // Tap "Awesome, Got It!" to finish
@@ -161,7 +161,7 @@ void main() {
       });
       await tester.pumpAndSettle();
 
-      expect(settings.lastSeenVersion, '2.46.1');
+      expect(settings.lastSeenVersion, '2.47.0');
     });
   });
 }

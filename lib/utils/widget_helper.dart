@@ -294,6 +294,29 @@ class WidgetHelper {
         final exists = todoNotes.any((n) => n['id'] == activeNoteId);
         if (!exists) {
           await prefs.setString('widget_active_note_id', 'ALL_NOTES');
+          await prefs.setString('widget_active_note_title', 'All Action Items');
+        } else {
+          final matched = todoNotes.firstWhere((n) => n['id'] == activeNoteId);
+          await prefs.setString('widget_active_note_title', matched['title'] as String? ?? 'Checklist');
+        }
+      }
+
+      // Synchronize and clean up per-widget active note titles and deleted IDs
+      final allKeys = prefs.getKeys();
+      for (final key in allKeys) {
+        if (key.startsWith('widget_active_note_id_')) {
+          final widgetSpecificId = prefs.getString(key);
+          final suffix = key.replaceFirst('widget_active_note_id_', '');
+          if (widgetSpecificId != null && widgetSpecificId != 'ALL_NOTES') {
+            final exists = todoNotes.any((n) => n['id'] == widgetSpecificId);
+            if (!exists) {
+              await prefs.setString(key, 'ALL_NOTES');
+              await prefs.setString('widget_active_note_title_$suffix', 'All Action Items');
+            } else {
+              final matched = todoNotes.firstWhere((n) => n['id'] == widgetSpecificId);
+              await prefs.setString('widget_active_note_title_$suffix', matched['title'] as String? ?? 'Checklist');
+            }
+          }
         }
       }
 
@@ -380,14 +403,20 @@ class WidgetHelper {
     }
   }
 
-  /// Requests the host launcher to pin the Todo & Checklist widget to the home screen.
-  static Future<bool> pinTodoWidget() async {
+  /// Requests the host launcher to pin an Android widget of the specified [widgetType]
+  /// ('todo', 'finance', 'unified', or 'notes') to the home screen.
+  static Future<bool> requestPinWidget(String widgetType) async {
     try {
-      final res = await _channel.invokeMethod<bool>('pinTodoWidget');
+      final res = await _channel.invokeMethod<bool>('requestPinAppWidget', {
+        'type': widgetType,
+      });
       return res ?? false;
     } catch (e) {
       debugPrint('Pin widget failed: $e');
       return false;
     }
   }
+
+  /// Requests the host launcher to pin the Todo & Checklist widget to the home screen.
+  static Future<bool> pinTodoWidget() => requestPinWidget('todo');
 }

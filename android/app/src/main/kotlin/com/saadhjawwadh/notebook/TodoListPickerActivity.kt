@@ -24,14 +24,25 @@ class TodoListPickerActivity : Activity() {
         val isSelected: Boolean
     )
 
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        recreate()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_todo_list_picker)
 
-        val appWidgetId = intent.getIntExtra(
+        val extraId = intent.getIntExtra(
             AppWidgetManager.EXTRA_APPWIDGET_ID,
             AppWidgetManager.INVALID_APPWIDGET_ID
         )
+        val appWidgetId = if (extraId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+            extraId
+        } else {
+            intent.data?.lastPathSegment?.toIntOrNull() ?: AppWidgetManager.INVALID_APPWIDGET_ID
+        }
 
         findViewById<View>(R.id.picker_scrim).setOnClickListener {
             finish()
@@ -91,22 +102,36 @@ class TodoListPickerActivity : Activity() {
                 totalAll += noteTotal
                 doneAll += noteDone
 
+                val notePending = noteTotal - noteDone
+                val noteSubtitle = when {
+                    noteTotal == 0 -> "No tasks yet"
+                    notePending == 0 -> "All $noteTotal tasks completed ✓"
+                    else -> "$notePending pending • $noteDone done"
+                }
+
                 individualNotes.add(
                     TodoListItem(
                         id = id,
                         title = title,
-                        subtitle = if (noteTotal == 0) "No tasks yet" else "$noteTotal tasks • $noteDone done",
+                        subtitle = noteSubtitle,
                         isSelected = (id == currentActive)
                     )
                 )
             }
 
             // Primary Option: All Action Items aggregated
+            val allPending = totalAll - doneAll
+            val allSubtitle = when {
+                totalAll == 0 -> "No tasks across notes"
+                allPending == 0 -> "All $totalAll tasks completed ✓"
+                else -> "$allPending pending • $doneAll done"
+            }
+
             itemsList.add(
                 TodoListItem(
                     id = "ALL_NOTES",
                     title = "All Action Items",
-                    subtitle = if (totalAll == 0) "No tasks across notes" else "$totalAll tasks • $doneAll done",
+                    subtitle = allSubtitle,
                     isSelected = (currentActive == "ALL_NOTES" || currentActive.isEmpty())
                 )
             )
@@ -124,6 +149,42 @@ class TodoListPickerActivity : Activity() {
                     isSelected = true
                 )
             )
+        }
+
+        fun selectItem(position: Int) {
+            val selected = itemsList[position]
+            android.util.Log.d("TodoListPickerActivity", "selectItem: ${selected.id} (${selected.title}) for appWidgetId=$appWidgetId")
+
+            val editor = prefs.edit()
+            if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                editor.putString("flutter.widget_active_note_id_$appWidgetId", selected.id)
+                editor.putString("flutter.widget_active_note_title_$appWidgetId", selected.title)
+            } else {
+                val appWidgetManager = AppWidgetManager.getInstance(applicationContext)
+                val todoIds = appWidgetManager.getAppWidgetIds(
+                    android.content.ComponentName(applicationContext, TodoWidgetProvider::class.java)
+                )
+                for (id in todoIds) {
+                    editor.putString("flutter.widget_active_note_id_$id", selected.id)
+                    editor.putString("flutter.widget_active_note_title_$id", selected.title)
+                }
+                val unifiedIds = appWidgetManager.getAppWidgetIds(
+                    android.content.ComponentName(applicationContext, UnifiedWidgetProvider::class.java)
+                )
+                for (id in unifiedIds) {
+                    editor.putString("flutter.widget_active_note_id_$id", selected.id)
+                    editor.putString("flutter.widget_active_note_title_$id", selected.title)
+                }
+            }
+            editor.putString("flutter.widget_active_note_id", selected.id)
+            editor.putString("flutter.widget_active_note_title", selected.title)
+            editor.commit()
+
+            TodoWidgetProvider.updateAllWidgets(applicationContext)
+            UnifiedWidgetProvider.updateAllWidgets(applicationContext)
+
+            finish()
+            overridePendingTransition(0, 0)
         }
 
         val listView = findViewById<ListView>(R.id.picker_list_view)
@@ -145,27 +206,21 @@ class TodoListPickerActivity : Activity() {
                 subtitleView.text = item.subtitle
                 checkView.visibility = if (item.isSelected) View.VISIBLE else View.GONE
 
+                view.isClickable = true
+                view.isFocusable = true
+                view.setOnClickListener {
+                    it.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
+                    selectItem(position)
+                }
+
                 return view
             }
         }
 
         listView.adapter = adapter
-        listView.setOnItemClickListener { _, _, position, _ ->
-            val selected = itemsList[position]
-            android.util.Log.d("TodoListPickerActivity", "Selected list: ${selected.id} for appWidgetId=$appWidgetId")
-
-            val editor = prefs.edit()
-            if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-                editor.putString("flutter.widget_active_note_id_$appWidgetId", selected.id)
-            }
-            editor.putString("flutter.widget_active_note_id", selected.id)
-            editor.apply()
-
-            TodoWidgetProvider.updateAllWidgets(this@TodoListPickerActivity)
-            UnifiedWidgetProvider.updateAllWidgets(this@TodoListPickerActivity)
-
-            finish()
-            overridePendingTransition(0, 0)
+        listView.setOnItemClickListener { clickedView, _, position, _ ->
+            clickedView?.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
+            selectItem(position)
         }
     }
 

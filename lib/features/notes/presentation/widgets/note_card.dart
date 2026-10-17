@@ -235,12 +235,52 @@ class NoteCard extends StatelessWidget {
         return const [];
       }
 
-      // Sort checklist items: pending tasks first, then completed tasks
+      // Exclude completed items from the card preview to keep focus on actionable tasks
       final pendingItems = items.where((i) => !i.isDone).toList();
       final completedItems = items.where((i) => i.isDone).toList();
-      final sortedItems = [...pendingItems, ...completedItems];
-      final previewItems = sortedItems.take(4).toList();
-      final remainingCount = items.length - previewItems.length;
+
+      if (pendingItems.isEmpty) {
+        if (completedItems.isNotEmpty) {
+          return [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(AppLayout.radiusS),
+                  border: Border.all(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.25),
+                    width: 1.0,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.check_circle_outline_rounded,
+                      size: 16,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: AppLayout.spaceXS),
+                    Text(
+                      'All ${completedItems.length} ${completedItems.length == 1 ? "task" : "tasks"} completed',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ];
+        }
+        return const [];
+      }
+
+      final previewItems = pendingItems.take(4).toList();
+      final remainingCount = pendingItems.length - previewItems.length;
 
       return [
         ...previewItems.map((item) {

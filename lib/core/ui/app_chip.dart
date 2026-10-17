@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_layout.dart';
+import '../theme/app_theme.dart';
 import '../services/app_haptics.dart';
 
 /// Reusable Chip/Pill component for tags, categories, phase badges, and filters.
@@ -15,6 +16,8 @@ class AppChip extends StatelessWidget {
   final Color? selectedBackgroundColor;
   final Color? textColor;
   final BorderSide? border;
+  final double? borderRadius;
+  final BorderRadiusGeometry? borderRadiusGeometry;
 
   const AppChip({
     super.key,
@@ -29,6 +32,8 @@ class AppChip extends StatelessWidget {
     this.selectedBackgroundColor,
     this.textColor,
     this.border,
+    this.borderRadius,
+    this.borderRadiusGeometry,
   });
 
   /// Helper to calculate high-contrast WCAG-compliant colors for any tag color seed
@@ -105,17 +110,20 @@ class AppChip extends StatelessWidget {
     final fontSize = isCompact ? 12.0 : 13.0;
     final iconSize = isCompact ? 14.0 : 16.0;
 
-    const effectiveRadius = AppLayout.radiusStadium;
+    final effectiveRadius = borderRadiusGeometry ??
+        BorderRadius.circular(borderRadius ?? AppLayout.radiusStadium);
 
-    final chipWidget = Container(
+    final chipWidget = AnimatedContainer(
+      duration: AppLayout.animShort,
+      curve: AppLayout.curveExpressiveSpatial,
       decoration: BoxDecoration(
         color: effectiveBg,
-        borderRadius: BorderRadius.circular(effectiveRadius),
+        borderRadius: effectiveRadius,
         border: border != null ? Border.fromBorderSide(border!) : null,
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(effectiveRadius),
+        borderRadius: effectiveRadius is BorderRadius ? effectiveRadius : null,
         child: InkWell(
           onTap: onTap != null
               ? () {
@@ -123,7 +131,7 @@ class AppChip extends StatelessWidget {
                   onTap!();
                 }
               : null,
-          borderRadius: BorderRadius.circular(effectiveRadius),
+          borderRadius: effectiveRadius is BorderRadius ? effectiveRadius : null,
           child: Padding(
             padding: EdgeInsets.symmetric(
               horizontal: horizPadding,
@@ -142,9 +150,17 @@ class AppChip extends StatelessWidget {
                 Text(
                   label,
                   style: (theme.textTheme.labelMedium ?? const TextStyle()).copyWith(
+                    fontFamily: AppTheme.fontGoogleSansFlex,
+                    fontFamilyFallback: AppTheme.fontFallbacks,
                     fontSize: fontSize,
                     color: effectiveFg,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    fontVariations: AppTheme.buildFontVariations(
+                      size: fontSize,
+                      brightness: theme.brightness,
+                      weight: isSelected ? 650.0 : 500.0,
+                      grade: isSelected ? 50.0 : null,
+                    ),
                   ),
                 ),
                 if (onDelete != null) ...[

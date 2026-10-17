@@ -24,13 +24,43 @@ class UnifiedWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    private fun updateAppWidget(
+    override fun onAppWidgetOptionsChanged(
         context: Context,
         appWidgetManager: AppWidgetManager,
-        appWidgetId: Int
+        appWidgetId: Int,
+        newOptions: android.os.Bundle?
     ) {
+        updateAppWidget(context, appWidgetManager, appWidgetId, newOptions)
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
+    }
+
+    companion object {
+        fun updateAllWidgets(context: Context) {
+            val appContext = context.applicationContext ?: context
+            val appWidgetManager = AppWidgetManager.getInstance(appContext)
+            val thisWidget = ComponentName(appContext, UnifiedWidgetProvider::class.java)
+            val allWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
+            if (allWidgetIds.isNotEmpty()) {
+                for (id in allWidgetIds) {
+                    updateAppWidget(appContext, appWidgetManager, id)
+                }
+            }
+        }
+
+        fun updateAppWidget(
+            context: Context,
+            appWidgetManager: AppWidgetManager,
+            appWidgetId: Int,
+            options: android.os.Bundle? = null
+        ) {
         val views = RemoteViews(context.packageName, R.layout.unified_widget_layout)
         val prefs = context.getSharedPreferences(TodoWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE)
+
+        // Responsive size bucketing
+        val opts = options ?: appWidgetManager.getAppWidgetOptions(appWidgetId)
+        val minWidth = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
+        val minHeight = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
+        val isCompact = (minWidth in 1..220) || (minHeight in 1..140)
 
         // 1. Populate Finance Domain Data
         val spentToday = prefs.getString("flutter.widget_spent_today", "Rs. 0") ?: "Rs. 0"
@@ -44,7 +74,12 @@ class UnifiedWidgetProvider : AppWidgetProvider() {
         views.setTextColor(R.id.unified_net_balance, if (netPositive) incomeColor else expenseColor)
 
         views.setTextViewText(R.id.unified_today_spent, "Today: $spentToday")
-        views.setTextViewText(R.id.unified_month_spent, "Month: $spentMonth")
+        if (isCompact) {
+            views.setViewVisibility(R.id.unified_month_spent, View.GONE)
+        } else {
+            views.setViewVisibility(R.id.unified_month_spent, View.VISIBLE)
+            views.setTextViewText(R.id.unified_month_spent, "Month: $spentMonth")
+        }
 
         // 2. Populate Notes & Checklist Domain Data
         val notesJsonStr = prefs.getString("flutter.widget_todo_notes_json", "[]") ?: "[]"
@@ -53,7 +88,18 @@ class UnifiedWidgetProvider : AppWidgetProvider() {
         } else {
             prefs.getString("flutter.widget_active_note_id", "ALL_NOTES") ?: "ALL_NOTES"
         }
-        var activeNoteTitle = if (activeNoteId == "ALL_NOTES" || activeNoteId.isEmpty()) "All Action Items" else "Checklist"
+        val fallbackTitle = if (prefs.contains("flutter.widget_active_note_title_$appWidgetId")) {
+            prefs.getString("flutter.widget_active_note_title_$appWidgetId", "") ?: ""
+        } else {
+            prefs.getString("flutter.widget_active_note_title", "") ?: ""
+        }
+        var activeNoteTitle = if (activeNoteId == "ALL_NOTES" || activeNoteId.isEmpty()) {
+            "All Action Items"
+        } else if (fallbackTitle.isNotBlank()) {
+            fallbackTitle
+        } else {
+            "Checklist"
+        }
         var targetNoteId = ""
         val pendingTasks = mutableListOf<String>()
 
@@ -85,8 +131,10 @@ class UnifiedWidgetProvider : AppWidgetProvider() {
                         val noteObj = notesArr.getJSONObject(i)
                         if (noteObj.optString("id") == activeNoteId) {
                             targetNoteId = activeNoteId
-                            activeNoteTitle = noteObj.optString("title", "Checklist")
-                            if (activeNoteTitle.isBlank()) activeNoteTitle = "Untitled Note"
+                            val parsedTitle = noteObj.optString("title", "")
+                            if (parsedTitle.isNotBlank()) {
+                                activeNoteTitle = parsedTitle
+                            }
                             val items = noteObj.optJSONArray("items")
                             if (items != null) {
                                 for (j in 0 until items.length()) {
@@ -114,7 +162,7 @@ class UnifiedWidgetProvider : AppWidgetProvider() {
             views.setViewVisibility(R.id.unified_task_1_container, View.VISIBLE)
             views.setTextViewText(R.id.unified_task_1_text, pendingTasks[0])
 
-            if (pendingTasks.size > 1) {
+            if (pendingTasks.size > 1 && !isCompact) {
                 views.setViewVisibility(R.id.unified_task_2_container, View.VISIBLE)
                 views.setTextViewText(R.id.unified_task_2_text, pendingTasks[1])
             } else {
@@ -196,18 +244,9 @@ class UnifiedWidgetProvider : AppWidgetProvider() {
         views.setOnClickPendingIntent(R.id.unified_note_title, pickerPendingIntent)
 
         appWidgetManager.updateAppWidget(appWidgetId, views)
+        try {
+            appWidgetManager.partiallyUpdateAppWidget(appWidgetId, views)
+        } catch (_: Exception) {}
     }
-
-    companion object {
-        fun updateAllWidgets(context: Context) {
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            val thisWidget = ComponentName(context, UnifiedWidgetProvider::class.java)
-            val allWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
-            val intent = Intent(context, UnifiedWidgetProvider::class.java).apply {
-                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, allWidgetIds)
-            }
-            context.sendBroadcast(intent)
-        }
-    }
+}
 }

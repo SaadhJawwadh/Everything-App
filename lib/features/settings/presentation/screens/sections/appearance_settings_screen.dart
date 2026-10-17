@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../../core/theme/app_layout.dart';
@@ -93,6 +95,40 @@ class AppearanceSettingsScreen extends StatelessWidget {
                         ),
                       ],
                     ),
+                    if (!kIsWeb && Platform.isAndroid) ...[
+                      const SizedBox(height: AppLayout.spaceL),
+                      SettingsSection(
+                        title: 'Home Screen Widgets',
+                        icon: Icons.widgets_outlined,
+                        accentColor: colorScheme.secondary,
+                        children: [
+                          SettingsTile(
+                            icon: Icons.checklist_rtl_rounded,
+                            iconColor: colorScheme.primary,
+                            title: 'Action Items & Checklist Widget',
+                            subtitle: 'Interactive checklist with 1-tap toggling and quick-add',
+                            showArrow: true,
+                            onTap: () => SettingsDialogs.showPinWidgetSheet(context, 'todo'),
+                          ),
+                          SettingsTile(
+                            icon: Icons.account_balance_wallet_outlined,
+                            iconColor: colorScheme.secondary,
+                            title: 'Financial Manager Widget',
+                            subtitle: 'Real-time spendings overview & sparkline pace plot',
+                            showArrow: true,
+                            onTap: () => SettingsDialogs.showPinWidgetSheet(context, 'finance'),
+                          ),
+                          SettingsTile(
+                            icon: Icons.dashboard_customize_outlined,
+                            iconColor: colorScheme.tertiary,
+                            title: 'Unified Dual-Domain Widget',
+                            subtitle: 'Dual-domain balance metrics with active checklist preview',
+                            showArrow: true,
+                            onTap: () => SettingsDialogs.showPinWidgetSheet(context, 'unified'),
+                          ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: AppLayout.fabBottomPadding),
                   ]),
                 ),

@@ -90,7 +90,8 @@
             android:layout_height="wrap_content"
             android:divider="@null"
             android:dividerHeight="0dp"
-            android:scrollbars="vertical" />
+            android:scrollbars="vertical"
+            android:descendantFocusability="afterDescendants" />
 
         <!-- Hairline Divider -->
         <FrameLayout

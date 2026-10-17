@@ -1,11 +1,22 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/services/app_haptics.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
+import '../../../../core/ui/app_card.dart';
 import '../../../../core/ui/app_dialog.dart';
+import '../../../../data/database_helper.dart';
 import '../../../../data/transaction_category.dart';
+import '../../../../providers/note_provider.dart';
+import '../../../../screens/app_lock_screen.dart';
+import '../../../../services/backup_service.dart';
+import '../../../finances/providers/financial_manager_provider.dart';
+import '../../../finances/providers/savings_goal_provider.dart';
+import '../../../../utils/widget_helper.dart';
 import '../../providers/settings_provider.dart';
 
 /// Centralized modal sheets and picker dialogs for Settings.
@@ -419,29 +430,265 @@ class SettingsDialogs {
 
   static Future<void> showBackupLocationPicker(BuildContext context, SettingsProvider settings) async {
     try {
+      AppLockScreen.ignoreNextResumeLock();
       final selectedDirectory = await FilePicker.platform.getDirectoryPath();
-      if (selectedDirectory != null) {
+      if (selectedDirectory != null && selectedDirectory.isNotEmpty) {
+        final targetDir = Directory(selectedDirectory);
+        if (!await targetDir.exists()) {
+          await targetDir.create(recursive: true);
+        }
+
+        // Issue #5: Initialize a clean backup immediately into the target directory.
+        // This guarantees write permissions and ensures an empty directory immediately contains
+        // a valid backup file.
+        final jsonContent = await generateBackupJson(
+          settingsOverride: settings.toBackupMap(),
+        );
+        final dateStr = DateTime.now().toString().replaceAll(RegExp(r'[: ]'), '_').split('.')[0];
+        final fileName = 'notebook_auto_backup_$dateStr.json';
+        final initialFile = File('${targetDir.path}/$fileName');
+        await initialFile.writeAsString(jsonContent);
+
         AppHaptics.mediumImpact();
         await settings.setAutoBackupPath(selectedDirectory);
+        settings.updateLastAutoBackupTime(DateTime.now());
+
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Backup location updated to: $selectedDirectory'),
+              content: Text('Backup folder set & initialized: $selectedDirectory'),
               behavior: SnackBarBehavior.floating,
             ),
           );
         }
       }
     } catch (e) {
+      debugPrint('Custom backup directory setup failed ($e), falling back to app storage');
+      await settings.setAutoBackupPath(null); // Resilient fallback to protected app storage
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to select directory: $e'),
+            content: Text('Could not write to folder ($e). Using secure app storage.'),
+            backgroundColor: Theme.of(context).colorScheme.error,
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
     }
+  }
+
+  static void showDatabaseSnapshotsSheet(BuildContext context) {
+    AppBottomSheet.show(
+      context: context,
+      title: 'Database Snapshots & Local Recovery',
+      child: StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          final theme = Theme.of(ctx);
+          final colorScheme = theme.colorScheme;
+
+          return FutureBuilder<List<DatabaseSnapshotInfo>>(
+            future: DatabaseHelper.instance.getAvailableSnapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(AppLayout.spaceXL),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+
+              final snapshots = snapshot.data ?? [];
+
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Rolling Snapshots (${snapshots.length})',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      FilledButton.tonalIcon(
+                        icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
+                        label: const Text('Snapshot Now'),
+                        onPressed: () async {
+                          AppHaptics.selectionClick();
+                          final created = await DatabaseHelper.instance.createManualSnapshot();
+                          if (created != null && ctx.mounted) {
+                            setSheetState(() {});
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              const SnackBar(
+                                content: Text('Manual database snapshot created'),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppLayout.spaceM),
+                  if (snapshots.isEmpty)
+                    AppCard(
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppLayout.spaceL),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.shield_outlined,
+                              size: 40,
+                              color: colorScheme.primary,
+                            ),
+                            const SizedBox(height: AppLayout.spaceM),
+                            Text(
+                              'No Snapshots Found',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: AppLayout.spaceS),
+                            Text(
+                              'Snapshots are created automatically before database schema updates and P2P sync merges. You can also create manual snapshots above.',
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    ...snapshots.map((snap) {
+                      IconData snapIcon;
+                      Color snapColor;
+                      String typeTitle;
+
+                      switch (snap.type) {
+                        case 'pre-migration':
+                          snapIcon = Icons.published_with_changes_rounded;
+                          snapColor = colorScheme.primary;
+                          typeTitle = 'Pre-Migration Snapshot';
+                          break;
+                        case 'pre-sync':
+                          snapIcon = Icons.sync_rounded;
+                          snapColor = colorScheme.secondary;
+                          typeTitle = 'Pre-Sync Snapshot';
+                          break;
+                        default:
+                          snapIcon = Icons.bookmark_added_rounded;
+                          snapColor = colorScheme.tertiary;
+                          typeTitle = 'Manual Snapshot';
+                          break;
+                      }
+
+                      final formattedTime = DateFormat('MMM d, y • h:mm a').format(snap.timestamp);
+                      final sizeKb = (snap.sizeBytes / 1024).toStringAsFixed(1);
+
+                      return AppCard(
+                        margin: const EdgeInsets.only(bottom: AppLayout.spaceS),
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppLayout.spaceM),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                backgroundColor: snapColor.withValues(alpha: 0.15),
+                                foregroundColor: snapColor,
+                                child: Icon(snapIcon, size: 20),
+                              ),
+                              const SizedBox(width: AppLayout.spaceM),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      typeTitle,
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '$formattedTime • $sizeKb KB',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              OutlinedButton(
+                                onPressed: () async {
+                                  AppHaptics.selectionClick();
+                                  final confirmed = await showDialog<bool>(
+                                    context: ctx,
+                                    builder: (dialogCtx) => AppDialog(
+                                      title: 'Restore Snapshot?',
+                                      content: Text(
+                                        'Restore data from $formattedTime? A safety backup of your active database will be saved first.',
+                                      ),
+                                      confirmLabel: 'Restore',
+                                      onConfirm: () => Navigator.of(dialogCtx).pop(true),
+                                    ),
+                                  );
+
+                                  if (confirmed == true && ctx.mounted) {
+                                    final noteProv = Provider.of<NoteProvider>(ctx, listen: false);
+                                    final finProv = Provider.of<FinancialManagerProvider>(ctx, listen: false);
+                                    final goalsProv = Provider.of<SavingsGoalProvider>(ctx, listen: false);
+                                    final navigator = Navigator.of(ctx);
+                                    final messenger = ScaffoldMessenger.of(ctx);
+
+                                    final restored = await DatabaseHelper.instance.restoreSnapshot(snap.path);
+                                    if (restored) {
+                                      try {
+                                        await noteProv.refreshNotes();
+                                        await finProv.refresh();
+                                        await goalsProv.loadGoals();
+                                      } catch (_) {}
+                                      navigator.pop();
+                                      messenger.showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Database successfully restored from snapshot'),
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
+                                    } else {
+                                      messenger.showSnackBar(
+                                        SnackBar(
+                                          content: const Text('Failed to restore snapshot. Current database preserved.'),
+                                          backgroundColor: colorScheme.error,
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  visualDensity: VisualDensity.compact,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                ),
+                                child: const Text('Restore'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                  const SizedBox(height: AppLayout.spaceM),
+                ],
+              );
+            },
+          );
+        },
+      ),
+    );
   }
 
   static void showAccountNamingAndRoutingSheet(BuildContext context, SettingsProvider settings) {
@@ -681,5 +928,147 @@ class SettingsDialogs {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
+  }
+
+  static void showPinWidgetSheet(BuildContext context, [String? initialWidgetType]) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    final widgets = [
+      (
+        type: 'todo',
+        name: 'Action Items & Checklist',
+        desc: 'Interactive checklist with 1-tap toggling, list selector, and quick task capture.',
+        icon: Icons.checklist_rtl_rounded,
+        color: colorScheme.primary,
+        gridSize: '2x2 • 4x2 • 4x4',
+      ),
+      (
+        type: 'finance',
+        name: 'Financial Manager',
+        desc: 'Real-time daily/monthly cash flow, budget pacing indicator, and mini sparkline plot.',
+        icon: Icons.account_balance_wallet_outlined,
+        color: colorScheme.secondary,
+        gridSize: '2x2 • 4x2',
+      ),
+      (
+        type: 'unified',
+        name: 'Unified Dual-Domain Capsule',
+        desc: 'Dual-domain balance metrics paired with pending note checklist items.',
+        icon: Icons.dashboard_customize_outlined,
+        color: colorScheme.tertiary,
+        gridSize: '4x2 • 4x4',
+      ),
+    ];
+
+    AppBottomSheet.show(
+      context: context,
+      title: 'Pin to Home Screen',
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Add tactile Material You widgets directly to your device home screen with 1-tap launcher pinning.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: AppLayout.spaceM),
+            ...widgets.map((w) {
+              final isHighlight = initialWidgetType == w.type;
+              return AppCard(
+                margin: const EdgeInsets.only(bottom: AppLayout.spaceS),
+                backgroundColor: isHighlight ? w.color.withValues(alpha: 0.08) : null,
+                child: Padding(
+                  padding: const EdgeInsets.all(AppLayout.spaceM),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: w.color.withValues(alpha: 0.15),
+                        foregroundColor: w.color,
+                        child: Icon(w.icon, size: 22),
+                      ),
+                      const SizedBox(width: AppLayout.spaceM),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    w.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.surfaceContainerHighest,
+                                    borderRadius: BorderRadius.circular(AppLayout.radiusS),
+                                  ),
+                                  child: Text(
+                                    w.gridSize,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              w.desc,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: AppLayout.spaceS),
+                      FilledButton(
+                        style: FilledButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        ),
+                        onPressed: () async {
+                          AppHaptics.mediumImpact();
+                          final pinned = await WidgetHelper.requestPinWidget(w.type);
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  pinned
+                                      ? 'Pin request sent to your launcher'
+                                      : 'Launcher pinning not supported. Add from your home screen widget menu.',
+                                ),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        },
+                        child: const Text('Pin'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: AppLayout.spaceM),
+          ],
+        ),
+      ),
+    );
   }
 }

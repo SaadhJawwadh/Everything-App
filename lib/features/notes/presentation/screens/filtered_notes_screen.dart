@@ -418,7 +418,7 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
                 right: 0,
                 child: AnimatedSwitcher(
                   duration: AppLayout.animDefault,
-                  switchInCurve: AppLayout.curveEmphasizedDecelerate,
+                  switchInCurve: AppLayout.curveExpressiveSpatial,
                   switchOutCurve: AppLayout.curveEmphasizedAccelerate,
                   transitionBuilder: (child, animation) {
                     return SlideTransition(

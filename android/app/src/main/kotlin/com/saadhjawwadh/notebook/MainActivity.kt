@@ -72,7 +72,7 @@ class MainActivity: FlutterFragmentActivity() {
 
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
         super.onConfigurationChanged(newConfig)
-        val context = this
+        val context = applicationContext
         FinanceWidgetProvider.updateAllWidgets(context)
         NotesWidgetProvider.updateAllWidgets(context)
         TodoWidgetProvider.updateAllWidgets(context)
@@ -100,7 +100,11 @@ class MainActivity: FlutterFragmentActivity() {
                 pendingWidgetAction = "open_note:$openNoteId:$lineIndex:$text"
             }
             "com.saadhjawwadh.notebook.PIN_TODO_WIDGET" -> {
-                requestPinTodoWidget()
+                requestPinAppWidget("todo")
+            }
+            "com.saadhjawwadh.notebook.PIN_WIDGET" -> {
+                val type = intent.getStringExtra("widget_type") ?: "todo"
+                requestPinAppWidget(type)
             }
             Intent.ACTION_PROCESS_TEXT -> {
                 val text = intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString()
@@ -111,18 +115,44 @@ class MainActivity: FlutterFragmentActivity() {
             }
         }
         if (intent?.getBooleanExtra("pin_todo_widget", false) == true) {
-            requestPinTodoWidget()
+            requestPinAppWidget("todo")
         }
     }
 
-    private fun requestPinTodoWidget(): Boolean {
+    private fun requestPinAppWidget(widgetType: String = "todo"): Boolean {
         val appWidgetManager = AppWidgetManager.getInstance(this)
-        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O &&
-            appWidgetManager.isRequestPinAppWidgetSupported
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
+            !appWidgetManager.isRequestPinAppWidgetSupported
         ) {
-            val component = ComponentName(this, TodoWidgetProvider::class.java)
-            appWidgetManager.requestPinAppWidget(component, null, null)
-        } else {
+            return false
+        }
+
+        val component = when (widgetType.lowercase()) {
+            "finance" -> ComponentName(this, FinanceWidgetProvider::class.java)
+            "unified" -> ComponentName(this, UnifiedWidgetProvider::class.java)
+            "notes" -> ComponentName(this, NotesWidgetProvider::class.java)
+            else -> ComponentName(this, TodoWidgetProvider::class.java)
+        }
+
+        val extras = Bundle()
+        // Android 15 (API 35) setWidgetPreview support via EXTRA_APPWIDGET_PREVIEW
+        if (Build.VERSION.SDK_INT >= 35) {
+            try {
+                val layoutRes = when (widgetType.lowercase()) {
+                    "finance" -> R.layout.finance_widget_layout
+                    "unified" -> R.layout.unified_widget_layout
+                    "notes" -> R.layout.notes_widget_layout
+                    else -> R.layout.todo_widget_layout
+                }
+                val previewViews = android.widget.RemoteViews(packageName, layoutRes)
+                extras.putParcelable("appWidgetPreview", previewViews)
+            } catch (_: Exception) {}
+        }
+
+        return try {
+            appWidgetManager.requestPinAppWidget(component, if (extras.isEmpty) null else extras, null)
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "requestPinAppWidget failed: $e")
             false
         }
     }
@@ -161,15 +191,19 @@ class MainActivity: FlutterFragmentActivity() {
         channel.setMethodCallHandler { call, result ->
             when (call.method) {
                 "updateWidget" -> {
-                    val context = this@MainActivity
+                    val context = applicationContext
                     FinanceWidgetProvider.updateAllWidgets(context)
                     NotesWidgetProvider.updateAllWidgets(context)
                     TodoWidgetProvider.updateAllWidgets(context)
                     UnifiedWidgetProvider.updateAllWidgets(context)
                     result.success(true)
                 }
+                "pinWidget", "requestPinAppWidget" -> {
+                    val type = call.argument<String>("type") ?: "todo"
+                    result.success(requestPinAppWidget(type))
+                }
                 "pinTodoWidget" -> {
-                    result.success(requestPinTodoWidget())
+                    result.success(requestPinAppWidget("todo"))
                 }
                 "getPendingAction" -> {
                     result.success(pendingWidgetAction)

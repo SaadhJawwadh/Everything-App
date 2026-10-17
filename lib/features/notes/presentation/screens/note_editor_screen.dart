@@ -30,6 +30,7 @@ import '../../../../providers/note_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../../utils/app_globals.dart';
+import '../../../../utils/widget_helper.dart';
 import 'package:flutter/services.dart';
 import '../../../../widgets/bouncing_widget.dart';
 import '../../../../core/services/app_haptics.dart';
@@ -1163,6 +1164,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       await NoteRepository.instance.createNote(note);
       isNoteSaved = true;
     }
+    unawaited(WidgetHelper.updateTodoWidgetData());
 
     // Keep the scheduled notification in sync (only when it actually changed
     // — this runs on every autosave debounce).
@@ -2737,6 +2739,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           } catch (e) {
             debugPrint('Error saving note on pop: $e');
           } finally {
+            unawaited(WidgetHelper.updateTodoWidgetData());
             if (context.mounted) Navigator.pop(context, _hasChanges);
           }
         },
@@ -3284,7 +3287,8 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                         return Padding(
                                           padding: const EdgeInsets.only(top: 8, bottom: 12),
                                           child: AnimatedContainer(
-                                            duration: AppLayout.animShort,
+                                            duration: AppLayout.animDefault,
+                                            curve: AppLayout.curveExpressiveSpatial,
                                             decoration: BoxDecoration(
                                               color: noteScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                                               borderRadius: BorderRadius.circular(AppLayout.radiusXL),
@@ -3397,66 +3401,71 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                                     ),
                                                   ),
                                                 ),
-                                                if (!_isCompletedCollapsed)
-                                                  Column(
-                                                    children: [
-                                                       const SizedBox(height: 6.0),
-                                                      ..._completedItems.map((item) {
-                                                        return Padding(
-                                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                                          child: Row(
-                                                            children: [
-                                                              Checkbox(
-                                                                value: true,
-                                                                onChanged: (val) async {
-                                                                  AppHaptics.selectionClick();
-                                                                  final itemToRestore = item;
-                                                                  setState(() {
-                                                                    _completedItems.remove(itemToRestore);
-                                                                  });
-                                                                  WidgetsBinding.instance.addPostFrameCallback((_) async {
-                                                                    if (!mounted) return;
-                                                                    _isUpdatingProgrammatically = true;
-                                                                    try {
-                                                                      QuillChecklistHelper.restoreUncheckedItem(
-                                                                          _quillController, itemToRestore);
-                                                                      await saveNote();
-                                                                      if (mounted) setState(() {});
-                                                                    } finally {
-                                                                      _isUpdatingProgrammatically = false;
-                                                                    }
-                                                                  });
-                                                                },
-                                                                activeColor: theme.colorScheme.primary,
-                                                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                                              ),
-                                                              Expanded(
-                                                                child: Text(
-                                                                  item,
-                                                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                                                    color: textColor.withValues(alpha: 0.6),
-                                                                    decoration: TextDecoration.lineThrough,
-                                                                  ),
+                                                AnimatedSize(
+                                                  duration: AppLayout.animDefault,
+                                                  curve: AppLayout.curveExpressiveSpatial,
+                                                  child: !_isCompletedCollapsed
+                                                      ? Column(
+                                                          children: [
+                                                             const SizedBox(height: 6.0),
+                                                            ..._completedItems.map((item) {
+                                                              return Padding(
+                                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                                child: Row(
+                                                                  children: [
+                                                                    Checkbox(
+                                                                      value: true,
+                                                                      onChanged: (val) async {
+                                                                        AppHaptics.selectionClick();
+                                                                        final itemToRestore = item;
+                                                                        setState(() {
+                                                                          _completedItems.remove(itemToRestore);
+                                                                        });
+                                                                        WidgetsBinding.instance.addPostFrameCallback((_) async {
+                                                                          if (!mounted) return;
+                                                                          _isUpdatingProgrammatically = true;
+                                                                          try {
+                                                                            QuillChecklistHelper.restoreUncheckedItem(
+                                                                                _quillController, itemToRestore);
+                                                                            await saveNote();
+                                                                            if (mounted) setState(() {});
+                                                                          } finally {
+                                                                            _isUpdatingProgrammatically = false;
+                                                                          }
+                                                                        });
+                                                                      },
+                                                                      activeColor: theme.colorScheme.primary,
+                                                                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                                    ),
+                                                                    Expanded(
+                                                                      child: Text(
+                                                                        item,
+                                                                        style: theme.textTheme.bodyMedium?.copyWith(
+                                                                          color: textColor.withValues(alpha: 0.6),
+                                                                          decoration: TextDecoration.lineThrough,
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                    IconButton(
+                                                                      icon: Icon(Icons.close_rounded,
+                                                                          size: 16, color: noteScheme.onSurfaceVariant.withValues(alpha: 0.7)),
+                                                                      padding: EdgeInsets.zero,
+                                                                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                                                                      onPressed: () async {
+                                                                        AppHaptics.selectionClick();
+                                                                        _completedItems.remove(item);
+                                                                        await saveNote();
+                                                                        if (context.mounted) setState(() {});
+                                                                      },
+                                                                    ),
+                                                                  ],
                                                                 ),
-                                                              ),
-                                                              IconButton(
-                                                                icon: Icon(Icons.close_rounded,
-                                                                    size: 16, color: noteScheme.onSurfaceVariant.withValues(alpha: 0.7)),
-                                                                padding: EdgeInsets.zero,
-                                                                constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                                                                onPressed: () async {
-                                                                  AppHaptics.selectionClick();
-                                                                  _completedItems.remove(item);
-                                                                  await saveNote();
-                                                                  if (context.mounted) setState(() {});
-                                                                },
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        );
-                                                      }),
-                                                    ],
-                                                  ),
+                                                              );
+                                                            }),
+                                                          ],
+                                                        )
+                                                      : const SizedBox.shrink(),
+                                                ),
                                               ],
                                             ),
                                           ),

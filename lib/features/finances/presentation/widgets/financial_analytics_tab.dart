@@ -6,6 +6,7 @@ import '../../../../data/transaction_category.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
 import '../../../../core/services/app_haptics.dart';
 import '../../../../core/theme/app_layout.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/app_card.dart';
 import 'burn_rate_forecast_card.dart';
 import 'category_budgets_card.dart';
@@ -211,11 +212,13 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
         children: [
           Expanded(
             child: _pillOption(
+              index: 0,
               title: 'Breakdown',
               icon: Icons.donut_large_rounded,
               isSelected: _activeDeckIndex == 0,
               onTap: () {
                 if (_activeDeckIndex != 0) {
+                  AppHaptics.selectionClick();
                   setState(() => _activeDeckIndex = 0);
                 }
               },
@@ -225,11 +228,13 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
           ),
           Expanded(
             child: _pillOption(
+              index: 1,
               title: 'Budgets',
               icon: Icons.track_changes_rounded,
               isSelected: _activeDeckIndex == 1,
               onTap: () {
                 if (_activeDeckIndex != 1) {
+                  AppHaptics.selectionClick();
                   setState(() => _activeDeckIndex = 1);
                 }
               },
@@ -239,11 +244,13 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
           ),
           Expanded(
             child: _pillOption(
+              index: 2,
               title: 'Savings',
               icon: Icons.savings_rounded,
               isSelected: _activeDeckIndex == 2,
               onTap: () {
                 if (_activeDeckIndex != 2) {
+                  AppHaptics.selectionClick();
                   setState(() => _activeDeckIndex = 2);
                 }
               },
@@ -257,6 +264,7 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
   }
 
   Widget _pillOption({
+    required int index,
     required String title,
     required IconData icon,
     required bool isSelected,
@@ -264,17 +272,38 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
     required ColorScheme colorScheme,
     required TextTheme textTheme,
   }) {
+    final BorderRadius effectiveRadius;
+    if (isSelected) {
+      effectiveRadius = BorderRadius.circular(AppLayout.radiusStadium);
+    } else if (index == 0) {
+      effectiveRadius = const BorderRadius.only(
+        topLeft: Radius.circular(24.0),
+        bottomLeft: Radius.circular(24.0),
+        topRight: Radius.circular(6.0),
+        bottomRight: Radius.circular(6.0),
+      );
+    } else if (index == 1) {
+      effectiveRadius = const BorderRadius.all(Radius.circular(6.0));
+    } else {
+      effectiveRadius = const BorderRadius.only(
+        topRight: Radius.circular(24.0),
+        bottomRight: Radius.circular(24.0),
+        topLeft: Radius.circular(6.0),
+        bottomLeft: Radius.circular(6.0),
+      );
+    }
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOutCubic,
+        duration: AppLayout.animDefault,
+        curve: AppLayout.curveExpressiveSpatial,
         padding: const EdgeInsets.symmetric(vertical: 7),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isSelected ? colorScheme.secondaryContainer : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppLayout.radiusMAX),
+          borderRadius: effectiveRadius,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -293,8 +322,16 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: textTheme.labelMedium?.copyWith(
+                style: (textTheme.labelMedium ?? const TextStyle()).copyWith(
+                  fontFamily: AppTheme.fontGoogleSansFlex,
+                  fontFamilyFallback: AppTheme.fontFallbacks,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  fontVariations: AppTheme.buildFontVariations(
+                    size: 12.0,
+                    brightness: Theme.of(context).brightness,
+                    weight: isSelected ? 650.0 : 500.0,
+                    grade: isSelected ? 40.0 : null,
+                  ),
                   color: isSelected
                       ? colorScheme.onSecondaryContainer
                       : colorScheme.onSurfaceVariant,

@@ -362,7 +362,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 _buildDomainHubCard(
                                   context: context,
                                   title: 'About & Guides',
-                                  subtitle: 'Everything App v2.46.1 • Changelog • Diagnostics & Setup',
+                                  subtitle: 'Everything App v2.47.0 • Changelog • Diagnostics & Setup',
                                   icon: Icons.info_outline_rounded,
                                   accentColor: colorScheme.onSurfaceVariant,
                                   onTap: () => AppRoute.push(context, const AboutSettingsScreen()),

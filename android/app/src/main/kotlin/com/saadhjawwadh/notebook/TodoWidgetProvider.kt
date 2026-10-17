@@ -23,14 +23,15 @@ class TodoWidgetProvider : AppWidgetProvider() {
         const val PREFS_NAME = "FlutterSharedPreferences"
 
         fun updateAllWidgets(context: Context) {
-            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val appContext = context.applicationContext ?: context
+            val appWidgetManager = AppWidgetManager.getInstance(appContext)
             val ids = appWidgetManager.getAppWidgetIds(
-                ComponentName(context, TodoWidgetProvider::class.java)
+                ComponentName(appContext, TodoWidgetProvider::class.java)
             )
             Log.d("TodoWidget", "updateAllWidgets called, found ids: ${ids.joinToString()}")
             if (ids.isNotEmpty()) {
                 for (id in ids) {
-                    updateAppWidget(context, appWidgetManager, id)
+                    updateAppWidget(appContext, appWidgetManager, id)
                 }
                 appWidgetManager.notifyAppWidgetViewDataChanged(ids, R.id.todo_widget_list)
             }
@@ -39,10 +40,21 @@ class TodoWidgetProvider : AppWidgetProvider() {
         fun updateAppWidget(
             context: Context,
             appWidgetManager: AppWidgetManager,
-            appWidgetId: Int
+            appWidgetId: Int,
+            options: Bundle? = null
         ) {
             val views = RemoteViews(context.packageName, R.layout.todo_widget_layout)
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+            // Responsive size bucketing
+            val opts = options ?: appWidgetManager.getAppWidgetOptions(appWidgetId)
+            val minWidth = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
+            val minHeight = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
+            val isCompact = (minWidth in 1..200) || (minHeight in 1..150)
+
+            // Keep list switcher & title visible across all sizes; only hide counter when space-constrained
+            views.setViewVisibility(R.id.todo_widget_switcher, android.view.View.VISIBLE)
+            views.setViewVisibility(R.id.todo_widget_counter, if (isCompact) android.view.View.GONE else android.view.View.VISIBLE)
 
             val notesJsonStr = prefs.getString("flutter.widget_todo_notes_json", "[]") ?: "[]"
             
@@ -53,7 +65,20 @@ class TodoWidgetProvider : AppWidgetProvider() {
                 prefs.getString("flutter.widget_active_note_id", "ALL_NOTES") ?: "ALL_NOTES"
             }
 
-            var title = "All Action Items"
+            // Fallback title from preferences if JSON matching is pending
+            val fallbackTitle = if (prefs.contains("flutter.widget_active_note_title_$appWidgetId")) {
+                prefs.getString("flutter.widget_active_note_title_$appWidgetId", "") ?: ""
+            } else {
+                prefs.getString("flutter.widget_active_note_title", "") ?: ""
+            }
+
+            var title = if (activeNoteId == "ALL_NOTES" || activeNoteId.isEmpty()) {
+                "All Action Items"
+            } else if (fallbackTitle.isNotBlank()) {
+                fallbackTitle
+            } else {
+                "Checklist"
+            }
             var checkedCount = 0
             var totalCount = 0
 
@@ -75,8 +100,10 @@ class TodoWidgetProvider : AppWidgetProvider() {
                     for (i in 0 until notesArr.length()) {
                         val noteObj = notesArr.getJSONObject(i)
                         if (noteObj.optString("id") == activeNoteId) {
-                            title = noteObj.optString("title", "Checklist")
-                            if (title.isBlank()) title = "Untitled Note"
+                            val noteTitle = noteObj.optString("title", "")
+                            if (noteTitle.isNotBlank()) {
+                                title = noteTitle
+                            }
                             val items = noteObj.optJSONArray("items") ?: continue
                             for (j in 0 until items.length()) {
                                 totalCount++
@@ -93,6 +120,13 @@ class TodoWidgetProvider : AppWidgetProvider() {
             Log.d("TodoWidget", "updateAppWidget id=$appWidgetId title=$title counter=$checkedCount/$totalCount")
             views.setTextViewText(R.id.todo_widget_title, title)
             views.setTextViewText(R.id.todo_widget_counter, "$checkedCount/$totalCount done")
+
+            // Empty state feedback: Celebratory message when all tasks are checked
+            if (totalCount > 0 && checkedCount == totalCount) {
+                views.setTextViewText(R.id.todo_widget_empty, "All caught up! 🎉\nTap + to add a task")
+            } else {
+                views.setTextViewText(R.id.todo_widget_empty, "No pending tasks\nTap + to add one")
+            }
 
             // Bind ListView to RemoteViewsService with unique content URI
             val serviceIntent = Intent(context, TodoWidgetService::class.java).apply {
@@ -147,6 +181,9 @@ class TodoWidgetProvider : AppWidgetProvider() {
             views.setPendingIntentTemplate(R.id.todo_widget_list, itemClickPendingIntent)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
+            try {
+                appWidgetManager.partiallyUpdateAppWidget(appWidgetId, views)
+            } catch (_: Exception) {}
         }
     }
 
@@ -167,7 +204,7 @@ class TodoWidgetProvider : AppWidgetProvider() {
         appWidgetId: Int,
         newOptions: Bundle?
     ) {
-        updateAppWidget(context, appWidgetManager, appWidgetId)
+        updateAppWidget(context, appWidgetManager, appWidgetId, newOptions)
         super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
     }
 }

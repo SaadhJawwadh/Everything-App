@@ -98,9 +98,8 @@ class TodoRemoteViewsFactory(
             }
         } catch (_: Exception) {}
 
-        // Pending tasks first, then completed items with strikethrough at bottom
+        // Exclude completed items from widget list preview so widget remains an actionable pending queue
         items.addAll(pendingList)
-        items.addAll(doneList)
     }
 
     override fun onDestroy() {
@@ -169,7 +168,7 @@ class TodoRemoteViewsFactory(
     override fun getItemId(position: Int): Long {
         if (position in 0 until items.size) {
             val item = items[position]
-            return (item.noteId + ":" + item.text).hashCode().toLong()
+            return "${item.noteId}:${item.lineIndex}:${item.text}".hashCode().toLong()
         }
         return position.toLong()
     }

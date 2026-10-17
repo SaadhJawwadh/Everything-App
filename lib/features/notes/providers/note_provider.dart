@@ -6,6 +6,7 @@ import '../data/note_repository.dart';
 import '../../../data/note_model.dart';
 import '../../../services/p2p_sync_service.dart';
 import '../../../services/notification_service.dart';
+import '../../../utils/widget_helper.dart';
 
 class NoteProvider extends ChangeNotifier {
   final NoteRepository _noteRepository = NoteRepository();
@@ -191,6 +192,7 @@ class NoteProvider extends ChangeNotifier {
       _hasMoreNotes = fetchedNotes.length >= targetLimit;
       _isLoading = false;
       notifyListeners();
+      unawaited(WidgetHelper.updateTodoWidgetData());
     } catch (e) {
       _isLoading = false;
       notifyListeners();

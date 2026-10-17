@@ -96,30 +96,14 @@ class DatabaseHelper {
       if (await _isUnencryptedDb(path)) {
         await _migrateToEncrypted(path, password);
       }
+      await _checkAndCreatePreMigrationSnapshot(path, password, _databaseVersion);
     }
 
-    try {
-      return await openDatabase(
-        path,
-        password: password,
-        version: _databaseVersion,
-        onCreate: _createDB,
-        onUpgrade: _upgradeDB,
-        onOpen: _onOpenDB,
-      );
-    } catch (e) {
-      if (e.toString().contains('open_failed') || e.toString().contains('26')) {
-        debugPrint('DatabaseHelper: Corrupt database detected, backing up...');
-        try {
-          final timestamp = DateTime.now().millisecondsSinceEpoch;
-          if (await dbFile.exists()) await dbFile.rename('${path}_corrupt_backup_$timestamp');
-          final walFile = File('$path-wal');
-          final shmFile = File('$path-shm');
-          if (await walFile.exists()) await walFile.rename('$path-wal_corrupt_backup_$timestamp');
-          if (await shmFile.exists()) await shmFile.rename('$path-shm_corrupt_backup_$timestamp');
-        } catch (backupError) {
-          debugPrint('DatabaseHelper: Could not backup corrupt file: $backupError');
-        }
+    int attempts = 0;
+    const maxAttempts = 5;
+    while (true) {
+      attempts++;
+      try {
         return await openDatabase(
           path,
           password: password,
@@ -128,10 +112,144 @@ class DatabaseHelper {
           onUpgrade: _upgradeDB,
           onOpen: _onOpenDB,
         );
+      } catch (e) {
+        if (_isTransientLockError(e)) {
+          debugPrint('[DatabaseHelper] Database busy or locked on attempt $attempts of $maxAttempts: $e');
+          if (attempts < maxAttempts) {
+            final delayMs = 100 * (1 << (attempts - 1));
+            await Future.delayed(Duration(milliseconds: delayMs));
+            continue;
+          }
+          debugPrint('[DatabaseHelper] Database remained locked after $maxAttempts attempts. Aborting without destructive action.');
+          rethrow;
+        }
+
+        final isCorrupt = e.toString().contains('code 26') ||
+            e.toString().contains('SQLITE_NOTADB') ||
+            e.toString().contains('malformed') ||
+            e.toString().contains('file is not a database');
+
+        if (isCorrupt) {
+          debugPrint('[DatabaseHelper] Corrupt database detected ($e), backing up and attempting snapshot recovery...');
+          try {
+            final timestamp = DateTime.now().millisecondsSinceEpoch;
+            if (await dbFile.exists()) await dbFile.rename('${path}_corrupt_backup_$timestamp');
+            final walFile = File('$path-wal');
+            final shmFile = File('$path-shm');
+            if (await walFile.exists()) await walFile.rename('$path-wal_corrupt_backup_$timestamp');
+            if (await shmFile.exists()) await shmFile.rename('$path-shm_corrupt_backup_$timestamp');
+          } catch (backupError) {
+            debugPrint('[DatabaseHelper] Could not backup corrupt file: $backupError');
+          }
+
+          final recovered = await _tryRecoverFromLatestSnapshot(path);
+          if (recovered) {
+            debugPrint('[DatabaseHelper] Recovered database from latest rolling snapshot');
+          }
+
+          return await openDatabase(
+            path,
+            password: password,
+            version: _databaseVersion,
+            onCreate: _createDB,
+            onUpgrade: _upgradeDB,
+            onOpen: _onOpenDB,
+          );
+        }
+
+        rethrow;
       }
-      rethrow;
     }
   }
+
+  static bool _isTransientLockError(Object e) {
+    final msg = e.toString().toLowerCase();
+    return msg.contains('busy') ||
+        msg.contains('locked') ||
+        msg.contains('code 5') ||
+        msg.contains('code 6') ||
+        msg.contains('code 261') ||
+        msg.contains('code 517') ||
+        msg.contains('sqlite_busy') ||
+        msg.contains('sqlite_locked');
+  }
+
+  static Future<void> _checkAndCreatePreMigrationSnapshot(
+    String path,
+    String password,
+    int targetVersion,
+  ) async {
+    Database? testDb;
+    try {
+      testDb = await openDatabase(
+        path,
+        password: password,
+        readOnly: true,
+        singleInstance: false,
+      );
+      final result = await testDb.rawQuery('PRAGMA user_version');
+      final currentVersion = (result.first.values.first as num?)?.toInt() ?? 0;
+      await testDb.close();
+      testDb = null;
+
+      if (currentVersion > 0 && currentVersion < targetVersion) {
+        debugPrint('[DatabaseHelper] DB version $currentVersion < target $targetVersion. Generating pre-migration snapshot...');
+        final dbPath = await getDatabasesPath();
+        final snapshotsDir = Directory(join(dbPath, 'snapshots'));
+        if (!await snapshotsDir.exists()) {
+          await snapshotsDir.create(recursive: true);
+        }
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final snapshotFile = File(join(
+          snapshotsDir.path,
+          'snapshot_pre_migration_v${currentVersion}_to_v${targetVersion}_$timestamp.db',
+        ));
+
+        Database? exportDb;
+        try {
+          exportDb = await openDatabase(path, password: password, singleInstance: false);
+          await exportDb.execute("ATTACH DATABASE '${snapshotFile.path}' AS pre_mig_snap KEY '$password'");
+          await exportDb.rawQuery("SELECT sqlcipher_export('pre_mig_snap')");
+          await exportDb.execute("DETACH DATABASE pre_mig_snap");
+          debugPrint('[DatabaseHelper] Created pre-migration snapshot: ${snapshotFile.path}');
+          await _rotateSnapshots(snapshotsDir);
+        } finally {
+          await exportDb?.close();
+        }
+      }
+    } catch (e) {
+      debugPrint('[DatabaseHelper] Pre-migration check error: $e');
+    } finally {
+      await testDb?.close();
+    }
+  }
+
+  static Future<bool> _tryRecoverFromLatestSnapshot(String targetDbPath) async {
+    try {
+      final dbPath = await getDatabasesPath();
+      final snapshotsDir = Directory(join(dbPath, 'snapshots'));
+      if (!await snapshotsDir.exists()) return false;
+      final files = <File>[];
+      await for (final entity in snapshotsDir.list()) {
+        if (entity is File && entity.path.endsWith('.db')) {
+          files.add(entity);
+        }
+      }
+      if (files.isEmpty) return false;
+      files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
+      final latest = files.first;
+      await latest.copy(targetDbPath);
+      final walFile = File('$targetDbPath-wal');
+      final shmFile = File('$targetDbPath-shm');
+      if (await walFile.exists()) await walFile.delete();
+      if (await shmFile.exists()) await shmFile.delete();
+      return true;
+    } catch (e) {
+      debugPrint('[DatabaseHelper] Recovery from latest snapshot failed: $e');
+      return false;
+    }
+  }
+
 
   static Future<void> _onOpenDB(Database db) async {
     try {
@@ -557,4 +675,199 @@ class DatabaseHelper {
       ''');
     }
   }
+
+  Future<void> close() async {
+    final db = _database;
+    if (db != null) {
+      await db.close();
+      _database = null;
+      _databaseFuture = null;
+    }
+  }
+
+  /// Creates a local rolling snapshot before P2P sync remote merge runs.
+  Future<String?> createPreSyncSnapshot() async {
+    try {
+      final db = await database;
+      final dbPath = await getDatabasesPath();
+      final snapshotsDir = Directory(join(dbPath, 'snapshots'));
+      if (!await snapshotsDir.exists()) {
+        await snapshotsDir.create(recursive: true);
+      }
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final snapshotPath = join(snapshotsDir.path, 'snapshot_pre_sync_$timestamp.db');
+      final password = await _getOrCreateEncryptionKey();
+
+      try {
+        await db.rawQuery('PRAGMA wal_checkpoint(PASSIVE);');
+      } catch (_) {}
+
+      await db.execute("ATTACH DATABASE '$snapshotPath' AS pre_sync_snap KEY '$password'");
+      await db.rawQuery("SELECT sqlcipher_export('pre_sync_snap')");
+      await db.execute("DETACH DATABASE pre_sync_snap");
+      debugPrint('[DatabaseHelper] Created pre-sync snapshot: $snapshotPath');
+      await _rotateSnapshots(snapshotsDir);
+      return snapshotPath;
+    } catch (e) {
+      debugPrint('[DatabaseHelper] Pre-sync snapshot failed: $e');
+      return null;
+    }
+  }
+
+  /// Creates a user-initiated manual database snapshot.
+  Future<String?> createManualSnapshot() async {
+    try {
+      final db = await database;
+      final dbPath = await getDatabasesPath();
+      final snapshotsDir = Directory(join(dbPath, 'snapshots'));
+      if (!await snapshotsDir.exists()) {
+        await snapshotsDir.create(recursive: true);
+      }
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final snapshotPath = join(snapshotsDir.path, 'snapshot_manual_$timestamp.db');
+      final password = await _getOrCreateEncryptionKey();
+
+      try {
+        await db.rawQuery('PRAGMA wal_checkpoint(PASSIVE);');
+      } catch (_) {}
+
+      await db.execute("ATTACH DATABASE '$snapshotPath' AS manual_snap KEY '$password'");
+      await db.rawQuery("SELECT sqlcipher_export('manual_snap')");
+      await db.execute("DETACH DATABASE manual_snap");
+      debugPrint('[DatabaseHelper] Created manual snapshot: $snapshotPath');
+      await _rotateSnapshots(snapshotsDir);
+      return snapshotPath;
+    } catch (e) {
+      debugPrint('[DatabaseHelper] Manual snapshot failed: $e');
+      return null;
+    }
+  }
+
+  @visibleForTesting
+  static Future<void> rotateSnapshotsForTest(Directory snapshotsDir) => _rotateSnapshots(snapshotsDir);
+
+  static Future<void> _rotateSnapshots(Directory snapshotsDir) async {
+    try {
+      if (!await snapshotsDir.exists()) return;
+      final files = <File>[];
+      await for (final entity in snapshotsDir.list()) {
+        if (entity is File && entity.path.endsWith('.db')) {
+          files.add(entity);
+        }
+      }
+      if (files.length > 5) {
+        files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
+        for (final old in files.skip(5)) {
+          try {
+            await old.delete();
+          } catch (_) {}
+        }
+      }
+    } catch (e) {
+      debugPrint('[DatabaseHelper] Snapshot rotation error: $e');
+    }
+  }
+
+  /// Lists all available rolling and manual snapshots.
+  Future<List<DatabaseSnapshotInfo>> getAvailableSnapshots() async {
+    final list = <DatabaseSnapshotInfo>[];
+    try {
+      final dbPath = await getDatabasesPath();
+      final snapshotsDir = Directory(join(dbPath, 'snapshots'));
+      if (!await snapshotsDir.exists()) return list;
+
+      await for (final entity in snapshotsDir.list()) {
+        if (entity is File && entity.path.endsWith('.db')) {
+          final fileName = basename(entity.path);
+          String type = 'manual';
+          if (fileName.contains('pre_migration')) {
+            type = 'pre-migration';
+          } else if (fileName.contains('pre_sync')) {
+            type = 'pre-sync';
+          }
+          final stat = await entity.stat();
+          list.add(DatabaseSnapshotInfo(
+            path: entity.path,
+            fileName: fileName,
+            type: type,
+            timestamp: stat.modified,
+            sizeBytes: stat.size,
+          ));
+        }
+      }
+      list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    } catch (e) {
+      debugPrint('[DatabaseHelper] getAvailableSnapshots error: $e');
+    }
+    return list;
+  }
+
+  /// Safely restores the database from a snapshot file.
+  Future<bool> restoreSnapshot(String snapshotPath) async {
+    try {
+      final snapshotFile = File(snapshotPath);
+      if (!await snapshotFile.exists()) return false;
+
+      final dbPath = await getDatabasesPath();
+      final mainDbPath = join(dbPath, _dbName);
+      final backupPath = join(dbPath, '${_dbName}_safety_backup');
+
+      // 1. Close current db connection
+      await close();
+
+      // 2. Safety copy of current db
+      final currentDbFile = File(mainDbPath);
+      if (await currentDbFile.exists()) {
+        await currentDbFile.copy(backupPath);
+      }
+
+      // 3. Delete stale WAL/SHM
+      final walFile = File('$mainDbPath-wal');
+      final shmFile = File('$mainDbPath-shm');
+      if (await walFile.exists()) await walFile.delete();
+      if (await shmFile.exists()) await shmFile.delete();
+
+      // 4. Copy snapshot over main DB
+      await snapshotFile.copy(mainDbPath);
+
+      // 5. Test opening the restored DB
+      try {
+        final restoredDb = await database;
+        await restoredDb.rawQuery('SELECT count(*) FROM sqlite_master;');
+        final safetyFile = File(backupPath);
+        if (await safetyFile.exists()) await safetyFile.delete();
+        return true;
+      } catch (openErr) {
+        debugPrint('[DatabaseHelper] Restored snapshot could not be opened: $openErr. Reverting...');
+        await close();
+        final safetyFile = File(backupPath);
+        if (await safetyFile.exists()) {
+          await safetyFile.copy(mainDbPath);
+          await safetyFile.delete();
+        }
+        await database;
+        return false;
+      }
+    } catch (e) {
+      debugPrint('[DatabaseHelper] restoreSnapshot failed: $e');
+      return false;
+    }
+  }
 }
+
+class DatabaseSnapshotInfo {
+  final String path;
+  final String fileName;
+  final String type; // 'pre-migration', 'pre-sync', 'manual'
+  final DateTime timestamp;
+  final int sizeBytes;
+
+  const DatabaseSnapshotInfo({
+    required this.path,
+    required this.fileName,
+    required this.type,
+    required this.timestamp,
+    required this.sizeBytes,
+  });
+}
+

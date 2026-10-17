@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:note_taking_app/data/database_helper.dart';
 import 'package:note_taking_app/features/finances/data/transaction_repository.dart';
 import 'package:note_taking_app/data/transaction_model.dart';
+import 'package:note_taking_app/data/note_model.dart';
+import 'package:note_taking_app/features/notes/data/note_repository.dart';
 import 'package:note_taking_app/utils/widget_helper.dart';
 
 void main() {
@@ -31,6 +33,7 @@ void main() {
         const MethodChannel('com.saadhjawwadh.notebook/widget'),
         (MethodCall methodCall) async {
           methodCalls.add(methodCall);
+          if (methodCall.method == 'requestPinAppWidget') return true;
           return null;
         },
       );
@@ -133,6 +136,66 @@ void main() {
 
       // Verify method channel was triggered
       expect(methodCalls.any((call) => call.method == 'updateWidget'), isTrue);
+    });
+
+    test('requestPinWidget and pinTodoWidget trigger platform method channel', () async {
+      final result1 = await WidgetHelper.requestPinWidget('finance');
+      expect(result1, isTrue);
+      expect(methodCalls.any((call) => call.method == 'requestPinAppWidget' && call.arguments?['type'] == 'finance'), isTrue);
+
+      final result2 = await WidgetHelper.requestPinWidget('unified');
+      expect(result2, isTrue);
+      expect(methodCalls.any((call) => call.method == 'requestPinAppWidget' && call.arguments?['type'] == 'unified'), isTrue);
+
+      final result3 = await WidgetHelper.pinTodoWidget();
+      expect(result3, isTrue);
+      expect(methodCalls.any((call) => call.method == 'requestPinAppWidget' && call.arguments?['type'] == 'todo'), isTrue);
+    });
+
+    test('updateTodoWidgetData correctly updates active note titles and cleans orphaned per-widget IDs', () async {
+      final now = DateTime.now();
+      final noteRepo = NoteRepository.instance;
+
+      // Create an active note with checklist items
+      final note1 = Note(
+        id: 'note_123',
+        title: 'Project Roadmap',
+        content: jsonEncode([
+          {"insert": "Milestone 1\n", "attributes": {"list": "unchecked"}},
+          {"insert": "Milestone 2\n", "attributes": {"list": "checked"}},
+        ]),
+        dateCreated: now,
+        dateModified: now,
+      );
+      await noteRepo.createNote(note1);
+
+      // Pre-populate SharedPreferences with:
+      // 1. widget_active_note_id pointing to note_123 with stale/empty title
+      // 2. widget_active_note_id_app1 pointing to note_123
+      // 3. widget_active_note_id_app2 pointing to a deleted note 'deleted_note_999'
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('widget_active_note_id', 'note_123');
+      await prefs.setString('widget_active_note_title', 'Old Title');
+      await prefs.setString('widget_active_note_id_app1', 'note_123');
+      await prefs.setString('widget_active_note_title_app1', 'Old App1 Title');
+      await prefs.setString('widget_active_note_id_app2', 'deleted_note_999');
+      await prefs.setString('widget_active_note_title_app2', 'Deleted Note Title');
+
+      await WidgetHelper.updateTodoWidgetData();
+
+      // Verify widget_todo_notes_json contains note_123 with items
+      final todoNotesJson = prefs.getString('widget_todo_notes_json');
+      expect(todoNotesJson, isNotNull);
+      final List<dynamic> todoNotes = jsonDecode(todoNotesJson!);
+      expect(todoNotes.any((n) => n['id'] == 'note_123'), isTrue);
+
+      // Verify active note titles are synchronized
+      expect(prefs.getString('widget_active_note_title'), 'Project Roadmap');
+      expect(prefs.getString('widget_active_note_title_app1'), 'Project Roadmap');
+
+      // Verify orphaned/deleted note widget resets to ALL_NOTES and All Action Items
+      expect(prefs.getString('widget_active_note_id_app2'), 'ALL_NOTES');
+      expect(prefs.getString('widget_active_note_title_app2'), 'All Action Items');
     });
   });
 }

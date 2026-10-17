@@ -24,6 +24,9 @@ class SyncMergeService {
 
   /// Performs an atomic, non-destructive bi-directional Last-Write-Wins (LWW) merge.
   Future<SyncMergeResult> mergeRemoteData(Map<String, dynamic> remoteData) async {
+    // Automatically capture a pre-sync local rolling snapshot before executing remote merge
+    await DatabaseHelper.instance.createPreSyncSnapshot();
+
     final db = await DatabaseHelper.instance.database;
 
     int notesMerged = 0;

@@ -1,4 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
+
+/// M3 Expressive physics-based spring curve driven by [SpringSimulation].
+class ExpressiveSpringCurve extends Curve {
+  final SpringDescription spring;
+  final double startVelocity;
+
+  const ExpressiveSpringCurve({
+    this.spring = AppLayout.springSpatial,
+    this.startVelocity = 0.0,
+  });
+
+  @override
+  double transformInternal(double t) {
+    if (t <= 0.0) return 0.0;
+    if (t >= 1.0) return 1.0;
+    final sim = SpringSimulation(spring, 0.0, 1.0, startVelocity);
+    return sim.x(t);
+  }
+}
 
 class AppLayout {
   // Spacing Single Source of Truth
@@ -57,6 +77,15 @@ class AppLayout {
     stiffness: 240.0,
     damping: 14.0,
   );
+
+  /// M3 Expressive Spatial Spring Curve (smooth settling for cards, sheets, dialogs).
+  static const Curve curveExpressiveSpatial = ExpressiveSpringCurve(spring: springSpatial);
+
+  /// M3 Expressive Snappy Effects Spring Curve (for toolbars, pills, toggles, chips).
+  static const Curve curveExpressiveEffects = ExpressiveSpringCurve(spring: springFast);
+
+  /// M3 Expressive Bouncy Spring Curve (for badges, celebrations, FAB morphs).
+  static const Curve curveExpressiveBouncy = ExpressiveSpringCurve(spring: springBouncy);
 
   // Layout Constraints & Breakpoints
   static const double maxContentWidth = 600.0;

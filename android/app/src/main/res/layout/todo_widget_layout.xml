@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/todo_widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -43,10 +44,10 @@
                 android:fontFamily="@font/google_sans_flex"
                 android:maxLines="1"
                 android:maxWidth="160dp"
-                android:text="All Action Items"
                 android:textColor="@color/widget_on_primary_container"
                 android:textSize="13.5sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                tools:text="All Action Items" />
 
             <ImageView
                 android:layout_width="18dp"

@@ -28,9 +28,41 @@ class ChangelogScreen extends StatelessWidget {
               delegate: SliverChildListDelegate([
                 _buildVersionSection(
                   context,
+                  version: 'v2.47.0',
+                  date: 'October 17, 2026',
+                  isLatest: true,
+                  changes: [
+                    _ChangelogGroup(
+                      title: "What's New",
+                      items: [
+                        'Material 3 Expressive Motion: Centralized spring physics, connected squircle corner morphing, and variable font typography choreography across notes, navigation, and finances.',
+                        'Next-Gen Android Widgets: Upgraded to support Android 12–15+ dynamic wallpaper colors, responsive size scaling from 2x2 to 4x4, and an in-app widget pinning helper.',
+                        'Resilient Storage & Snapshots: Automated rolling pre-migration database snapshots with instant 1-tap recovery in Settings, and seamless empty folder backup creation.',
+                        'Clean Checklist Previews: Completed checklist items are automatically excluded from note cards and home screen widgets, focusing your attention on pending tasks.',
+                      ],
+                    ),
+                    _ChangelogGroup(
+                      title: 'Improvements',
+                      items: [
+                        'Widget Checklist Selector: Streamlined list picker with direct touch binding for instant, zero-lag switching between notes directly from your home screen.',
+                        'Fluid Typography: Google Sans Flex variable font weights and optical scaling dynamically respond across tabs and balance cards.',
+                        'Empty Directory Storage Access: Resolving Android Storage Access Framework folders now creates clean, uncorrupted backup files on the fly.',
+                      ],
+                    ),
+                    _ChangelogGroup(
+                      title: 'Fixes',
+                      items: [
+                        'Database Migration Safety: Prevented database busy/locked collisions during background sync and app startup with rolling snapshots.',
+                        'Widget Title Synchronization: Fixed widget title updating immediately upon selecting a checklist from the floating launcher picker.',
+                      ],
+                    ),
+                  ],
+                ),
+                _buildVersionSection(
+                  context,
                   version: 'v2.46.1',
                   date: 'October 15, 2026',
-                  isLatest: true,
+                  isLatest: false,
                   changes: [
                     _ChangelogGroup(
                       title: "What's New",

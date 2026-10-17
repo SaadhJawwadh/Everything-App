@@ -183,12 +183,13 @@ Future<bool> performAutoBackup() async {
     if (targetPath != null && targetPath.isNotEmpty && targetPath != appDir.path) {
       try {
         final targetDir = Directory(targetPath);
-        if (await targetDir.exists()) {
-          final customFile = File('$targetPath/$fileName');
-          await customFile.writeAsString(jsonContent);
-          await _rotateBackups(targetPath);
-          savedToCustom = true;
+        if (!await targetDir.exists()) {
+          await targetDir.create(recursive: true);
         }
+        final customFile = File('$targetPath/$fileName');
+        await customFile.writeAsString(jsonContent);
+        await _rotateBackups(targetPath);
+        savedToCustom = true;
       } catch (e) {
         debugPrint('AutoBackup custom directory mirror failed ($e), internal backup remains intact');
       }
@@ -288,7 +289,11 @@ class BackupService {
       final dateStr = DateTime.now().toString().replaceAll(RegExp(r'[: ]'), '_').split('.')[0];
       
       if (dir != null) {
-        final file = File('$dir/notebook_backup_$dateStr.json');
+        final targetDir = Directory(dir);
+        if (!await targetDir.exists()) {
+          await targetDir.create(recursive: true);
+        }
+        final file = File('${targetDir.path}/notebook_backup_$dateStr.json');
         await file.writeAsString(json);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

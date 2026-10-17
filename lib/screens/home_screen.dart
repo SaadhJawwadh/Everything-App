@@ -657,7 +657,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         floatingActionButton: isSelectionMode ? null : _buildCurrentFAB(context, settings),
         bottomNavigationBar: AnimatedSwitcher(
           duration: AppLayout.animDefault,
-          switchInCurve: AppLayout.curveEmphasizedDecelerate,
+          switchInCurve: AppLayout.curveExpressiveSpatial,
           switchOutCurve: AppLayout.curveEmphasizedAccelerate,
           transitionBuilder: (child, animation) {
             return SlideTransition(

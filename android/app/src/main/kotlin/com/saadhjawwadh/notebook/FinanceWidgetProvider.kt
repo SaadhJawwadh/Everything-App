@@ -39,8 +39,8 @@ class FinanceWidgetProvider : AppWidgetProvider() {
     ) {
         val views = RemoteViews(context.packageName, R.layout.finance_widget_layout)
 
-        // Populate Widget Data
-        populateWidgetData(context, views)
+        // Populate Widget Data with responsive size support
+        populateWidgetData(context, views, appWidgetId, options)
 
         // Set up click intents
         setupIntents(context, views)
@@ -48,8 +48,27 @@ class FinanceWidgetProvider : AppWidgetProvider() {
         appWidgetManager.updateAppWidget(appWidgetId, views)
     }
 
-    private fun populateWidgetData(context: Context, views: RemoteViews) {
+    private fun populateWidgetData(
+        context: Context,
+        views: RemoteViews,
+        appWidgetId: Int,
+        options: Bundle? = null
+    ) {
         val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+
+        // Responsive size bucketing
+        val opts = options ?: AppWidgetManager.getInstance(context).getAppWidgetOptions(appWidgetId)
+        val minWidth = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
+        val minHeight = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
+        val isCompact = (minWidth in 1..220) || (minHeight in 1..140)
+
+        if (isCompact) {
+            views.setViewVisibility(R.id.widget_analytics_card, android.view.View.GONE)
+            views.setViewVisibility(R.id.widget_note_button, android.view.View.GONE)
+        } else {
+            views.setViewVisibility(R.id.widget_analytics_card, android.view.View.VISIBLE)
+            views.setViewVisibility(R.id.widget_note_button, android.view.View.VISIBLE)
+        }
 
         val spentToday = prefs.getString("flutter.widget_spent_today", "$0.00") ?: "$0.00"
         val spentMonth = prefs.getString("flutter.widget_spent_month", "$0.00") ?: "$0.00"
@@ -142,7 +161,13 @@ class FinanceWidgetProvider : AppWidgetProvider() {
             coords.add(PointF(x, y))
         }
 
-        val primaryColor = context.getColor(R.color.widget_accent)
+        val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        val useDynamicColor = prefs.getBoolean("flutter.useDynamicColor", true)
+        val primaryColor = if (useDynamicColor && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            context.getColor(R.color.widget_accent)
+        } else {
+            context.getColor(R.color.widget_primary)
+        }
         val tertiaryColor = context.getColor(if (isAlert) R.color.widget_expense else R.color.widget_income)
 
         // Gradient Area Under Line

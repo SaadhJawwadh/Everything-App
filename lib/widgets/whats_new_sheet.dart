@@ -37,24 +37,24 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.animation_rounded,
+            title: "Material 3 Expressive Motion",
+            desc: "Tactile spring physics, connected squircle morphing, and variable font typography across all screens.",
+          ),
+          _WhatsNewItem(
             icon: Icons.widgets_rounded,
-            title: "Material 3 Expressive Widgets",
-            desc: "Tactile stadium pills, squircle subcards, and Google Sans Flex across all 4 Android home screen widgets.",
+            title: "Next-Gen Android Widgets",
+            desc: "Android 12–15+ dynamic wallpaper colors, responsive size scaling (2x2 to 4x4), and in-app widget pinning helper.",
           ),
           _WhatsNewItem(
-            icon: Icons.arrow_drop_down_circle_outlined,
-            title: "Floating Checklist Selector",
-            desc: "Tap your home widget to switch checklists via an isolated Google Tasks-style floating picker dialog.",
+            icon: Icons.security_rounded,
+            title: "Resilient Storage & Snapshots",
+            desc: "Automated rolling pre-migration database snapshots and instant 1-tap local recovery in Settings.",
           ),
           _WhatsNewItem(
-            icon: Icons.dashboard_customize_rounded,
-            title: "Unified Dual-Domain Widget",
-            desc: "View live monthly finance balances, budget progress, and actionable to-dos with quick note entry.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.speed_rounded,
-            title: "120Hz Ultra-Smooth Mode",
-            desc: "Silky 120 fps display refresh rate on Android flagships and smooth-display devices for ultra-fluid scrolling.",
+            icon: Icons.check_circle_outline_rounded,
+            title: "Clean Checklist Previews",
+            desc: "Completed tasks are automatically excluded from note cards and home widget previews with celebratory empty states.",
           ),
         ],
       ),
@@ -65,24 +65,24 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.tertiaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.arrow_drop_down_circle_outlined,
+            title: "Floating Checklist Selector",
+            desc: "Tap your home widget to switch checklists via an isolated floating picker dialog with instant title updates.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.text_fields_rounded,
+            title: "Fluid Variable Typography",
+            desc: "Dynamic weight and optical sizing for Google Sans Flex across titles, navigation tabs, and balance cards.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.folder_zip_outlined,
+            title: "Empty Folder Backup Storage",
+            desc: "Selecting or moving backups to an empty folder initializes a clean backup file cleanly without permission faults.",
+          ),
+          _WhatsNewItem(
             icon: Icons.aspect_ratio_rounded,
             title: "Foldable & Tablet Responsive Polish",
             desc: "Enhanced layout bounds, dialog widths, and modal sheets across foldables and large-screen tablets.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.checklist_rounded,
-            title: "Note Card Checklist Previews",
-            desc: "Synchronized checklist preview styling on note cards to match the rich text note editor.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.border_clear_rounded,
-            title: "True Borderless Edge-to-Edge",
-            desc: "Transparent navigation bar without dark contrast scrims for seamless Android 15 wallpaper harmony.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.vibration_rounded,
-            title: "Universal Tactile Micro-Haptics",
-            desc: "Mechanical click feedback when switching navigation tabs, filter chips, and confirming dialog actions.",
           ),
         ],
       ),
@@ -93,19 +93,19 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.secondaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.sync_problem_rounded,
+            title: "Database Migration Resilience",
+            desc: "Prevented locked or busy database collisions during background sync and app startup with rolling snapshots.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.touch_app_outlined,
+            title: "Widget Dropdown Selection Fix",
+            desc: "Fixed checklist item clicks and preference synchronization so widget titles update immediately on selection.",
+          ),
+          _WhatsNewItem(
             icon: Icons.group_rounded,
             title: "Split Bills Friend Auto-Fill",
             desc: "Fixed split payments so friends and participants pre-fill properly when converting directly from fetched transactions.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.flash_off_rounded,
-            title: "Cold-Start Splash Flash",
-            desc: "Fixed light mode splash screen color mismatch to eliminate window flashes during app launch.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.notifications_active_outlined,
-            title: "Monochrome Notification Icons",
-            desc: "Clean white silhouette icons for notifications on modern Android status trays.",
           ),
         ],
       ),

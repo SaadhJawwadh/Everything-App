@@ -19,6 +19,7 @@ import '../../../../utils/app_route.dart';
 import 'package:note_taking_app/features/finances/providers/financial_manager_provider.dart';
 
 import '../../../../core/theme/app_layout.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/app_card.dart';
 import '../../../../core/ui/expressive_wavy_progress.dart';
 
@@ -754,8 +755,16 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                         child: Text(
                           '${isPositive ? '+' : '-'} $currency ${net.abs().toStringAsFixed(0)}',
                           style: tt.headlineMedium?.copyWith(
+                            fontFamily: AppTheme.fontGoogleSansFlex,
+                            fontFamilyFallback: AppTheme.fontFallbacks,
                             color: onColor,
                             fontWeight: FontWeight.bold,
+                            fontVariations: AppTheme.buildFontVariations(
+                              size: tt.headlineMedium?.fontSize ?? 28.0,
+                              brightness: Theme.of(context).brightness,
+                              weight: 700.0,
+                              grade: 30.0,
+                            ),
                             fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
@@ -778,8 +787,16 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                         child: Text(
                           '$currency ${dailyAvgExpense.toStringAsFixed(0)} / day',
                           style: tt.headlineMedium?.copyWith(
+                            fontFamily: AppTheme.fontGoogleSansFlex,
+                            fontFamilyFallback: AppTheme.fontFallbacks,
                             color: onColor,
                             fontWeight: FontWeight.bold,
+                            fontVariations: AppTheme.buildFontVariations(
+                              size: tt.headlineMedium?.fontSize ?? 28.0,
+                              brightness: Theme.of(context).brightness,
+                              weight: 700.0,
+                              grade: 30.0,
+                            ),
                             fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
@@ -805,8 +822,16 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                           child: Text(
                             '~$currency ${numberFormat.format(spendingForecast.projectedMonthEndSpend)}',
                             style: tt.headlineMedium?.copyWith(
+                              fontFamily: AppTheme.fontGoogleSansFlex,
+                              fontFamilyFallback: AppTheme.fontFallbacks,
                               color: onColor,
                               fontWeight: FontWeight.bold,
+                              fontVariations: AppTheme.buildFontVariations(
+                                size: tt.headlineMedium?.fontSize ?? 28.0,
+                                brightness: Theme.of(context).brightness,
+                                weight: 700.0,
+                                grade: 30.0,
+                              ),
                               fontFeatures: const [FontFeature.tabularFigures()],
                             ),
                           ),
@@ -858,7 +883,9 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                           _applyFilters();
                         },
                         borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                        child: Container(
+                        child: AnimatedContainer(
+                          duration: AppLayout.animShort,
+                          curve: AppLayout.curveExpressiveSpatial,
                           constraints: const BoxConstraints(minHeight: 48),
                           alignment: Alignment.center,
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -876,8 +903,16 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                                 child: Text(
                                   '${settings.account1Name}: $currency ${_dailyCashFlow.toStringAsFixed(0)}',
                                   style: tt.labelSmall?.copyWith(
+                                    fontFamily: AppTheme.fontGoogleSansFlex,
+                                    fontFamilyFallback: AppTheme.fontFallbacks,
                                     color: onColor,
                                     fontWeight: _selectedAccount == AccountType.daily ? FontWeight.bold : FontWeight.w500,
+                                    fontVariations: AppTheme.buildFontVariations(
+                                      size: tt.labelSmall?.fontSize ?? 11.0,
+                                      brightness: Theme.of(context).brightness,
+                                      weight: _selectedAccount == AccountType.daily ? 700.0 : 500.0,
+                                      grade: _selectedAccount == AccountType.daily ? 30.0 : null,
+                                    ),
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -929,7 +964,9 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                           _applyFilters();
                         },
                         borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                        child: Container(
+                        child: AnimatedContainer(
+                          duration: AppLayout.animShort,
+                          curve: AppLayout.curveExpressiveSpatial,
                           constraints: const BoxConstraints(minHeight: 48),
                           alignment: Alignment.center,
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -947,8 +984,16 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                                 child: Text(
                                   '${settings.account2Name}: $currency ${_savingsVaultCashFlow.toStringAsFixed(0)}',
                                   style: tt.labelSmall?.copyWith(
+                                    fontFamily: AppTheme.fontGoogleSansFlex,
+                                    fontFamilyFallback: AppTheme.fontFallbacks,
                                     color: onColor,
                                     fontWeight: _selectedAccount == AccountType.savings ? FontWeight.bold : FontWeight.w500,
+                                    fontVariations: AppTheme.buildFontVariations(
+                                      size: tt.labelSmall?.fontSize ?? 11.0,
+                                      brightness: Theme.of(context).brightness,
+                                      weight: _selectedAccount == AccountType.savings ? 700.0 : 500.0,
+                                      grade: _selectedAccount == AccountType.savings ? 30.0 : null,
+                                    ),
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),

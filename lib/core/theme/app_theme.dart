@@ -91,17 +91,24 @@ class AppTheme {
     'sans-serif',
   ];
 
-  static List<FontVariation> _buildFontVariations({
+  static List<FontVariation> buildFontVariations({
     required double size,
     required Brightness brightness,
     double weight = 400.0,
+    double? grade,
   }) {
     return [
       FontVariation('wght', weight),
       FontVariation('opsz', size.clamp(8.0, 144.0)),
-      FontVariation('GRAD', brightness == Brightness.dark ? 15.0 : 0.0),
+      FontVariation('GRAD', grade ?? (brightness == Brightness.dark ? 15.0 : 0.0)),
     ];
   }
+
+  static List<FontVariation> _buildFontVariations({
+    required double size,
+    required Brightness brightness,
+    double weight = 400.0,
+  }) => buildFontVariations(size: size, brightness: brightness, weight: weight);
 
   // Note Color Seeds (Material 3 Expressive Curated Palette)
   static const List<Color> noteColors = [
@@ -375,15 +382,17 @@ class AppTheme {
           return IconThemeData(color: scheme.onSurfaceVariant, size: 24);
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: scheme.onSurface,
-            );
-          }
-          return textTheme.labelMedium?.copyWith(
-            fontWeight: FontWeight.w500,
-            color: scheme.onSurfaceVariant,
+          final isSelected = states.contains(WidgetState.selected);
+          return (textTheme.labelMedium ?? const TextStyle()).copyWith(
+            fontFamily: fontGoogleSansFlex,
+            fontFamilyFallback: fontFallbacks,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            fontVariations: [
+              FontVariation('wght', isSelected ? 700.0 : 500.0),
+              const FontVariation('opsz', 12.0),
+              FontVariation('GRAD', isSelected ? 40.0 : (brightness == Brightness.dark ? 15.0 : 0.0)),
+            ],
+            color: isSelected ? scheme.onSurface : scheme.onSurfaceVariant,
           );
         }),
       ),
