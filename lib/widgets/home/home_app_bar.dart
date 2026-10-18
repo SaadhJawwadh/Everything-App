@@ -49,6 +49,7 @@ class HomeAppBar extends StatefulWidget implements PreferredSizeWidget {
 
 class _HomeAppBarState extends State<HomeAppBar> {
   bool _isSearching = false;
+  bool _skipNextSearchAnimation = false;
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounceTimer;
 
@@ -61,6 +62,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
   void _handleSearchRequest() {
     if (HomeAppBar.searchRequestedNotifier.value && mounted) {
       setState(() {
+        _skipNextSearchAnimation = true;
         _isSearching = true;
       });
       HomeAppBar.searchRequestedNotifier.value = false;
@@ -109,9 +111,11 @@ class _HomeAppBarState extends State<HomeAppBar> {
           child: SizedBox(
             height: 60,
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
-              switchInCurve: Curves.fastOutSlowIn,
-              switchOutCurve: Curves.fastOutSlowIn,
+              duration: (_skipNextSearchAnimation || AppLayout.shouldReduceMotion(context))
+                  ? Duration.zero
+                  : AppLayout.animFast,
+              switchInCurve: AppLayout.curveStrongEaseOut,
+              switchOutCurve: AppLayout.curveEmphasizedAccelerate,
               child: noteProvider.isSelectionMode
                   ? KeyedSubtree(
                       key: const ValueKey('selection_mode'),
@@ -204,6 +208,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
           onPressed: () {
             context.read<NoteProvider>().setSearchQuery('');
             setState(() {
+              _skipNextSearchAnimation = false;
               _isSearching = false;
               _searchController.clear();
             });

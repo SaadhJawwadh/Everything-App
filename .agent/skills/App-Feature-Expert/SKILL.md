@@ -98,6 +98,17 @@ Specialist skill governing domain modules, feature-driven architecture (`lib/fea
 * **Direct Deep Intent Routing**:
   - Tapping the `+` button in the widget header fires a `PendingIntent` with `ACTION_QUICK_ADD_TODO`.
   - `MainActivity.kt` routes this intent to `AppLockScreen.pendingQuickAddTodo` and pops up `QuickAddTodoSheet`, seamlessly adding tasks with auto-capitalization and saving back to the widget.
+* **Android Todo Widget Direct Note Switching**: In `TodoListPickerActivity`, list item selection must bind direct `PendingIntent` handlers and update `flutter.todo_widget_data` preferences immediately with zero latency, ensuring the widget title and collection view re-render synchronously on selection.
+
+### 📝 Checklist Preview & Home Widget Exclusion Contract
+- **Preview Snippet Stripping**: Note cards (`NoteCard`) and Android launcher widgets (`TodoWidgetService`) MUST extract only uncompleted checklist items (`- [ ]`), omitting completed tasks (`- [x]`) to keep glanceable interfaces focused on pending action items.
+- **Celebratory Empty State**: If a note consists solely of checklist items and all are completed, the preview MUST render an expressive celebratory badge:
+  ```dart
+  if (totalCount > 0 && completedCount == totalCount) {
+    return '🎉 All tasks completed';
+  }
+  ```
+
 
 ### 🧘 Calm Habit Gamification & Restrained Tactility
 * **Days of Clarity Strip (`ClarityMosaicStrip`)**:
@@ -239,6 +250,9 @@ Specialist skill governing domain modules, feature-driven architecture (`lib/fea
 - **Backup & Restore**: Encryption-guarded backup JSON via `BackupService`. Excludes sensitive biometric settings to prevent override via untrusted files.
 - **Real-Time Backup Restore Event Broadcaster**:
   - `BackupService.restoreFromBackupData()` triggers real-time refresh notifications across all domain providers (`NoteProvider`, `FinancialManagerProvider`, `SplitBillProvider`, `PeriodTrackerProvider`), immediately updating the UI without requiring an app restart.
+- **Pre-Migration Rolling Snapshots & Empty SAF Directory Resilience**:
+  - **Pre-Migration Rolling Snapshots**: Prior to executing schema alterations in `DatabaseHelper.onUpgrade` or merging bulk incoming P2P sync payloads, create a rolling local copy of the encrypted database (`everything_db_snapshot_pre_v*.db`, keeping up to 3 snapshots) in protected app documents. Expose a 1-tap restore action in `SyncBackupSettingsScreen` to recover from locked isolates or failed schema migrations safely.
+  - **Empty SAF Directory Creation Fallback**: When a user selects a newly created or empty SAF directory, `listSubFiles()` returns empty. `BackupService` must catch this state and create a new document file (`backup_<timestamp>.json`) directly within the tree URI rather than throwing file-not-found exceptions.
 
 ---
 

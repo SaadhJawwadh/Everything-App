@@ -212,18 +212,30 @@ class _SettleUpSheetState extends State<SettleUpSheet> {
           ],
           FilledButton.icon(
             onPressed: (_isProcessing || _isSettledSuccess) ? null : _confirmSettleUp,
-            icon: _isSettledSuccess
-                ? const Icon(Icons.check_circle_rounded, color: Colors.white)
-                : _isProcessing
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Icon(Icons.check_circle_rounded),
-            label: Text(_isSettledSuccess
-                ? 'All Settled Up!'
-                : (_isProcessing ? 'Settling...' : 'Confirm Settle Up')),
+            icon: AnimatedSwitcher(
+              duration: AppLayout.animFast,
+              transitionBuilder: AppLayout.scaleFadeTransitionBuilder,
+              child: _isSettledSuccess
+                  ? const Icon(Icons.check_circle_rounded, key: ValueKey('settled_icon'), color: Colors.white)
+                  : _isProcessing
+                      ? const SizedBox(
+                          key: ValueKey('processing_icon'),
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.check_circle_rounded, key: ValueKey('default_icon')),
+            ),
+            label: AnimatedSwitcher(
+              duration: AppLayout.animFast,
+              transitionBuilder: AppLayout.scaleFadeTransitionBuilder,
+              child: Text(
+                _isSettledSuccess
+                    ? 'All Settled Up!'
+                    : (_isProcessing ? 'Settling...' : 'Confirm Settle Up'),
+                key: ValueKey(_isSettledSuccess ? 'settled' : (_isProcessing ? 'processing' : 'default')),
+              ),
+            ),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
               backgroundColor: _isSettledSuccess ? successColor : null,
@@ -296,7 +308,7 @@ class _SettleUpSheetState extends State<SettleUpSheet> {
             _isSettledSuccess = true;
           });
           AppHaptics.heavyImpact();
-          await Future.delayed(const Duration(milliseconds: 450));
+          await Future.delayed(AppLayout.animTrustBeat);
         }
 
         if (mounted) {

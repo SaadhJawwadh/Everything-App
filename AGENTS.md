@@ -64,6 +64,7 @@ lib/
 * **Velocity-Aware Spring Physics**: Micro-interactions and press states must use `SpringDescription` tokens (`AppLayout.springFast` / `AppLayout.springSpatial`) and `AppLayout.curveEmphasizedDecelerate`, reacting naturally to gesture momentum.
 * **Dynamic Hero Card Opacities**: Hero cards (`SettingsHeroCard`, Net Balance, P2P Sync Status, Cycle Moon Phase, Trash Auto-Purge Banner) must dynamically adjust container opacity (50%–55% alpha in Light Mode; 20%–22% alpha in Dark Mode) with subtle 1.2px accent borders.
 * **Checklist Collapsible Grouping & Drag Scoping**: In the rich text note editor, completed checklist items collapse cleanly into a grouped `${count} completed items` card without in-app drag handles. Drag-and-drop reordering is scoped strictly to native Android Home screen widgets to maintain clean, uninterrupted note editing.
+* **Checklist Preview & Widget Exclusion**: In note card previews (`NoteCard`) and Android launcher widgets (`TodoWidgetService`), completed checklist items (`- [x]`) MUST be filtered out so the user sees only pending actionable tasks. If all tasks are completed, note cards and widgets MUST display an expressive celebratory empty state (`🎉 All tasks completed`) rather than blank lines or completed tasks.
 
 ### 🏗️ Invariant 2: Feature-Driven Domain Architecture & Root Provider Registration
 * **Domain Modularization**: Place domain models, repositories, providers, and presentation screens inside `lib/features/<module>/`.
@@ -92,6 +93,9 @@ lib/
 * **SQLCipher Password Contract**: Pass explicit encryption keys to `openDatabase()`. In `DatabaseHelper.onOpen`, execute `PRAGMA journal_mode = WAL;` via `db.rawQuery(...)` for non-blocking concurrent writes.
 * **Resilient Auto-Backup Storage Priority**: Scheduled background backups (`BackupService.performAutoBackup()`) MUST default to sandboxed protected app documents (`getApplicationDocumentsDirectory()`), preventing Android Storage Access Framework (SAF) URI permission revocations across OS updates and device reboots.
 * **Local Auth / Dialog Resume**: Screens invoking native file pickers or share sheets must call `AppLockScreen.ignoreNextResumeLock()` to prevent unintentional app locking on resume.
+* **Pre-Migration Rolling Snapshot & SAF Directory Resilience**:
+  - `DatabaseHelper.onUpgrade` and P2P bulk data sync engines MUST create an automated local snapshot (`everything_db_snapshot_pre_v*.db`) prior to running schema migrations or merge passes, with an instant 1-tap recovery UI in Settings (`SyncBackupSettingsScreen`).
+  - Android Storage Access Framework (SAF) folder selections targeting an empty directory MUST automatically generate and initialize a clean, uncorrupted backup file on the fly, eliminating null URI lookup exceptions.
 
 ### 🔄 Invariant 6: Zero-Cloud P2P Sync & Bi-Directional Merge
 * **LWW 2-Way Delta Merges**: Execute non-destructive merges over local Wi-Fi. Soft-deletes check `deletedAt` with 5-second clock skew tolerance.

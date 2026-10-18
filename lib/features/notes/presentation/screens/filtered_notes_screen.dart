@@ -365,15 +365,18 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
                             final isSelected = _selectedNoteIds.contains(note.id);
 
                             return AnimationConfiguration.staggeredList(
-                              position: index,
-                              duration: const Duration(milliseconds: 375),
+                              position: index.clamp(0, 8),
+                              duration: AppLayout.animShort,
                               child: SlideAnimation(
-                                verticalOffset: 50.0,
+                                verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
                                 child: FadeInAnimation(
                                   child: Padding(
                                     padding: const EdgeInsets.only(bottom: 12.0),
                                     child: OpenContainer<bool>(
-                                      transitionType: ContainerTransitionType.fade,
+                                      transitionType: ContainerTransitionType.fadeThrough,
+                                      transitionDuration: AppLayout.shouldReduceMotion(context) ? Duration.zero : AppLayout.animModal,
+                                      openElevation: 0,
+                                      openColor: colorScheme.surface,
                                       openBuilder: (context, _) => NoteEditorScreen(note: note),
                                       closedElevation: 0,
                                       closedColor: Colors.transparent,

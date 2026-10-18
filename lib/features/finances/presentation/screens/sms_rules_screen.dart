@@ -810,10 +810,10 @@ class _SmsRulesScreenState extends State<SmsRulesScreen> {
               children: List.generate(
                 items.length,
                 (index) => AnimationConfiguration.staggeredList(
-                  position: index,
-                  duration: const Duration(milliseconds: 300),
+                  position: index.clamp(0, 8),
+                  duration: AppLayout.animShort,
                   child: SlideAnimation(
-                    verticalOffset: 30.0,
+                    verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
                     child: FadeInAnimation(
                       child: items[index],
                     ),

@@ -195,10 +195,10 @@ class _SmsContactsScreenState extends State<SmsContactsScreen> {
                 delegate: SliverChildBuilderDelegate(
                   (context, i) {
                     return AnimationConfiguration.staggeredList(
-                      position: i,
-                      duration: const Duration(milliseconds: 375),
+                      position: i.clamp(0, 8),
+                      duration: AppLayout.animShort,
                       child: SlideAnimation(
-                        verticalOffset: 50.0,
+                        verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
                         child: FadeInAnimation(child: items[i]),
                       ),
                     );

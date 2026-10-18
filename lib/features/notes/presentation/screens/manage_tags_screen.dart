@@ -220,10 +220,10 @@ class _ManageTagsScreenState extends State<ManageTagsScreen> {
                               : null;
 
                       return AnimationConfiguration.staggeredList(
-                        position: index,
-                        duration: const Duration(milliseconds: 375),
+                        position: index.clamp(0, 8),
+                        duration: AppLayout.animShort,
                         child: SlideAnimation(
-                          verticalOffset: 50.0,
+                          verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
                           child: FadeInAnimation(
                             child: Semantics(
                               label: 'Tag: $tag',

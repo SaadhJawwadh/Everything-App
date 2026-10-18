@@ -238,7 +238,8 @@ class _PeriodLogDashboardCardState extends State<PeriodLogDashboardCard> {
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(minHeight: 48),
                         child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
+                          duration: AppLayout.animFast,
+                          curve: AppLayout.curveStrongEaseOut,
                           margin: const EdgeInsets.symmetric(horizontal: 3),
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
@@ -330,8 +331,8 @@ class _PeriodLogDashboardCardState extends State<PeriodLogDashboardCard> {
               ),
             ),
             AnimatedSize(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeInOut,
+              duration: AppLayout.animShort,
+              curve: AppLayout.curveStrongEaseOut,
               alignment: Alignment.topCenter,
               child: _symptomsExpanded
                   ? Column(
@@ -355,7 +356,8 @@ class _PeriodLogDashboardCardState extends State<PeriodLogDashboardCard> {
                                     await widget.provider.toggleSymptom(selectedLog, symptom);
                                   },
                                   child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 180),
+                                    duration: AppLayout.animFast,
+                                    curve: AppLayout.curveStrongEaseOut,
                                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(

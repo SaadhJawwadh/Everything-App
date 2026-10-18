@@ -1,16 +1,18 @@
 
 ### 🌟 What's New
-- **Material 3 Expressive Motion**: Tactile spring physics, connected squircle corner morphing, and variable font typography choreography across notes, navigation, and finances.
-- **Next-Gen Android Widgets**: Android 12–15+ dynamic wallpaper colors, responsive size scaling from 2x2 to 4x4, and an in-app widget pinning helper.
-- **Resilient Storage & Safety Snapshots**: Automated rolling pre-migration database snapshots with instant 1-tap local recovery in Settings, and seamless empty folder backup creation.
-- **Clean Checklist Previews**: Completed tasks are automatically excluded from note cards and home screen widgets, focusing your attention on pending action items.
+- **Fluid UI Motion**: Expressive spring physics, seamless container transitions, and origin-safe scale-fade effects across all screens.
+- **Tactile Touch Feedback**: Asymmetric press-and-release tactile feedback with natural physics on cards and buttons.
+- **Instant Shortcut Search**: Zero-lag 0ms opening when launching search via shortcuts, with fluid animations for manual taps.
+- **Accessible Reduced Motion**: Comprehensive support for system reduced-motion accessibility across all lists, dialogs, and sheets.
 
 ### 🚀 Improvements
-- **Widget Checklist Selector**: Streamlined list picker with direct touch binding for instant, zero-lag switching between notes directly from your home screen.
-- **Fluid Variable Typography**: Google Sans Flex variable font weights and optical scaling dynamically respond across tabs and balance cards.
-- **Empty Folder Backup Storage**: Selecting or moving backups to an empty folder initializes a clean backup file cleanly without permission faults.
+- **Financial Trust Beats**: Calm, trust-centric completion feedback on bill settlements and savings deposits.
+- **Sub-300ms List Staggering**: Snappy, capped staggered list reveals across tags, rules, categories, and notes.
+- **Smart Chart Deck**: Chart deck carousel pauses auto-cycling when reduced motion is enabled.
+- **Fluid Dialogs & Sheets**: Standardized sheet and dialog entrances with responsive spring curves.
 
 ### 🐛 Fixes
-- **Database Migration Safety**: Prevented database busy or locked collisions during background sync and app startup with automated rolling snapshots.
-- **Widget Title Synchronization**: Fixed widget title updating immediately upon selecting a checklist from the floating launcher picker.
+- **Scale Transition Origin**: Eliminated visual distortion by anchoring scale transitions to a subtle 0.92 floor.
+- **Note Editor Bar Slide**: Smoothed toolbar entrance transitions with zero layout popping.
+- **Accordion Animation Curves**: Replaced linear expansion with decelerating curves for symptoms and categories.
 

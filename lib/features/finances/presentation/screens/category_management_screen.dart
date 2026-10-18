@@ -187,10 +187,10 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                         final catColor = Color(cat.colorValue);
                         final isLast = index == _categories.length - 1;
                         return AnimationConfiguration.staggeredList(
-                          position: index,
-                          duration: const Duration(milliseconds: 375),
+                          position: index.clamp(0, 8),
+                          duration: AppLayout.animShort,
                           child: SlideAnimation(
-                            verticalOffset: 50.0,
+                            verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
                             child: FadeInAnimation(
                               child: Card(
                                 margin: EdgeInsets.only(bottom: isLast ? 0 : 12),

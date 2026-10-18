@@ -458,6 +458,17 @@ class AppTheme {
         stopIndicatorRadius: 3.0,
         trackGap: 4.0,
       ),
+      tooltipTheme: TooltipThemeData(
+        waitDuration: const Duration(milliseconds: 500),
+        showDuration: const Duration(milliseconds: 1500),
+        textStyle: textTheme.labelSmall?.copyWith(
+          color: scheme.onInverseSurface,
+        ),
+        decoration: BoxDecoration(
+          color: scheme.inverseSurface,
+          borderRadius: BorderRadius.circular(AppLayout.radiusS),
+        ),
+      ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.android: PredictiveBackPageTransitionsBuilder(),

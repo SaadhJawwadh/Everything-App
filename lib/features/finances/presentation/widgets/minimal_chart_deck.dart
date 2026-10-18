@@ -67,11 +67,12 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
         timer.cancel();
         return;
       }
+      if (AppLayout.shouldReduceMotion(context)) return;
       final nextPage = (_currentPage + 1) % _pageCount;
       _pageController.animateToPage(
         nextPage,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOutCubic,
+        duration: AppLayout.animDefault,
+        curve: AppLayout.curveStrongEaseInOut,
       );
     });
   }
@@ -231,16 +232,16 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                       _pauseAutoCycle(userAction: true);
                       _pageController.animateToPage(
                         index,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOutCubic,
+                        duration: AppLayout.animModal,
+                        curve: AppLayout.curveStrongEaseOut,
                       );
                       setState(() => _currentPage = index);
                     },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
                       child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        curve: Curves.easeOutCubic,
+                        duration: AppLayout.animFast,
+                        curve: AppLayout.curveStrongEaseInOut,
                         width: isSelected ? 16 : 6,
                         height: 4,
                         decoration: BoxDecoration(

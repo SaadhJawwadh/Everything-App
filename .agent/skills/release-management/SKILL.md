@@ -64,6 +64,12 @@ Provide the APK path (`build/app/outputs/flutter-apk/app-release.apk`) to the us
 * The What's New sheet fires with the exact version matching `pubspec.yaml`.
 * Each module tab (Notes, Finances, Health, Settings) opens smoothly.
 * **Status Bar Notification & Silhouette Icon Verification**: Trigger a test notification via `Settings` $\rightarrow$ `About & Diagnostics` $\rightarrow$ `Test Notifications` (ensure `POST_NOTIFICATIONS` is granted). Verify the notification displays the transparent monochrome silhouette icon (`ic_notification.png`) in the Android status bar and shade, confirming that Android Gradle Plugin resource shrinking (`isShrinkResources = true`) did not strip dynamically referenced drawables preserved in `android/app/src/main/res/raw/keep.xml`.
+* **Emulator Storage Clean Flush (`INSTALL_FAILED_INSUFFICIENT_STORAGE`)**:
+  - If `flutter install` or `adb install -r` fails on the emulator with `INSTALL_FAILED_INSUFFICIENT_STORAGE` due to limited `/data` partition headroom, execute clean uninstall:
+    ```bash
+    adb -s <device> uninstall com.saadhjawwadh.notebook
+    ```
+  - This clears >150MB of cached APK revisions and app sandbox data, enabling a clean install that also thoroughly tests the first-run Onboarding wizard and fresh database initialization.
 
 ### Step 3: Run Release Automation
 Execute the automated deploy script to bump, tag, and publish:

@@ -87,8 +87,8 @@ class FinancialLedgerTab extends StatelessWidget {
             // Date group header
             if (item is String) {
               return AnimationConfiguration.staggeredList(
-                position: index,
-                duration: const Duration(milliseconds: 220),
+                position: index.clamp(0, 8),
+                duration: AppLayout.animShort,
                 child: SlideAnimation(
                   verticalOffset: 16.0,
                   child: FadeInAnimation(
@@ -109,14 +109,14 @@ class FinancialLedgerTab extends StatelessWidget {
 
             final transaction = item as TransactionModel;
             return AnimationConfiguration.staggeredList(
-              position: index,
-              duration: const Duration(milliseconds: 220),
+              position: index.clamp(0, 8),
+              duration: AppLayout.animShort,
               child: SlideAnimation(
                 verticalOffset: 16.0,
                 child: FadeInAnimation(
                   child: OpenContainer<bool>(
                     transitionType: ContainerTransitionType.fadeThrough,
-                    transitionDuration: const Duration(milliseconds: 300),
+                    transitionDuration: AppLayout.animModal,
                     openBuilder: (context, _) => TransactionEditorScreen(transaction: transaction),
                     closedElevation: 0,
                     openElevation: 0,
@@ -150,8 +150,8 @@ class FinancialLedgerTab extends StatelessWidget {
                           child: ListTile(
                             contentPadding: EdgeInsets.zero,
                             leading: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 180),
-                              transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+                              duration: AppLayout.animFast,
+                              transitionBuilder: AppLayout.scaleFadeTransitionBuilder,
                               child: isSelected
                                   ? Container(
                                       key: const ValueKey('selected'),

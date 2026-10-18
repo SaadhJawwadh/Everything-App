@@ -46,10 +46,38 @@ class AppLayout {
   static const double iconXL = 48.0;
   static const double icon20 = 20.0;
 
-  // Animations & M3 Expressive Curves
+  // ── Animation Durations (Sub-300ms UI Discipline) ─────────────────────────
+  /// 140ms: Button press-in/release feedback and micro-toggles (100–160ms budget).
+  static const Duration animMicro = Duration(milliseconds: 140);
+
+  /// 180ms: Fast UI state changes, checkboxes, chips, and popovers (150–200ms budget).
+  static const Duration animFast = Duration(milliseconds: 180);
+
+  /// 200ms: Standard snappy UI transitions and staggered list items.
   static const Duration animShort = Duration(milliseconds: 200);
+
+  /// 250ms: Modal bottom sheets, dialogs, and OpenContainer card morphs (<300ms budget).
+  static const Duration animModal = Duration(milliseconds: 250);
+
+  /// 300ms: Maximum ceiling for standard spatial transitions.
   static const Duration animDefault = Duration(milliseconds: 300);
+
+  /// 420ms: Benevolent friction trust window (Wise / Pokered 30-frame verification beat).
+  static const Duration animTrustBeat = Duration(milliseconds: 420);
+
+  /// 500ms: Reserved strictly for rare/first-time onboarding or celebratory morphs.
   static const Duration animLong = Duration(milliseconds: 500);
+
+  // ── Easing Curves (Emil Kowalski & M3 Expressive) ─────────────────────────
+  /// Strong ease-out for entering/exiting UI elements — starts fast on frame 1.
+  static const Curve curveStrongEaseOut = Cubic(0.23, 1.0, 0.32, 1.0);
+
+  /// Strong ease-in-out for elements already on screen moving/morphing.
+  static const Curve curveStrongEaseInOut = Cubic(0.77, 0.0, 0.175, 1.0);
+
+  /// Fluid iOS/Ionic drawer and sheet curve.
+  static const Curve curveSheet = Cubic(0.32, 0.72, 0.0, 1.0);
+
   static const Curve curveExpressive = Curves.easeOutBack;
   static const Curve curveSpring = Curves.elasticOut;
   static const Curve curveFast = Curves.easeOutCubic;
@@ -86,6 +114,30 @@ class AppLayout {
 
   /// M3 Expressive Bouncy Spring Curve (for badges, celebrations, FAB morphs).
   static const Curve curveExpressiveBouncy = ExpressiveSpringCurve(spring: springBouncy);
+
+  /// Returns true when the OS accessibility "Reduce Motion" / "Remove Animations" setting is active.
+  /// Per Emil Kowalski's accessibility rule: reduced motion means gentler motion (keep opacity/color,
+  /// drop spatial translation, scale bounces, and looping timers), not broken UI.
+  static bool shouldReduceMotion(BuildContext context) {
+    return MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+  }
+
+  /// Standard origin-safe scale + fade transition builder that never animates from scale(0).
+  /// Starts at scale 0.92 with 0.0 opacity and settles at 1.0 using [curveStrongEaseOut].
+  static Widget scaleFadeTransitionBuilder(Widget child, Animation<double> animation) {
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: curveStrongEaseOut,
+      reverseCurve: curveEmphasizedAccelerate,
+    );
+    return FadeTransition(
+      opacity: curved,
+      child: ScaleTransition(
+        scale: Tween<double>(begin: 0.92, end: 1.0).animate(curved),
+        child: child,
+      ),
+    );
+  }
 
   // Layout Constraints & Breakpoints
   static const double maxContentWidth = 600.0;

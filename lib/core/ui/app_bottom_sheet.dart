@@ -33,9 +33,9 @@ class AppBottomSheet extends StatelessWidget {
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       sheetAnimationStyle: const AnimationStyle(
-        duration: AppLayout.animDefault,
-        reverseDuration: AppLayout.animShort,
-        curve: AppLayout.curveEmphasizedDecelerate,
+        duration: AppLayout.animModal,
+        reverseDuration: AppLayout.animFast,
+        curve: AppLayout.curveSheet,
         reverseCurve: AppLayout.curveEmphasizedAccelerate,
       ),
       builder: (context) => AppBottomSheet(

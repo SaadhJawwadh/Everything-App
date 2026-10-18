@@ -56,13 +56,13 @@ class NoteEditorBottomBar extends StatelessWidget {
       children: [
         // ── Floating Formatting Bar Sub-tier ──
         AnimatedSwitcher(
-          duration: AppLayout.animDefault,
+          duration: AppLayout.animModal,
           switchInCurve: AppLayout.curveExpressiveEffects,
           switchOutCurve: AppLayout.curveEmphasizedAccelerate,
           transitionBuilder: (child, animation) {
             return SlideTransition(
               position: Tween<Offset>(
-                begin: const Offset(0.0, 0.4),
+                begin: AppLayout.shouldReduceMotion(context) ? Offset.zero : const Offset(0.0, 0.25),
                 end: Offset.zero,
               ).animate(animation),
               child: FadeTransition(

@@ -118,7 +118,7 @@ class _SavingsGoalDepositSheetState extends State<SavingsGoalDepositSheet> {
     if (mounted && willComplete && showDelight) {
       setState(() => _isGoalCelebration = true);
       AppHaptics.heavyImpact();
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(AppLayout.animTrustBeat);
     } else {
       AppHaptics.mediumImpact();
     }
@@ -389,24 +389,34 @@ class _SavingsGoalDepositSheetState extends State<SavingsGoalDepositSheet> {
                   : (_action == _PocketAction.liquidate ? colorScheme.primary : goalColor),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppLayout.radiusM)),
             ),
-            icon: Icon(
-              _isGoalCelebration
-                  ? Icons.celebration_rounded
-                  : (_action == _PocketAction.deposit
-                      ? Icons.check_circle_outline_rounded
-                      : _action == _PocketAction.withdraw
-                          ? Icons.arrow_downward_rounded
-                          : Icons.shopping_cart_checkout_rounded),
+            icon: AnimatedSwitcher(
+              duration: AppLayout.animFast,
+              transitionBuilder: AppLayout.scaleFadeTransitionBuilder,
+              child: Icon(
+                _isGoalCelebration
+                    ? Icons.celebration_rounded
+                    : (_action == _PocketAction.deposit
+                        ? Icons.check_circle_outline_rounded
+                        : _action == _PocketAction.withdraw
+                            ? Icons.arrow_downward_rounded
+                            : Icons.shopping_cart_checkout_rounded),
+                key: ValueKey(_isGoalCelebration ? 'celebration' : _action),
+              ),
             ),
-            label: Text(
-              _isGoalCelebration
-                  ? 'Target Achieved! Fully Funded'
-                  : (_action == _PocketAction.deposit
-                      ? 'Confirm Deposit'
-                      : _action == _PocketAction.withdraw
-                          ? 'Confirm Withdrawal'
-                          : 'Liquidate & Mark Completed'),
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            label: AnimatedSwitcher(
+              duration: AppLayout.animFast,
+              transitionBuilder: AppLayout.scaleFadeTransitionBuilder,
+              child: Text(
+                _isGoalCelebration
+                    ? 'Target Achieved! Fully Funded'
+                    : (_action == _PocketAction.deposit
+                        ? 'Confirm Deposit'
+                        : _action == _PocketAction.withdraw
+                            ? 'Confirm Withdrawal'
+                            : 'Liquidate & Mark Completed'),
+                key: ValueKey(_isGoalCelebration ? 'celebration' : _action),
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
             onPressed: _isGoalCelebration ? null : _submit,
           ),

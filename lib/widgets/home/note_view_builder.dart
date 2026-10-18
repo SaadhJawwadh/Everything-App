@@ -172,10 +172,10 @@ class NoteViewBuilder extends StatelessWidget {
           (context, index) {
             final note = noteProvider.filteredNotes[index];
             return AnimationConfiguration.staggeredList(
-              position: index,
-              duration: const Duration(milliseconds: 220),
+              position: index.clamp(0, 8),
+              duration: AppLayout.animShort,
               child: SlideAnimation(
-                verticalOffset: 24.0,
+                verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
                 child: FadeInAnimation(
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 12),
@@ -201,11 +201,14 @@ class NoteViewBuilder extends StatelessWidget {
         itemBuilder: (context, index) {
           final note = noteProvider.filteredNotes[index];
           return AnimationConfiguration.staggeredGrid(
-            position: index,
-            duration: const Duration(milliseconds: 220),
+            position: index.clamp(0, 8),
+            duration: AppLayout.animShort,
             columnCount: columnCount,
             child: ScaleAnimation(
+              scale: AppLayout.shouldReduceMotion(context) ? 1.0 : 0.95,
+              curve: AppLayout.curveStrongEaseOut,
               child: FadeInAnimation(
+                curve: AppLayout.curveStrongEaseOut,
                 child: _buildOpenContainer(context, note, onRefresh, noteProvider),
               ),
             ),
@@ -294,7 +297,7 @@ class NoteViewBuilder extends StatelessWidget {
 
     return OpenContainer<bool>(
       transitionType: ContainerTransitionType.fadeThrough,
-      transitionDuration: const Duration(milliseconds: 300),
+      transitionDuration: AppLayout.shouldReduceMotion(context) ? Duration.zero : AppLayout.animModal,
       openBuilder: (context, _) => NoteEditorScreen(
         note: note,
         targetLineIndex: targetLineIndex,

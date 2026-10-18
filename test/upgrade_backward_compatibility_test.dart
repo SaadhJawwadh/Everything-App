@@ -119,14 +119,14 @@ void main() {
       expect(settings.trashAutoPurgeDays, 30);
     });
 
-    testWidgets('WhatsNewSheet renders v2.47.0 cards and records version on dismiss', (tester) async {
+    testWidgets('WhatsNewSheet renders v2.48.0 cards and records version on dismiss', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
       SharedPreferences.setMockInitialValues({
-        'lastSeenVersion': '2.46.1',
+        'lastSeenVersion': '2.47.0',
       });
       final settings = SettingsProvider();
       await settings.loadSettings();
@@ -136,7 +136,7 @@ void main() {
           value: settings,
           child: const MaterialApp(
             home: Scaffold(
-              body: WhatsNewSheet(currentVersion: '2.47.0'),
+              body: WhatsNewSheet(currentVersion: '2.48.0'),
             ),
           ),
         ),
@@ -149,10 +149,10 @@ void main() {
       expect(find.text("Fixes"), findsOneWidget);
 
       // Check marquee items
-      expect(find.text("Material 3 Expressive Motion"), findsOneWidget);
-      expect(find.text("Next-Gen Android Widgets"), findsOneWidget);
-      expect(find.text("Floating Checklist Selector"), findsOneWidget);
-      expect(find.text("Foldable & Tablet Responsive Polish"), findsOneWidget);
+      expect(find.text("Fluid UI Motion"), findsOneWidget);
+      expect(find.text("Tactile Touch Feedback"), findsOneWidget);
+      expect(find.text("Financial Trust Beats"), findsOneWidget);
+      expect(find.text("Sub-300ms List Staggering"), findsOneWidget);
 
       // Tap "Awesome, Got It!" to finish
       await tester.runAsync(() async {
@@ -161,7 +161,7 @@ void main() {
       });
       await tester.pumpAndSettle();
 
-      expect(settings.lastSeenVersion, '2.47.0');
+      expect(settings.lastSeenVersion, '2.48.0');
     });
   });
 }
