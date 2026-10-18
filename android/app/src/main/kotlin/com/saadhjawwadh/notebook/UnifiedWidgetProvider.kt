@@ -60,7 +60,7 @@ class UnifiedWidgetProvider : AppWidgetProvider() {
         val opts = options ?: appWidgetManager.getAppWidgetOptions(appWidgetId)
         val minWidth = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
         val minHeight = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
-        val isCompact = (minWidth in 1..220) || (minHeight in 1..140)
+        val isCompact = (minWidth in 1..220) || (minHeight in 1..90)
 
         // 1. Populate Finance Domain Data
         val spentToday = prefs.getString("flutter.widget_spent_today", "Rs. 0") ?: "Rs. 0"

@@ -31,7 +31,7 @@ class FinanceWidgetProvider : AppWidgetProvider() {
         updateAppWidget(context, appWidgetManager, appWidgetId, newOptions)
     }
 
-    private fun updateAppWidget(
+    fun updateAppWidget(
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetId: Int,
@@ -60,7 +60,7 @@ class FinanceWidgetProvider : AppWidgetProvider() {
         val opts = options ?: AppWidgetManager.getInstance(context).getAppWidgetOptions(appWidgetId)
         val minWidth = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
         val minHeight = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
-        val isCompact = (minWidth in 1..220) || (minHeight in 1..140)
+        val isCompact = (minWidth in 1..220) || (minHeight in 1..90)
 
         if (isCompact) {
             views.setViewVisibility(R.id.widget_analytics_card, android.view.View.GONE)
@@ -326,11 +326,10 @@ class FinanceWidgetProvider : AppWidgetProvider() {
             val thisWidget = android.content.ComponentName(context, FinanceWidgetProvider::class.java)
             val allWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
             if (allWidgetIds.isNotEmpty()) {
-                val intent = Intent(context, FinanceWidgetProvider::class.java).apply {
-                    action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, allWidgetIds)
+                val provider = FinanceWidgetProvider()
+                for (id in allWidgetIds) {
+                    provider.updateAppWidget(context, appWidgetManager, id)
                 }
-                context.sendBroadcast(intent)
             }
         }
     }

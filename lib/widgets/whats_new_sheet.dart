@@ -98,6 +98,11 @@ class WhatsNewSheet extends StatelessWidget {
             desc: "Eliminated visual distortion by anchoring scale transitions to a subtle 0.92 floor.",
           ),
           _WhatsNewItem(
+            icon: Icons.widgets_rounded,
+            title: "Home Screen Widgets",
+            desc: "Fixed task toggle reversion, restored month analytics sparklines, and enabled vertical expansion.",
+          ),
+          _WhatsNewItem(
             icon: Icons.view_headline_rounded,
             title: "Note Editor Bar Slide",
             desc: "Smoothed toolbar entrance transitions with zero layout popping.",

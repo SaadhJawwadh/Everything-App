@@ -28,9 +28,32 @@ class ChangelogScreen extends StatelessWidget {
               delegate: SliverChildListDelegate([
                 _buildVersionSection(
                   context,
-                  version: 'v2.48.0',
+                  version: 'v2.48.1',
                   date: 'October 18, 2026',
                   isLatest: true,
+                  changes: [
+                    _ChangelogGroup(
+                      title: 'Improvements',
+                      items: [
+                        'Vertical Widget Expansion: Enabled vertical resizing on all Android home screen widgets without horizontal squashing.',
+                        'Ledger Transfer Parity: Excluded neutral double-entry transfers from widget balance calculations for exact ledger alignment.',
+                      ],
+                    ),
+                    _ChangelogGroup(
+                      title: 'Fixes',
+                      items: [
+                        'Home Screen Widget Task Checkboxes: Fixed checklist items reverting by ensuring in-memory cache synchronizes with disk updates.',
+                        'Finance Widget Analytics & Sparkline: Restored monthly expense estimate and sparkline preview on standard-height widgets.',
+                        'Note Card Layout Polish: Eliminated horizontal text overflow in compact note card completion badges.',
+                      ],
+                    ),
+                  ],
+                ),
+                _buildVersionSection(
+                  context,
+                  version: 'v2.48.0',
+                  date: 'October 18, 2026',
+                  isLatest: false,
                   changes: [
                     _ChangelogGroup(
                       title: "What's New",

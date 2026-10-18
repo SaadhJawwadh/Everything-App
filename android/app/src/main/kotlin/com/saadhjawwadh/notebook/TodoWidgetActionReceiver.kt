@@ -87,7 +87,7 @@ class TodoWidgetActionReceiver : BroadcastReceiver() {
                                 val itemLineIdx = itemObj.optInt("lineIndex", -1)
                                 val itemText = itemObj.optString("text", "")
                                 
-                                val matches = (text.isNotEmpty() && itemText == text) || (lineIndex >= 0 && itemLineIdx == lineIndex)
+                                val matches = (text.isNotEmpty() && itemText.trim() == text.trim()) || (lineIndex >= 0 && itemLineIdx == lineIndex)
                                 if (matches) {
                                     val currentLiveDone = itemObj.optBoolean("isDone", intent.getBooleanExtra("is_done", false))
                                     newIsDone = !currentLiveDone
@@ -116,7 +116,7 @@ class TodoWidgetActionReceiver : BroadcastReceiver() {
                         val existingText = existingObj.optString("text", "")
 
                         val isSameItem = existingNoteId == noteId && (
-                            (text.isNotEmpty() && existingText == text) ||
+                            (text.isNotEmpty() && existingText.trim() == text.trim()) ||
                             (lineIndex >= 0 && existingLineIdx == lineIndex)
                         )
 

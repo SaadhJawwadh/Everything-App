@@ -9,6 +9,6 @@
     android:previewImage="@mipmap/ic_launcher"
     android:previewLayout="@layout/notes_widget_layout"
     android:description="@string/notes_widget_description"
-    android:resizeMode="horizontal|vertical"
+    android:resizeMode="vertical"
     android:widgetCategory="home_screen">
 </appwidget-provider>

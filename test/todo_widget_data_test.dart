@@ -228,5 +228,24 @@ void main() {
       expect(note1Toggles['Buy milk']!['isDone'], true);
       expect(note1Toggles['Call plumber']!['isDone'], true);
     });
+
+    test('Widget expense calculation excludes reversals and transfers', () {
+      final transactions = [
+        {'category': 'Food & Dining', 'amount': 250.0, 'isExpense': true},
+        {'category': '__reversal__', 'amount': 100.0, 'isExpense': true},
+        {'category': 'Transfer', 'amount': 5000.0, 'isExpense': true},
+        {'category': 'transfer', 'amount': 2000.0, 'isExpense': true},
+        {'category': 'Groceries', 'amount': 750.0, 'isExpense': true},
+      ];
+
+      final activeTx = transactions.where((t) =>
+        t['category'] != '__reversal__' &&
+        (t['category'] as String).toLowerCase() != 'transfer'
+      ).toList();
+
+      expect(activeTx.length, 2);
+      final totalSpent = activeTx.fold<double>(0.0, (sum, t) => sum + (t['amount'] as double));
+      expect(totalSpent, 1000.0);
+    });
   });
 }

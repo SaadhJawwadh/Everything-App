@@ -150,6 +150,7 @@ class TodoRemoteViewsFactory(
             putExtra("is_done", item.isDone)
         }
         views.setOnClickFillInIntent(R.id.todo_item_check_touch, checkFillInIntent)
+        views.setOnClickFillInIntent(R.id.todo_item_checkbox, checkFillInIntent)
 
         // Fill-in Intent for opening the note at this specific task
         val openFillInIntent = Intent().apply {

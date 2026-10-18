@@ -263,11 +263,15 @@ class NoteCard extends StatelessWidget {
                       color: theme.colorScheme.primary,
                     ),
                     const SizedBox(width: AppLayout.spaceXS),
-                    Text(
-                      'All ${completedItems.length} ${completedItems.length == 1 ? "task" : "tasks"} completed',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w600,
+                    Flexible(
+                      child: Text(
+                        'All ${completedItems.length} ${completedItems.length == 1 ? "task" : "tasks"} completed',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],

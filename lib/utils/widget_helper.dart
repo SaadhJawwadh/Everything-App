@@ -29,8 +29,10 @@ class WidgetHelper {
       final repo = TransactionRepository.instance;
       final allTx = await repo.readAllTransactions();
 
-      // Filter out reversals
-      final activeTx = allTx.where((t) => t.category != '__reversal__').toList();
+      // Filter out reversals and neutral double-entry transfers
+      final activeTx = allTx
+          .where((t) => t.category != '__reversal__' && t.category.toLowerCase() != 'transfer')
+          .toList();
 
       // Today's total spent
       final now = DateTime.now();
@@ -186,6 +188,7 @@ class WidgetHelper {
   static Future<void> syncPendingTodoToggles() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
       final pendingStr = prefs.getString('widget_pending_toggles');
       if (pendingStr == null || pendingStr.isEmpty || pendingStr == '[]') {
         return;
@@ -253,6 +256,7 @@ class WidgetHelper {
       await syncPendingTodoToggles();
 
       final prefs = await SharedPreferences.getInstance();
+      await prefs.reload();
       final repo = NoteRepository.instance;
       final activeNotes = await repo.readAllNotes(isArchived: false, isTrashed: false);
 
