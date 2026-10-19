@@ -55,6 +55,7 @@ class SplitParticipantFields {
   static const String shareAmount = 'shareAmount';
   static const String hasPaid = 'hasPaid';
   static const String paidAt = 'paidAt';
+  static const String settlementTransactionId = 'settlementTransactionId';
 }
 
 class SplitContactFields {

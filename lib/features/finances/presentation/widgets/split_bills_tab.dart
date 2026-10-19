@@ -57,25 +57,30 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
     SplitParticipantModel p,
     SplitBillModel bill,
   ) async {
-    await splitProvider.toggleParticipantPaid(p.id, false);
+    final removedTxId = await splitProvider.toggleParticipantPaid(p.id, false);
 
-    // Look for matching settlement entry in personal ledger and delete it to maintain parity
-    final contactName = p.contactName.trim().toLowerCase() == 'you' ? bill.payerName.trim() : p.contactName.trim();
-    try {
-      final db = await DatabaseHelper.instance.database;
-      final settlementRows = await db.query(
-        TableNames.transactions,
-        columns: [TransactionFields.id],
-        where: '${TransactionFields.deletedAt} IS NULL AND (${TransactionFields.description} LIKE ? OR ${TransactionFields.description} LIKE ?)',
-        whereArgs: ['%$contactName - Split settlement%', '%Paid $contactName - Split settlement%'],
-        orderBy: '${TransactionFields.date} DESC',
-        limit: 1,
-      );
-      if (settlementRows.isNotEmpty) {
-        final txId = settlementRows.first[TransactionFields.id] as int;
-        await TransactionRepository.instance.deleteTransaction(txId);
-      }
-    } catch (_) {}
+    // If a linked settlement transaction ID was stored, delete that exact ledger transaction
+    if (removedTxId != null) {
+      await TransactionRepository.instance.deleteTransaction(removedTxId);
+    } else {
+      // Legacy fallback for records before schema v25
+      final contactName = p.contactName.trim().toLowerCase() == 'you' ? bill.payerName.trim() : p.contactName.trim();
+      try {
+        final db = await DatabaseHelper.instance.database;
+        final settlementRows = await db.query(
+          TableNames.transactions,
+          columns: [TransactionFields.id],
+          where: '${TransactionFields.deletedAt} IS NULL AND (${TransactionFields.description} LIKE ? OR ${TransactionFields.description} LIKE ?)',
+          whereArgs: ['%$contactName - Split settlement%', '%Paid $contactName - Split settlement%'],
+          orderBy: '${TransactionFields.date} DESC',
+          limit: 1,
+        );
+        if (settlementRows.isNotEmpty) {
+          final txId = settlementRows.first[TransactionFields.id] as int;
+          await TransactionRepository.instance.deleteTransaction(txId);
+        }
+      } catch (_) {}
+    }
 
     FinancialManagerScreen.refreshNotifier.value++;
     if (context.mounted) {
@@ -99,24 +104,31 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
     );
     if (confirmed != true) return;
 
-    await splitProvider.unsettleAllForContact(contactName);
+    final removedTxIds = await splitProvider.unsettleAllForContact(contactName);
 
-    // Delete settlement transaction from ledger
-    try {
-      final db = await DatabaseHelper.instance.database;
-      final settlementRows = await db.query(
-        TableNames.transactions,
-        columns: [TransactionFields.id],
-        where: '${TransactionFields.deletedAt} IS NULL AND (${TransactionFields.description} LIKE ? OR ${TransactionFields.description} LIKE ?)',
-        whereArgs: ['%$contactName - Split settlement%', '%Paid $contactName - Split settlement%'],
-        orderBy: '${TransactionFields.date} DESC',
-        limit: 1,
-      );
-      if (settlementRows.isNotEmpty) {
-        final txId = settlementRows.first[TransactionFields.id] as int;
+    // Delete matching settlement transactions from ledger
+    if (removedTxIds.isNotEmpty) {
+      for (final txId in removedTxIds) {
         await TransactionRepository.instance.deleteTransaction(txId);
       }
-    } catch (_) {}
+    } else {
+      // Legacy fallback for records before schema v25
+      try {
+        final db = await DatabaseHelper.instance.database;
+        final settlementRows = await db.query(
+          TableNames.transactions,
+          columns: [TransactionFields.id],
+          where: '${TransactionFields.deletedAt} IS NULL AND (${TransactionFields.description} LIKE ? OR ${TransactionFields.description} LIKE ?)',
+          whereArgs: ['%$contactName - Split settlement%', '%Paid $contactName - Split settlement%'],
+          orderBy: '${TransactionFields.date} DESC',
+          limit: 1,
+        );
+        if (settlementRows.isNotEmpty) {
+          final txId = settlementRows.first[TransactionFields.id] as int;
+          await TransactionRepository.instance.deleteTransaction(txId);
+        }
+      } catch (_) {}
+    }
 
     FinancialManagerScreen.refreshNotifier.value++;
     if (!context.mounted) return;
@@ -161,6 +173,14 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
           SnackBar(
             content: Text('Deleted $count split bill${count == 1 ? "" : "s"}'),
             behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'UNDO',
+              onPressed: () async {
+                for (final id in idsToDelete) {
+                  await splitProvider.restoreBill(id);
+                }
+              },
+            ),
           ),
         );
       }
@@ -634,8 +654,32 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
     }
 
     final personNames = allPersonNames.where((name) {
-      if (_searchQuery.isEmpty) return true;
-      return name.toLowerCase().contains(_searchQuery.toLowerCase());
+      if (_searchQuery.isNotEmpty && !name.toLowerCase().contains(_searchQuery.toLowerCase())) {
+        return false;
+      }
+
+      // Filter by active group tag: person must be part of at least one active bill matching groupTag
+      if (splitProvider.activeGroupTag != null) {
+        final matchesGroup = splitProvider.bills.any((b) {
+          if (b.groupTag != splitProvider.activeGroupTag) return false;
+          if (b.isPayerUser) {
+            return b.participants.any((p) => p.contactName.trim().toLowerCase() == name.trim().toLowerCase());
+          } else {
+            return b.payerName.trim().toLowerCase() == name.trim().toLowerCase();
+          }
+        });
+        if (!matchesGroup) return false;
+      }
+
+      // Filter by active filter status ('all', 'unsettled', 'settled')
+      final netBalance = balances[name] ?? 0.0;
+      if (splitProvider.activeFilter == 'unsettled') {
+        return netBalance != 0.0;
+      } else if (splitProvider.activeFilter == 'settled') {
+        return netBalance == 0.0;
+      }
+
+      return true;
     }).toList();
 
     if (personNames.isEmpty && _searchQuery.isNotEmpty) {
@@ -686,7 +730,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
             if (b.isPayerUser) {
               return b.participants.any((p) => p.contactName.trim().toLowerCase() == name.trim().toLowerCase() && !p.hasPaid);
             } else {
-              return b.payerName.trim().toLowerCase() == name.trim().toLowerCase();
+              return b.payerName.trim().toLowerCase() == name.trim().toLowerCase() && !b.isUserSharePaid;
             }
           }).toList();
 
@@ -1069,11 +1113,46 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                                     ),
                                   ),
                                 ),
-                                if (!bill.isUserSharePaid) ...[
+                                if (bill.isUserSharePaid) ...[
+                                  const SizedBox(width: 8),
+                                  ConstrainedBox(
+                                    constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                                    child: IconButton(
+                                      icon: const Icon(Icons.undo_rounded, size: 18),
+                                      tooltip: 'Reopen your share',
+                                      onPressed: () async {
+                                        final userPart = bill.userParticipant;
+                                        if (userPart != null) {
+                                          await _unsettleParticipant(context, splitProvider, userPart, bill);
+                                        } else {
+                                          final removedTx = await splitProvider.toggleUserShareForBill(bill.id, false);
+                                          if (removedTx != null) {
+                                            await TransactionRepository.instance.deleteTransaction(removedTx);
+                                          }
+                                          FinancialManagerScreen.refreshNotifier.value++;
+                                          if (context.mounted) {
+                                            try {
+                                              await Provider.of<FinancialManagerProvider>(context, listen: false).loadTransactions();
+                                            } catch (_) {}
+                                          }
+                                        }
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).clearSnackBars();
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Reopened your share for "${bill.title}"'),
+                                              behavior: SnackBarBehavior.floating,
+                                            ),
+                                          );
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ] else ...[
                                   const SizedBox(width: 8),
                                   FilledButton.tonal(
                                     onPressed: () {
-                                      final userPart = bill.participants.where((p) => p.contactName.trim().toLowerCase() == 'you').firstOrNull;
+                                      final userPart = bill.userParticipant;
                                       SettleUpSheet.show(
                                         context,
                                         contactName: bill.payerName,
@@ -1129,13 +1208,15 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                             final isPayer = !bill.isPayerUser &&
                                 p.contactName.trim().toLowerCase() == bill.payerName.trim().toLowerCase();
 
+                            final formattedAmount = p.shareAmount.toStringAsFixed(2).replaceAll('.00', '');
+
                             return Semantics(
                               button: !isPayer,
                               label: isYou
-                                  ? 'Your share: $currency ${p.shareAmount.toStringAsFixed(0)}, ${p.hasPaid ? 'paid' : 'tap to settle'}'
+                                  ? 'Your share: $currency $formattedAmount, ${p.hasPaid ? 'paid' : 'tap to settle'}'
                                   : (bill.isPayerUser
                                       ? 'Mark ${p.contactName} as ${p.hasPaid ? 'unpaid' : 'paid'}'
-                                      : '${p.contactName} owes ${bill.payerName}: $currency ${p.shareAmount.toStringAsFixed(0)}, ${p.hasPaid ? 'paid' : 'unpaid'}'),
+                                      : '${p.contactName} owes ${bill.payerName}: $currency $formattedAmount, ${p.hasPaid ? 'paid' : 'unpaid'}'),
                               child: InkWell(
                                 onTap: isPayer
                                     ? null
@@ -1152,6 +1233,17 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                                             );
                                           } else {
                                             _unsettleParticipant(context, splitProvider, p, bill);
+                                            ScaffoldMessenger.of(context).clearSnackBars();
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: const Text('Marked your share as unpaid'),
+                                                behavior: SnackBarBehavior.floating,
+                                                action: SnackBarAction(
+                                                  label: 'UNDO',
+                                                  onPressed: () => splitProvider.toggleParticipantPaid(p.id, true),
+                                                ),
+                                              ),
+                                            );
                                           }
                                         } else if (bill.isPayerUser) {
                                           // You paid the bill -> other participants pay YOU back
@@ -1165,6 +1257,17 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                                             );
                                           } else {
                                             _unsettleParticipant(context, splitProvider, p, bill);
+                                            ScaffoldMessenger.of(context).clearSnackBars();
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text('Marked ${p.contactName} as unpaid'),
+                                                behavior: SnackBarBehavior.floating,
+                                                action: SnackBarAction(
+                                                  label: 'UNDO',
+                                                  onPressed: () => splitProvider.toggleParticipantPaid(p.id, true),
+                                                ),
+                                              ),
+                                            );
                                           }
                                         } else {
                                           // Friend paid the bill -> other friends owe the payer, NOT you!
@@ -1219,10 +1322,10 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                                       const SizedBox(width: 6),
                                       Text(
                                         isYou
-                                            ? 'You: $currency ${p.shareAmount.toStringAsFixed(0)}'
+                                            ? 'You: $currency $formattedAmount'
                                             : (bill.isPayerUser
-                                                ? '${p.contactName}: $currency ${p.shareAmount.toStringAsFixed(0)}'
-                                                : '${p.contactName}: $currency ${p.shareAmount.toStringAsFixed(0)} (owes ${bill.payerName})'),
+                                                ? '${p.contactName}: $currency $formattedAmount'
+                                                : '${p.contactName}: $currency $formattedAmount (owes ${bill.payerName})'),
                                         style: theme.textTheme.labelSmall?.copyWith(
                                           color: p.hasPaid ? successColor : colorScheme.onSurface,
                                           fontWeight: p.hasPaid ? FontWeight.bold : FontWeight.normal,
@@ -1300,179 +1403,299 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
     double netBalance,
     String currency,
   ) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final semantic = theme.extension<AppSemanticColors>();
-    final successColor = semantic?.success ?? colorScheme.primary;
-    final debtColor = colorScheme.error;
-
-    final contactBills = splitProvider.bills.where((b) {
-      if (b.isPayerUser) {
-        return b.participants.any((p) => p.contactName.trim().toLowerCase() == contactName.trim().toLowerCase());
-      } else {
-        return b.payerName.trim().toLowerCase() == contactName.trim().toLowerCase() ||
-            b.participants.any((p) => p.contactName.trim().toLowerCase() == contactName.trim().toLowerCase());
-      }
-    }).toList();
-
     AppBottomSheet.show<void>(
       context: context,
       title: '$contactName • Shared Bills',
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AppCard.tonal(
-            color: netBalance > 0
-                ? successColor.withValues(alpha: 0.15)
-                : (netBalance < 0
-                    ? debtColor.withValues(alpha: 0.15)
-                    : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)),
-            borderColor: netBalance > 0
-                ? successColor.withValues(alpha: 0.3)
-                : (netBalance < 0
-                    ? debtColor.withValues(alpha: 0.3)
-                    : colorScheme.outline.withValues(alpha: 0.2)),
-            padding: const EdgeInsets.all(AppLayout.spaceM),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      child: Consumer<SplitBillProvider>(
+        builder: (context, splitProvider, _) {
+          final theme = Theme.of(context);
+          final colorScheme = theme.colorScheme;
+          final semantic = theme.extension<AppSemanticColors>();
+          final successColor = semantic?.success ?? colorScheme.primary;
+          final debtColor = colorScheme.error;
+
+          final contactBills = splitProvider.bills.where((b) {
+            if (b.isPayerUser) {
+              return b.participants.any(
+                (p) => p.contactName.trim().toLowerCase() == contactName.trim().toLowerCase(),
+              );
+            } else {
+              return b.payerName.trim().toLowerCase() == contactName.trim().toLowerCase();
+            }
+          }).toList();
+
+          double currentNetBalance = 0.0;
+          for (final entry in splitProvider.contactNetBalances.entries) {
+            if (entry.key.trim().toLowerCase() == contactName.trim().toLowerCase()) {
+              currentNetBalance = entry.value;
+              break;
+            }
+          }
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppCard.tonal(
+                color: currentNetBalance > 0
+                    ? successColor.withValues(alpha: 0.15)
+                    : (currentNetBalance < 0
+                        ? debtColor.withValues(alpha: 0.15)
+                        : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)),
+                borderColor: currentNetBalance > 0
+                    ? successColor.withValues(alpha: 0.3)
+                    : (currentNetBalance < 0
+                        ? debtColor.withValues(alpha: 0.3)
+                        : colorScheme.outline.withValues(alpha: 0.2)),
+                padding: const EdgeInsets.all(AppLayout.spaceM),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      netBalance > 0
-                          ? 'Owes you in total'
-                          : (netBalance < 0 ? 'You owe in total' : 'All debts settled'),
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      netBalance == 0
-                          ? '$currency 0'
-                          : (netBalance > 0
-                              ? '+$currency ${netBalance.toStringAsFixed(2).replaceAll('.00', '')}'
-                              : '-$currency ${netBalance.abs().toStringAsFixed(2).replaceAll('.00', '')}'),
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: netBalance > 0 ? successColor : (netBalance < 0 ? debtColor : colorScheme.onSurface),
-                      ),
-                    ),
-                  ],
-                ),
-                FilledButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => SplitBillEditorScreen(
-                          initialTitle: 'Bill with $contactName',
-                        ),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('New Split'),
-                  style: FilledButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    shape: const StadiumBorder(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppLayout.spaceM),
-          Text(
-            'Bill History (${contactBills.length})',
-            style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: AppLayout.spaceS),
-          if (contactBills.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              child: Center(
-                child: Text(
-                  'No split bills recorded with $contactName yet.',
-                  style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
-                ),
-              ),
-            )
-          else
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 320),
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: contactBills.length,
-                separatorBuilder: (_, __) => const SizedBox(height: AppLayout.spaceXS),
-                itemBuilder: (context, idx) {
-                  final b = contactBills[idx];
-                  final isYouPayer = b.isPayerUser;
-                  final contactPart = b.participants.where(
-                    (p) => p.contactName.trim().toLowerCase() == contactName.trim().toLowerCase(),
-                  ).firstOrNull;
-
-                  final double shareAmt = contactPart?.shareAmount ?? (isYouPayer ? 0.0 : b.userShare);
-                  final bool isPaid = contactPart?.hasPaid ?? b.isUserSharePaid;
-
-                  return ListTile(
-                    dense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppLayout.radiusM)),
-                    leading: CircleAvatar(
-                      radius: 16,
-                      backgroundColor: isPaid
-                          ? successColor.withValues(alpha: 0.15)
-                          : colorScheme.surfaceContainerHighest,
-                      child: Icon(
-                        isPaid ? Icons.check_rounded : Icons.receipt_long_rounded,
-                        size: 16,
-                        color: isPaid ? successColor : colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    title: Text(b.title, style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Text(
-                      '${DateFormat('MMM d, yyyy').format(b.date)} • Paid by ${b.payerName}',
-                      style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
-                    ),
-                    trailing: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '$currency ${shareAmt.toStringAsFixed(2).replaceAll('.00', '')}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: isPaid ? successColor : colorScheme.onSurface,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            currentNetBalance > 0
+                                ? 'Owes you in total'
+                                : (currentNetBalance < 0 ? 'You owe in total' : 'All debts settled'),
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
                           ),
-                        ),
-                        Text(
-                          isPaid ? 'Settled' : 'Unpaid',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: isPaid ? successColor : (isYouPayer ? colorScheme.tertiary : debtColor),
+                          const SizedBox(height: 2),
+                          Text(
+                            currentNetBalance == 0
+                                ? '$currency 0'
+                                : (currentNetBalance > 0
+                                    ? '+$currency ${currentNetBalance.toStringAsFixed(2).replaceAll('.00', '')}'
+                                    : '-$currency ${currentNetBalance.abs().toStringAsFixed(2).replaceAll('.00', '')}'),
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: currentNetBalance > 0
+                                  ? successColor
+                                  : (currentNetBalance < 0 ? debtColor : colorScheme.onSurface),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Wrap(
+                      spacing: AppLayout.spaceXS,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (currentNetBalance != 0)
+                          FilledButton.tonal(
+                            onPressed: () {
+                              SettleUpSheet.show(
+                                context,
+                                contactName: contactName,
+                                netAmount: currentNetBalance,
+                              );
+                            },
+                            style: FilledButton.styleFrom(
+                              visualDensity: VisualDensity.compact,
+                              shape: const StadiumBorder(),
+                            ),
+                            child: const Text('Settle All'),
+                          ),
+                        FilledButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => SplitBillEditorScreen(
+                                  initialTitle: 'Bill with $contactName',
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.add_rounded, size: 18),
+                          label: const Text('New Split'),
+                          style: FilledButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            shape: const StadiumBorder(),
                           ),
                         ),
                       ],
                     ),
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => SplitBillEditorScreen(existingBill: b),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppLayout.spaceM),
+              Text(
+                'Bill History (${contactBills.length})',
+                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: AppLayout.spaceS),
+              if (contactBills.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text(
+                      'No split bills recorded with $contactName yet.',
+                      style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                    ),
+                  ),
+                )
+              else
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 320),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: contactBills.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: AppLayout.spaceXS),
+                    itemBuilder: (context, idx) {
+                      final b = contactBills[idx];
+                      final isYouPayer = b.isPayerUser;
+                      final SplitParticipantModel? targetParticipant;
+                      final double shareAmt;
+                      final bool isPaid;
+                      final DateTime? paidAt;
+                      final String directionLabel;
+
+                      if (isYouPayer) {
+                        targetParticipant = b.participants.where(
+                          (p) => p.contactName.trim().toLowerCase() == contactName.trim().toLowerCase(),
+                        ).firstOrNull;
+                        shareAmt = targetParticipant?.shareAmount ?? 0.0;
+                        isPaid = targetParticipant?.hasPaid ?? false;
+                        paidAt = targetParticipant?.paidAt;
+                        directionLabel = isPaid ? 'Paid you' : 'Owes you';
+                      } else {
+                        targetParticipant = b.userParticipant;
+                        shareAmt = b.userShare;
+                        isPaid = b.isUserSharePaid;
+                        paidAt = targetParticipant?.paidAt;
+                        directionLabel = isPaid ? 'You paid' : 'You owe';
+                      }
+
+                      String subtitle = '${DateFormat('MMM d, yyyy').format(b.date)} • Paid by ${b.payerName}';
+                      if (isPaid && paidAt != null) {
+                        subtitle += ' • Settled ${DateFormat('MMM d').format(paidAt)}';
+                      }
+
+                      return ListTile(
+                        dense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppLayout.radiusM)),
+                        leading: CircleAvatar(
+                          radius: 16,
+                          backgroundColor: isPaid
+                              ? successColor.withValues(alpha: 0.15)
+                              : colorScheme.surfaceContainerHighest,
+                          child: Icon(
+                            isPaid ? Icons.check_rounded : Icons.receipt_long_rounded,
+                            size: 16,
+                            color: isPaid ? successColor : colorScheme.onSurfaceVariant,
+                          ),
                         ),
+                        title: Text(b.title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text(
+                          subtitle,
+                          style: TextStyle(fontSize: 11, color: colorScheme.onSurfaceVariant),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '$currency ${shareAmt.toStringAsFixed(2).replaceAll('.00', '')}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: isPaid ? successColor : colorScheme.onSurface,
+                                  ),
+                                ),
+                                Text(
+                                  directionLabel,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: isPaid ? successColor : (isYouPayer ? colorScheme.tertiary : debtColor),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(width: AppLayout.spaceS),
+                            if (!isPaid)
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                                child: FilledButton.tonal(
+                                  onPressed: () {
+                                    if (isYouPayer) {
+                                      SettleUpSheet.show(
+                                        context,
+                                        contactName: contactName,
+                                        netAmount: shareAmt,
+                                        specificBill: b,
+                                        specificParticipant: targetParticipant,
+                                      );
+                                    } else {
+                                      SettleUpSheet.show(
+                                        context,
+                                        contactName: b.payerName,
+                                        netAmount: -shareAmt,
+                                        specificBill: b,
+                                        specificParticipant: targetParticipant,
+                                      );
+                                    }
+                                  },
+                                  style: FilledButton.styleFrom(
+                                    visualDensity: VisualDensity.compact,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                                    shape: const StadiumBorder(),
+                                  ),
+                                  child: const Text('Settle', style: TextStyle(fontSize: 12)),
+                                ),
+                              )
+                            else
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                                child: IconButton(
+                                  icon: const Icon(Icons.undo_rounded, size: 18),
+                                  tooltip: 'Reopen bill',
+                                  onPressed: () async {
+                                    if (targetParticipant != null) {
+                                      await _unsettleParticipant(context, splitProvider, targetParticipant, b);
+                                    } else if (!isYouPayer) {
+                                      final removedTx = await splitProvider.toggleUserShareForBill(b.id, false);
+                                      if (removedTx != null) {
+                                        await TransactionRepository.instance.deleteTransaction(removedTx);
+                                      }
+                                      FinancialManagerScreen.refreshNotifier.value++;
+                                      if (context.mounted) {
+                                        try {
+                                          await Provider.of<FinancialManagerProvider>(context, listen: false).loadTransactions();
+                                        } catch (_) {}
+                                      }
+                                    }
+                                  },
+                                ),
+                              ),
+                          ],
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => SplitBillEditorScreen(existingBill: b),
+                            ),
+                          );
+                        },
                       );
                     },
-                  );
-                },
-              ),
-            ),
-          const SizedBox(height: AppLayout.spaceS),
-        ],
+                  ),
+                ),
+              const SizedBox(height: AppLayout.spaceS),
+            ],
+          );
+        },
       ),
     );
   }

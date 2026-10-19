@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/services/app_haptics.dart';
@@ -49,6 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController _searchController;
   late String _searchQuery;
   String _selectedSearchCategory = 'All';
+  String _appVersion = '';
 
   final List<String> _searchCategories = [
     'All',
@@ -65,6 +67,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     _searchQuery = widget.initialQuery ?? '';
     _searchController = TextEditingController(text: _searchQuery);
+    PackageInfo.fromPlatform().then((info) {
+      if (mounted) {
+        setState(() {
+          _appVersion = 'v${info.version}';
+        });
+      }
+    });
   }
 
   @override
@@ -362,7 +371,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 _buildDomainHubCard(
                                   context: context,
                                   title: 'About & Guides',
-                                  subtitle: 'Everything App v2.47.0 • Changelog • Diagnostics & Setup',
+                                  subtitle: _appVersion.isNotEmpty
+                                      ? 'Everything App $_appVersion • Changelog • Diagnostics'
+                                      : 'Changelog • Diagnostics & Setup Guides',
                                   icon: Icons.info_outline_rounded,
                                   accentColor: colorScheme.onSurfaceVariant,
                                   onTap: () => AppRoute.push(context, const AboutSettingsScreen()),

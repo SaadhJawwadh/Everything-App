@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:note_taking_app/data/database_helper.dart';
+import 'package:note_taking_app/data/database_constants.dart';
+import 'package:note_taking_app/features/finances/data/models/split_bill_model.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
 import 'package:note_taking_app/widgets/whats_new_sheet.dart';
 
@@ -97,6 +99,101 @@ void main() {
       }
     });
 
+    test('Simulate upgrading an old database from v24 directly to v25 for split bill settlement tracking', () async {
+      const dbPath = 'upgrade_v24_to_v25_test.db';
+      if (await databaseFactory.databaseExists(dbPath)) {
+        await databaseFactory.deleteDatabase(dbPath);
+      }
+
+      // 1. Create a database at version 24 with split_participants lacking settlementTransactionId
+      final db = await openDatabase(
+        dbPath,
+        version: 24,
+        onCreate: (db, version) async {
+          await db.execute('''
+            CREATE TABLE ${TableNames.splitBills} (
+              ${SplitBillFields.id} TEXT PRIMARY KEY,
+              ${SplitBillFields.transactionId} INTEGER,
+              ${SplitBillFields.title} TEXT NOT NULL,
+              ${SplitBillFields.totalAmount} REAL NOT NULL,
+              ${SplitBillFields.payerName} TEXT NOT NULL,
+              ${SplitBillFields.isPayerUser} INTEGER NOT NULL,
+              ${SplitBillFields.splitMode} TEXT NOT NULL,
+              ${SplitBillFields.groupTag} TEXT,
+              ${SplitBillFields.date} TEXT NOT NULL,
+              ${SplitBillFields.notes} TEXT,
+              ${SplitBillFields.receiptImagePath} TEXT,
+              ${SplitBillFields.status} TEXT NOT NULL,
+              ${SplitBillFields.deletedAt} TEXT
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE ${TableNames.splitParticipants} (
+              ${SplitParticipantFields.id} TEXT PRIMARY KEY,
+              ${SplitParticipantFields.billId} TEXT NOT NULL,
+              ${SplitParticipantFields.contactName} TEXT NOT NULL,
+              ${SplitParticipantFields.shareAmount} REAL NOT NULL,
+              ${SplitParticipantFields.hasPaid} INTEGER NOT NULL,
+              ${SplitParticipantFields.paidAt} TEXT
+            )
+          ''');
+
+          // Insert legacy bill and participant
+          await db.insert(TableNames.splitBills, {
+            SplitBillFields.id: 'legacy_bill_1',
+            SplitBillFields.title: 'Legacy Team Dinner',
+            SplitBillFields.totalAmount: 100.0,
+            SplitBillFields.payerName: 'You',
+            SplitBillFields.isPayerUser: 1,
+            SplitBillFields.splitMode: 'equal',
+            SplitBillFields.date: '2026-08-01T00:00:00.000',
+            SplitBillFields.status: 'settled',
+          });
+
+          await db.insert(TableNames.splitParticipants, {
+            SplitParticipantFields.id: 'legacy_p_1',
+            SplitParticipantFields.billId: 'legacy_bill_1',
+            SplitParticipantFields.contactName: 'Alex',
+            SplitParticipantFields.shareAmount: 50.0,
+            SplitParticipantFields.hasPaid: 1,
+            SplitParticipantFields.paidAt: '2026-08-01T00:00:00.000',
+          });
+        },
+      );
+      await db.close();
+
+      // 2. Open at version 25 and trigger onUpgrade
+      final upgradedDb = await openDatabase(
+        dbPath,
+        version: 25,
+        onUpgrade: (db, oldVersion, newVersion) async {
+          await DatabaseHelper.instance.upgradeTestDatabase(db, oldVersion, newVersion);
+        },
+      );
+
+      // Verify settlementTransactionId column exists
+      final tableInfo = await upgradedDb.rawQuery('PRAGMA table_info(${TableNames.splitParticipants})');
+      final colNames = tableInfo.map((row) => row['name'] as String).toList();
+      expect(colNames, contains(SplitParticipantFields.settlementTransactionId));
+
+      // Verify legacy participant is preserved with null settlementTransactionId
+      final pRows = await upgradedDb.query(TableNames.splitParticipants, where: 'id = ?', whereArgs: ['legacy_p_1']);
+      expect(pRows.length, 1);
+      expect(pRows.first[SplitParticipantFields.contactName], 'Alex');
+      expect(pRows.first[SplitParticipantFields.settlementTransactionId], isNull);
+
+      // Verify deserializing through SplitParticipantModel works flawlessly
+      final participantModel = SplitParticipantModel.fromMap(pRows.first);
+      expect(participantModel.contactName, 'Alex');
+      expect(participantModel.settlementTransactionId, isNull);
+      expect(participantModel.hasPaid, isTrue);
+
+      await upgradedDb.close();
+      if (await databaseFactory.databaseExists(dbPath)) {
+        await databaseFactory.deleteDatabase(dbPath);
+      }
+    });
+
     test('SettingsProvider loads gracefully with empty or legacy SharedPreferences', () async {
       SharedPreferences.setMockInitialValues({
         'hasSeenOnboarding_v1': true,
@@ -119,14 +216,14 @@ void main() {
       expect(settings.trashAutoPurgeDays, 30);
     });
 
-    testWidgets('WhatsNewSheet renders v2.48.1 cards and records version on dismiss', (tester) async {
+    testWidgets('WhatsNewSheet renders v2.48.2 cards and records version on dismiss', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
       SharedPreferences.setMockInitialValues({
-        'lastSeenVersion': '2.48.0',
+        'lastSeenVersion': '2.48.1',
       });
       final settings = SettingsProvider();
       await settings.loadSettings();
@@ -136,7 +233,7 @@ void main() {
           value: settings,
           child: const MaterialApp(
             home: Scaffold(
-              body: WhatsNewSheet(currentVersion: '2.48.1'),
+              body: WhatsNewSheet(currentVersion: '2.48.2'),
             ),
           ),
         ),
@@ -149,10 +246,10 @@ void main() {
       expect(find.text("Fixes"), findsOneWidget);
 
       // Check marquee items
+      expect(find.text("Split Settlement History"), findsOneWidget);
+      expect(find.text("Instant Settlement Undo"), findsOneWidget);
       expect(find.text("Fluid UI Motion"), findsOneWidget);
-      expect(find.text("Tactile Touch Feedback"), findsOneWidget);
       expect(find.text("Financial Trust Beats"), findsOneWidget);
-      expect(find.text("Sub-300ms List Staggering"), findsOneWidget);
 
       // Tap "Awesome, Got It!" to finish
       await tester.runAsync(() async {
@@ -161,7 +258,7 @@ void main() {
       });
       await tester.pumpAndSettle();
 
-      expect(settings.lastSeenVersion, '2.48.1');
+      expect(settings.lastSeenVersion, '2.48.2');
     });
   });
 }

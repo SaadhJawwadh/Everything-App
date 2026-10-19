@@ -28,9 +28,39 @@ class ChangelogScreen extends StatelessWidget {
               delegate: SliverChildListDelegate([
                 _buildVersionSection(
                   context,
+                  version: 'v2.48.2',
+                  date: 'October 19, 2026',
+                  isLatest: true,
+                  changes: [
+                    _ChangelogGroup(
+                      title: "What's New",
+                      items: [
+                        'Bill-Based Settlement History: View complete shared bill records with friends, exact settlement dates, and per-bill status in a clean interactive sheet.',
+                        'Instant Settlement Undo: Reopen settled bills or participant shares in one tap with automatic ledger transaction reversal.',
+                      ],
+                    ),
+                    _ChangelogGroup(
+                      title: 'Improvements',
+                      items: [
+                        'Split Bill Ledger Parity: Linked settlements to ledger transactions for exact cash flow tracking.',
+                        'Smart Contact Matching: Automatic deduplication and case-insensitive grouping for friends across split bills.',
+                        'Precise Decimal Splits: Clear two-decimal currency formatting across all participant chips and summaries.',
+                      ],
+                    ),
+                    _ChangelogGroup(
+                      title: 'Fixes',
+                      items: [
+                        'Friend-Paid Bill Reopening: Restored 1-tap undo on bills paid by friends without affecting older settlements.',
+                        'Database Migration v25: Seamless schema upgrade preserving all legacy split records safely.',
+                      ],
+                    ),
+                  ],
+                ),
+                _buildVersionSection(
+                  context,
                   version: 'v2.48.1',
                   date: 'October 18, 2026',
-                  isLatest: true,
+                  isLatest: false,
                   changes: [
                     _ChangelogGroup(
                       title: 'Improvements',

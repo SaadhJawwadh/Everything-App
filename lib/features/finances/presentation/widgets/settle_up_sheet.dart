@@ -187,9 +187,12 @@ class _SettleUpSheetState extends State<SettleUpSheet> {
                       } else {
                         final openBills = splitProvider.bills.where((b) {
                           if (b.isFullySettled) return false;
-                          return b.isPayerUser &&
-                              b.participants.any((p) =>
-                                  p.contactName.trim().toLowerCase() == widget.contactName.trim().toLowerCase() && !p.hasPaid);
+                          if (b.isPayerUser) {
+                            return b.participants.any((p) =>
+                                p.contactName.trim().toLowerCase() == widget.contactName.trim().toLowerCase() && !p.hasPaid);
+                          } else {
+                            return b.payerName.trim().toLowerCase() == widget.contactName.trim().toLowerCase() && !b.isUserSharePaid;
+                          }
                         }).toList();
                         reminder = SplitShareService.formatPersonPendingStatement(
                           contactName: widget.contactName,
@@ -259,14 +262,7 @@ class _SettleUpSheetState extends State<SettleUpSheet> {
       final isContactOwingUser = widget.netAmount >= 0;
       final absAmount = widget.netAmount.abs();
 
-      // 1. Settle in Split Module
-      if (widget.specificParticipant != null) {
-        await splitProvider.toggleParticipantPaid(widget.specificParticipant!.id, true);
-      } else {
-        await splitProvider.settleAllForContact(widget.contactName);
-      }
-
-      // 2. Optionally record in Daily Financial Ledger (only if involving user)
+      // 1. Optionally record in Daily Financial Ledger first (only if involving user) to obtain createdTxId
       final isFriendSettlingWithFriend = widget.specificBill != null &&
           !widget.specificBill!.isPayerUser &&
           widget.specificParticipant != null &&
@@ -275,9 +271,13 @@ class _SettleUpSheetState extends State<SettleUpSheet> {
       int? createdTxId;
       if (!isFriendSettlingWithFriend && _recordInLedger && absAmount > 0 && mounted) {
         final txRepo = TransactionRepository.instance;
-        final description = isContactOwingUser
-            ? '${widget.contactName} - Split settlement'
-            : 'Paid ${widget.contactName} - Split settlement';
+        final description = widget.specificBill != null
+            ? (isContactOwingUser
+                ? '${widget.contactName} • ${widget.specificBill!.title} (Split settlement)'
+                : 'Paid ${widget.contactName} • ${widget.specificBill!.title} (Split settlement)')
+            : (isContactOwingUser
+                ? '${widget.contactName} - Split settlement'
+                : 'Paid ${widget.contactName} - Split settlement');
         
         final newTx = TransactionModel(
           amount: absAmount,
@@ -296,6 +296,26 @@ class _SettleUpSheetState extends State<SettleUpSheet> {
         try {
           await fmProvider.loadTransactions();
         } catch (_) {}
+      }
+
+      // 2. Settle in Split Module linking the createdTxId
+      if (widget.specificParticipant != null) {
+        await splitProvider.toggleParticipantPaid(
+          widget.specificParticipant!.id,
+          true,
+          settlementTransactionId: createdTxId,
+        );
+      } else if (widget.specificBill != null && !widget.specificBill!.isPayerUser) {
+        await splitProvider.toggleUserShareForBill(
+          widget.specificBill!.id,
+          true,
+          settlementTransactionId: createdTxId,
+        );
+      } else {
+        await splitProvider.settleAllForContact(
+          widget.contactName,
+          settlementTransactionId: createdTxId,
+        );
       }
 
       if (mounted) {
@@ -318,29 +338,45 @@ class _SettleUpSheetState extends State<SettleUpSheet> {
           messenger.showSnackBar(
             SnackBar(
               content: Text('Settled with ${widget.contactName} successfully.'),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 4),
-            action: SnackBarAction(
-              label: 'UNDO',
-              onPressed: () async {
-                if (widget.specificParticipant != null) {
-                  await splitProvider.toggleParticipantPaid(widget.specificParticipant!.id, false);
-                } else {
-                  await splitProvider.unsettleAllForContact(widget.contactName);
-                }
-                if (createdTxId != null) {
-                  await TransactionRepository.instance.deleteTransaction(createdTxId);
-                }
-                FinancialManagerScreen.refreshNotifier.value++;
-                try {
-                  await fmProvider.loadTransactions();
-                } catch (_) {}
-              },
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+              action: SnackBarAction(
+                label: 'UNDO',
+                onPressed: () async {
+                  if (widget.specificParticipant != null) {
+                    final removedTx = await splitProvider.toggleParticipantPaid(widget.specificParticipant!.id, false);
+                    if (removedTx != null) {
+                      await TransactionRepository.instance.deleteTransaction(removedTx);
+                    } else if (createdTxId != null) {
+                      await TransactionRepository.instance.deleteTransaction(createdTxId);
+                    }
+                  } else if (widget.specificBill != null && !widget.specificBill!.isPayerUser) {
+                    final removedTx = await splitProvider.toggleUserShareForBill(widget.specificBill!.id, false);
+                    if (removedTx != null) {
+                      await TransactionRepository.instance.deleteTransaction(removedTx);
+                    } else if (createdTxId != null) {
+                      await TransactionRepository.instance.deleteTransaction(createdTxId);
+                    }
+                  } else {
+                    final removedTxIds = await splitProvider.unsettleAllForContact(widget.contactName);
+                    if (removedTxIds.isNotEmpty) {
+                      for (final txId in removedTxIds) {
+                        await TransactionRepository.instance.deleteTransaction(txId);
+                      }
+                    } else if (createdTxId != null) {
+                      await TransactionRepository.instance.deleteTransaction(createdTxId);
+                    }
+                  }
+                  FinancialManagerScreen.refreshNotifier.value++;
+                  try {
+                    await fmProvider.loadTransactions();
+                  } catch (_) {}
+                },
+              ),
             ),
-          ),
-        );
+          );
+        }
       }
-    }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

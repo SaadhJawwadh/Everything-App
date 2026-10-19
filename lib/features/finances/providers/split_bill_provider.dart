@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/models/split_bill_model.dart';
 import '../data/repositories/split_bill_repository.dart';
+import '../data/transaction_repository.dart';
 import '../presentation/screens/financial_manager_screen.dart';
 
 class SplitBillProvider extends ChangeNotifier {
@@ -19,6 +20,7 @@ class SplitBillProvider extends ChangeNotifier {
   List<SplitBillModel> get bills => _bills;
   List<SplitContactModel> get recentContacts => _recentContacts;
   Map<String, double> get contactBalances => _contactBalances;
+  Map<String, double> get contactNetBalances => _contactBalances;
   double get totalOwedToUser => _totalOwedToUser;
   double get totalUserOwes => _totalUserOwes;
   double get netBalance => _totalOwedToUser - _totalUserOwes;
@@ -168,7 +170,11 @@ class SplitBillProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> toggleParticipantPaid(String participantId, bool hasPaid) async {
+  Future<int?> toggleParticipantPaid(
+    String participantId,
+    bool hasPaid, {
+    int? settlementTransactionId,
+  }) async {
     // 0ms Optimistic UI mutation
     for (int i = 0; i < _bills.length; i++) {
       final b = _bills[i];
@@ -178,6 +184,8 @@ class SplitBillProvider extends ChangeNotifier {
         updatedParticipants[pIndex] = updatedParticipants[pIndex].copyWith(
           hasPaid: hasPaid,
           paidAt: hasPaid ? DateTime.now() : null,
+          settlementTransactionId: hasPaid ? settlementTransactionId : null,
+          clearSettlementTxId: !hasPaid,
         );
         final updatedBill = b.copyWith(
           participants: updatedParticipants,
@@ -191,15 +199,88 @@ class SplitBillProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _repository.toggleParticipantPaid(participantId, hasPaid);
+      final removedTxId = await _repository.toggleParticipantPaid(
+        participantId,
+        hasPaid,
+        settlementTransactionId: settlementTransactionId,
+      );
+      if (!hasPaid && removedTxId != null) {
+        await TransactionRepository.instance.deleteTransaction(removedTxId);
+        FinancialManagerScreen.refreshNotifier.value++;
+      }
       _contactBalances = await _repository.getContactNetBalances();
       notifyListeners();
+      return removedTxId;
     } catch (e) {
       await loadSplitBills(showLoading: false);
+      return null;
     }
   }
 
-  Future<void> settleAllForContact(String contactName) async {
+  Future<int?> toggleUserShareForBill(
+    String billId,
+    bool hasPaid, {
+    int? settlementTransactionId,
+  }) async {
+    for (int i = 0; i < _bills.length; i++) {
+      final b = _bills[i];
+      if (b.id == billId) {
+        final pIndex = b.participants.indexWhere((p) => p.contactName.trim().toLowerCase() == 'you');
+        final updatedParticipants = List<SplitParticipantModel>.from(b.participants);
+        if (pIndex != -1) {
+          updatedParticipants[pIndex] = updatedParticipants[pIndex].copyWith(
+            hasPaid: hasPaid,
+            paidAt: hasPaid ? DateTime.now() : null,
+            settlementTransactionId: hasPaid ? settlementTransactionId : null,
+            clearSettlementTxId: !hasPaid,
+          );
+        } else if (hasPaid) {
+          updatedParticipants.add(
+            SplitParticipantModel(
+              id: '${billId}_you',
+              billId: billId,
+              contactName: 'You',
+              shareAmount: b.userShare,
+              hasPaid: true,
+              paidAt: DateTime.now(),
+              settlementTransactionId: settlementTransactionId,
+            ),
+          );
+        }
+        final updatedBill = b.copyWith(
+          participants: updatedParticipants,
+          status: b.copyWith(participants: updatedParticipants).computeDerivedStatus(),
+        );
+        _bills[i] = updatedBill;
+        break;
+      }
+    }
+    _recalculateMetrics();
+    notifyListeners();
+
+    try {
+      final removedTxId = await _repository.toggleUserShareForBill(
+        billId,
+        hasPaid,
+        settlementTransactionId: settlementTransactionId,
+      );
+      if (!hasPaid && removedTxId != null) {
+        await TransactionRepository.instance.deleteTransaction(removedTxId);
+        FinancialManagerScreen.refreshNotifier.value++;
+      }
+      _contactBalances = await _repository.getContactNetBalances();
+      notifyListeners();
+      return removedTxId;
+    } catch (e) {
+      await loadSplitBills(showLoading: false);
+      return null;
+    }
+  }
+
+  Future<void> settleAllForContact(
+    String contactName, {
+    int? settlementTransactionId,
+  }) async {
     // Optimistic mutation
     final now = DateTime.now();
     for (int i = 0; i < _bills.length; i++) {
@@ -207,7 +288,11 @@ class SplitBillProvider extends ChangeNotifier {
       if (b.isPayerUser) {
         final updatedParticipants = b.participants.map((p) {
           if (p.contactName.trim().toLowerCase() == contactName.trim().toLowerCase()) {
-            return p.copyWith(hasPaid: true, paidAt: now);
+            return p.copyWith(
+              hasPaid: true,
+              paidAt: now,
+              settlementTransactionId: settlementTransactionId,
+            );
           }
           return p;
         }).toList();
@@ -218,7 +303,11 @@ class SplitBillProvider extends ChangeNotifier {
       } else if (b.payerName.trim().toLowerCase() == contactName.trim().toLowerCase()) {
         final updatedParticipants = b.participants.map((p) {
           if (p.contactName.trim().toLowerCase() == 'you') {
-            return p.copyWith(hasPaid: true, paidAt: now);
+            return p.copyWith(
+              hasPaid: true,
+              paidAt: now,
+              settlementTransactionId: settlementTransactionId,
+            );
           }
           return p;
         }).toList();
@@ -233,21 +322,24 @@ class SplitBillProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _repository.settleAllForContact(contactName);
+      await _repository.settleAllForContact(
+        contactName,
+        settlementTransactionId: settlementTransactionId,
+      );
       await loadSplitBills(showLoading: false);
     } catch (e) {
       await loadSplitBills(showLoading: false);
     }
   }
 
-  Future<void> unsettleAllForContact(String contactName) async {
+  Future<List<int>> unsettleAllForContact(String contactName) async {
     final normalized = contactName.trim().toLowerCase();
     for (int i = 0; i < _bills.length; i++) {
       final b = _bills[i];
       if (b.isPayerUser) {
         final updatedParticipants = b.participants.map((p) {
           if (p.contactName.trim().toLowerCase() == normalized) {
-            return p.copyWith(hasPaid: false, paidAt: null);
+            return p.copyWith(hasPaid: false, paidAt: null, clearSettlementTxId: true);
           }
           return p;
         }).toList();
@@ -258,7 +350,7 @@ class SplitBillProvider extends ChangeNotifier {
       } else if (b.payerName.trim().toLowerCase() == normalized) {
         final updatedParticipants = b.participants.map((p) {
           if (p.contactName.trim().toLowerCase() == 'you') {
-            return p.copyWith(hasPaid: false, paidAt: null);
+            return p.copyWith(hasPaid: false, paidAt: null, clearSettlementTxId: true);
           }
           return p;
         }).toList();
@@ -272,17 +364,26 @@ class SplitBillProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _repository.unsettleAllForContact(contactName);
+      final removedTxIds = await _repository.unsettleAllForContact(contactName);
+      for (final txId in removedTxIds) {
+        await TransactionRepository.instance.deleteTransaction(txId);
+      }
+      if (removedTxIds.isNotEmpty) {
+        FinancialManagerScreen.refreshNotifier.value++;
+      }
       await loadSplitBills(showLoading: false);
+      return removedTxIds;
     } catch (e) {
       await loadSplitBills(showLoading: false);
+      return [];
     }
   }
 
   void _recalculateMetrics() {
     double owedToUser = 0.0;
     double userOwes = 0.0;
-    final balances = <String, double>{};
+    final lowerBalances = <String, double>{};
+    final firstSeenCase = <String, String>{};
 
     for (final bill in _bills) {
       if (bill.deletedAt != null) continue;
@@ -290,17 +391,25 @@ class SplitBillProvider extends ChangeNotifier {
         for (final p in bill.participants) {
           if (!p.hasPaid && p.contactName.trim().toLowerCase() != 'you') {
             owedToUser += p.shareAmount;
-            final key = p.contactName.trim();
-            balances[key] = (balances[key] ?? 0.0) + p.shareAmount;
+            final lower = p.contactName.trim().toLowerCase();
+            firstSeenCase.putIfAbsent(lower, () => p.contactName.trim());
+            lowerBalances[lower] = (lowerBalances[lower] ?? 0.0) + p.shareAmount;
           }
         }
       } else {
-        if (bill.status != SplitStatus.settled) {
+        if (!bill.isUserSharePaid) {
           userOwes += bill.userShare;
-          final key = bill.payerName.trim();
-          balances[key] = (balances[key] ?? 0.0) - bill.userShare;
+          final lower = bill.payerName.trim().toLowerCase();
+          firstSeenCase.putIfAbsent(lower, () => bill.payerName.trim());
+          lowerBalances[lower] = (lowerBalances[lower] ?? 0.0) - bill.userShare;
         }
       }
+    }
+
+    final balances = <String, double>{};
+    for (final entry in lowerBalances.entries) {
+      final displayName = firstSeenCase[entry.key] ?? entry.key;
+      balances[displayName] = entry.value;
     }
 
     _totalOwedToUser = owedToUser;

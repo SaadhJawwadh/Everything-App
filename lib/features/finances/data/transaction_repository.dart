@@ -147,6 +147,12 @@ class TransactionRepository {
       whereArgs: [id],
     );
     if (count > 0) {
+      await db.update(
+        TableNames.splitBills,
+        {SplitBillFields.deletedAt: now},
+        where: '${SplitBillFields.transactionId} = ? AND ${SplitBillFields.deletedAt} IS NULL',
+        whereArgs: [id],
+      );
       await WidgetHelper.updateWidgetData();
     }
     return count;
@@ -159,6 +165,10 @@ class TransactionRepository {
       [id],
     );
     if (count > 0) {
+      await db.rawUpdate(
+        'UPDATE ${TableNames.splitBills} SET ${SplitBillFields.deletedAt} = NULL WHERE ${SplitBillFields.transactionId} = ?',
+        [id],
+      );
       await WidgetHelper.updateWidgetData();
     }
     return count;
@@ -178,6 +188,12 @@ class TransactionRepository {
           where: '${TransactionFields.id} = ?',
           whereArgs: [id],
         );
+        await txn.update(
+          TableNames.splitBills,
+          {SplitBillFields.deletedAt: now},
+          where: '${SplitBillFields.transactionId} = ? AND ${SplitBillFields.deletedAt} IS NULL',
+          whereArgs: [id],
+        );
       }
     });
     if (total > 0) {
@@ -195,6 +211,10 @@ class TransactionRepository {
       for (final id in ids) {
         total += await txn.rawUpdate(
           'UPDATE ${TableNames.transactions} SET ${TransactionFields.deletedAt} = NULL WHERE ${TransactionFields.id} = ?',
+          [id],
+        );
+        await txn.rawUpdate(
+          'UPDATE ${TableNames.splitBills} SET ${SplitBillFields.deletedAt} = NULL WHERE ${SplitBillFields.transactionId} = ?',
           [id],
         );
       }
@@ -262,13 +282,23 @@ class TransactionRepository {
     }
     final count = await db.delete(TableNames.transactions, where: '${TransactionFields.id} = ?', whereArgs: [id]);
     if (count > 0) {
+      await db.update(
+        TableNames.splitBills,
+        {SplitBillFields.transactionId: null},
+        where: '${SplitBillFields.transactionId} = ?',
+        whereArgs: [id],
+      );
       await WidgetHelper.updateWidgetData();
     }
     return count;
   }
 
-  Future<int> deleteTransaction(int id) async {
-    return await softDeleteTransaction(id);
+  Future<int> deleteTransaction(int id, {bool soft = true}) async {
+    if (soft) {
+      return await softDeleteTransaction(id);
+    } else {
+      return await permanentlyDeleteTransaction(id);
+    }
   }
 
   Future<int> emptyTrash() async {

@@ -37,6 +37,16 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.receipt_long_rounded,
+            title: "Split Settlement History",
+            desc: "View complete shared bill records with friends, exact settlement dates, and per-bill status in a clean sheet.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.undo_rounded,
+            title: "Instant Settlement Undo",
+            desc: "Reopen settled bills or participant shares in one tap with automatic ledger transaction reversal.",
+          ),
+          _WhatsNewItem(
             icon: Icons.animation_rounded,
             title: "Fluid UI Motion",
             desc: "Expressive spring physics, seamless container transitions, and origin-safe scale-fade effects across all screens.",
@@ -45,16 +55,6 @@ class WhatsNewSheet extends StatelessWidget {
             icon: Icons.touch_app_rounded,
             title: "Tactile Touch Feedback",
             desc: "Asymmetric press-and-release tactile feedback with natural physics on cards and buttons.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.search_rounded,
-            title: "Instant Shortcut Search",
-            desc: "Zero-lag 0ms opening when launching search via shortcuts, with fluid animations for manual taps.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.accessibility_new_rounded,
-            title: "Accessible Reduced Motion",
-            desc: "Comprehensive support for system reduced-motion accessibility across all lists, dialogs, and sheets.",
           ),
         ],
       ),
@@ -65,24 +65,24 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.tertiaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.account_balance_wallet_rounded,
+            title: "Split Ledger Parity",
+            desc: "Linked settlements directly to ledger transactions for exact, penny-perfect cash flow tracking.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.people_alt_rounded,
+            title: "Smart Contact Matching",
+            desc: "Automatic deduplication and case-insensitive grouping for friends across split bills.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.widgets_rounded,
+            title: "Android Widgets",
+            desc: "Enabled vertical resizing on all home screen widgets with restored month analytics sparklines.",
+          ),
+          _WhatsNewItem(
             icon: Icons.verified_rounded,
             title: "Financial Trust Beats",
             desc: "Calm, trust-centric completion feedback on bill settlements and savings deposits.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.speed_rounded,
-            title: "Sub-300ms List Staggering",
-            desc: "Snappy, capped staggered list reveals across tags, rules, categories, and notes.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.bar_chart_rounded,
-            title: "Smart Chart Deck",
-            desc: "Chart deck carousel pauses auto-cycling when reduced motion is enabled.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.layers_rounded,
-            title: "Fluid Dialogs & Sheets",
-            desc: "Standardized sheet and dialog entrances with responsive spring curves.",
           ),
         ],
       ),
@@ -93,24 +93,24 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.secondaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.history_rounded,
+            title: "Friend-Paid Bill Reopening",
+            desc: "Restored 1-tap undo on bills paid by friends without affecting older historical settlements.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.check_box_rounded,
+            title: "Widget Task Checkboxes",
+            desc: "Fixed checklist items reverting by ensuring in-memory cache synchronizes with disk updates.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.security_rounded,
+            title: "Database Migration v25",
+            desc: "Seamless schema upgrade preserving all legacy split records and payment history safely.",
+          ),
+          _WhatsNewItem(
             icon: Icons.zoom_in_map_rounded,
             title: "Scale Transition Origin",
             desc: "Eliminated visual distortion by anchoring scale transitions to a subtle 0.92 floor.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.widgets_rounded,
-            title: "Home Screen Widgets",
-            desc: "Fixed task toggle reversion, restored month analytics sparklines, and enabled vertical expansion.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.view_headline_rounded,
-            title: "Note Editor Bar Slide",
-            desc: "Smoothed toolbar entrance transitions with zero layout popping.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.expand_more_rounded,
-            title: "Accordion Animation Curves",
-            desc: "Replaced linear expansion with decelerating curves for symptoms and categories.",
           ),
         ],
       ),

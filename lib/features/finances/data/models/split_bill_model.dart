@@ -11,6 +11,7 @@ class SplitParticipantModel {
   final double shareAmount;
   final bool hasPaid;
   final DateTime? paidAt;
+  final int? settlementTransactionId;
 
   const SplitParticipantModel({
     required this.id,
@@ -19,6 +20,7 @@ class SplitParticipantModel {
     required this.shareAmount,
     this.hasPaid = false,
     this.paidAt,
+    this.settlementTransactionId,
   });
 
   SplitParticipantModel copyWith({
@@ -28,6 +30,8 @@ class SplitParticipantModel {
     double? shareAmount,
     bool? hasPaid,
     DateTime? paidAt,
+    int? settlementTransactionId,
+    bool clearSettlementTxId = false,
   }) {
     return SplitParticipantModel(
       id: id ?? this.id,
@@ -36,6 +40,9 @@ class SplitParticipantModel {
       shareAmount: shareAmount ?? this.shareAmount,
       hasPaid: hasPaid ?? this.hasPaid,
       paidAt: paidAt ?? this.paidAt,
+      settlementTransactionId: clearSettlementTxId
+          ? null
+          : (settlementTransactionId ?? this.settlementTransactionId),
     );
   }
 
@@ -47,6 +54,7 @@ class SplitParticipantModel {
       'shareAmount': shareAmount,
       'hasPaid': hasPaid ? 1 : 0,
       'paidAt': paidAt?.toIso8601String(),
+      'settlementTransactionId': settlementTransactionId,
     };
   }
 
@@ -58,6 +66,7 @@ class SplitParticipantModel {
       shareAmount: (map['shareAmount'] as num).toDouble(),
       hasPaid: (map['hasPaid'] as int? ?? 0) == 1,
       paidAt: map['paidAt'] != null ? DateTime.tryParse(map['paidAt'] as String) : null,
+      settlementTransactionId: map['settlementTransactionId'] as int?,
     );
   }
 }
@@ -95,27 +104,30 @@ class SplitBillModel {
     this.participants = const [],
   });
 
+  /// The user's explicit participant entry if present
+  SplitParticipantModel? get userParticipant {
+    final list = participants.where((p) => p.contactName.trim().toLowerCase() == 'you').toList();
+    return list.isNotEmpty ? list.first : null;
+  }
+
   /// The user's personal share of the bill
   double get userShare {
-    final userParticipant = participants.where((p) => p.contactName.trim().toLowerCase() == 'you').toList();
-    if (userParticipant.isNotEmpty) {
-      return userParticipant.first.shareAmount;
+    final userPart = userParticipant;
+    if (userPart != null) {
+      return userPart.shareAmount;
     }
-    if (isPayerUser) {
-      // If not listed as explicit participant and user paid, user share is remainder
-      final othersTotal = participants.where((p) => p.contactName.trim().toLowerCase() != 'you').fold<double>(0.0, (sum, p) => sum + p.shareAmount);
-      final remainder = totalAmount - othersTotal;
-      return remainder > 0 ? remainder : 0.0;
-    }
-    return 0.0;
+    // If not listed as explicit participant and user paid, user share is remainder
+    final othersTotal = participants.where((p) => p.contactName.trim().toLowerCase() != 'you').fold<double>(0.0, (sum, p) => sum + p.shareAmount);
+    final remainder = totalAmount - othersTotal;
+    return remainder > 0 ? remainder : 0.0;
   }
 
   /// Whether the user has settled their personal share (always true if user was the payer)
   bool get isUserSharePaid {
     if (isPayerUser) return true;
-    final userPart = participants.where((p) => p.contactName.trim().toLowerCase() == 'you').toList();
-    if (userPart.isNotEmpty) {
-      return userPart.first.hasPaid;
+    final userPart = userParticipant;
+    if (userPart != null) {
+      return userPart.hasPaid;
     }
     return status == SplitStatus.settled;
   }

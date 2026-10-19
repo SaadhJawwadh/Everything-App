@@ -143,7 +143,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
         );
       }
     }
-    _includeUserShare = foundUser;
+    _includeUserShare = !_isPayerUser ? true : foundUser;
   }
 
   Future<void> _loadBillForPrelinkedTx(int txId) async {
@@ -863,7 +863,12 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
                           selected: {_isPayerUser},
                           onSelectionChanged: (set) {
                             AppHaptics.selectionClick();
-                            setState(() => _isPayerUser = set.first);
+                            setState(() {
+                              _isPayerUser = set.first;
+                              if (!_isPayerUser) {
+                                _includeUserShare = true;
+                              }
+                            });
                           },
                         ),
                         if (!_isPayerUser) ...[
@@ -942,12 +947,14 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
                         const SizedBox(height: AppLayout.spaceM),
                         SwitchListTile(
                           value: _includeUserShare,
-                          onChanged: (val) => setState(() => _includeUserShare = val),
+                          onChanged: !_isPayerUser ? null : (val) => setState(() => _includeUserShare = val),
                           title: const Text('Include My Personal Share'),
                           subtitle: Text(
-                            _includeUserShare
-                                ? 'Your share is calculated and subtracted from what others owe'
-                                : 'You paid 100% purely on behalf of others',
+                            !_isPayerUser
+                                ? 'Locked: your share is required because a friend paid for you'
+                                : (_includeUserShare
+                                    ? 'Your share is calculated and subtracted from what others owe'
+                                    : 'You paid 100% purely on behalf of others'),
                             style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
                           ),
                           contentPadding: EdgeInsets.zero,
@@ -1360,6 +1367,34 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
       return;
     }
 
+    if (!_isPayerUser) {
+      _includeUserShare = true;
+    }
+
+    if (_splitMode == SplitMode.exact) {
+      double exactSum = 0.0;
+      for (final p in _participantsData) {
+        final name = p['name'] as String;
+        final ctrl = _exactAmountControllers[name];
+        exactSum += double.tryParse(ctrl?.text.trim() ?? '') ?? 0.0;
+      }
+      if (_includeUserShare) {
+        final userText = _userExactAmountController.text.trim();
+        exactSum += double.tryParse(userText) ?? 0.0;
+      }
+      if ((exactSum - total).abs() > 0.01) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Exact shares sum (${exactSum.toStringAsFixed(2)}) does not match total (${total.toStringAsFixed(2)}).',
+            ),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+        return;
+      }
+    }
+
     final splitProvider = Provider.of<SplitBillProvider>(context, listen: false);
     setState(() => _isSaving = true);
     AppHaptics.mediumImpact();
@@ -1374,8 +1409,16 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
       }
 
       if (_splitMode == SplitMode.equal) {
-        final share = _equalShareAmount;
+        final int totalCents = (total * 100).round();
+        final int totalCount = _totalSplitCount;
+        final int baseCents = totalCount > 0 ? totalCents ~/ totalCount : 0;
+        final int remainder = totalCount > 0 ? totalCents % totalCount : 0;
+        int assignedIndex = 0;
+
         if (_includeUserShare) {
+          final int userCents = baseCents + (assignedIndex < remainder ? 1 : 0);
+          assignedIndex++;
+          final double userShare = userCents / 100.0;
           final userPaid = _isPayerUser || _userHasPaid;
           final userPaidAt = _isPayerUser ? (_userPaidAt ?? DateTime.now()) : (_userHasPaid ? _userPaidAt : null);
           participantsList.add(
@@ -1383,7 +1426,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
               id: _userParticipantId ?? const Uuid().v4(),
               billId: billId,
               contactName: 'You',
-              shareAmount: share,
+              shareAmount: userShare,
               hasPaid: userPaid,
               paidAt: userPaidAt,
             ),
@@ -1391,6 +1434,9 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
         }
 
         for (final p in _participantsData) {
+          final int pCents = baseCents + (assignedIndex < remainder ? 1 : 0);
+          assignedIndex++;
+          final double pShare = pCents / 100.0;
           final isPayerFriend = !_isPayerUser &&
               (p['name'] as String).trim().toLowerCase() == _payerFriendController.text.trim().toLowerCase();
           final hasPaid = isPayerFriend ? true : (p['hasPaid'] as bool? ?? false);
@@ -1400,7 +1446,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
               id: p['id'] as String? ?? const Uuid().v4(),
               billId: billId,
               contactName: p['name'] as String,
-              shareAmount: share,
+              shareAmount: pShare,
               hasPaid: hasPaid,
               paidAt: hasPaid ? (p['paidAt'] as DateTime? ?? DateTime.now()) : null,
             ),
@@ -1482,9 +1528,20 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
           linkedTxId = createdTx.id;
           FinancialManagerScreen.refreshNotifier.value = DateTime.now().millisecondsSinceEpoch;
         }
+      } else {
+        // User is not payer (e.g. payer changed to a friend) -> delete previous linked ledger transaction
+        if (existing?.transactionId != null) {
+          await TransactionRepository.instance.deleteTransaction(existing!.transactionId!);
+          linkedTxId = null;
+          FinancialManagerScreen.refreshNotifier.value = DateTime.now().millisecondsSinceEpoch;
+        } else if (widget.prelinkedTransactionId != null) {
+          await TransactionRepository.instance.deleteTransaction(widget.prelinkedTransactionId!);
+          linkedTxId = null;
+          FinancialManagerScreen.refreshNotifier.value = DateTime.now().millisecondsSinceEpoch;
+        }
       }
 
-      final newBill = SplitBillModel(
+      final candidateBill = SplitBillModel(
         id: billId,
         transactionId: linkedTxId,
         title: title,
@@ -1497,6 +1554,10 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
         notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
         receiptImagePath: _receiptImagePath,
         participants: participantsList,
+      );
+
+      final newBill = candidateBill.copyWith(
+        status: candidateBill.computeDerivedStatus(),
       );
 
       if (existing != null) {

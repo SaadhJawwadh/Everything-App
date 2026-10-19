@@ -77,8 +77,9 @@ class SplitShareService {
     final buffer = StringBuffer();
     buffer.writeln('👋 Hey $contactName,');
     final formattedTotal = totalAmount.abs().toStringAsFixed(2).replaceAll('.00', '');
-    buffer.writeln('Here is a summary of your pending balance:');
-    buffer.writeln('💰 Total Pending: $currencySymbol $formattedTotal');
+    final directionSign = totalAmount >= 0 ? '+' : '-';
+    buffer.writeln('Here is a summary of our shared balance:');
+    buffer.writeln('💰 Total Balance: $directionSign$currencySymbol $formattedTotal (${totalAmount >= 0 ? "Please send" : "I will pay"})');
 
     if (openBills.isNotEmpty) {
       buffer.writeln('');
@@ -91,18 +92,18 @@ class SplitShareService {
               part.contactName.trim().toLowerCase() == contactName.trim().toLowerCase() && !part.hasPaid).firstOrNull;
           if (p != null) {
             final shareStr = p.shareAmount.toStringAsFixed(2).replaceAll('.00', '');
-            buffer.writeln('• ${bill.title} ($dateStr): $currencySymbol $shareStr');
+            buffer.writeln('• ${bill.title} ($dateStr): +$currencySymbol $shareStr (Owes you)');
           }
         } else {
           final shareStr = bill.userShare.toStringAsFixed(2).replaceAll('.00', '');
-          buffer.writeln('• ${bill.title} ($dateStr): $currencySymbol $shareStr');
+          buffer.writeln('• ${bill.title} ($dateStr): -$currencySymbol $shareStr (You owe $contactName)');
         }
       }
     }
 
-    if (defaultPaymentInfo != null && defaultPaymentInfo.trim().isNotEmpty) {
+    if (totalAmount > 0 && defaultPaymentInfo != null && defaultPaymentInfo.trim().isNotEmpty) {
       buffer.writeln('');
-      buffer.writeln('💳 Payment Details:');
+      buffer.writeln('💳 Send to:');
       buffer.writeln(defaultPaymentInfo.trim());
     }
 

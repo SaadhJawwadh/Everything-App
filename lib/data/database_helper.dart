@@ -10,7 +10,7 @@ import 'database_constants.dart';
 import 'database_seed.dart';
 
 class DatabaseHelper {
-  static const int _databaseVersion = 24;
+  static const int _databaseVersion = 25;
   static const String _dbName = 'notes.db';
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
@@ -277,6 +277,12 @@ class DatabaseHelper {
       if (!hasAiRefinedCol) {
         await db.execute("ALTER TABLE ${TableNames.transactions} ADD COLUMN isAiRefined INTEGER NOT NULL DEFAULT 0");
       }
+
+      final participantCols = await db.rawQuery('PRAGMA table_info(${TableNames.splitParticipants})');
+      final hasSettlementTxCol = participantCols.any((col) => col['name'] == SplitParticipantFields.settlementTransactionId);
+      if (!hasSettlementTxCol) {
+        await db.execute('ALTER TABLE ${TableNames.splitParticipants} ADD COLUMN ${SplitParticipantFields.settlementTransactionId} INTEGER');
+      }
     } catch (e) {
       debugPrint('[DatabaseHelper] PRAGMA & Index creation onOpen warning: $e');
     }
@@ -467,6 +473,7 @@ class DatabaseHelper {
         ${SplitParticipantFields.shareAmount} REAL NOT NULL,
         ${SplitParticipantFields.hasPaid} INTEGER NOT NULL DEFAULT 0,
         ${SplitParticipantFields.paidAt} TEXT,
+        ${SplitParticipantFields.settlementTransactionId} INTEGER,
         FOREIGN KEY (${SplitParticipantFields.billId}) REFERENCES ${TableNames.splitBills} (${SplitBillFields.id}) ON DELETE CASCADE
       )
     ''');
@@ -673,6 +680,13 @@ class DatabaseHelper {
           ${SavingsGoalFields.deletedAt} TEXT
         )
       ''');
+    }
+    if (oldVersion < 25) {
+      final cols = await db.rawQuery('PRAGMA table_info(${TableNames.splitParticipants})');
+      final hasCol = cols.any((col) => col['name'] == SplitParticipantFields.settlementTransactionId);
+      if (!hasCol) {
+        await db.execute('ALTER TABLE ${TableNames.splitParticipants} ADD COLUMN ${SplitParticipantFields.settlementTransactionId} INTEGER');
+      }
     }
   }
 
