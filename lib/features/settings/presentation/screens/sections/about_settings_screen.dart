@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../../core/services/app_haptics.dart';
 import '../../../../../core/theme/app_layout.dart';
+import '../../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../../core/ui/expressive_sliver_app_bar.dart';
 import '../../../../../screens/changelog_screen.dart';
 import '../../../../../services/notification_service.dart';
 import '../../../../../utils/app_constants.dart';
 import '../../../../../utils/app_route.dart';
+import '../../../../../widgets/home/home_tip_card.dart';
 import '../../../../../widgets/settings_widgets.dart';
 import '../onboarding_screen.dart';
 import '../settings_dialogs.dart';
@@ -106,6 +108,14 @@ class AboutSettingsScreen extends StatelessWidget {
                         );
                       },
                     ),
+                    SettingsTile(
+                      icon: Icons.lightbulb_outline_rounded,
+                      iconColor: Colors.amber.shade700,
+                      title: 'Tips & Gestural Shortcuts',
+                      subtitle: 'Discover pro gestures, shortcuts, and features',
+                      showArrow: true,
+                      onTap: () => _showTipsSheet(context),
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppLayout.spaceL),
@@ -137,6 +147,88 @@ class AboutSettingsScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showTipsSheet(BuildContext context) {
+    AppHaptics.selectionClick();
+    final tips = HomeTipCard.getCatalog(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    AppBottomSheet.show(
+      context: context,
+      title: 'Tips & Gestural Shortcuts',
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.7,
+        ),
+        child: ListView.separated(
+          shrinkWrap: true,
+          itemCount: tips.length,
+          separatorBuilder: (_, __) => Divider(
+            height: 1,
+            color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
+          itemBuilder: (ctx, index) {
+            final tip = tips[index];
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12.0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(AppLayout.radiusM),
+                    ),
+                    child: Icon(tip.icon, size: 20, color: colorScheme.primary),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          tip.title,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          tip.description,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            height: 1.35,
+                          ),
+                        ),
+                        if (tip.actionLabel != null && tip.onAction != null) ...[
+                          const SizedBox(height: 8),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(0, 32),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              tip.onAction!();
+                            },
+                            child: Text(tip.actionLabel!),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }

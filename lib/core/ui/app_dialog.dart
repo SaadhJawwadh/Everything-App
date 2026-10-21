@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/app_haptics.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Reusable Modal Dialog helper providing consistent M3 alert and input dialog styling.
 class AppDialog extends StatelessWidget {
@@ -54,6 +55,9 @@ class AppDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final resolvedCancel = cancelLabel == 'Cancel' ? (l10n?.cancel ?? cancelLabel) : cancelLabel;
+    final resolvedConfirm = confirmLabel == 'Confirm' ? (l10n?.confirm ?? confirmLabel) : confirmLabel;
 
     return DisplayFeatureSubScreen(
       anchorPoint: Offset.zero,
@@ -75,7 +79,7 @@ class AppDialog extends StatelessWidget {
           [
             TextButton(
               onPressed: onCancel ?? () => Navigator.of(context).pop(),
-              child: Text(cancelLabel),
+              child: Text(resolvedCancel),
             ),
             if (showConfirmButton)
               FilledButton(
@@ -97,7 +101,7 @@ class AppDialog extends StatelessWidget {
                         foregroundColor: theme.colorScheme.onError,
                       )
                     : null,
-                child: Text(confirmLabel),
+                child: Text(resolvedConfirm),
               ),
           ],
         ),

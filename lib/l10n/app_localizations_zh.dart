@@ -179,6 +179,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dailySafeToSpend => '今日预算';
 
   @override
+  String get ledger => '账本';
+
+  @override
   String get breakdown => '明细';
 
   @override

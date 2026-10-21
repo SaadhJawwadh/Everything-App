@@ -179,6 +179,9 @@ class AppLocalizationsTa extends AppLocalizations {
   String get dailySafeToSpend => 'இன்றைய பாதுகாப்பான செலவு';
 
   @override
+  String get ledger => 'பேரேடு';
+
+  @override
   String get breakdown => 'பகுப்பாய்வு';
 
   @override

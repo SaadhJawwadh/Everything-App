@@ -176,6 +176,12 @@ class SettingsDialogs {
         'native': 'Tamil (Sri Lanka / India)',
         'icon': Icons.translate_rounded,
       },
+      {
+        'code': 'ru',
+        'name': 'Русский',
+        'native': 'Russian (Россия / СНГ)',
+        'icon': Icons.language_rounded,
+      },
     ];
 
     AppBottomSheet.show(
@@ -249,6 +255,7 @@ class SettingsDialogs {
       {'code': 'JPY', 'symbol': '¥', 'name': 'Japanese Yen'},
       {'code': 'NZD', 'symbol': 'NZ\$', 'name': 'New Zealand Dollar'},
       {'code': 'CHF', 'symbol': 'CHF', 'name': 'Swiss Franc'},
+      {'code': 'RUB', 'symbol': '₽', 'name': 'Russian Ruble'},
     ];
 
     AppBottomSheet.show(
@@ -860,6 +867,8 @@ class SettingsDialogs {
 
   static String getLanguageDisplayName(String code) {
     switch (code) {
+      case 'ru':
+        return 'Русский (Russian)';
       case 'ta':
         return 'தமிழ் (Tamil)';
       case 'zh':
@@ -882,6 +891,8 @@ class SettingsDialogs {
 
   static String getLanguageBadge(String code) {
     switch (code) {
+      case 'ru':
+        return 'RU';
       case 'ta':
         return 'தமிழ்';
       case 'zh':

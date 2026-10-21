@@ -226,6 +226,15 @@ class P2pSyncService {
     final response = request.response;
     response.headers.contentType = ContentType.json;
 
+    // Guard against memory exhaustion from oversized payloads (25MB limit)
+    const int maxPayloadBytes = 25 * 1024 * 1024;
+    if (request.contentLength > maxPayloadBytes) {
+      response.statusCode = HttpStatus.requestEntityTooLarge;
+      response.write(json.encode({'error': 'Payload exceeds 25MB limit'}));
+      await response.close();
+      return;
+    }
+
     try {
       final path = request.uri.path;
 
@@ -431,31 +440,35 @@ class P2pSyncService {
       }
 
       final client = HttpClient()..connectionTimeout = const Duration(seconds: 4);
-      final req = await client.postUrl(Uri.parse('http://$targetIp:$targetPort/api/sync/ping'));
-      req.write(encrypted);
-      final res = await req.close();
+      try {
+        final req = await client.postUrl(Uri.parse('http://$targetIp:$targetPort/api/sync/ping'));
+        req.write(encrypted);
+        final res = await req.close();
 
-      if (res.statusCode == 200) {
-        final body = await utf8.decoder.bind(res).join();
-        final decrypted = _crypto.decryptPayload(body, pairCode);
-        if (decrypted != null) {
-          final endTime = DateTime.now().millisecondsSinceEpoch;
-          final latency = endTime - startTime;
-          final result = SyncResult(
-            success: true,
-            syncedCount: 0,
-            transportUsed: 'Direct IP ($targetIp)',
-            latencyMs: latency,
-          );
-          _syncEventsController.add(result);
-          return result;
-        } else {
-          return SyncResult(success: false, errorMessage: 'Pair Code mismatch. Decryption failed for $targetIp.');
+        if (res.statusCode == 200) {
+          final body = await utf8.decoder.bind(res).join();
+          final decrypted = _crypto.decryptPayload(body, pairCode);
+          if (decrypted != null) {
+            final endTime = DateTime.now().millisecondsSinceEpoch;
+            final latency = endTime - startTime;
+            final result = SyncResult(
+              success: true,
+              syncedCount: 0,
+              transportUsed: 'Direct IP ($targetIp)',
+              latencyMs: latency,
+            );
+            _syncEventsController.add(result);
+            return result;
+          } else {
+            return SyncResult(success: false, errorMessage: 'Pair Code mismatch. Decryption failed for $targetIp.');
+          }
+        } else if (res.statusCode == 401) {
+          return SyncResult(success: false, errorMessage: 'Pair Code mismatch. Check 6-digit code on target device.');
         }
-      } else if (res.statusCode == 401) {
-        return SyncResult(success: false, errorMessage: 'Pair Code mismatch. Check 6-digit code on target device.');
+        return SyncResult(success: false, errorMessage: 'Ping failed (HTTP ${res.statusCode}) from $targetIp');
+      } finally {
+        client.close(force: true);
       }
-      return SyncResult(success: false, errorMessage: 'Ping failed (HTTP ${res.statusCode}) from $targetIp');
     } catch (e) {
       final res = SyncResult(success: false, errorMessage: _formatUserFriendlyError(e, targetIp));
       _syncEventsController.add(res);
@@ -481,31 +494,35 @@ class P2pSyncService {
       }
 
       final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
-      final req = await client.postUrl(Uri.parse('http://$targetIp:$targetPort/api/sync/pull_master'));
-      req.write(encrypted);
-      final res = await req.close();
+      try {
+        final req = await client.postUrl(Uri.parse('http://$targetIp:$targetPort/api/sync/pull_master'));
+        req.write(encrypted);
+        final res = await req.close();
 
-      if (res.statusCode == 200) {
-        final responseBody = await utf8.decoder.bind(res).join();
-        final decryptedReply = _crypto.decryptPayload(responseBody, pairCode);
-        if (decryptedReply != null) {
-          final Map<String, dynamic> replyMap = json.decode(decryptedReply);
-          
-          // Complete Master Overwrite on Secondary Device
-          await BackupService.restoreFromBackupData(replyMap);
+        if (res.statusCode == 200) {
+          final responseBody = await utf8.decoder.bind(res).join();
+          final decryptedReply = _crypto.decryptPayload(responseBody, pairCode);
+          if (decryptedReply != null) {
+            final Map<String, dynamic> replyMap = json.decode(decryptedReply);
+            
+            // Complete Master Overwrite on Secondary Device
+            await BackupService.restoreFromBackupData(replyMap);
 
-          final syncRes = SyncResult(
-            success: true,
-            syncedCount: 1,
-            receivedCount: 1,
-            sentCount: 0,
-            transportUsed: 'Primary Master Sync ($targetIp)',
-          );
-          _syncEventsController.add(syncRes);
-          return syncRes;
+            final syncRes = SyncResult(
+              success: true,
+              syncedCount: 1,
+              receivedCount: 1,
+              sentCount: 0,
+              transportUsed: 'Primary Master Sync ($targetIp)',
+            );
+            _syncEventsController.add(syncRes);
+            return syncRes;
+          }
         }
+        return SyncResult(success: false, errorMessage: 'Failed to fetch master snapshot from $targetIp');
+      } finally {
+        client.close(force: true);
       }
-      return SyncResult(success: false, errorMessage: 'Failed to fetch master snapshot from $targetIp');
     } catch (e) {
       final res = SyncResult(success: false, errorMessage: 'Master sync failed: $e');
       _syncEventsController.add(res);
@@ -530,35 +547,39 @@ class P2pSyncService {
       }
 
       final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
-      final req = await client.postUrl(Uri.parse('http://$targetIp:$targetPort/api/sync/bidirectional_sync'));
-      req.write(encrypted);
-      final res = await req.close();
+      try {
+        final req = await client.postUrl(Uri.parse('http://$targetIp:$targetPort/api/sync/bidirectional_sync'));
+        req.write(encrypted);
+        final res = await req.close();
 
-      if (res.statusCode == 200) {
-        final responseBody = await utf8.decoder.bind(res).join().timeout(const Duration(seconds: 10));
-        final decryptedReply = _crypto.decryptPayload(responseBody, pairCode);
-        if (decryptedReply != null) {
-          final Map<String, dynamic> replyMap = json.decode(decryptedReply);
+        if (res.statusCode == 200) {
+          final responseBody = await utf8.decoder.bind(res).join().timeout(const Duration(seconds: 10));
+          final decryptedReply = _crypto.decryptPayload(responseBody, pairCode);
+          if (decryptedReply != null) {
+            final Map<String, dynamic> replyMap = json.decode(decryptedReply);
 
-          // Non-destructive Last-Write-Wins Merge on client device
-          final mergeResult = await SyncMergeService.instance.mergeRemoteData(replyMap);
+            // Non-destructive Last-Write-Wins Merge on client device
+            final mergeResult = await SyncMergeService.instance.mergeRemoteData(replyMap);
 
-          final syncRes = SyncResult(
-            success: true,
-            syncedCount: mergeResult.notesMerged + mergeResult.transactionsMerged,
-            receivedCount: mergeResult.notesMerged,
-            sentCount: 1,
-            transportUsed: 'Bi-Directional Delta Merge ($targetIp)',
-          );
-          _syncEventsController.add(syncRes);
-          return syncRes;
-        } else {
-          return SyncResult(success: false, errorMessage: 'Pair Code mismatch. Decryption failed for $targetIp.');
+            final syncRes = SyncResult(
+              success: true,
+              syncedCount: mergeResult.notesMerged + mergeResult.transactionsMerged,
+              receivedCount: mergeResult.notesMerged,
+              sentCount: 1,
+              transportUsed: 'Bi-Directional Delta Merge ($targetIp)',
+            );
+            _syncEventsController.add(syncRes);
+            return syncRes;
+          } else {
+            return SyncResult(success: false, errorMessage: 'Pair Code mismatch. Decryption failed for $targetIp.');
+          }
+        } else if (res.statusCode == 401) {
+          return SyncResult(success: false, errorMessage: 'Pair Code mismatch. Check 6-digit code on target device.');
         }
-      } else if (res.statusCode == 401) {
-        return SyncResult(success: false, errorMessage: 'Pair Code mismatch. Check 6-digit code on target device.');
+        return SyncResult(success: false, errorMessage: 'Sync failed (HTTP ${res.statusCode}) with $targetIp');
+      } finally {
+        client.close(force: true);
       }
-      return SyncResult(success: false, errorMessage: 'Sync failed (HTTP ${res.statusCode}) with $targetIp');
     } catch (e) {
       final res = SyncResult(success: false, errorMessage: _formatUserFriendlyError(e, targetIp));
       _syncEventsController.add(res);

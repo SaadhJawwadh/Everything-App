@@ -29,6 +29,7 @@ class AppConstants {
     CurrencyInfo(code: 'MYR', symbol: 'RM', name: 'Malaysian Ringgit'),
     CurrencyInfo(code: 'NZD', symbol: 'NZ\$', name: 'New Zealand Dollar'),
     CurrencyInfo(code: 'CHF', symbol: 'CHF', name: 'Swiss Franc'),
+    CurrencyInfo(code: 'RUB', symbol: '₽', name: 'Russian Ruble'),
   ];
 
   static List<String> get currencies =>

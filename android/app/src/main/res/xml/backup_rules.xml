@@ -9,4 +9,6 @@
     <exclude domain="sharedpref" path="FlutterSecureStorage.xml" />
     <!-- Exclude encrypted database file from cloud backup to prevent key mismatch corruption on new devices -->
     <exclude domain="database" path="notes.db"/>
+    <!-- Exclude unencrypted auto-backup JSON files from cloud backup to preserve local privacy -->
+    <exclude domain="file" path="notebook_auto_backup"/>
 </full-backup-content>

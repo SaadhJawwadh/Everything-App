@@ -179,6 +179,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get dailySafeToSpend => 'Disponible para Gastar Hoy';
 
   @override
+  String get ledger => 'Libro mayor';
+
+  @override
   String get breakdown => 'Desglose';
 
   @override

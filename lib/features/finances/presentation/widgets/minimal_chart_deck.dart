@@ -237,18 +237,23 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                       );
                       setState(() => _currentPage = index);
                     },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-                      child: AnimatedContainer(
-                        duration: AppLayout.animFast,
-                        curve: AppLayout.curveStrongEaseInOut,
-                        width: isSelected ? 16 : 6,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? colorScheme.primary
-                              : colorScheme.outlineVariant.withValues(alpha: 0.4),
-                          borderRadius: BorderRadius.circular(2),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 48),
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                          child: AnimatedContainer(
+                            duration: AppLayout.animFast,
+                            curve: AppLayout.curveStrongEaseInOut,
+                            width: isSelected ? 16 : 6,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? colorScheme.primary
+                                  : colorScheme.outlineVariant.withValues(alpha: 0.4),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
                         ),
                       ),
                     ),

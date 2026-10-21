@@ -28,9 +28,39 @@ class ChangelogScreen extends StatelessWidget {
               delegate: SliverChildListDelegate([
                 _buildVersionSection(
                   context,
+                  version: 'v2.48.3',
+                  date: 'October 21, 2026',
+                  isLatest: true,
+                  changes: [
+                    _ChangelogGroup(
+                      title: "What's New",
+                      items: [
+                        'Russian Language Support: Full translation for Russian speakers alongside English, Tamil, German, Spanish, French, Portuguese, and Chinese.',
+                        'Russian Ruble Currency: Added authentic Ruble (₽) currency badge and formatting across all financial ledgers and budgets.',
+                      ],
+                    ),
+                    _ChangelogGroup(
+                      title: 'Improvements',
+                      items: [
+                        'Reclaimed Notes Space: Clean, distraction-free notes feed displaying your thoughts and checklists right below the top bar.',
+                        'Calm Financial Dashboard: Focused, non-distracting cash flow overview without flashing or unexpected auto-flipping numbers.',
+                        'Pro Tips in Settings: Browse pro gestures, shortcuts, and features anytime on demand inside About & Guides.',
+                      ],
+                    ),
+                    _ChangelogGroup(
+                      title: 'Fixes',
+                      items: [
+                        'Menu Polish: Removed redundant folder menu items for a cleaner, unified navigation experience.',
+                        'Checklist Previews: Polished note card previews to focus on remaining actionable tasks.',
+                      ],
+                    ),
+                  ],
+                ),
+                _buildVersionSection(
+                  context,
                   version: 'v2.48.2',
                   date: 'October 19, 2026',
-                  isLatest: true,
+                  isLatest: false,
                   changes: [
                     _ChangelogGroup(
                       title: "What's New",

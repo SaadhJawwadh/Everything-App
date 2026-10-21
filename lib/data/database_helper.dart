@@ -76,12 +76,18 @@ class DatabaseHelper {
 
     if (key == null || key.isEmpty) {
       final random = Random.secure();
-      final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+      final bytes = List<int>.generate(32, (_) => random.nextInt(256));
       key = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
       
       try {
         await _secureStorage.write(key: _keyStorageKey, value: key);
-      } catch (_) {}
+        final verified = await _secureStorage.read(key: _keyStorageKey);
+        if (verified != key) {
+          debugPrint('[DatabaseHelper] Warning: Keystore write verification mismatch.');
+        }
+      } catch (e) {
+        debugPrint('[DatabaseHelper] Warning: Failed to persist encryption key to secure storage: $e');
+      }
     }
     return key;
   }
@@ -255,6 +261,7 @@ class DatabaseHelper {
     try {
       await db.rawQuery('PRAGMA journal_mode = WAL;');
       await db.rawQuery('PRAGMA synchronous = NORMAL;');
+      await db.rawQuery('PRAGMA busy_timeout = 5000;');
 
       // Performance Indexes
       await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_deleted ON notes(deletedAt);');

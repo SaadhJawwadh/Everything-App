@@ -1,13 +1,16 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../../data/period_log_model.dart';
 import '../data/period_repository.dart';
 import '../../../services/period_prediction_service.dart';
 import '../../../services/notification_service.dart';
+import '../../../services/p2p_sync_service.dart';
 
 /// Reactive provider managing Menstrual Cycle logs, predictions, phase calculations, and stats.
 class PeriodTrackerProvider extends ChangeNotifier {
   List<PeriodLog> _logs = [];
   bool _isLoading = true;
+  StreamSubscription? _syncEventsSubscription;
 
   DateTime? _predictedNextPeriod;
   DateTime? _predictedOvulation;
@@ -34,6 +37,17 @@ class PeriodTrackerProvider extends ChangeNotifier {
 
   PeriodTrackerProvider() {
     loadData();
+    _syncEventsSubscription = P2pSyncService.instance.syncEvents.listen((result) {
+      if (result.success) {
+        loadData(showLoading: false);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _syncEventsSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> loadData({bool showLoading = false}) async {

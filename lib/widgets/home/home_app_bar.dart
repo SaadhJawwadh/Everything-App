@@ -662,8 +662,6 @@ class _HomeAppBarState extends State<HomeAppBar> {
           onSelected: (action) {
             if (action == 'view_mode') {
               widget.onCycleViewMode();
-            } else if (action == 'manage_folders') {
-              _showFolderPicker(context, noteProvider);
             } else if (action == 'manage_tags') {
               AppRoute.push(context, const ManageTagsScreen());
             } else if (action == 'import_notes') {
@@ -697,23 +695,6 @@ class _HomeAppBarState extends State<HomeAppBar> {
                               color: colorScheme.onSurface,
                             ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              PopupMenuItem<String>(
-                value: 'manage_folders',
-                height: 48,
-                child: Row(
-                  children: [
-                    Icon(Icons.create_new_folder_outlined, size: 20, color: colorScheme.onSurfaceVariant),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Manage Folders',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: colorScheme.onSurface,
-                          ),
                     ),
                   ],
                 ),

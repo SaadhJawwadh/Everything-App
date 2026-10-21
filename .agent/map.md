@@ -58,6 +58,8 @@ lib/
 │   │   │       ├── account_transfer_sheet.dart    # Dual-account Daily ⇄ Savings inter-vault transfer modal sheet
 │   │   │       ├── burn_rate_forecast_card.dart   # Daily Safe-to-Spend burn rate & month-end pacing
 │   │   │       ├── category_budgets_card.dart     # Dynamic budget progress card with over-budget alerts
+│   │   │       ├── finance_date_range_sheet.dart  # Interactive M3 date range selector modal sheet
+│   │   │       ├── finance_hero_summary_card.dart # Calm static cash flow hero card (daily vs savings)
 │   │   │       ├── financial_analytics_tab.dart   # Centered interactive donut breakdown & ranked category spend
 │   │   │       ├── financial_ledger_tab.dart      # Grouped transactions list, swipe duplicate/delete with undo
 │   │   │       ├── financial_trash_sheet.dart     # Trashed transactions manager & bulk purge
@@ -69,8 +71,7 @@ lib/
 │   │   │       ├── savings_goals_card.dart        # Target savings pockets carousel, progress ring, quick deposit
 │   │   │       ├── settle_up_sheet.dart           # Debt settlement sheet with optional Daily Account ledger entry
 │   │   │       ├── split_bills_tab.dart           # 3rd Finance tab: Hero summary, People/Bills view, filter chips
-│   │   │       ├── teach_sms_rule_sheet.dart      # Interactive SMS rule training modal sheet
-│   │   │       └── top_merchants_card.dart        # Top spending destinations & merchant breakdown
+│   │   │       └── teach_sms_rule_sheet.dart      # Interactive SMS rule training modal sheet
 │   │   └── providers/
 │   │       ├── financial_manager_provider.dart    # Income/expense calculations, filters, state
 │   │       ├── savings_goal_provider.dart         # Savings goals reactive state, deposits, auto-rebalance
@@ -106,6 +107,7 @@ lib/
 │   │   │       ├── note_card.dart             # Extracted modular NoteCard list/grid tile
 │   │   │       ├── note_color_picker_sheet.dart# Standardized M3 palette seed picker modal
 │   │   │       ├── note_editor_bottom_bar.dart# Extracted modular formatting action pill dock
+│   │   │       ├── note_embed_builders.dart   # Modular Quill custom block & inline embed builders
 │   │   │       ├── note_migration_sheet.dart  # Google Keep & Markdown file import modal sheet
 │   │   │       └── note_search_replace_bar.dart# Keyboard-shortcut aware find/replace toolbar
 │   │   └── providers/

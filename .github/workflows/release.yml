@@ -79,6 +79,9 @@ jobs:
       - name: Analyze
         run: flutter analyze
 
+      - name: Run Tests
+        run: flutter test
+
       - name: Build APK
         run: flutter build apk --release --no-tree-shake-icons
 

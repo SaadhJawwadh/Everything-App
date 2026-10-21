@@ -70,9 +70,9 @@ class CategoryConstants {
       'crm deposit', 'cash deposit', 'deposit', 'credited', 'salary', 'income', 'inward remittance', 'interest', 'allowance'
     ],
     transfer: [
-      'transfer to saadh', 'transfer to own', 'self transfer', 'internal transfer',
+      'transfer to own account', 'transfer to own', 'self transfer', 'internal transfer',
       'to savings', 'from savings', 'transfer to combank', 'credit card payment',
-      'card payment settlement', 'settlement of card', 'transfer to self'
+      'card payment settlement', 'settlement of card', 'transfer to self', 'transfer to saadh'
     ],
   };
 

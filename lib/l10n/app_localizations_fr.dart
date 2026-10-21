@@ -179,6 +179,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get dailySafeToSpend => 'Budget Disponible Aujourd\'hui';
 
   @override
+  String get ledger => 'Grand livre';
+
+  @override
   String get breakdown => 'Répartition';
 
   @override

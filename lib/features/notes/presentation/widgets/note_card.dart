@@ -288,25 +288,26 @@ class NoteCard extends StatelessWidget {
 
       return [
         ...previewItems.map((item) {
-          return InkWell(
-            onTap: () {
-              if (onChecklistTap != null) {
-                onChecklistTap!(item.lineIndex, item.text);
-              } else {
-                onTap();
-              }
-            },
-            borderRadius: BorderRadius.circular(AppLayout.radiusS),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 48),
+          return Semantics(
+            button: true,
+            label: 'Toggle checklist item: ${item.text}',
+            child: InkWell(
+              onTap: () {
+                if (onChecklistTap != null) {
+                  onChecklistTap!(item.lineIndex, item.text);
+                } else {
+                  onTap();
+                }
+              },
+              borderRadius: BorderRadius.circular(AppLayout.radiusS),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                padding: const EdgeInsets.symmetric(vertical: 4.5),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Icon(
                       item.isDone ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
-                      size: 18,
+                      size: 20,
                       color: item.isDone ? theme.colorScheme.primary : theme.colorScheme.outline,
                     ),
                     const SizedBox(width: AppLayout.spaceS),

@@ -26,6 +26,11 @@ class RecurringRule {
   final bool isExpense;
   final RecurringFrequency frequency;
   final DateTime nextDue;
+  final int? _anchorDay;
+
+  /// The original intended day-of-month for recurrence (e.g. 31),
+  /// preserved across month-length clamping in shorter months.
+  int get anchorDay => _anchorDay ?? nextDue.day;
 
   const RecurringRule({
     required this.id,
@@ -35,7 +40,8 @@ class RecurringRule {
     required this.isExpense,
     required this.frequency,
     required this.nextDue,
-  });
+    int? anchorDay,
+  }) : _anchorDay = anchorDay;
 
   RecurringRule copyWith({
     String? id,
@@ -45,6 +51,7 @@ class RecurringRule {
     bool? isExpense,
     RecurringFrequency? frequency,
     DateTime? nextDue,
+    int? anchorDay,
   }) =>
       RecurringRule(
         id: id ?? this.id,
@@ -54,10 +61,12 @@ class RecurringRule {
         isExpense: isExpense ?? this.isExpense,
         frequency: frequency ?? this.frequency,
         nextDue: nextDue ?? this.nextDue,
+        anchorDay: anchorDay ?? this.anchorDay,
       );
 
   /// The due date that follows [from], respecting month-length clamping
-  /// (a rule due on the 31st fires on the 30th/28th in shorter months).
+  /// (a rule due on the 31st fires on the 30th/28th in shorter months,
+  /// but retains its anchor day for subsequent longer months).
   DateTime advance(DateTime from) {
     switch (frequency) {
       case RecurringFrequency.daily:
@@ -65,12 +74,13 @@ class RecurringRule {
       case RecurringFrequency.weekly:
         return from.add(const Duration(days: 7));
       case RecurringFrequency.monthly:
+        final targetDay = anchorDay;
         final nextMonth = DateTime(from.year, from.month + 1, 1);
         final lastDay = DateTime(nextMonth.year, nextMonth.month + 1, 0).day;
         return DateTime(
           nextMonth.year,
           nextMonth.month,
-          from.day > lastDay ? lastDay : from.day,
+          targetDay > lastDay ? lastDay : targetDay,
           from.hour,
           from.minute,
         );

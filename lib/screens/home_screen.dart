@@ -18,11 +18,9 @@ import '../core/ui/app_bottom_sheet.dart';
 import '../core/ui/app_dialog.dart';
 import '../core/ui/expressive_floating_toolbar.dart';
 import '../widgets/tag_filter_bar.dart';
-import '../widgets/clarity_mosaic_strip.dart';
 import '../widgets/home/home_app_bar.dart';
 import '../widgets/home/note_view_builder.dart';
 import '../widgets/home/universal_search_overlay.dart';
-import '../widgets/home/home_tip_card.dart';
 export 'package:note_taking_app/features/notes/presentation/widgets/note_card.dart';
 import 'package:note_taking_app/features/notes/presentation/screens/note_editor_screen.dart';
 import 'package:note_taking_app/features/finances/presentation/screens/financial_manager_screen.dart';
@@ -826,24 +824,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               SliverToBoxAdapter(
                 child: UniversalSearchOverlay(query: noteProvider.searchQuery),
               ),
-            if (settings.showClarityMosaic &&
-                noteProvider.searchQuery.isEmpty &&
-                !noteProvider.isSelectionMode)
-              const SliverToBoxAdapter(child: ClarityMosaicStrip()),
             if (settings.showTagFilterBar && noteProvider.searchQuery.isEmpty)
               SliverToBoxAdapter(child: TagFilterBar(onTagLongPress: _showTagOptions)),
-            if (settings.showProTips &&
-                settings.isTipDue &&
-                noteProvider.searchQuery.isEmpty &&
-                !noteProvider.isSelectionMode)
-              SliverToBoxAdapter(
-                child: HomeTipCard(
-                  tip: HomeTipCard.getCatalog(context)[settings.currentTipIndex %
-                      HomeTipCard.getCatalog(context).length],
-                  onDismiss: () => settings.dismissCurrentTip(),
-                  onDisable: () => settings.setShowProTips(false),
-                ),
-              ),
             if (noteProvider.searchQuery.isEmpty)
               NoteViewBuilder(
                 onRefresh: refreshNotes,

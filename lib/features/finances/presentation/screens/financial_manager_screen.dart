@@ -18,9 +18,8 @@ import '../../../../screens/app_lock_screen.dart';
 import '../../../../utils/app_route.dart';
 import 'package:note_taking_app/features/finances/providers/financial_manager_provider.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../../../../core/theme/app_layout.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/ui/app_card.dart';
 import '../../../../core/ui/expressive_wavy_progress.dart';
 
 import '../../../../widgets/bouncing_widget.dart';
@@ -33,12 +32,15 @@ import '../widgets/minimal_chart_deck.dart';
 import '../widgets/recurring_rules_sheet.dart';
 import '../widgets/savings_goal_editor_sheet.dart';
 import '../widgets/split_bills_tab.dart';
+import '../widgets/finance_date_range_sheet.dart';
+import '../widgets/finance_hero_summary_card.dart';
 import '../../services/financial_export_service.dart';
 import '../../services/spending_forecast_service.dart';
 
 
 class FinancialManagerScreen extends StatefulWidget {
   static final ValueNotifier<String?> tabRedirectNotifier = ValueNotifier<String?>(null);
+  @Deprecated('Use FinancialManagerProvider.loadTransactions() or context.read<FinancialManagerProvider>() instead')
   static final ValueNotifier<int> refreshNotifier = ValueNotifier<int>(0);
   static final ValueNotifier<String> activeTabNotifier = ValueNotifier<String>('Ledger');
 
@@ -66,13 +68,9 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
 
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  late final PageController _heroPageController;
-  int _heroCardMode = 0; // 0: Net Cash Flow, 1: Daily Burn Rate, 2: Savings Rate
   int _analyticsSubView = 0; // 0: Breakdown, 1: Budgets
   String _searchQuery = '';
   bool _isSearching = false;
-  Timer? _heroAutoCycleTimer;
-  bool _heroUserInteracted = false;
 
   StreamSubscription<TransactionModel>? _smsSubscription;
   StreamSubscription<SmsSyncProgress>? _smsProgressSub;
@@ -83,7 +81,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _heroPageController = PageController(initialPage: 0);
     final initialTab = FinancialManagerScreen.tabRedirectNotifier.value;
     if (initialTab != null) {
       _selectedTab = initialTab;
@@ -95,7 +92,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
     FinancialManagerScreen.tabRedirectNotifier.addListener(_handleTabRedirect);
     FinancialManagerScreen.refreshNotifier.addListener(_handleExternalRefresh);
     _refreshTransactions(showLoading: true);
-    _startHeroAutoCycleTimer();
     _smsSubscription = SmsService.incomingTransactions.listen((t) async {
       if (!mounted) return;
       await _refreshTransactions();
@@ -156,32 +152,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
     }
   }
 
-  void _startHeroAutoCycleTimer() {
-    _heroAutoCycleTimer?.cancel();
-    if (_heroUserInteracted) return;
-    _heroAutoCycleTimer = Timer.periodic(const Duration(seconds: 4), (_) {
-      if (!mounted || _heroUserInteracted) return;
-      if (!_heroPageController.hasClients) return;
-      if (_selectedTab != 'Ledger') {
-        _heroAutoCycleTimer?.cancel();
-        return;
-      }
-      final nextPage = (_heroCardMode + 1) % 3;
-      _heroPageController.animateToPage(
-        nextPage,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOutCubic,
-      );
-    });
-  }
-
-  void _pauseHeroAutoCycle({bool userAction = true}) {
-    if (userAction) {
-      _heroUserInteracted = true;
-    }
-    _heroAutoCycleTimer?.cancel();
-  }
-
   void _handleTabRedirect() {
     final newTab = FinancialManagerScreen.tabRedirectNotifier.value;
     if (newTab != null && mounted) {
@@ -202,8 +172,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _heroAutoCycleTimer?.cancel();
-    _heroPageController.dispose();
     _scrollController.dispose();
     _searchController.dispose();
     FinancialManagerScreen.tabRedirectNotifier.removeListener(_handleTabRedirect);
@@ -373,194 +341,9 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
   }
 
   Future<void> _selectDateRange(BuildContext context) async {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    final now = DateTime.now();
-
-    final thisMonth = DateTimeRange(
-      start: DateTime(now.year, now.month, 1),
-      end: now,
-    );
-    final lastMonth = DateTimeRange(
-      start: DateTime(now.year, now.month - 1, 1),
-      end: DateTime(now.year, now.month, 0),
-    );
-    final last90Days = DateTimeRange(
-      start: now.subtract(const Duration(days: 90)),
-      end: now,
-    );
-    final thisYear = DateTimeRange(
-      start: DateTime(now.year, 1, 1),
-      end: now,
-    );
-    final allTime = DateTimeRange(
-      start: DateTime(2000, 1, 1),
-      end: DateTime(2100, 1, 1),
-    );
-
-    final selectedPreset = await showModalBottomSheet<DateTimeRange>(
-      context: context,
-      backgroundColor: colorScheme.surfaceContainerHigh,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) {
-        bool isCurrent(DateTimeRange range) {
-          return _selectedRange.start.year == range.start.year &&
-              _selectedRange.start.month == range.start.month &&
-              _selectedRange.start.day == range.start.day &&
-              _selectedRange.end.year == range.end.year &&
-              _selectedRange.end.month == range.end.month &&
-              _selectedRange.end.day == range.end.day;
-        }
-
-        Widget buildPresetCard(String label, IconData icon, DateTimeRange range) {
-          final isSelected = isCurrent(range);
-          return InkWell(
-            onTap: () {
-              AppHaptics.selectionClick();
-              Navigator.pop(ctx, range);
-            },
-            borderRadius: BorderRadius.circular(AppLayout.radiusM),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? colorScheme.primaryContainer
-                    : colorScheme.surfaceContainer,
-                borderRadius: BorderRadius.circular(AppLayout.radiusM),
-                border: Border.all(
-                  color: isSelected
-                      ? colorScheme.primary
-                      : colorScheme.outlineVariant.withValues(alpha: 0.5),
-                  width: isSelected ? 1.5 : 1.0,
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    icon,
-                    size: 18,
-                    color: isSelected
-                        ? colorScheme.primary
-                        : colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.labelLarge?.copyWith(
-                        color: isSelected
-                            ? colorScheme.onPrimaryContainer
-                            : colorScheme.onSurface,
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 32,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: colorScheme.outlineVariant,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Icon(Icons.calendar_month_outlined, color: colorScheme.primary),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Select Period',
-                      style: textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(child: buildPresetCard('This Month', Icons.today_outlined, thisMonth)),
-                    const SizedBox(width: 10),
-                    Expanded(child: buildPresetCard('Last Month', Icons.history_outlined, lastMonth)),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(child: buildPresetCard('Last 90 Days', Icons.auto_graph_outlined, last90Days)),
-                    const SizedBox(width: 10),
-                    Expanded(child: buildPresetCard('This Year', Icons.calendar_today_outlined, thisYear)),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                buildPresetCard('All Time (Full History)', Icons.all_inclusive_outlined, allTime),
-                const SizedBox(height: AppLayout.spaceS),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: CircleAvatar(
-                    backgroundColor: colorScheme.secondaryContainer,
-                    child: Icon(Icons.date_range_outlined, color: colorScheme.onSecondaryContainer),
-                  ),
-                  title: Text(
-                    'Custom Date Range…',
-                    style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: Text(
-                    'Pick exact start and end dates from calendar',
-                    style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () async {
-                    Navigator.pop(ctx);
-                    final customPicked = await showDateRangePicker(
-                      context: context,
-                      initialDateRange: _selectedRange,
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2100),
-                      builder: (context, child) {
-                        return Theme(
-                          data: Theme.of(context).copyWith(
-                            colorScheme: Theme.of(context).colorScheme.copyWith(
-                                  surface: Theme.of(context).colorScheme.surfaceContainerHigh,
-                                ),
-                          ),
-                          child: child!,
-                        );
-                      },
-                    );
-                    if (customPicked != null && customPicked != _selectedRange) {
-                      setState(() => _selectedRange = customPicked);
-                      await _refreshTransactions();
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+    final selectedPreset = await FinanceDateRangeSheet.show(
+      context,
+      currentRange: _selectedRange,
     );
 
     if (selectedPreset != null && selectedPreset != _selectedRange) {
@@ -626,417 +409,23 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
     unawaited(SmsService.performDailySyncManualTrigger());
   }
 
-  /// Combined hero card: net balance +   /// Builds an interactive Swipable Hero Summary Card with 3 distinct insight modes:
-  /// Slide 0: Net Cash Flow (Income vs Expense)
-  /// Slide 1: Daily Burn Rate & Pace Projection
-  /// Slide 2: Savings Efficiency & Rate
   Widget _buildHeroSummaryCard(ColorScheme cs, TextTheme tt, String currency) {
-    if (_isLoading) {
-      return const SizedBox(
-          height: 80, child: Center(child: CircularProgressIndicator()));
-    }
-    final net = _totalIncome - _totalExpense;
-    final isPositive = net >= 0;
-    final onColor = isPositive ? cs.onTertiaryContainer : cs.onErrorContainer;
-    final rangeLabel = _selectedRange.duration.inDays == 0
-        ? DateFormat.MMMMEEEEd().format(_selectedRange.start)
-        : '${DateFormat.MMMd().format(_selectedRange.start)} – ${DateFormat.MMMd().format(_selectedRange.end)}';
-
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final daysInPeriod = _selectedRange.duration.inDays > 0 ? (_selectedRange.duration.inDays + 1) : 1;
-    final dailyAvgExpense = _totalExpense / daysInPeriod;
-
-    final settings = Provider.of<SettingsProvider>(context, listen: false);
-    final spendingForecast = SpendingForecastService.calculateMonthlyForecast(
+    return FinanceHeroSummaryCard(
+      isLoading: _isLoading,
+      totalIncome: _totalIncome,
+      totalExpense: _totalExpense,
+      dailyCashFlow: _dailyCashFlow,
+      savingsVaultCashFlow: _savingsVaultCashFlow,
+      selectedRange: _selectedRange,
       transactions: _transactions,
-      categoryBudgets: settings.categoryBudgets,
-    );
-    final numberFormat = NumberFormat('#,##0');
-
-    return AppCard(
-      backgroundColor: isPositive
-          ? cs.tertiaryContainer.withValues(alpha: isDark ? 0.22 : 0.55)
-          : cs.errorContainer.withValues(alpha: isDark ? 0.22 : 0.52),
-      borderRadius: AppLayout.radiusXL,
-      border: BorderSide(
-        color: isPositive
-            ? cs.tertiary.withValues(alpha: isDark ? 0.35 : 0.45)
-            : cs.error.withValues(alpha: isDark ? 0.35 : 0.45),
-        width: 1.2,
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-            // Top Bar: Range Label + Mode Switcher Dots + Trend Icon
-            Row(
-              children: [
-                Text(
-                  rangeLabel,
-                  style: tt.labelMedium?.copyWith(color: onColor),
-                ),
-                const Spacer(),
-                // Interactive Mode indicator dots
-                Row(
-                  children: List.generate(3, (idx) {
-                    final isActive = idx == _heroCardMode;
-                    final modeName = idx == 0
-                        ? 'Net Cash Flow'
-                        : idx == 1
-                            ? 'Daily Burn Rate'
-                            : 'Month End Projection';
-                    return Semantics(
-                      button: true,
-                      label: 'Switch to $modeName metric',
-                      child: GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          _pauseHeroAutoCycle(userAction: true);
-                          _heroPageController.animateToPage(
-                            idx,
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeOutCubic,
-                          );
-                          setState(() => _heroCardMode = idx);
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            curve: Curves.easeOutCubic,
-                            width: isActive ? 14 : 5,
-                            height: 5,
-                            decoration: BoxDecoration(
-                              color: isActive ? onColor : onColor.withValues(alpha: 0.3),
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-                const SizedBox(width: 8),
-                Icon(
-                  _heroCardMode == 1
-                      ? Icons.speed_rounded
-                      : _heroCardMode == 2
-                          ? Icons.auto_graph_rounded
-                          : (isPositive
-                              ? Icons.trending_up_rounded
-                              : Icons.trending_down_rounded),
-                  size: 20,
-                  color: onColor,
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-
-            // Swipable Carousel for Metrics with Auto-Cycle Touch-Freeze
-            Listener(
-              onPointerDown: (_) => _pauseHeroAutoCycle(userAction: true),
-              child: SizedBox(
-                height: 66,
-                child: PageView(
-                  controller: _heroPageController,
-                  physics: const BouncingScrollPhysics(),
-                  onPageChanged: (idx) {
-                    setState(() => _heroCardMode = idx);
-                  },
-                  children: [
-                  // Slide 0: Net Cash Flow
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          '${isPositive ? '+' : '-'} $currency ${net.abs().toStringAsFixed(0)}',
-                          style: tt.headlineMedium?.copyWith(
-                            fontFamily: AppTheme.fontGoogleSansFlex,
-                            fontFamilyFallback: AppTheme.fontFallbacks,
-                            color: onColor,
-                            fontWeight: FontWeight.bold,
-                            fontVariations: AppTheme.buildFontVariations(
-                              size: tt.headlineMedium?.fontSize ?? 28.0,
-                              brightness: Theme.of(context).brightness,
-                              weight: 700.0,
-                              grade: 30.0,
-                            ),
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
-                        ),
-                      ),
-                      Text(
-                        isPositive ? 'Net Savings Surplus' : 'Net Cash Flow Deficit',
-                        style: tt.labelSmall?.copyWith(color: onColor.withValues(alpha: 0.8)),
-                      ),
-                    ],
-                  ),
-
-                  // Slide 1: Daily Burn Rate
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          '$currency ${dailyAvgExpense.toStringAsFixed(0)} / day',
-                          style: tt.headlineMedium?.copyWith(
-                            fontFamily: AppTheme.fontGoogleSansFlex,
-                            fontFamilyFallback: AppTheme.fontFallbacks,
-                            color: onColor,
-                            fontWeight: FontWeight.bold,
-                            fontVariations: AppTheme.buildFontVariations(
-                              size: tt.headlineMedium?.fontSize ?? 28.0,
-                              brightness: Theme.of(context).brightness,
-                              weight: 700.0,
-                              grade: 30.0,
-                            ),
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
-                        ),
-                      ),
-                      Text(
-                        'Daily Burn Rate (over $daysInPeriod day${daysInPeriod == 1 ? '' : 's'})',
-                        style: tt.labelSmall?.copyWith(color: onColor.withValues(alpha: 0.8)),
-                      ),
-                    ],
-                  ),
-
-                  // Slide 2: Ongoing Month-End Projection
-                  Semantics(
-                    label:
-                        'This month projected spending ${numberFormat.format(spendingForecast.projectedMonthEndSpend)} $currency, day ${spendingForecast.currentDay} of ${spendingForecast.totalDaysInMonth}, status: ${spendingForecast.status == SpendingPaceStatus.overPace ? 'Pacing Fast' : spendingForecast.status == SpendingPaceStatus.exhausted ? 'Exhausted' : 'On Track'}',
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            '~$currency ${numberFormat.format(spendingForecast.projectedMonthEndSpend)}',
-                            style: tt.headlineMedium?.copyWith(
-                              fontFamily: AppTheme.fontGoogleSansFlex,
-                              fontFamilyFallback: AppTheme.fontFallbacks,
-                              color: onColor,
-                              fontWeight: FontWeight.bold,
-                              fontVariations: AppTheme.buildFontVariations(
-                                size: tt.headlineMedium?.fontSize ?? 28.0,
-                                brightness: Theme.of(context).brightness,
-                                weight: 700.0,
-                                grade: 30.0,
-                              ),
-                              fontFeatures: const [FontFeature.tabularFigures()],
-                            ),
-                          ),
-                        ),
-                        Text(
-                          'This Month Projected • Day ${spendingForecast.currentDay}/${spendingForecast.totalDaysInMonth} (${spendingForecast.status == SpendingPaceStatus.overPace ? 'Pacing Fast' : spendingForecast.status == SpendingPaceStatus.exhausted ? 'Exhausted' : 'On Track'})',
-                          style: tt.labelSmall?.copyWith(color: onColor.withValues(alpha: 0.85)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 12.0),
-
-            // Income / Expense breakdown Row
-            Row(
-              children: [
-                Expanded(
-                  child: _miniStat(tt, Icons.south_west, 'Income',
-                      _totalIncome, currency, onColor),
-                ),
-                const SizedBox(width: 8.0),
-                Expanded(
-                  child: _miniStat(tt, Icons.arrow_outward, 'Expense',
-                      _totalExpense, currency, onColor),
-                ),
-              ],
-            ),
-            if (settings.enableSavingsVault) ...[
-              const SizedBox(height: 12.0),
-
-              // Dual Account Quick-Filter Badges (Daily Operating vs. Savings Vault)
-              Row(
-                children: [
-                  Expanded(
-                    child: Semantics(
-                      button: true,
-                      label: 'Filter by ${settings.account1Name}',
-                      selected: _selectedAccount == AccountType.daily,
-                      child: InkWell(
-                        onTap: () {
-                          setState(() {
-                            _selectedAccount = _selectedAccount == AccountType.daily ? 'all' : AccountType.daily;
-                          });
-                          _applyFilters();
-                        },
-                        borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                        child: AnimatedContainer(
-                          duration: AppLayout.animShort,
-                          curve: AppLayout.curveExpressiveSpatial,
-                          constraints: const BoxConstraints(minHeight: 48),
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: _selectedAccount == AccountType.daily ? onColor.withValues(alpha: 0.18) : Colors.transparent,
-                            borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                            border: Border.all(color: onColor.withValues(alpha: _selectedAccount == AccountType.daily ? 0.4 : 0.15)),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.credit_card_outlined, size: 13, color: onColor.withValues(alpha: 0.85)),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  '${settings.account1Name}: $currency ${_dailyCashFlow.toStringAsFixed(0)}',
-                                  style: tt.labelSmall?.copyWith(
-                                    fontFamily: AppTheme.fontGoogleSansFlex,
-                                    fontFamilyFallback: AppTheme.fontFallbacks,
-                                    color: onColor,
-                                    fontWeight: _selectedAccount == AccountType.daily ? FontWeight.bold : FontWeight.w500,
-                                    fontVariations: AppTheme.buildFontVariations(
-                                      size: tt.labelSmall?.fontSize ?? 11.0,
-                                      brightness: Theme.of(context).brightness,
-                                      weight: _selectedAccount == AccountType.daily ? 700.0 : 500.0,
-                                      grade: _selectedAccount == AccountType.daily ? 30.0 : null,
-                                    ),
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Tooltip(
-                    message: 'Transfer between accounts',
-                    child: Semantics(
-                      button: true,
-                      label: 'Transfer funds between ${settings.account1Name} and ${settings.account2Name}',
-                      child: InkWell(
-                        onTap: () {
-                          AppHaptics.selectionClick();
-                          AccountTransferSheet.show(context);
-                        },
-                        borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                        child: Container(
-                          constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
-                          margin: const EdgeInsets.symmetric(horizontal: 6),
-                          decoration: BoxDecoration(
-                            color: onColor.withValues(alpha: 0.15),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: onColor.withValues(alpha: 0.25)),
-                          ),
-                          child: Icon(
-                            Icons.swap_horiz_rounded,
-                            size: 18,
-                            color: onColor,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Semantics(
-                      button: true,
-                      label: 'Filter by ${settings.account2Name}',
-                      selected: _selectedAccount == AccountType.savings,
-                      child: InkWell(
-                        onTap: () {
-                          setState(() {
-                            _selectedAccount = _selectedAccount == AccountType.savings ? 'all' : AccountType.savings;
-                          });
-                          _applyFilters();
-                        },
-                        borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                        child: AnimatedContainer(
-                          duration: AppLayout.animShort,
-                          curve: AppLayout.curveExpressiveSpatial,
-                          constraints: const BoxConstraints(minHeight: 48),
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: _selectedAccount == AccountType.savings ? onColor.withValues(alpha: 0.18) : Colors.transparent,
-                            borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                            border: Border.all(color: onColor.withValues(alpha: _selectedAccount == AccountType.savings ? 0.4 : 0.15)),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.account_balance_outlined, size: 13, color: onColor.withValues(alpha: 0.85)),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  '${settings.account2Name}: $currency ${_savingsVaultCashFlow.toStringAsFixed(0)}',
-                                  style: tt.labelSmall?.copyWith(
-                                    fontFamily: AppTheme.fontGoogleSansFlex,
-                                    fontFamilyFallback: AppTheme.fontFallbacks,
-                                    color: onColor,
-                                    fontWeight: _selectedAccount == AccountType.savings ? FontWeight.bold : FontWeight.w500,
-                                    fontVariations: AppTheme.buildFontVariations(
-                                      size: tt.labelSmall?.fontSize ?? 11.0,
-                                      brightness: Theme.of(context).brightness,
-                                      weight: _selectedAccount == AccountType.savings ? 700.0 : 500.0,
-                                      grade: _selectedAccount == AccountType.savings ? 30.0 : null,
-                                    ),
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ],
-        ),
+      currency: currency,
+      selectedAccount: _selectedAccount,
+      onAccountSelected: (newAccount) {
+        setState(() => _selectedAccount = newAccount);
+        _applyFilters();
+      },
     );
   }
-
-  Widget _miniStat(TextTheme tt, IconData icon, String label, double amount,
-      String currency, Color color) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 14, color: color.withValues(alpha: 0.7)),
-            const SizedBox(width: 4),
-            Text(label,
-                style: tt.labelSmall
-                    ?.copyWith(color: color.withValues(alpha: 0.7))),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '$currency ${amount.toStringAsFixed(0)}',
-          style: tt.titleSmall
-              ?.copyWith(color: color, fontWeight: FontWeight.bold),
-        ),
-      ],
-    );
-  }
-
-
 
   // ── Build ────────────────────────────────────────────────────────────────
 
@@ -1313,7 +702,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
         ),
         IconButton(
           icon: const Icon(Icons.search),
-          tooltip: 'Search transactions',
+          tooltip: AppLocalizations.of(context)?.searchFinances ?? 'Search transactions',
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           visualDensity: VisualDensity.compact,
@@ -2099,27 +1488,28 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
         ? _selectedTab
         : 'Ledger';
 
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: SegmentedButton<String>(
         showSelectedIcon: false,
         segments: [
-          const ButtonSegment<String>(
+          ButtonSegment<String>(
             value: 'Ledger',
-            label: Text('Ledger', maxLines: 1, softWrap: false),
-            icon: Icon(Icons.receipt_long_outlined, size: 18),
+            label: Text(l10n?.ledger ?? 'Ledger', maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis),
+            icon: const Icon(Icons.receipt_long_outlined, size: 18),
           ),
           if (showBudgets)
-            const ButtonSegment<String>(
+            ButtonSegment<String>(
               value: 'Budgets',
-              label: Text('Budgets', maxLines: 1, softWrap: false),
-              icon: Icon(Icons.track_changes_rounded, size: 18),
+              label: Text(l10n?.budgets ?? 'Budgets', maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis),
+              icon: const Icon(Icons.track_changes_rounded, size: 18),
             ),
           if (showSplitBills)
-            const ButtonSegment<String>(
+            ButtonSegment<String>(
               value: 'Split Bills',
-              label: Text('Split Bills', maxLines: 1, softWrap: false),
-              icon: Icon(Icons.pie_chart_outline_rounded, size: 18),
+              label: Text(l10n?.splitBillsTitle ?? 'Split Bills', maxLines: 1, softWrap: false, overflow: TextOverflow.ellipsis),
+              icon: const Icon(Icons.pie_chart_outline_rounded, size: 18),
             ),
         ],
         selected: {effectiveSelected},

@@ -627,6 +627,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           _buildLanguageChip(theme, 'Deutsch', 'de', settings),
                           _buildLanguageChip(theme, 'Français', 'fr', settings),
                           _buildLanguageChip(theme, '中文', 'zh', settings),
+                          _buildLanguageChip(theme, 'Русский', 'ru', settings),
                         ],
                       ),
                     ),

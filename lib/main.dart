@@ -11,6 +11,7 @@ import 'package:note_taking_app/core/theme/app_theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/app_lock_screen.dart';
 import 'package:dynamic_color/dynamic_color.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:workmanager/workmanager.dart';
@@ -209,6 +210,16 @@ class NoteApp extends StatelessWidget {
             FlutterQuillLocalizations.delegate,
           ],
           supportedLocales: AppLocalizations.supportedLocales,
+          localeResolutionCallback: (deviceLocale, supportedLocales) {
+            if (settings.currentLocale != null) {
+              Intl.defaultLocale = settings.currentLocale!.languageCode;
+              return settings.currentLocale;
+            }
+            if (deviceLocale != null) {
+              Intl.defaultLocale = deviceLocale.languageCode;
+            }
+            return deviceLocale;
+          },
         );
       },
     );

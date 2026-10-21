@@ -61,10 +61,10 @@ void main() {
       expect(v1Notes.first['title'], 'My Old Note');
       await db.close();
 
-      // 2. Open the same database at version 19 with _upgradeDB
+      // 2. Open the same database at version 25 with _upgradeDB
       final upgradedDb = await openDatabase(
         dbPath,
-        version: 19,
+        version: 25,
         onUpgrade: (db, oldVersion, newVersion) async {
           await DatabaseHelper.instance.upgradeTestDatabase(db, oldVersion, newVersion);
         },
@@ -84,6 +84,11 @@ void main() {
       expect(tableNames.contains('recurring_rules'), isTrue);
       expect(tableNames.contains('deleted_notes'), isTrue);
       expect(tableNames.contains('deleted_transaction_sms_ids'), isTrue);
+      expect(tableNames.contains('split_bills'), isTrue);
+      expect(tableNames.contains('split_participants'), isTrue);
+      expect(tableNames.contains('split_contacts'), isTrue);
+      expect(tableNames.contains('savings_goals'), isTrue);
+      expect(tableNames.contains('deleted_period_logs'), isTrue);
 
       // Verify legacy note was preserved and new columns were defaulted safely
       final upgradedNotes = await upgradedDb.query('notes', where: 'id = ?', whereArgs: ['legacy_v1_note_1']);
@@ -216,14 +221,14 @@ void main() {
       expect(settings.trashAutoPurgeDays, 30);
     });
 
-    testWidgets('WhatsNewSheet renders v2.48.2 cards and records version on dismiss', (tester) async {
+    testWidgets('WhatsNewSheet renders v2.48.3 cards and records version on dismiss', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
       SharedPreferences.setMockInitialValues({
-        'lastSeenVersion': '2.48.1',
+        'lastSeenVersion': '2.48.2',
       });
       final settings = SettingsProvider();
       await settings.loadSettings();
@@ -233,7 +238,7 @@ void main() {
           value: settings,
           child: const MaterialApp(
             home: Scaffold(
-              body: WhatsNewSheet(currentVersion: '2.48.2'),
+              body: WhatsNewSheet(currentVersion: '2.48.3'),
             ),
           ),
         ),
@@ -246,10 +251,10 @@ void main() {
       expect(find.text("Fixes"), findsOneWidget);
 
       // Check marquee items
+      expect(find.text("Russian Language & Ruble"), findsOneWidget);
       expect(find.text("Split Settlement History"), findsOneWidget);
-      expect(find.text("Instant Settlement Undo"), findsOneWidget);
-      expect(find.text("Fluid UI Motion"), findsOneWidget);
-      expect(find.text("Financial Trust Beats"), findsOneWidget);
+      expect(find.text("Reclaimed Notes Feed"), findsOneWidget);
+      expect(find.text("Calm Financial Dashboard"), findsOneWidget);
 
       // Tap "Awesome, Got It!" to finish
       await tester.runAsync(() async {
@@ -258,7 +263,7 @@ void main() {
       });
       await tester.pumpAndSettle();
 
-      expect(settings.lastSeenVersion, '2.48.2');
+      expect(settings.lastSeenVersion, '2.48.3');
     });
   });
 }

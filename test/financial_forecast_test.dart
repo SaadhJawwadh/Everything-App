@@ -129,7 +129,10 @@ void main() {
     testWidgets('Renders daily safe-to-spend and status chip cleanly', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
       const forecast = MonthlySpendingForecast(
         totalBudget: 20000.0,
@@ -171,7 +174,10 @@ void main() {
     testWidgets('MinimalChartDeck renders and supports swiping and details navigation', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
       bool detailsTapped = false;
       final monthlyData = [
@@ -222,7 +228,10 @@ void main() {
     testWidgets('FinancialAnalyticsTab renders empty state and active dashboard correctly', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
       await tester.pumpWidget(
         MaterialApp(
@@ -249,7 +258,10 @@ void main() {
     testWidgets('FinancialAnalyticsTab renders Budgets and Breakdown deck and toggles pills', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
       final transactions = [
         TransactionModel(

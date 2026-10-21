@@ -37,6 +37,11 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.language_rounded,
+            title: "Russian Language & Ruble",
+            desc: "Full Russian localization and authentic Ruble (₽) currency formatting across ledgers.",
+          ),
+          _WhatsNewItem(
             icon: Icons.receipt_long_rounded,
             title: "Split Settlement History",
             desc: "View complete shared bill records with friends, exact settlement dates, and per-bill status in a clean sheet.",
@@ -51,11 +56,6 @@ class WhatsNewSheet extends StatelessWidget {
             title: "Fluid UI Motion",
             desc: "Expressive spring physics, seamless container transitions, and origin-safe scale-fade effects across all screens.",
           ),
-          _WhatsNewItem(
-            icon: Icons.touch_app_rounded,
-            title: "Tactile Touch Feedback",
-            desc: "Asymmetric press-and-release tactile feedback with natural physics on cards and buttons.",
-          ),
         ],
       ),
       _WhatsNewCategory(
@@ -65,24 +65,24 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.tertiaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.space_dashboard_outlined,
+            title: "Reclaimed Notes Feed",
+            desc: "Notes appear immediately below the app bar with pro tips neatly relocated to About & Guides.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.speed_rounded,
+            title: "Calm Financial Dashboard",
+            desc: "Focused, non-distracting cash flow overview without flashing or unexpected auto-flipping numbers.",
+          ),
+          _WhatsNewItem(
             icon: Icons.account_balance_wallet_rounded,
             title: "Split Ledger Parity",
             desc: "Linked settlements directly to ledger transactions for exact, penny-perfect cash flow tracking.",
           ),
           _WhatsNewItem(
-            icon: Icons.people_alt_rounded,
-            title: "Smart Contact Matching",
-            desc: "Automatic deduplication and case-insensitive grouping for friends across split bills.",
-          ),
-          _WhatsNewItem(
             icon: Icons.widgets_rounded,
             title: "Android Widgets",
             desc: "Enabled vertical resizing on all home screen widgets with restored month analytics sparklines.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.verified_rounded,
-            title: "Financial Trust Beats",
-            desc: "Calm, trust-centric completion feedback on bill settlements and savings deposits.",
           ),
         ],
       ),
@@ -93,24 +93,24 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.secondaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.folder_open_rounded,
+            title: "Unified Folder Navigation",
+            desc: "Removed redundant folder menu options for a cleaner, unified navigation experience.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.checklist_rounded,
+            title: "Checklist Previews",
+            desc: "Polished note card previews to cleanly highlight pending actionable tasks.",
+          ),
+          _WhatsNewItem(
             icon: Icons.history_rounded,
             title: "Friend-Paid Bill Reopening",
             desc: "Restored 1-tap undo on bills paid by friends without affecting older historical settlements.",
           ),
           _WhatsNewItem(
-            icon: Icons.check_box_rounded,
-            title: "Widget Task Checkboxes",
-            desc: "Fixed checklist items reverting by ensuring in-memory cache synchronizes with disk updates.",
-          ),
-          _WhatsNewItem(
             icon: Icons.security_rounded,
-            title: "Database Migration v25",
-            desc: "Seamless schema upgrade preserving all legacy split records and payment history safely.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.zoom_in_map_rounded,
-            title: "Scale Transition Origin",
-            desc: "Eliminated visual distortion by anchoring scale transitions to a subtle 0.92 floor.",
+            title: "Database Resilience",
+            desc: "Seamless schema upgrades and rolling snapshots preserving all data safely.",
           ),
         ],
       ),

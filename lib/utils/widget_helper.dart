@@ -177,6 +177,8 @@ class WidgetHelper {
 
       // Trigger update on native side
       await _channel.invokeMethod('updateWidget');
+    } on MissingPluginException {
+      // Ignore missing native implementation silently in testing environments
     } catch (e) {
       // Avoid crashing the app if widget updates fail
       debugPrint('Widget update failed: $e');
@@ -325,6 +327,8 @@ class WidgetHelper {
       }
 
       await _channel.invokeMethod('updateWidget');
+    } on MissingPluginException {
+      // Ignore missing native implementation silently in testing environments
     } catch (e) {
       debugPrint('Todo widget update failed: $e');
     }

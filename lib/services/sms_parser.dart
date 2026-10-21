@@ -5,6 +5,35 @@ import '../data/custom_sms_rule.dart';
 import 'sms_constants.dart';
 
 class SmsParser {
+  /// Safely parses a raw numerical amount string supporting both standard
+  /// Anglo-American formats ("1,500.50", "1500.50") and European/Russian
+  /// formats ("1 500,50", "1.500,50", "1500,50").
+  static double? parseAmountString(String raw) {
+    var cleaned = raw.replaceAll(' ', '').trim();
+    if (cleaned.isEmpty) return null;
+
+    // Both comma and dot present: determine which is decimal by last occurrence
+    if (cleaned.contains(',') && cleaned.contains('.')) {
+      if (cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')) {
+        // e.g. 1.500,50 -> dot is thousands, comma is decimal
+        cleaned = cleaned.replaceAll('.', '').replaceAll(',', '.');
+      } else {
+        // e.g. 1,500.50 -> comma is thousands, dot is decimal
+        cleaned = cleaned.replaceAll(',', '');
+      }
+    } else if (cleaned.contains(',')) {
+      // Only comma present: check if it's a decimal separator (followed by 1 or 2 digits at the end)
+      // e.g. "1500,50" or "15,5" vs "1,500" or "1,500,000"
+      final commaDecimalRegex = RegExp(r',\d{1,2}$');
+      if (commaDecimalRegex.hasMatch(cleaned)) {
+        cleaned = cleaned.replaceAll(',', '.');
+      } else {
+        cleaned = cleaned.replaceAll(',', '');
+      }
+    }
+    return double.tryParse(cleaned);
+  }
+
   static bool isPotentiallyRelevant({
     required String body,
     required String address,
@@ -157,7 +186,10 @@ class SmsParser {
       final preferredRegex = SmsConstants.buildPreferredAmountRegex(preferredCurrency);
       final preferredMatch = preferredRegex.firstMatch(amountSearchBody) ?? preferredRegex.firstMatch(body);
       if (preferredMatch != null) {
-        amount = double.tryParse(preferredMatch.group(1)!.replaceAll(',', ''));
+        final raw = preferredMatch.group(1) ?? preferredMatch.group(2);
+        if (raw != null) {
+          amount = parseAmountString(raw);
+        }
       }
     }
 
@@ -165,7 +197,10 @@ class SmsParser {
     if (amount == null) {
       final amountMatch = SmsConstants.amountRegex.firstMatch(amountSearchBody) ?? SmsConstants.amountRegex.firstMatch(body);
       if (amountMatch != null) {
-        amount = double.tryParse(amountMatch.group(1)!.replaceAll(',', ''));
+        final raw = amountMatch.group(1) ?? amountMatch.group(2);
+        if (raw != null) {
+          amount = parseAmountString(raw);
+        }
       }
     }
 
@@ -173,7 +208,7 @@ class SmsParser {
     if (amount == null) {
       final bareMatch = SmsConstants.bareAmountRegex.firstMatch(amountSearchBody) ?? SmsConstants.bareAmountRegex.firstMatch(body);
       if (bareMatch != null) {
-        amount = double.tryParse(bareMatch.group(1)!.replaceAll(',', ''));
+        amount = parseAmountString(bareMatch.group(1)!);
       }
     }
     if (amount == null || amount <= 0) return null;
@@ -310,7 +345,7 @@ class SmsParser {
     final merchant = extractMerchant(text);
     if (merchant != null) return appendBankSuffix('${isExpense ? "Payment at" : "Received from"} $merchant $amountLabel', bankName);
 
-    text = text.replaceAll(SmsConstants.debitRegex, '').replaceAll(SmsConstants.creditRegex, '').replaceAll(SmsConstants.noiseWordsRegex, '').replaceAll(RegExp(r"[^A-Za-z0-9\s&'\-]"), ' ').replaceAll(RegExp(r'\s{2,}'), ' ').trim();
+    text = text.replaceAll(SmsConstants.debitRegex, '').replaceAll(SmsConstants.creditRegex, '').replaceAll(SmsConstants.noiseWordsRegex, '').replaceAll(RegExp(r"[^A-Za-z0-9\u0400-\u04FF\s&'\-]"), ' ').replaceAll(RegExp(r'\s{2,}'), ' ').trim();
     if (text.length > 50) text = text.substring(0, 50).trim();
     final direction = isExpense ? 'Debit' : 'Credit';
     return appendBankSuffix(text.isNotEmpty ? '$direction – ${cleanTitle(text)} $amountLabel' : '$direction $amountLabel', bankName ?? sender);

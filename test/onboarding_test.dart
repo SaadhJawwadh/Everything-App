@@ -60,7 +60,10 @@ void main() {
     testWidgets('Renders onboarding page 1 (Welcome) successfully', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
@@ -73,7 +76,10 @@ void main() {
     testWidgets('Navigating next and back pages works', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
@@ -111,7 +117,10 @@ void main() {
     testWidgets('Toggling theme mode inside onboarding updates settings', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
@@ -132,7 +141,10 @@ void main() {
     testWidgets('Toggling modules inside onboarding updates settings', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
@@ -187,7 +199,10 @@ void main() {
     testWidgets('Toggling Tactile Haptics and selecting language inside onboarding updates settings', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
@@ -218,7 +233,10 @@ void main() {
     testWidgets('Tapping Configure P2P Sync on page 4 navigates to P2pSyncScreen', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 1920);
       tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();

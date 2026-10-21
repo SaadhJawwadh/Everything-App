@@ -202,4 +202,59 @@ class TransactionCategory {
         return Icons.category_outlined;
     }
   }
+
+  static String localizedName(BuildContext context, String category) {
+    try {
+      final lang = Localizations.localeOf(context).languageCode;
+      if (lang == 'ru') {
+        switch (category.toLowerCase()) {
+          case 'food & dining':
+          case 'food':
+            return 'Еда и рестораны';
+          case 'transport':
+          case 'commute':
+            return 'Транспорт';
+          case 'groceries':
+            return 'Продукты';
+          case 'shopping':
+            return 'Покупки';
+          case 'utilities':
+          case 'bills':
+            return 'Коммунальные';
+          case 'subscriptions':
+            return 'Подписки';
+          case 'health':
+          case 'medical':
+            return 'Здоровье';
+          case 'entertainment':
+          case 'leisure':
+            return 'Развлечения';
+          case 'deposit':
+          case 'income':
+          case 'salary':
+            return 'Доход';
+          case 'transfer':
+          case 'saving':
+            return 'Переводы';
+          case 'education':
+            return 'Образование';
+          case 'travel':
+            return 'Путешествия';
+          case 'housing':
+          case 'home':
+            return 'Жилье';
+          case 'fitness':
+            return 'Фитнес';
+          case 'payments':
+          case 'loans':
+            return 'Платежи';
+          case 'other':
+            return 'Другое';
+          default:
+            return category;
+        }
+      }
+    } catch (_) {}
+    return category;
+  }
 }

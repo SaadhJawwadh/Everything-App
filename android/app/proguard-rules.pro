@@ -84,6 +84,10 @@
 -keep class dev.fluttercommunity.plus.in_app_review.** { *; }
 -dontwarn dev.fluttercommunity.plus.in_app_review.**
 
+# Flutter Quill Native Bridge
+-keep class dev.flutterquill.quill_native_bridge.** { *; }
+-dontwarn dev.flutterquill.quill_native_bridge.**
+
 # General JNI keep
 -keepclassmembers class * { native <methods>; }
 

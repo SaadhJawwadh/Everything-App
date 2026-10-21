@@ -318,7 +318,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                 // 3. Filter Chips Bar
                 _buildFilterBar(context, splitProvider),
 
-                const SizedBox(height: AppLayout.spaceM),
+                const SizedBox(height: AppLayout.spaceS),
 
                 // 4. Content Section (People View vs Bills View)
                 if (splitProvider.isLoading && splitProvider.bills.isEmpty)
@@ -491,6 +491,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                             style: theme.textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: successColor,
+                              fontFeatures: const [FontFeature.tabularFigures()],
                             ),
                           ),
                         ),
@@ -538,6 +539,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                             style: theme.textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: debtColor,
+                              fontFeatures: const [FontFeature.tabularFigures()],
                             ),
                           ),
                         ),
@@ -713,6 +715,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
 
     return AnimationLimiter(
       child: ListView.separated(
+        padding: EdgeInsets.zero,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: personNames.length,
@@ -812,6 +815,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: isOwed ? successColor : (owes ? debtColor : colorScheme.onSurfaceVariant),
+                              fontFeatures: const [FontFeature.tabularFigures()],
                             ),
                           ),
                           if (!isSettled) ...[
@@ -936,6 +940,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
 
     return AnimationLimiter(
       child: ListView.separated(
+        padding: EdgeInsets.zero,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: bills.length,

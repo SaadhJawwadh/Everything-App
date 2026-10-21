@@ -11,6 +11,6 @@
     android:previewImage="@mipmap/ic_launcher"
     android:previewLayout="@layout/finance_widget_layout"
     android:description="@string/finance_widget_description"
-    android:resizeMode="vertical"
+    android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen">
 </appwidget-provider>

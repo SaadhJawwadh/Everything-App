@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:async';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/local_ai_service.dart';
@@ -239,6 +240,9 @@ class SettingsProvider extends ChangeNotifier {
     _defaultPaymentInfo = prefs.getString('defaultPaymentInfo') ?? '';
     _currency = prefs.getString('currency') ?? 'LKR';
     _selectedLanguageCode = prefs.getString('selectedLanguageCode');
+    if (_selectedLanguageCode != null && _selectedLanguageCode!.isNotEmpty && _selectedLanguageCode != 'system') {
+      Intl.defaultLocale = _selectedLanguageCode;
+    }
 
     _autoBackupEnabled = prefs.getBool('autoBackupEnabled') ?? false;
     _autoBackupFrequency = prefs.getString('autoBackupFrequency') ?? 'daily';
@@ -376,8 +380,10 @@ class SettingsProvider extends ChangeNotifier {
     final clean = code.trim();
     if (clean.isEmpty || clean == 'system') {
       _selectedLanguageCode = null;
+      Intl.defaultLocale = null;
     } else {
       _selectedLanguageCode = clean;
+      Intl.defaultLocale = clean;
     }
     final prefs = await SharedPreferences.getInstance();
     if (_selectedLanguageCode == null) {

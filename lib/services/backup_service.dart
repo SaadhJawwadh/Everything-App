@@ -23,6 +23,7 @@ import '../features/finances/presentation/screens/financial_manager_screen.dart'
 import '../features/finances/providers/split_bill_provider.dart';
 import '../features/finances/providers/financial_manager_provider.dart';
 import '../features/finances/providers/savings_goal_provider.dart';
+import '../features/health/providers/period_tracker_provider.dart';
 import '../utils/rich_text_utils.dart';
 import '../utils/widget_helper.dart';
 import 'package:intl/intl.dart';
@@ -565,6 +566,7 @@ class BackupService {
       final financeProvider = Provider.of<FinancialManagerProvider>(context, listen: false);
       final splitProvider = Provider.of<SplitBillProvider>(context, listen: false);
       final savingsGoalProvider = Provider.of<SavingsGoalProvider>(context, listen: false);
+      final periodProvider = Provider.of<PeriodTrackerProvider>(context, listen: false);
       final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
 
       try {
@@ -589,6 +591,12 @@ class BackupService {
         await savingsGoalProvider.loadGoals();
       } catch (e) {
         debugPrint('SavingsGoalProvider refresh error: $e');
+      }
+
+      try {
+        await periodProvider.loadData();
+      } catch (e) {
+        debugPrint('PeriodTrackerProvider refresh error: $e');
       }
 
       FinancialManagerScreen.refreshNotifier.value = DateTime.now().millisecondsSinceEpoch;

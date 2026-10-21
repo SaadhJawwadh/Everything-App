@@ -1,11 +1,28 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../data/models/split_bill_model.dart';
 import '../data/repositories/split_bill_repository.dart';
 import '../data/transaction_repository.dart';
 import '../presentation/screens/financial_manager_screen.dart';
+import '../../../services/p2p_sync_service.dart';
 
 class SplitBillProvider extends ChangeNotifier {
   final SplitBillRepository _repository = SplitBillRepository.instance;
+  StreamSubscription? _syncEventsSubscription;
+
+  SplitBillProvider() {
+    _syncEventsSubscription = P2pSyncService.instance.syncEvents.listen((result) {
+      if (result.success) {
+        loadSplitBills(showLoading: false);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _syncEventsSubscription?.cancel();
+    super.dispose();
+  }
 
   List<SplitBillModel> _bills = [];
   List<SplitContactModel> _recentContacts = [];

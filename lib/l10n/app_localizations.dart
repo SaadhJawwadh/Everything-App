@@ -10,6 +10,7 @@ import 'app_localizations_en.dart';
 import 'app_localizations_es.dart';
 import 'app_localizations_fr.dart';
 import 'app_localizations_pt.dart';
+import 'app_localizations_ru.dart';
 import 'app_localizations_ta.dart';
 import 'app_localizations_zh.dart';
 
@@ -104,6 +105,7 @@ abstract class AppLocalizations {
     Locale('es'),
     Locale('fr'),
     Locale('pt'),
+    Locale('ru'),
     Locale('ta'),
     Locale('zh')
   ];
@@ -432,6 +434,12 @@ abstract class AppLocalizations {
   /// **'Safe to Spend Today'**
   String get dailySafeToSpend;
 
+  /// No description provided for @ledger.
+  ///
+  /// In en, this message translates to:
+  /// **'Ledger'**
+  String get ledger;
+
   /// No description provided for @breakdown.
   ///
   /// In en, this message translates to:
@@ -665,6 +673,7 @@ class _AppLocalizationsDelegate
         'es',
         'fr',
         'pt',
+        'ru',
         'ta',
         'zh'
       ].contains(locale.languageCode);
@@ -686,6 +695,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsFr();
     case 'pt':
       return AppLocalizationsPt();
+    case 'ru':
+      return AppLocalizationsRu();
     case 'ta':
       return AppLocalizationsTa();
     case 'zh':

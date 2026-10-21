@@ -28,7 +28,10 @@ void main() {
   testWidgets('StoryCardStudioSheet renders initial text, title, and default 9:16 Story ratio', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
 
     await tester.pumpWidget(buildTestSheet());
     await tester.pumpAndSettle();
@@ -61,7 +64,10 @@ void main() {
   testWidgets('StoryCardStudioSheet switches aspect ratios on segment tap', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
 
     await tester.pumpWidget(buildTestSheet());
     await tester.pumpAndSettle();
@@ -86,7 +92,10 @@ void main() {
   testWidgets('StoryCardStudioSheet cycles luxury theme presets', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
 
     await tester.pumpWidget(buildTestSheet());
     await tester.pumpAndSettle();
@@ -114,7 +123,10 @@ void main() {
   testWidgets('StoryCardStudioSheet toggles metadata chips', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
 
     await tester.pumpWidget(buildTestSheet());
     await tester.pumpAndSettle();
@@ -145,7 +157,10 @@ void main() {
   testWidgets('StoryCardStudioSheet toggles text and title edit mode', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
 
     await tester.pumpWidget(buildTestSheet());
     await tester.pumpAndSettle();
@@ -177,7 +192,10 @@ void main() {
   testWidgets('StoryCardStudioSheet renders Quote mode with ambient quotation mark and attribution', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
 
     await tester.pumpWidget(buildTestSheet(
       initialText: 'Design is not just what it looks like and feels like. Design is how it works.',
@@ -254,7 +272,10 @@ void main() {
   testWidgets('StoryCardStudioSheet toggles between Quote and Reader layout modes', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
 
     const sampleNote = 'Meeting Notes:\n- Finalized roadmap\n[x] Completed review\n\nNext steps for team.';
 

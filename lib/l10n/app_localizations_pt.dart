@@ -179,6 +179,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get dailySafeToSpend => 'Disponível para Gastar Hoje';
 
   @override
+  String get ledger => 'Livro-razão';
+
+  @override
   String get breakdown => 'Divisão';
 
   @override
