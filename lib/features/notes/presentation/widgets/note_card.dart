@@ -9,7 +9,9 @@ import '../../../../core/ui/app_chip.dart';
 import '../../../../widgets/home/universal_search_overlay.dart';
 import '../../../../utils/quill_checklist_helper.dart';
 import '../../../../utils/rich_text_utils.dart';
-import '../../../../providers/note_provider.dart';
+import '../../providers/note_provider.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class NoteCard extends StatelessWidget {
   final Note note;
@@ -128,18 +130,22 @@ class NoteCard extends StatelessWidget {
                   const SizedBox(height: AppLayout.spaceS),
                   Row(
                     children: [
-                      AppChip(
-                        label: '$checkedCount/$totalChecklistItems Done',
-                        icon: checkedCount == totalChecklistItems
-                            ? Icons.check_circle_outline_rounded
-                            : Icons.checklist_rounded,
-                        backgroundColor: checkedCount == totalChecklistItems
-                            ? Colors.green.withValues(alpha: 0.15)
-                            : theme.colorScheme.secondaryContainer.withValues(alpha: 0.4),
-                        textColor: checkedCount == totalChecklistItems
-                            ? Colors.green
-                            : theme.colorScheme.onSecondaryContainer,
-                      ),
+                      Builder(builder: (context) {
+                        final successColor = theme.extension<AppSemanticColors>()?.success ??
+                            (theme.brightness == Brightness.dark ? const Color(0xFF4CAF50) : const Color(0xFF1B873F));
+                        return AppChip(
+                          label: '$checkedCount/$totalChecklistItems Done',
+                          icon: checkedCount == totalChecklistItems
+                              ? Icons.check_circle_outline_rounded
+                              : Icons.checklist_rounded,
+                          backgroundColor: checkedCount == totalChecklistItems
+                              ? successColor.withValues(alpha: 0.15)
+                              : theme.colorScheme.secondaryContainer.withValues(alpha: 0.4),
+                          textColor: checkedCount == totalChecklistItems
+                              ? successColor
+                              : theme.colorScheme.onSecondaryContainer,
+                        );
+                      }),
                     ],
                   ),
                   const SizedBox(height: AppLayout.spaceS),
@@ -265,7 +271,8 @@ class NoteCard extends StatelessWidget {
                     const SizedBox(width: AppLayout.spaceXS),
                     Flexible(
                       child: Text(
-                        'All ${completedItems.length} ${completedItems.length == 1 ? "task" : "tasks"} completed',
+                        AppLocalizations.of(context)?.allTasksCompleted(completedItems.length) ??
+                            'All ${completedItems.length} tasks completed',
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.primary,
                           fontWeight: FontWeight.w600,
@@ -350,7 +357,8 @@ class NoteCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '+$remainingCount more ${remainingCount == 1 ? "item" : "items"}',
+                    AppLocalizations.of(context)?.moreItems(remainingCount) ??
+                        '+$remainingCount more items',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.w600,

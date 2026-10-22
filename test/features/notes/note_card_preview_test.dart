@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:note_taking_app/data/note_model.dart';
-import 'package:note_taking_app/providers/note_provider.dart';
+import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import 'package:note_taking_app/features/notes/presentation/widgets/note_card.dart';
 
 class MockNoteProvider extends ChangeNotifier implements NoteProvider {

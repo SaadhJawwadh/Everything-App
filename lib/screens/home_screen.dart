@@ -8,7 +8,7 @@ import 'package:flutter/rendering.dart';
 import '../data/note_model.dart';
 import '../data/note_templates.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
-import '../providers/note_provider.dart';
+import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import '../core/theme/app_theme.dart';
 import '../core/theme/app_layout.dart';
 import '../core/services/app_haptics.dart';
@@ -236,12 +236,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final allFolders = await NoteRepository.instance.getAllFolders();
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController();
     final chosen = await showDialog<String>(
       context: context,
       builder: (ctx) => AppDialog(
-        title: 'Move to folder',
-        confirmLabel: 'Create & Move',
+        title: l10n?.filterByFolder ?? 'Move to folder',
+        confirmLabel: l10n?.save ?? 'Create & Move',
         onConfirm: () {
           final v = controller.text.trim();
           if (v.isNotEmpty) Navigator.pop(ctx, v);
@@ -259,7 +260,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       color: Colors.transparent,
                       child: ListTile(
                         leading: const Icon(Icons.notes_outlined),
-                        title: const Text('All Notes'),
+                        title: Text(l10n?.allNotes ?? 'All Notes'),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(AppLayout.radiusM),
                         ),
@@ -943,7 +944,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         if (returned == true) await refreshNotes(scrollOnModified: true);
       },
       secondaryAction: IconButton(
-        tooltip: 'Templates',
+        tooltip: AppLocalizations.of(context)?.startFromTemplate ?? 'Templates',
         icon: Icon(Icons.style_outlined, color: colorScheme.onPrimaryContainer, size: 20),
         onPressed: () {
           _showTemplateSheet();
@@ -953,13 +954,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _showTemplateSheet() {
+    final l10n = AppLocalizations.of(context);
     AppBottomSheet.show(
       context: context,
-      title: 'Start from a template',
+      title: l10n?.startFromTemplate ?? 'Start from a template',
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ...NoteTemplate.all().map(
+          ...NoteTemplate.all(l10n).map(
             (t) => ListTile(
               leading: CircleAvatar(
                 backgroundColor:

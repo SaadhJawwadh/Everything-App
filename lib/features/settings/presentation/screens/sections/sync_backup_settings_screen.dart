@@ -9,6 +9,7 @@ import '../../../../../services/backup_service.dart';
 import '../../../../../utils/app_route.dart';
 import '../../../../../widgets/settings_widgets.dart';
 import '../../../../sync/presentation/screens/p2p_sync_screen.dart';
+import '../../../../../l10n/app_localizations.dart';
 import '../../../providers/settings_provider.dart';
 import '../settings_dialogs.dart';
 
@@ -24,11 +25,12 @@ class SyncBackupSettingsScreen extends StatelessWidget {
       backgroundColor: colorScheme.surface,
       body: Consumer<SettingsProvider>(
         builder: (context, settings, _) {
+          final l10n = AppLocalizations.of(context);
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              const ExpressiveSliverAppBar(
-                titleText: 'Data, Sync & Backups',
+              ExpressiveSliverAppBar(
+                titleText: l10n?.syncAndBackups ?? l10n?.backupRestore ?? 'Data, Sync & Backups',
                 showBackButton: true,
               ),
               SliverPadding(

@@ -10,6 +10,7 @@ import '../../../../../utils/app_constants.dart';
 import '../../../../../utils/app_route.dart';
 import '../../../../../widgets/home/home_tip_card.dart';
 import '../../../../../widgets/settings_widgets.dart';
+import '../../../../../l10n/app_localizations.dart';
 import '../onboarding_screen.dart';
 import '../settings_dialogs.dart';
 
@@ -20,14 +21,15 @@ class AboutSettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          const ExpressiveSliverAppBar(
-            titleText: 'About & Guides',
+          ExpressiveSliverAppBar(
+            titleText: l10n?.aboutAndDeviceAi ?? l10n?.about ?? 'About & Guides',
             showBackButton: true,
           ),
           SliverPadding(

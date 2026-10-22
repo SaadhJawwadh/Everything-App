@@ -12,7 +12,7 @@ import 'package:note_taking_app/core/ui/app_chip.dart';
 import 'package:note_taking_app/core/ui/app_dialog.dart';
 import 'package:note_taking_app/core/ui/expressive_sliver_app_bar.dart';
 import 'package:note_taking_app/widgets/bouncing_widget.dart';
-import 'package:note_taking_app/providers/note_provider.dart';
+import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import 'package:note_taking_app/features/finances/providers/financial_manager_provider.dart';
 import 'package:note_taking_app/features/health/providers/period_tracker_provider.dart';
 import 'package:note_taking_app/screens/app_lock_screen.dart';

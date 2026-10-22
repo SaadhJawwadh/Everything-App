@@ -8,7 +8,7 @@ import '../../../../core/ui/app_card.dart';
 import '../../../../core/ui/app_chip.dart';
 import '../../../../core/ui/expressive_split_button.dart';
 import '../../../../data/note_model.dart';
-import '../../../../providers/note_provider.dart';
+import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import '../../../../screens/app_lock_screen.dart';
 import '../../services/note_migration_service.dart';
 

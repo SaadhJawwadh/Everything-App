@@ -6,6 +6,7 @@ import '../../../../../utils/app_route.dart';
 import '../../../../../widgets/settings_widgets.dart';
 import '../../../../notes/presentation/screens/manage_tags_screen.dart';
 import '../../../../notes/presentation/widgets/note_migration_sheet.dart';
+import '../../../../../l10n/app_localizations.dart';
 import '../../../providers/settings_provider.dart';
 import '../settings_dialogs.dart';
 
@@ -16,6 +17,7 @@ class NotesSettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -24,8 +26,8 @@ class NotesSettingsScreen extends StatelessWidget {
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              const ExpressiveSliverAppBar(
-                titleText: 'Notes & Editor',
+              ExpressiveSliverAppBar(
+                titleText: l10n?.notesAndEditorWorkspace ?? 'Notes & Editor',
                 showBackButton: true,
               ),
               SliverPadding(
@@ -43,7 +45,7 @@ class NotesSettingsScreen extends StatelessWidget {
                         SettingsTile(
                           icon: Icons.label_outline,
                           iconColor: const Color(0xFFF59E0B),
-                          title: 'Manage Tags',
+                          title: l10n?.manageTags ?? 'Manage Tags',
                           subtitle: 'Rename or delete note tags',
                           showArrow: true,
                           onTap: () => AppRoute.push(context, const ManageTagsScreen()),

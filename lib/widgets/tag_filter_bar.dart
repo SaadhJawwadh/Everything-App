@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/note_provider.dart';
+import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import '../core/services/app_haptics.dart';
 import '../core/ui/app_chip.dart';
 

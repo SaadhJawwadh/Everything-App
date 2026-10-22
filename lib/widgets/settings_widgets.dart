@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/services/app_haptics.dart';
 import '../core/theme/app_layout.dart';
 import '../core/ui/app_chip.dart';
+import '../l10n/app_localizations.dart';
 import 'bouncing_widget.dart';
 
 /// Top Hero Dashboard Card displaying status indicators, active modules, and quick theme toggle.
@@ -236,7 +237,7 @@ class SettingsHeroCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'App Theme Mode',
+                        AppLocalizations.of(context)?.appThemeMode ?? 'App Theme Mode',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: colorScheme.onSurface,
@@ -247,21 +248,21 @@ class SettingsHeroCard extends StatelessWidget {
                         width: double.infinity,
                         child: SegmentedButton<ThemeMode>(
                           showSelectedIcon: false,
-                          segments: const [
+                          segments: [
                             ButtonSegment(
                               value: ThemeMode.system,
-                              icon: Icon(Icons.brightness_auto_rounded, size: 16),
-                              label: Text('Auto'),
+                              icon: const Icon(Icons.brightness_auto_rounded, size: 16),
+                              label: Text(AppLocalizations.of(context)?.themeSystem ?? 'Auto'),
                             ),
                             ButtonSegment(
                               value: ThemeMode.light,
-                              icon: Icon(Icons.light_mode_rounded, size: 16),
-                              label: Text('Light'),
+                              icon: const Icon(Icons.light_mode_rounded, size: 16),
+                              label: Text(AppLocalizations.of(context)?.themeLight ?? 'Light'),
                             ),
                             ButtonSegment(
                               value: ThemeMode.dark,
-                              icon: Icon(Icons.dark_mode_rounded, size: 16),
-                              label: Text('Dark'),
+                              icon: const Icon(Icons.dark_mode_rounded, size: 16),
+                              label: Text(AppLocalizations.of(context)?.themeDark ?? 'Dark'),
                             ),
                           ],
                           selected: {currentThemeMode},

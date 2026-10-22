@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/services/app_haptics.dart';
 import '../core/theme/app_layout.dart';
-import '../providers/note_provider.dart';
+import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import '../features/finances/providers/financial_manager_provider.dart';
 import '../features/settings/providers/settings_provider.dart';
 

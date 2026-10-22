@@ -15,6 +15,7 @@ import '../widgets/cycle_insights_card.dart';
 import '../widgets/period_log_dashboard_card.dart';
 import '../widgets/period_calendar_card.dart';
 import '../widgets/period_log_editor_sheet.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class PeriodTrackerScreen extends StatefulWidget {
   static final ValueNotifier<DateTime?> openLogEditorNotifier = ValueNotifier<DateTime?>(null);
@@ -95,33 +96,34 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final semantic = theme.extension<AppSemanticColors>();
+    final l10n = AppLocalizations.of(context);
 
     final phases = [
       (
-        'Menstrual Phase',
-        'Days 1–5',
-        'Uterine lining sheds. Energy is lower; prioritize rest, hydration, and gentle movement.',
+        l10n?.menstrualPhase ?? 'Menstrual Phase',
+        l10n?.menstrualPhaseDays ?? 'Days 1–5',
+        l10n?.menstrualPhaseDesc ?? 'Uterine lining sheds. Energy is lower; prioritize rest, hydration, and gentle movement.',
         semantic?.phaseMenstrual ?? const Color(0xFFD32F2F),
         Icons.water_drop_rounded,
       ),
       (
-        'Follicular Phase',
-        'Days 6–13',
-        'Estrogen rises as follicles mature. Energy, mood, and creative focus naturally peak.',
+        l10n?.follicularPhase ?? 'Follicular Phase',
+        l10n?.follicularPhaseDays ?? 'Days 6–13',
+        l10n?.follicularPhaseDesc ?? 'Estrogen rises as follicles mature. Energy, mood, and creative focus naturally peak.',
         semantic?.phaseFollicular ?? const Color(0xFF1976D2),
         Icons.wb_sunny_rounded,
       ),
       (
-        'Ovulatory Phase',
-        'Days 14–16',
-        'Luteinizing hormone surge triggers egg release. Peak confidence, social energy, and fertility.',
+        l10n?.ovulatoryPhase ?? 'Ovulatory Phase',
+        l10n?.ovulatoryPhaseDays ?? 'Days 14–16',
+        l10n?.ovulatoryPhaseDesc ?? 'Luteinizing hormone surge triggers egg release. Peak confidence, social energy, and fertility.',
         semantic?.phaseOvulatory ?? const Color(0xFFF57C00),
         Icons.local_fire_department_rounded,
       ),
       (
-        'Luteal Phase',
-        'Days 17–28',
-        'Progesterone rises. Energy turns inward; PMS symptoms may occur. Prioritize winding down.',
+        l10n?.lutealPhase ?? 'Luteal Phase',
+        l10n?.lutealPhaseDays ?? 'Days 17–28',
+        l10n?.lutealPhaseDesc ?? 'Progesterone rises. Energy turns inward; PMS symptoms may occur. Prioritize winding down.',
         semantic?.phaseLuteal ?? const Color(0xFF7B1FA2),
         Icons.nightlight_round,
       ),
@@ -129,7 +131,7 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
 
     AppBottomSheet.show(
       context: context,
-      title: 'Cycle Phase Guide',
+      title: l10n?.cyclePhaseGuide ?? 'Cycle Phase Guide',
       child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,

@@ -8,6 +8,7 @@ import '../../../../../widgets/settings_widgets.dart';
 import '../../../../finances/presentation/screens/category_management_screen.dart';
 import '../../../../finances/presentation/screens/sms_rules_screen.dart';
 import '../../../../finances/presentation/widgets/recurring_rules_sheet.dart';
+import '../../../../../l10n/app_localizations.dart';
 import '../../../providers/settings_provider.dart';
 import '../settings_dialogs.dart';
 
@@ -24,11 +25,12 @@ class FinancesSettingsScreen extends StatelessWidget {
       backgroundColor: colorScheme.surface,
       body: Consumer<SettingsProvider>(
         builder: (context, settings, _) {
+          final l10n = AppLocalizations.of(context);
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              const ExpressiveSliverAppBar(
-                titleText: 'Finances & Modules',
+              ExpressiveSliverAppBar(
+                titleText: l10n?.financesAndHealthModules ?? 'Finances & Modules',
                 showBackButton: true,
               ),
               SliverPadding(

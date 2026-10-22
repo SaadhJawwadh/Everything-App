@@ -8,7 +8,7 @@ import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_card.dart';
 import '../../../../widgets/bouncing_widget.dart';
 import '../../providers/settings_provider.dart';
-import '../../../../providers/note_provider.dart';
+import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import '../../../sync/presentation/widgets/qr_scanner_dialog.dart';
 import '../../../sync/providers/p2p_sync_provider.dart';
 import '../../../sync/presentation/screens/p2p_sync_screen.dart';

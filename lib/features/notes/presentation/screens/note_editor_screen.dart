@@ -14,9 +14,7 @@ import '../../../../data/note_model.dart';
 import 'package:uuid/uuid.dart';
 import 'package:provider/provider.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_layout.dart';
-import '../../../../core/ui/app_chip.dart';
 import '../../../../utils/rich_text_utils.dart';
 import '../../../../utils/quill_checklist_helper.dart';
 import 'dart:io';
@@ -24,15 +22,17 @@ import 'package:any_link_preview/any_link_preview.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:intl/intl.dart';
 import '../../../../services/local_ai_service.dart';
-import '../../../../services/offline_ai_fallback_service.dart';
 import '../../../../services/notification_service.dart';
-import '../../../../providers/note_provider.dart';
+import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../../utils/app_globals.dart';
 import '../../../../utils/widget_helper.dart';
 import 'package:flutter/services.dart';
 import '../../../../widgets/bouncing_widget.dart';
+import '../widgets/note_tag_picker_sheet.dart';
+import '../widgets/note_slash_command_overlay.dart';
+import '../widgets/note_ai_options_sheet.dart';
 import '../../../../core/services/app_haptics.dart';
 
 import '../../../../widgets/editor/editor_table_dialog.dart';
@@ -136,18 +136,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   int _slashLineStart = 0;
   bool _isCompletedCollapsed = true;
   final List<String> _completedItems = [];
-
-  static final List<({String label, String command, IconData icon, String description})> _slashCommands = [
-    (label: 'AI Assist', command: 'ai', icon: Icons.auto_awesome, description: 'Launch Gemini AI tools'),
-    (label: 'Checklist', command: 'todo', icon: Icons.check_box_outlined, description: 'Interactive to-do checkbox'),
-    (label: 'Table', command: 'table', icon: Icons.table_chart_outlined, description: 'Insert 3x3 data grid'),
-    (label: 'Code Block', command: 'code', icon: Icons.code, description: 'Monospace code container'),
-    (label: 'Heading 1', command: 'h1', icon: Icons.title, description: 'Large main heading'),
-    (label: 'Heading 2', command: 'h2', icon: Icons.text_fields, description: 'Medium section heading'),
-    (label: 'Quote', command: 'quote', icon: Icons.format_quote, description: 'Callout blockquote'),
-    (label: 'Bullet List', command: 'bullet', icon: Icons.format_list_bulleted, description: 'Unordered bullet points'),
-    (label: 'Numbered List', command: 'number', icon: Icons.format_list_numbered, description: 'Sequential numbered list'),
-  ];
 
   late TextEditingController _searchController;
   late FocusNode _searchFocusNode;
@@ -822,202 +810,34 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   void _showTagPicker() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      showDragHandle: true,
-      builder: (context) {
-        String enteredTag = '';
-        int newTagColor = 0;
-
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final mediaQuery = MediaQuery.of(context);
-            final maxHeight = mediaQuery.size.height * 0.75;
-
-            return ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: maxHeight),
-              child: SingleChildScrollView(
-                padding: EdgeInsets.only(
-                  bottom: mediaQuery.viewInsets.bottom + 16,
-                  left: 16,
-                  right: 16,
-                  top: 8,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text('Manage Tags',
-                        style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 16),
-                    TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Create new tag',
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.add),
-                          onPressed: () async {
-                            if (enteredTag.isNotEmpty) {
-                              if (newTagColor != 0) {
-                                await NoteRepository.instance
-                                    .setTagColor(enteredTag, newTagColor);
-                                _tagColors[enteredTag] = newTagColor;
-                              }
-                              setState(() {
-                                if (!tags.contains(enteredTag)) {
-                                  tags.add(enteredTag);
-                                  _updateColorFromTags();
-                                }
-                                if (!_allTags.contains(enteredTag)) {
-                                  _allTags.add(enteredTag);
-                                }
-                              });
-                              if (context.mounted) Navigator.pop(context);
-                            }
-                          },
-                        ),
-                      ),
-                      onChanged: (v) => enteredTag = v.trim(),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'TAG COLOR',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      alignment: WrapAlignment.center,
-                      children: [
-                        ...AppTheme.noteColors.map((c) {
-                          final bool isSystem = c.toARGB32() == 0;
-                          final bool isSelected =
-                              !isSystem && newTagColor == c.toARGB32();
-                          return Semantics(
-                            label: isSystem ? 'Random Color' : 'Color option',
-                            selected: isSelected,
-                            button: true,
-                            child: GestureDetector(
-                              onTap: () {
-                                if (isSystem) {
-                                  final nonZeroColors = AppTheme.noteColors
-                                      .where((color) => color.toARGB32() != 0)
-                                      .toList();
-                                  final randomColor =
-                                      (nonZeroColors..shuffle()).first;
-                                  setModalState(
-                                      () => newTagColor = randomColor.toARGB32());
-                                } else {
-                                  setModalState(() => newTagColor = c.toARGB32());
-                                }
-                              },
-                              child: SizedBox(
-                                width: 44,
-                                height: 44,
-                                child: Center(
-                                  child: Container(
-                                    width: isSelected ? 34 : 30,
-                                    height: isSelected ? 34 : 30,
-                                    decoration: BoxDecoration(
-                                      color: isSystem
-                                          ? Theme.of(context).colorScheme.surfaceContainerHigh
-                                          : c,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: isSelected
-                                            ? Theme.of(context).colorScheme.primary
-                                            : Theme.of(context)
-                                                .colorScheme
-                                                .outlineVariant,
-                                        width: isSelected ? 3 : 1,
-                                      ),
-                                      boxShadow: isSelected
-                                          ? [
-                                              BoxShadow(
-                                                color: c.withValues(alpha: 0.4),
-                                                blurRadius: 6,
-                                                spreadRadius: 1,
-                                              ),
-                                            ]
-                                          : null,
-                                    ),
-                                    child: isSystem
-                                        ? const Icon(Icons.shuffle, size: 16)
-                                        : (isSelected
-                                            ? Icon(Icons.check,
-                                                size: 16,
-                                                color: c.computeLuminance() > 0.5
-                                                    ? Colors.black
-                                                    : Colors.white)
-                                            : null),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    if (_allTags.isNotEmpty) ...[
-                      Text(
-                        'SELECT TAGS',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
-                            ),
-                      ),
-                      const SizedBox(height: 8),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 220),
-                        child: SingleChildScrollView(
-                          child: Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: _allTags.map((t) {
-                              final isSelected = tags.contains(t);
-                              final tagColorVal = _tagColors[t];
-                              final colors = AppChip.getTagColors(context, tagColorVal,
-                                  isSelected: isSelected);
-
-                              return AppChip(
-                                label: t,
-                                icon: isSelected ? Icons.check : null,
-                                isSelected: isSelected,
-                                backgroundColor: colors.bg,
-                                selectedBackgroundColor: colors.bg,
-                                textColor: colors.fg,
-                                border: colors.border,
-                                onTap: () {
-                                  setState(() {
-                                    if (isSelected) {
-                                      tags.remove(t);
-                                    } else {
-                                      tags.add(t);
-                                    }
-                                    _updateColorFromTags();
-                                  });
-                                  setModalState(() {});
-                                },
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            );
-          },
-        );
+    NoteTagPickerSheet.show(
+      context,
+      currentTags: tags,
+      allTags: _allTags,
+      tagColors: _tagColors,
+      onTagToggled: (t, isSelected) {
+        setState(() {
+          if (isSelected) {
+            tags.add(t);
+          } else {
+            tags.remove(t);
+          }
+          _updateColorFromTags();
+        });
+      },
+      onTagCreated: (newTag, colorVal) {
+        setState(() {
+          if (!tags.contains(newTag)) {
+            tags.add(newTag);
+            _updateColorFromTags();
+          }
+          if (!_allTags.contains(newTag)) {
+            _allTags.add(newTag);
+          }
+          if (colorVal != 0) {
+            _tagColors[newTag] = colorVal;
+          }
+        });
       },
     );
   }
@@ -1729,849 +1549,64 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     }
   }
 
-  Future<void> _showAiResultSheet({
-    required BuildContext context,
-    required String title,
-    required String resultText,
-    required bool isSelection,
-    required TextSelection? selection,
-  }) async {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: colorScheme.surfaceContainerHigh,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 16,
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.auto_awesome, color: Colors.amber, size: 22),
-                    const SizedBox(width: 8),
-                    Text(
-                      title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.of(ctx).pop(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  constraints: const BoxConstraints(maxHeight: 240),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: colorScheme.secondaryContainer.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(AppLayout.radiusM),
-                    border: Border.all(
-                      color: colorScheme.secondary.withValues(alpha: 0.30),
-                      width: 1.2,
-                    ),
-                  ),
-                  child: SingleChildScrollView(
-                    child: SelectableText(
-                      resultText,
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.end,
-                  children: [
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.copy_outlined, size: 18),
-                      label: const Text('Copy'),
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: resultText));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Copied result to clipboard'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                        Navigator.of(ctx).pop();
-                      },
-                    ),
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.post_add_outlined, size: 18),
-                      label: const Text('Insert Below'),
-                      onPressed: () {
-                        final docLen = _quillController.document.length;
-                        final safeLen = docLen > 0 ? docLen - 1 : 0;
-                        final insertPos = isSelection && selection != null
-                            ? selection.end.clamp(0, safeLen)
-                            : safeLen;
-                        _quillController.replaceText(
-                          insertPos,
-                          0,
-                          '\n$resultText',
-                          null,
-                        );
-                        _onContentChanged();
-                        saveNote();
-                        Navigator.of(ctx).pop();
-                      },
-                    ),
-                    FilledButton.icon(
-                      icon: const Icon(Icons.check, size: 18),
-                      label: Text(isSelection ? 'Replace Selection' : 'Replace All'),
-                      onPressed: () {
-                        final docLen = _quillController.document.length;
-                        final safeLen = docLen > 0 ? docLen - 1 : 0;
-                        if (isSelection && selection != null) {
-                          final start = selection.start.clamp(0, safeLen);
-                          final end = selection.end.clamp(start, safeLen);
-                          _quillController.replaceText(
-                            start,
-                            end - start,
-                            resultText,
-                            null,
-                          );
-                        } else {
-                          _quillController.replaceText(
-                            0,
-                            safeLen,
-                            resultText,
-                            null,
-                          );
-                        }
-                        _onContentChanged();
-                        saveNote();
-                        Navigator.of(ctx).pop();
-                      },
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   void _showAiOptionsSheet() {
-    final aiService = Provider.of<LocalAiService>(context, listen: false);
     final settings = Provider.of<SettingsProvider>(context, listen: false);
-    bool isLoading = false;
-    String? statusText;
+    if (!settings.isAiActive) return;
+    final aiService = Provider.of<LocalAiService>(context, listen: false);
 
-    final sel = _quillController.selection;
-    final bool isSelection = sel.isValid && !sel.isCollapsed;
-    final String targetText = isSelection
-        ? _quillController.document.getPlainText(sel.start, sel.end - sel.start).trim()
-        : _quillController.document.toPlainText().trim();
-
-    showModalBottomSheet(
+    NoteAiOptionsSheet.showOptions(
       context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (sheetContext, setModalState) {
-            final theme = Theme.of(sheetContext);
-            final colorScheme = theme.colorScheme;
-
-            Widget buildSectionHeader(String title, IconData icon) {
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(2, 10, 2, 4),
-                child: Row(
-                  children: [
-                    Icon(icon, size: 14, color: colorScheme.primary),
-                    const SizedBox(width: 6),
-                    Text(
-                      title.toUpperCase(),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.7,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
-
-            return SafeArea(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
-                ),
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        (() {
-                          final badgeColor = settings.isDeviceAiSupported
-                              ? (theme.extension<AppSemanticColors>()?.success ?? colorScheme.primary)
-                              : colorScheme.tertiary;
-                          return Center(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: badgeColor.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(AppLayout.radiusMAX),
-                                border: Border.all(
-                                  color: badgeColor.withValues(alpha: 0.35),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 7,
-                                    height: 7,
-                                    decoration: BoxDecoration(
-                                      color: badgeColor,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    settings.isDeviceAiSupported
-                                        ? 'NPU Hardware Ready • 100% Offline'
-                                        : 'Offline NLP Engines • 100% Offline',
-                                    style: theme.textTheme.labelSmall?.copyWith(
-                                      color: badgeColor,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 10,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        })(),
-                        const SizedBox(height: 10),
-                        // Header Avatar Ring
-                        Center(
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: colorScheme.primaryContainer,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: colorScheme.primary.withValues(alpha: 0.15),
-                                  blurRadius: 8,
-                                  spreadRadius: 1,
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.auto_awesome_rounded,
-                              size: 20,
-                              color: colorScheme.onPrimaryContainer,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'On-Device Gemini AI',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: -0.2,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          settings.isDeviceAiSupported
-                              ? 'Powered by Android AI Core • 100% Offline & Private'
-                              : 'Powered by offline rules & patterns • 100% Offline & Private',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                            fontSize: 11,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-
-                        // Context Badge
-                        Center(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: isSelection
-                                  ? colorScheme.primaryContainer.withValues(alpha: 0.7)
-                                  : colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(AppLayout.radiusMAX),
-                              border: Border.all(
-                                color: isSelection
-                                    ? colorScheme.primary.withValues(alpha: 0.3)
-                                    : colorScheme.outlineVariant.withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  isSelection ? Icons.select_all_rounded : Icons.description_outlined,
-                                  size: 13,
-                                  color: isSelection
-                                      ? colorScheme.onPrimaryContainer
-                                      : colorScheme.onSurfaceVariant,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  isSelection
-                                      ? 'Targeting selected text (${targetText.length} chars)'
-                                      : 'Targeting entire note content',
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: isSelection
-                                        ? colorScheme.onPrimaryContainer
-                                        : colorScheme.onSurfaceVariant,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-
-                        if (statusText != null) ...[
-                          const SizedBox(height: 6),
-                          Text(
-                            statusText!,
-                            style: TextStyle(
-                              color: colorScheme.primary,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 13,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-
-                        if (isLoading) ...[
-                          const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                              borderRadius: BorderRadius.circular(AppLayout.radiusM),
-                              border: Border.all(
-                                color: colorScheme.primary.withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: Column(
-                              children: [
-                                LinearProgressIndicator(
-                                  backgroundColor: colorScheme.primary.withValues(alpha: 0.15),
-                                  color: colorScheme.primary,
-                                  borderRadius: BorderRadius.circular(AppLayout.radiusMAX),
-                                ),
-                                const SizedBox(height: 10),
-                                Text(
-                                  statusText ?? 'Processing with Gemini Nano…',
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: colorScheme.primary,
-                                    fontSize: 13,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ] else ...[
-                          // Section 1: Refine & Rewrite
-                          buildSectionHeader('Refine & Rewrite', Icons.edit_note_rounded),
-                          _buildAiTile(
-                            context: context,
-                            icon: Icons.check_box_outlined,
-                            title: 'Extract Action Items',
-                            subtitle: isSelection
-                                ? 'Find to-dos in selection and create checkboxes'
-                                : 'Find to-dos in note and create checkboxes',
-                            onTap: () async {
-                              final editorContext = context;
-                              final navigator = Navigator.of(editorContext);
-                              if (targetText.isEmpty) {
-                                setModalState(() {
-                                  statusText = 'No text to analyze.';
-                                });
-                                return;
-                              }
-                              setModalState(() {
-                                isLoading = true;
-                                statusText = 'Extracting tasks...';
-                              });
-                              final prompt =
-                                  "Extract all actionable tasks, to-dos, or action items from the following text. Format each item on a new line prefixed with '☐ '. Respond ONLY with the list of items:\n\n$targetText";
-                              String actionItemsText = await aiService.generateText(prompt) ?? '';
-                              if (actionItemsText.trim().isEmpty) {
-                                actionItemsText = OfflineAiFallbackService.extractActionItems(targetText);
-                              }
-                              if (actionItemsText.trim().isNotEmpty) {
-                                navigator.pop();
-                                if (mounted) {
-                                  await _showAiResultSheet(
-                                    context: context,
-                                    title: 'Extracted Action Items',
-                                    resultText: actionItemsText.trim(),
-                                    isSelection: isSelection,
-                                    selection: isSelection ? sel : null,
-                                  );
-                                }
-                              } else {
-                                setModalState(() {
-                                  isLoading = false;
-                                  statusText = 'No action items found.';
-                                });
-                              }
-                            },
-                          ),
-                          const SizedBox(height: 6),
-                          _buildAiTile(
-                            context: context,
-                            icon: Icons.auto_fix_high_rounded,
-                            title: 'Proofread & Polish',
-                            subtitle: 'Correct grammar, spelling, and style',
-                            onTap: () async {
-                              final navigator = Navigator.of(context);
-                              if (targetText.isEmpty) {
-                                setModalState(() {
-                                  statusText = 'No text to polish.';
-                                });
-                                return;
-                              }
-                              setModalState(() {
-                                isLoading = true;
-                                statusText = 'Polishing grammar...';
-                              });
-                              final res = await aiService.refineText(targetText, 'polish');
-                              if (res != null && res.trim().isNotEmpty) {
-                                navigator.pop();
-                                if (mounted) {
-                                  await _showAiResultSheet(
-                                    context: context,
-                                    title: 'Polished Text',
-                                    resultText: res.trim(),
-                                    isSelection: isSelection,
-                                    selection: isSelection ? sel : null,
-                                  );
-                                }
-                              } else {
-                                setModalState(() {
-                                  isLoading = false;
-                                  statusText = 'Failed to polish text.';
-                                });
-                              }
-                            },
-                          ),
-                          const SizedBox(height: 6),
-                          _buildAiTile(
-                            context: context,
-                            icon: Icons.compress_rounded,
-                            title: 'Make Shorter / Simplify',
-                            subtitle: 'Condense into clear, direct key points',
-                            onTap: () async {
-                              final navigator = Navigator.of(context);
-                              if (targetText.isEmpty) {
-                                setModalState(() {
-                                  statusText = 'No text to shorten.';
-                                });
-                                return;
-                              }
-                              setModalState(() {
-                                isLoading = true;
-                                statusText = 'Simplifying text...';
-                              });
-                              final res = await aiService.refineText(targetText, 'shorten');
-                              if (res != null && res.trim().isNotEmpty) {
-                                navigator.pop();
-                                if (mounted) {
-                                  await _showAiResultSheet(
-                                    context: context,
-                                    title: 'Simplified Text',
-                                    resultText: res.trim(),
-                                    isSelection: isSelection,
-                                    selection: isSelection ? sel : null,
-                                  );
-                                }
-                              } else {
-                                setModalState(() {
-                                  isLoading = false;
-                                  statusText = 'Failed to shorten text.';
-                                });
-                              }
-                            },
-                          ),
-                          const SizedBox(height: 6),
-                          _buildAiTile(
-                            context: context,
-                            icon: Icons.unfold_more_rounded,
-                            title: 'Elaborate & Expand',
-                            subtitle: 'Flesh out quick notes into structured paragraphs',
-                            onTap: () async {
-                              final navigator = Navigator.of(context);
-                              if (targetText.isEmpty) {
-                                setModalState(() {
-                                  statusText = 'No text to expand.';
-                                });
-                                return;
-                              }
-                              setModalState(() {
-                                isLoading = true;
-                                statusText = 'Expanding text...';
-                              });
-                              final res = await aiService.refineText(targetText, 'expand');
-                              if (res != null && res.trim().isNotEmpty) {
-                                navigator.pop();
-                                if (mounted) {
-                                  await _showAiResultSheet(
-                                    context: context,
-                                    title: 'Expanded Text',
-                                    resultText: res.trim(),
-                                    isSelection: isSelection,
-                                    selection: isSelection ? sel : null,
-                                  );
-                                }
-                              } else {
-                                setModalState(() {
-                                  isLoading = false;
-                                  statusText = 'Failed to expand text.';
-                                });
-                              }
-                            },
-                          ),
-
-                          // Section 2: Smart Metadata & Organization
-                          if (!isSelection) ...[
-                            buildSectionHeader('Smart Metadata & Organization', Icons.auto_awesome_mosaic_rounded),
-                            _buildAiTile(
-                              context: context,
-                              icon: Icons.title_rounded,
-                              title: 'Suggest Title',
-                              subtitle: 'Generate a clean title from note content',
-                              onTap: () async {
-                                final navigator = Navigator.of(context);
-                                if (targetText.isEmpty) {
-                                  setModalState(() {
-                                    statusText = 'Note is empty.';
-                                  });
-                                  return;
-                                }
-                                setModalState(() {
-                                  isLoading = true;
-                                  statusText = 'Analyzing content...';
-                                });
-                                final prompt =
-                                    "Generate a short, concise title (maximum 4-5 words) for the following text. Respond ONLY with the title:\n\n$targetText";
-                                String? suggested = await aiService.generateText(prompt);
-                                if (suggested == null || suggested.trim().isEmpty) {
-                                  final lines = targetText.split(RegExp(r'\r?\n|\.'));
-                                  final firstLine = lines.firstWhere((l) => l.trim().isNotEmpty, orElse: () => '');
-                                  if (firstLine.trim().isNotEmpty) {
-                                    final clean = firstLine.trim().replaceAll(RegExp(r'^[•\-\*\d+\.\s]+'), '');
-                                    suggested = clean.length > 35 ? '${clean.substring(0, 35)}…' : clean;
-                                  }
-                                }
-                                if (suggested != null && suggested.trim().isNotEmpty) {
-                                  if (mounted) {
-                                    setState(() {
-                                      _titleController.text = suggested!.trim().replaceAll('"', '');
-                                    });
-                                    _onContentChanged();
-                                    await saveNote();
-                                    navigator.pop();
-                                  }
-                                } else {
-                                  setModalState(() {
-                                    isLoading = false;
-                                    statusText = 'Failed to generate title.';
-                                  });
-                                }
-                              },
-                            ),
-                            const SizedBox(height: 6),
-                            _buildAiTile(
-                              context: context,
-                              icon: Icons.label_outline_rounded,
-                              title: 'Suggest Tags',
-                              subtitle: 'Auto-detect topics and apply tags',
-                              onTap: () async {
-                                final navigator = Navigator.of(context);
-                                if (targetText.isEmpty) {
-                                  setModalState(() {
-                                    statusText = 'Note is empty.';
-                                  });
-                                  return;
-                                }
-                                setModalState(() {
-                                  isLoading = true;
-                                  statusText = 'Identifying topics...';
-                                });
-                                final suggested = await aiService.suggestTags(targetText, _allTags);
-                                if (suggested.isNotEmpty) {
-                                  if (mounted) {
-                                    setState(() {
-                                      for (final tag in suggested) {
-                                        if (!tags.contains(tag)) {
-                                          tags.add(tag);
-                                        }
-                                      }
-                                      _updateColorFromTags();
-                                    });
-                                    _onContentChanged();
-                                    await saveNote();
-                                    navigator.pop();
-                                  }
-                                } else {
-                                  setModalState(() {
-                                    isLoading = false;
-                                    statusText = 'No new tags suggested.';
-                                  });
-                                }
-                              },
-                            ),
-                            const SizedBox(height: 6),
-                            _buildAiTile(
-                              context: context,
-                              icon: Icons.short_text_rounded,
-                              title: 'Summarize Note',
-                              subtitle: 'Append a bulleted summary to the note',
-                              onTap: () async {
-                                final navigator = Navigator.of(context);
-                                if (targetText.isEmpty) {
-                                  setModalState(() {
-                                    statusText = 'Note is empty.';
-                                  });
-                                  return;
-                                }
-                                setModalState(() {
-                                  isLoading = true;
-                                  statusText = 'Generating summary...';
-                                });
-                                final summary = await aiService.summarize(targetText);
-                                if (summary != null && summary.trim().isNotEmpty) {
-                                  if (mounted) {
-                                    setState(() {
-                                      _aiSummary = summary.trim();
-                                    });
-                                    navigator.pop();
-                                  }
-                                } else {
-                                  setModalState(() {
-                                    isLoading = false;
-                                    statusText = 'Failed to generate summary.';
-                                  });
-                                }
-                              },
-                            ),
-                          ],
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        );
+      quillController: _quillController,
+      aiService: aiService,
+      settings: settings,
+      onTitleSuggested: (newTitle) {
+        if (mounted) {
+          setState(() {
+            _titleController.text = newTitle;
+          });
+          _onContentChanged();
+          saveNote();
+        }
       },
-    );
-  }
-
-  Widget _buildAiTile({
-    required BuildContext context,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(AppLayout.radiusM),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
-          width: 0.8,
-        ),
-      ),
-      child: ListTile(
-        dense: true,
-        visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppLayout.radiusM)),
-        leading: Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: colorScheme.primaryContainer.withValues(alpha: 0.35),
-            borderRadius: BorderRadius.circular(AppLayout.radiusS),
-          ),
-          child: Icon(icon, size: 18, color: colorScheme.primary),
-        ),
-        title: Text(
-          title,
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-            color: colorScheme.onSurface,
-            fontSize: 13.5,
-          ),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-            fontSize: 11.5,
-            height: 1.15,
-          ),
-        ),
-        trailing: Icon(Icons.chevron_right_rounded,
-            size: 18, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-        onTap: onTap,
-      ),
+      onTagsSuggested: (newTags) {
+        if (mounted) {
+          setState(() {
+            for (final tag in newTags) {
+              if (!tags.contains(tag)) {
+                tags.add(tag);
+              }
+            }
+            _updateColorFromTags();
+          });
+          _onContentChanged();
+          saveNote();
+        }
+      },
+      onSummaryGenerated: (summary) {
+        if (mounted) {
+          setState(() {
+            _aiSummary = summary;
+          });
+          _onContentChanged();
+          saveNote();
+        }
+      },
+      onContentModified: () {
+        if (mounted) {
+          _onContentChanged();
+          saveNote();
+        }
+      },
     );
   }
 
   Widget _buildSlashMenuOverlay(ThemeData theme, ColorScheme colorScheme) {
-    final filteredCommands = _slashCommands
-        .where((cmd) =>
-            cmd.command.startsWith(_slashQuery) ||
-            cmd.label.toLowerCase().contains(_slashQuery))
-        .toList();
-
-    if (filteredCommands.isEmpty) return const SizedBox.shrink();
-
-    return AnimatedContainer(
-      duration: AppLayout.animShort,
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      constraints: const BoxConstraints(maxHeight: 240),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(AppLayout.radiusXL),
-        boxShadow: AppLayout.softShadow(context),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.35),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
-                child: Row(
-                  children: [
-                    Icon(Icons.bolt, size: 16, color: colorScheme.primary),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Slash Commands',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      'Type to filter',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 6.0),
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  itemCount: filteredCommands.length,
-                  itemBuilder: (context, index) {
-                    final cmd = filteredCommands[index];
-                    return ListTile(
-                      dense: true,
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-                      leading: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: colorScheme.primaryContainer.withValues(alpha: 0.4),
-                          borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                        ),
-                        child: Icon(cmd.icon, size: 18, color: colorScheme.primary),
-                      ),
-                      title: Row(
-                        children: [
-                          Text(
-                            cmd.label,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerHighest,
-                              borderRadius:
-                                  BorderRadius.circular(AppLayout.radiusS),
-                            ),
-                            child: Text(
-                              '/${cmd.command}',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                fontFamily: 'monospace',
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      subtitle: Text(
-                        cmd.description,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      onTap: () => _executeSlashCommand(cmd.command),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
+    final isAiActive = Provider.of<SettingsProvider>(context, listen: false).isAiActive;
+    return NoteSlashCommandOverlay(
+      query: _slashQuery,
+      isAiActive: isAiActive,
+      onCommandSelected: _executeSlashCommand,
+    );
   }
 
   @override

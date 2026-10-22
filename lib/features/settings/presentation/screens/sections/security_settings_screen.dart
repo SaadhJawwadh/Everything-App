@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../../core/theme/app_layout.dart';
 import '../../../../../core/ui/expressive_sliver_app_bar.dart';
 import '../../../../../widgets/settings_widgets.dart';
+import '../../../../../l10n/app_localizations.dart';
 import '../../../providers/settings_provider.dart';
 import '../settings_dialogs.dart';
 
@@ -18,11 +19,12 @@ class SecuritySettingsScreen extends StatelessWidget {
       backgroundColor: colorScheme.surface,
       body: Consumer<SettingsProvider>(
         builder: (context, settings, _) {
+          final l10n = AppLocalizations.of(context);
           return CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              const ExpressiveSliverAppBar(
-                titleText: 'Privacy & Security',
+              ExpressiveSliverAppBar(
+                titleText: l10n?.privacyAndSecurity ?? l10n?.security ?? 'Privacy & Security',
                 showBackButton: true,
               ),
               SliverPadding(

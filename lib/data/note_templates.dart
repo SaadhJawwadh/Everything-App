@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../l10n/app_localizations.dart';
 
 /// A prefilled starting point for a new note (title + Quill Delta JSON).
 class NoteTemplate {
@@ -18,14 +19,14 @@ class NoteTemplate {
     required this.contentDeltaJson,
   });
 
-  static List<NoteTemplate> all() {
+  static List<NoteTemplate> all([AppLocalizations? l10n]) {
     final today = DateFormat('EEE, d MMM').format(DateTime.now());
     return [
       NoteTemplate(
-        name: 'Meeting Notes',
-        description: 'Agenda, discussion, and action items',
+        name: l10n?.templateMeetingNotes ?? 'Meeting Notes',
+        description: l10n?.templateMeetingNotesDesc ?? 'Agenda, discussion, and action items',
         icon: Icons.groups_outlined,
-        title: 'Meeting · $today',
+        title: '${l10n?.templateMeetingNotes ?? "Meeting"} · $today',
         contentDeltaJson: jsonEncode([
           {'insert': 'Agenda'},
           {
@@ -54,10 +55,10 @@ class NoteTemplate {
         ]),
       ),
       NoteTemplate(
-        name: 'Shopping List',
-        description: 'A ready-to-tick checklist',
+        name: l10n?.templateShoppingList ?? 'Shopping List',
+        description: l10n?.templateShoppingListDesc ?? 'A ready-to-tick checklist',
         icon: Icons.shopping_cart_outlined,
-        title: 'Shopping List',
+        title: l10n?.templateShoppingList ?? 'Shopping List',
         contentDeltaJson: jsonEncode([
           {
             'insert': '\n',
@@ -74,10 +75,10 @@ class NoteTemplate {
         ]),
       ),
       NoteTemplate(
-        name: 'Journal',
-        description: 'Daily reflection prompts',
+        name: l10n?.templateJournal ?? 'Journal',
+        description: l10n?.templateJournalDesc ?? 'Daily reflection prompts',
         icon: Icons.auto_stories_outlined,
-        title: 'Journal · $today',
+        title: '${l10n?.templateJournal ?? "Journal"} · $today',
         contentDeltaJson: jsonEncode([
           {'insert': 'How was today?'},
           {

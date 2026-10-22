@@ -5,11 +5,12 @@ import 'package:provider/provider.dart';
 import 'package:animations/animations.dart';
 import '../../data/note_model.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
-import '../../providers/note_provider.dart';
+import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import 'package:note_taking_app/features/notes/presentation/screens/note_editor_screen.dart';
 import '../../screens/home_screen.dart'; // For NoteCard for now, maybe move it too
 import '../../features/notes/data/note_repository.dart';
 import '../../core/theme/app_layout.dart';
+import '../../l10n/app_localizations.dart';
 import '../skeleton_card.dart';
 
 class NoteViewBuilder extends StatelessWidget {
@@ -51,6 +52,7 @@ class NoteViewBuilder extends StatelessWidget {
       final isChecklistFiltered = noteProvider.filterChecklistsOnly;
       final selectedTags = noteProvider.selectedTags;
 
+      final l10n = AppLocalizations.of(context);
       final String emptyTitle;
       final String emptySubtitle;
       final Widget? actionButton;
@@ -61,7 +63,7 @@ class NoteViewBuilder extends StatelessWidget {
         actionButton = OutlinedButton.icon(
           onPressed: () => noteProvider.setSearchQuery(''),
           icon: const Icon(Icons.clear_rounded, size: 18),
-          label: const Text('Clear Search'),
+          label: Text(l10n?.clear ?? 'Clear Search'),
         );
       } else if (isChecklistFiltered) {
         emptyTitle = 'No checklists found';
@@ -69,7 +71,7 @@ class NoteViewBuilder extends StatelessWidget {
         actionButton = OutlinedButton.icon(
           onPressed: () => noteProvider.setFilterChecklistsOnly(false),
           icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
-          label: const Text('Show All Notes'),
+          label: Text(l10n?.all ?? 'Show All Notes'),
         );
       } else if (selectedTags.isNotEmpty) {
         emptyTitle = 'No tagged notes';
@@ -77,7 +79,7 @@ class NoteViewBuilder extends StatelessWidget {
         actionButton = OutlinedButton.icon(
           onPressed: () => noteProvider.setTag('All'),
           icon: const Icon(Icons.label_off_outlined, size: 18),
-          label: const Text('Clear Tag Filter'),
+          label: Text(l10n?.clear ?? 'Clear Tag Filter'),
         );
       } else if (selectedFolder != null && selectedFolder != 'All Notes' && selectedFolder != 'Notes') {
         emptyTitle = 'Folder is empty';
@@ -97,8 +99,8 @@ class NoteViewBuilder extends StatelessWidget {
           label: Text('Create Note in $selectedFolder'),
         );
       } else {
-        emptyTitle = 'No notes here yet';
-        emptySubtitle = 'Tap + to create your first note';
+        emptyTitle = l10n?.emptyNotesTitle ?? 'No notes here yet';
+        emptySubtitle = l10n?.emptyNotesSubtitle ?? 'Tap + to create your first note';
         actionButton = FilledButton.icon(
           onPressed: () {
             Navigator.push(
@@ -111,7 +113,7 @@ class NoteViewBuilder extends StatelessWidget {
             ).then((_) => onRefresh());
           },
           icon: const Icon(Icons.add),
-          label: const Text('Create My First Note'),
+          label: Text(l10n?.newNote ?? 'Create My First Note'),
         );
       }
 
@@ -305,7 +307,7 @@ class NoteViewBuilder extends StatelessWidget {
       ),
       closedElevation: 0,
       openElevation: 0,
-      closedColor: Colors.transparent,
+      closedColor: Theme.of(context).colorScheme.surfaceContainer,
       openColor: Theme.of(context).colorScheme.surface,
       closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppLayout.radiusL)),
       onClosed: (returned) async {

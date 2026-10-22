@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/services/app_haptics.dart';
 import '../../core/theme/app_layout.dart';
 import '../../features/notes/data/note_repository.dart';
-import '../../providers/note_provider.dart';
+import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import '../../utils/widget_helper.dart';
 
 /// Modal bottom sheet to quickly append a checklist item to an active or default note

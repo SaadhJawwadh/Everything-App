@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../../core/services/app_haptics.dart';
-import 'package:intl/intl.dart';
 import '../../../../data/period_log_model.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../core/ui/app_dialog.dart';
+import '../../../../core/utils/app_formatters.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../providers/period_tracker_provider.dart';
 
 /// Modal bottom sheet for logging or editing a menstrual period record.
@@ -53,6 +54,30 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
     'Backache',
   ];
 
+  String _localizedSymptom(BuildContext context, String symptom) {
+    final l10n = AppLocalizations.of(context);
+    switch (symptom) {
+      case 'Cramps':
+        return l10n?.symptomCramps ?? 'Cramps';
+      case 'Bloating':
+        return l10n?.symptomBloating ?? 'Bloating';
+      case 'Headache':
+        return l10n?.symptomHeadache ?? 'Headache';
+      case 'Fatigue':
+        return l10n?.symptomFatigue ?? 'Fatigue';
+      case 'Acne':
+        return l10n?.symptomAcne ?? 'Acne';
+      case 'Mood Swings':
+        return l10n?.symptomMoodSwings ?? 'Mood Swings';
+      case 'Nausea':
+        return l10n?.symptomNausea ?? 'Nausea';
+      case 'Backache':
+        return l10n?.symptomBackache ?? 'Backache';
+      default:
+        return symptom;
+    }
+  }
+
   late DateTime _tempStart;
   DateTime? _tempEnd;
   late String _tempIntensity;
@@ -79,11 +104,12 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
 
   Future<void> _handleSave() async {
     AppHaptics.mediumImpact();
+    final l10n = AppLocalizations.of(context);
 
     if (!_isOngoing && _tempEnd != null && _tempStart.isAfter(_tempEnd!)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Start date cannot be after end date')),
+          SnackBar(content: Text(l10n?.startDateAfterEndDate ?? 'Start date cannot be after end date')),
         );
       }
       return;
@@ -94,9 +120,9 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
       if (!mounted) return;
       await AppDialog.showConfirm(
         context: context,
-        title: 'Overlap Detected',
-        message: 'The selected dates overlap with an existing logged period. Please adjust the dates.',
-        confirmLabel: 'OK',
+        title: l10n?.overlapDetectedTitle ?? 'Overlap Detected',
+        message: l10n?.overlapDetectedMessage ?? 'The selected dates overlap with an existing logged period. Please adjust the dates.',
+        confirmLabel: l10n?.done ?? 'OK',
       );
       return;
     }
@@ -129,6 +155,7 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -160,7 +187,7 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
             ListTile(
               leading: const Icon(Icons.calendar_today),
               title: const Text('Start Date'),
-              subtitle: Text(DateFormat.yMMMMd().format(_tempStart)),
+              subtitle: Text(AppFormatters.formatDate(context, _tempStart)),
               trailing: const Icon(Icons.edit_outlined),
               onTap: () async {
                 if (!context.mounted) return;
@@ -203,7 +230,7 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
               ListTile(
                 leading: const Icon(Icons.calendar_today_outlined),
                 title: const Text('End Date'),
-                subtitle: Text(_tempEnd != null ? DateFormat.yMMMMd().format(_tempEnd!) : 'Select end date'),
+                subtitle: Text(_tempEnd != null ? AppFormatters.formatDate(context, _tempEnd!) : 'Select end date'),
                 trailing: const Icon(Icons.edit_outlined),
                 onTap: () async {
                   if (!context.mounted) return;
@@ -226,11 +253,11 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
             const SizedBox(height: 12),
             SegmentedButton<String>(
               showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(value: 'Spotting', label: Text('Spotting')),
-                ButtonSegment(value: 'Light', label: Text('Light')),
-                ButtonSegment(value: 'Medium', label: Text('Medium')),
-                ButtonSegment(value: 'Heavy', label: Text('Heavy')),
+              segments: [
+                const ButtonSegment(value: 'Spotting', label: Text('Spotting')),
+                ButtonSegment(value: 'Light', label: Text(l10n?.intensityLight ?? 'Light')),
+                ButtonSegment(value: 'Medium', label: Text(l10n?.intensityMedium ?? 'Medium')),
+                ButtonSegment(value: 'Heavy', label: Text(l10n?.intensityHeavy ?? 'Heavy')),
               ],
               selected: {_tempIntensity},
               onSelectionChanged: (Set<String> selection) {
@@ -256,7 +283,7 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
                 final isSelected = _tempSymptoms.contains(symptom);
                 return FilterChip(
                   showCheckmark: false,
-                  label: Text(symptom),
+                  label: Text(_localizedSymptom(context, symptom)),
                   selected: isSelected,
                   onSelected: (selected) {
                     AppHaptics.selectionClick();
@@ -280,7 +307,7 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
                 minimumSize: const Size(double.infinity, 54),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppLayout.radiusL)),
               ),
-              child: const Text('Save Log'),
+              child: Text(l10n?.save ?? 'Save Log'),
             ),
           ],
         ),

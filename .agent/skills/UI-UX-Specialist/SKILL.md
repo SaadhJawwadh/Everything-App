@@ -67,10 +67,11 @@ Refer to [design.md](file:///Users/saadhjawwadh/Documents/Code/Note%20taking/.ag
 * **Contextual Morphing Action Buttons in Sub-Tab Views**:
   - In screens featuring nested `SegmentedButton` tabs or view modes (`FinancialManagerScreen`), expose a `ValueNotifier<String>` indicating the active sub-tab.
   - The hosting screen's floating action button (`AppMorphingFab`) must reactively listen to this notifier via `ValueListenableBuilder` to dynamically adapt its icon, label, and `onPressed` route destination (e.g. morphing from "New Transaction" to "New Split Bill" when switching to Split Bills).
-* **Bounded Modal Sheets & Dynamic Chip Cloud Scroll Guardrails**: Never render unbounded `Column(mainAxisSize: MainAxisSize.min)` containing `Wrap` chip clouds inside `showModalBottomSheet` or `AppBottomSheet`. To eliminate `RenderFlex` overflows on small devices or when software keyboards appear:
-  - Constrain modal height using `ConstrainedBox(constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.75))`.
-  - Wrap content in `SingleChildScrollView` with `viewInsets.bottom` keyboard padding (`EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom + AppLayout.spaceM)`).
-  - Constrain inner multi-chip clouds (`Wrap`) to a fixed max viewport (e.g. `maxHeight: 180–220dp`) wrapped in a secondary `SingleChildScrollView`.
+* **Bounded Modal Sheets & Dynamic Scroll Guardrails**: Never render unbounded `Column(mainAxisSize: MainAxisSize.min)` for multi-item selector sheets (such as language pickers or currency lists). Constrain modal height using `ConstrainedBox(constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.65–0.75))` and wrap items in a scrollable `ListView` or `SingleChildScrollView` with `BouncingScrollPhysics` to ensure all options are reachable on small screens or high display zooms.
+* **Calm Technology & Feed Viewport Prioritization**:
+  - High-value user content (notes, checklist items, ledger transactions) takes precedence over instructional banners. Primary feeds should start user content immediately below the app bar/filter pills without banner stacking.
+  - Relocate educational tips and gestural shortcuts to `AboutSettingsScreen` (opening an on-demand modal bottom sheet) so users can browse them intentionally without sacrificing home feed viewport.
+  - Prohibit automatic periodic cycling timers on hero metric cards (e.g. flipping cash flow numbers every 4s causes cognitive distraction and misdirected taps). Hero cards must present static, calm, predictable metrics with manual swipe or tab navigation.
 
 ## 2. Material 3 Official Components Catalog ([m3.material.io](https://m3.material.io/components))
 When implementing UI components, strictly follow the M3 guidelines codified in [design.md Section 9](file:///Users/saadhjawwadh/Documents/Code/Note%20taking/.agent/skills/UI-UX-Specialist/design.md#9-comprehensive-material-3-component-specifications--guidance-catalog-m3materialio):

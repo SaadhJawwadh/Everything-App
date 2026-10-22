@@ -655,6 +655,654 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'On-Device AI'**
   String get onDeviceAi;
+
+  /// No description provided for @preferencesAndWorkspaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferences & Workspaces'**
+  String get preferencesAndWorkspaces;
+
+  /// No description provided for @notesAndEditorWorkspace.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes & Editor Workspace'**
+  String get notesAndEditorWorkspace;
+
+  /// No description provided for @financesAndHealthModules.
+  ///
+  /// In en, this message translates to:
+  /// **'Finances & Health Modules'**
+  String get financesAndHealthModules;
+
+  /// No description provided for @privacyAndSecurity.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy & Security'**
+  String get privacyAndSecurity;
+
+  /// No description provided for @syncAndBackups.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync & Backups'**
+  String get syncAndBackups;
+
+  /// No description provided for @aboutAndDeviceAi.
+  ///
+  /// In en, this message translates to:
+  /// **'About & Device AI'**
+  String get aboutAndDeviceAi;
+
+  /// No description provided for @startFromTemplate.
+  ///
+  /// In en, this message translates to:
+  /// **'Start from a template'**
+  String get startFromTemplate;
+
+  /// No description provided for @templateMeetingNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Meeting Notes'**
+  String get templateMeetingNotes;
+
+  /// No description provided for @templateMeetingNotesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Agenda, discussion, and action items'**
+  String get templateMeetingNotesDesc;
+
+  /// No description provided for @templateShoppingList.
+  ///
+  /// In en, this message translates to:
+  /// **'Shopping List'**
+  String get templateShoppingList;
+
+  /// No description provided for @templateShoppingListDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'A ready-to-tick checklist'**
+  String get templateShoppingListDesc;
+
+  /// No description provided for @templateJournal.
+  ///
+  /// In en, this message translates to:
+  /// **'Journal'**
+  String get templateJournal;
+
+  /// No description provided for @templateJournalDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily reflection prompts'**
+  String get templateJournalDesc;
+
+  /// No description provided for @themeAndColorSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme & Color System'**
+  String get themeAndColorSystem;
+
+  /// No description provided for @appThemeMode.
+  ///
+  /// In en, this message translates to:
+  /// **'App Theme Mode'**
+  String get appThemeMode;
+
+  /// No description provided for @dynamicWallpaperTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Dynamic Wallpaper Theme'**
+  String get dynamicWallpaperTheme;
+
+  /// No description provided for @dynamicWallpaperSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Match app colors with device wallpaper (Android 12+)'**
+  String get dynamicWallpaperSubtitle;
+
+  /// No description provided for @interactionAndAccessibility.
+  ///
+  /// In en, this message translates to:
+  /// **'Interaction & Accessibility'**
+  String get interactionAndAccessibility;
+
+  /// No description provided for @tactileHaptics.
+  ///
+  /// In en, this message translates to:
+  /// **'Tactile Haptics'**
+  String get tactileHaptics;
+
+  /// No description provided for @tactileHapticsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restrained physical feedback for sliders, long-press, and actions'**
+  String get tactileHapticsSubtitle;
+
+  /// No description provided for @textScale.
+  ///
+  /// In en, this message translates to:
+  /// **'Text Scale'**
+  String get textScale;
+
+  /// No description provided for @textScaleSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Global font sizing'**
+  String get textScaleSubtitle;
+
+  /// No description provided for @textScaleSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'Small'**
+  String get textScaleSmall;
+
+  /// No description provided for @textScaleMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get textScaleMedium;
+
+  /// No description provided for @textScaleLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Large'**
+  String get textScaleLarge;
+
+  /// No description provided for @appLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'App Language'**
+  String get appLanguage;
+
+  /// No description provided for @selectCurrency.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Currency'**
+  String get selectCurrency;
+
+  /// No description provided for @noSettingsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No settings matching \"{query}\"'**
+  String noSettingsFound(String query);
+
+  /// No description provided for @quickSuggestions.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick suggestions:'**
+  String get quickSuggestions;
+
+  /// No description provided for @clearSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear selection'**
+  String get clearSelection;
+
+  /// No description provided for @selectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 selected} other{{count} selected}}'**
+  String selectedCount(int count);
+
+  /// No description provided for @selectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get selectAll;
+
+  /// No description provided for @deselectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Deselect all'**
+  String get deselectAll;
+
+  /// No description provided for @closeSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Close search'**
+  String get closeSearch;
+
+  /// No description provided for @clearQuery.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear query'**
+  String get clearQuery;
+
+  /// No description provided for @createNewFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Create New Folder'**
+  String get createNewFolder;
+
+  /// No description provided for @folderName.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder name'**
+  String get folderName;
+
+  /// No description provided for @filterByFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by folder'**
+  String get filterByFolder;
+
+  /// No description provided for @newFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'New Folder'**
+  String get newFolder;
+
+  /// No description provided for @allNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'All Notes'**
+  String get allNotes;
+
+  /// No description provided for @checklistsAndTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Checklists & Tasks'**
+  String get checklistsAndTasks;
+
+  /// No description provided for @archivedNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived Notes'**
+  String get archivedNotes;
+
+  /// No description provided for @trashBin.
+  ///
+  /// In en, this message translates to:
+  /// **'Trash Bin'**
+  String get trashBin;
+
+  /// No description provided for @sortNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort notes'**
+  String get sortNotes;
+
+  /// No description provided for @sortByLastModified.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by Last Modified'**
+  String get sortByLastModified;
+
+  /// No description provided for @sortByDateCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by Date Created'**
+  String get sortByDateCreated;
+
+  /// No description provided for @sortByTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by Title'**
+  String get sortByTitle;
+
+  /// No description provided for @sortByColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by Color'**
+  String get sortByColor;
+
+  /// No description provided for @importNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Notes'**
+  String get importNotes;
+
+  /// No description provided for @switchToGridView.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to grid view'**
+  String get switchToGridView;
+
+  /// No description provided for @switchToListView.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to list view'**
+  String get switchToListView;
+
+  /// No description provided for @selectPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Period'**
+  String get selectPeriod;
+
+  /// No description provided for @thisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'This Month'**
+  String get thisMonth;
+
+  /// No description provided for @lastMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Last Month'**
+  String get lastMonth;
+
+  /// No description provided for @last90Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 90 Days'**
+  String get last90Days;
+
+  /// No description provided for @thisYear.
+  ///
+  /// In en, this message translates to:
+  /// **'This Year'**
+  String get thisYear;
+
+  /// No description provided for @allTime.
+  ///
+  /// In en, this message translates to:
+  /// **'All Time (Full History)'**
+  String get allTime;
+
+  /// No description provided for @customDateRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Date Range…'**
+  String get customDateRange;
+
+  /// No description provided for @customDateRangeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick exact start and end dates from calendar'**
+  String get customDateRangeSubtitle;
+
+  /// No description provided for @allTasksCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{All 1 task completed} other{All {count} tasks completed}}'**
+  String allTasksCompleted(int count);
+
+  /// No description provided for @moreItems.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count, plural, =1{1 more item} other{{count} more items}}'**
+  String moreItems(int count);
+
+  /// No description provided for @manageCategories.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Categories'**
+  String get manageCategories;
+
+  /// No description provided for @restoreDefaults.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore defaults'**
+  String get restoreDefaults;
+
+  /// No description provided for @restoreDefaultCategoriesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore default categories?'**
+  String get restoreDefaultCategoriesTitle;
+
+  /// No description provided for @restoreDefaultCategoriesContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom categories will be removed and built-in categories reset to their default colors and keywords. Existing transactions keep their category labels.'**
+  String get restoreDefaultCategoriesContent;
+
+  /// No description provided for @categoriesRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories restored to defaults'**
+  String get categoriesRestored;
+
+  /// No description provided for @newCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'New Category'**
+  String get newCategory;
+
+  /// No description provided for @editCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Category'**
+  String get editCategory;
+
+  /// No description provided for @categoryName.
+  ///
+  /// In en, this message translates to:
+  /// **'Category Name'**
+  String get categoryName;
+
+  /// No description provided for @categoryNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Category name required'**
+  String get categoryNameRequired;
+
+  /// No description provided for @categoryNameExists.
+  ///
+  /// In en, this message translates to:
+  /// **'Category name already exists'**
+  String get categoryNameExists;
+
+  /// No description provided for @icon.
+  ///
+  /// In en, this message translates to:
+  /// **'Icon'**
+  String get icon;
+
+  /// No description provided for @colour.
+  ///
+  /// In en, this message translates to:
+  /// **'Colour'**
+  String get colour;
+
+  /// No description provided for @keywords.
+  ///
+  /// In en, this message translates to:
+  /// **'Keywords'**
+  String get keywords;
+
+  /// No description provided for @addKeywordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add keyword…'**
+  String get addKeywordHint;
+
+  /// No description provided for @noKeywords.
+  ///
+  /// In en, this message translates to:
+  /// **'No keywords'**
+  String get noKeywords;
+
+  /// No description provided for @deleteCategoryTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete category'**
+  String get deleteCategoryTooltip;
+
+  /// No description provided for @editCategoryTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit category'**
+  String get editCategoryTooltip;
+
+  /// No description provided for @cannotDeleteOtherCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'The \"Other\" fallback category cannot be deleted.'**
+  String get cannotDeleteOtherCategory;
+
+  /// No description provided for @deleteCategoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{name}\"?'**
+  String deleteCategoryTitle(String name);
+
+  /// No description provided for @deleteCategoryContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Existing transactions with this category will be reassigned to \"Other\" so your history stays intact.'**
+  String get deleteCategoryContent;
+
+  /// No description provided for @cyclePhaseGuide.
+  ///
+  /// In en, this message translates to:
+  /// **'Cycle Phase Guide'**
+  String get cyclePhaseGuide;
+
+  /// No description provided for @menstrualPhase.
+  ///
+  /// In en, this message translates to:
+  /// **'Menstrual Phase'**
+  String get menstrualPhase;
+
+  /// No description provided for @menstrualPhaseDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Days 1–5'**
+  String get menstrualPhaseDays;
+
+  /// No description provided for @menstrualPhaseDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Uterine lining sheds. Energy is lower; prioritize rest, hydration, and gentle movement.'**
+  String get menstrualPhaseDesc;
+
+  /// No description provided for @follicularPhase.
+  ///
+  /// In en, this message translates to:
+  /// **'Follicular Phase'**
+  String get follicularPhase;
+
+  /// No description provided for @follicularPhaseDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Days 6–13'**
+  String get follicularPhaseDays;
+
+  /// No description provided for @follicularPhaseDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Estrogen rises as follicles mature. Energy, mood, and creative focus naturally peak.'**
+  String get follicularPhaseDesc;
+
+  /// No description provided for @ovulatoryPhase.
+  ///
+  /// In en, this message translates to:
+  /// **'Ovulatory Phase'**
+  String get ovulatoryPhase;
+
+  /// No description provided for @ovulatoryPhaseDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Days 14–16'**
+  String get ovulatoryPhaseDays;
+
+  /// No description provided for @ovulatoryPhaseDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Luteinizing hormone surge triggers egg release. Peak confidence, social energy, and fertility.'**
+  String get ovulatoryPhaseDesc;
+
+  /// No description provided for @lutealPhase.
+  ///
+  /// In en, this message translates to:
+  /// **'Luteal Phase'**
+  String get lutealPhase;
+
+  /// No description provided for @lutealPhaseDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Days 17–28'**
+  String get lutealPhaseDays;
+
+  /// No description provided for @lutealPhaseDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Progesterone rises. Energy turns inward; PMS symptoms may occur. Prioritize winding down.'**
+  String get lutealPhaseDesc;
+
+  /// No description provided for @symptomCramps.
+  ///
+  /// In en, this message translates to:
+  /// **'Cramps'**
+  String get symptomCramps;
+
+  /// No description provided for @symptomBloating.
+  ///
+  /// In en, this message translates to:
+  /// **'Bloating'**
+  String get symptomBloating;
+
+  /// No description provided for @symptomHeadache.
+  ///
+  /// In en, this message translates to:
+  /// **'Headache'**
+  String get symptomHeadache;
+
+  /// No description provided for @symptomFatigue.
+  ///
+  /// In en, this message translates to:
+  /// **'Fatigue'**
+  String get symptomFatigue;
+
+  /// No description provided for @symptomAcne.
+  ///
+  /// In en, this message translates to:
+  /// **'Acne'**
+  String get symptomAcne;
+
+  /// No description provided for @symptomMoodSwings.
+  ///
+  /// In en, this message translates to:
+  /// **'Mood Swings'**
+  String get symptomMoodSwings;
+
+  /// No description provided for @symptomNausea.
+  ///
+  /// In en, this message translates to:
+  /// **'Nausea'**
+  String get symptomNausea;
+
+  /// No description provided for @symptomBackache.
+  ///
+  /// In en, this message translates to:
+  /// **'Backache'**
+  String get symptomBackache;
+
+  /// No description provided for @intensityLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get intensityLight;
+
+  /// No description provided for @intensityMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get intensityMedium;
+
+  /// No description provided for @intensityHeavy.
+  ///
+  /// In en, this message translates to:
+  /// **'Heavy'**
+  String get intensityHeavy;
+
+  /// No description provided for @startDateAfterEndDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Start date cannot be after end date'**
+  String get startDateAfterEndDate;
+
+  /// No description provided for @overlapDetectedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Overlap Detected'**
+  String get overlapDetectedTitle;
+
+  /// No description provided for @overlapDetectedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The selected dates overlap with an existing logged period. Please adjust the dates.'**
+  String get overlapDetectedMessage;
 }
 
 class _AppLocalizationsDelegate

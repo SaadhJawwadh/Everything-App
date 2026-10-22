@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:note_taking_app/providers/note_provider.dart';
+import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -11,12 +11,13 @@ import '../../../../core/ui/app_card.dart';
 import '../../../../core/ui/app_dialog.dart';
 import '../../../../data/database_helper.dart';
 import '../../../../data/transaction_category.dart';
-import '../../../../providers/note_provider.dart';
+import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import '../../../../screens/app_lock_screen.dart';
 import '../../../../services/backup_service.dart';
 import '../../../finances/providers/financial_manager_provider.dart';
 import '../../../finances/providers/savings_goal_provider.dart';
 import '../../../../utils/widget_helper.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../providers/settings_provider.dart';
 
 /// Centralized modal sheets and picker dialogs for Settings.
@@ -127,10 +128,11 @@ class SettingsDialogs {
 
   static void showLanguagePicker(BuildContext context, SettingsProvider settings) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     final languages = [
       {
         'code': 'system',
-        'name': 'System Default',
+        'name': l10n?.languageSystem ?? 'System Default',
         'native': 'Follow Device Language',
         'icon': Icons.brightness_auto_rounded,
       },
@@ -186,60 +188,68 @@ class SettingsDialogs {
 
     AppBottomSheet.show(
       context: context,
-      title: 'App Language',
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: languages.map((lang) {
-          final isSelected = settings.selectedLanguageCode == lang['code'];
+      title: l10n?.appLanguage ?? 'App Language',
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.65,
+        ),
+        child: ListView(
+          shrinkWrap: true,
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.zero,
+          children: languages.map((lang) {
+            final isSelected = settings.selectedLanguageCode == lang['code'];
 
-          return Material(
-            color: Colors.transparent,
-            child: ListTile(
-              leading: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? colorScheme.primary.withValues(alpha: 0.15)
-                      : colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(AppLayout.radiusM),
+            return Material(
+              color: Colors.transparent,
+              child: ListTile(
+                leading: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? colorScheme.primary.withValues(alpha: 0.15)
+                        : colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(AppLayout.radiusM),
+                  ),
+                  child: Icon(
+                    lang['icon'] as IconData,
+                    size: 20,
+                    color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                  ),
                 ),
-                child: Icon(
-                  lang['icon'] as IconData,
-                  size: 20,
-                  color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                title: Text(
+                  lang['name'] as String,
+                  style: TextStyle(
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    color: isSelected ? colorScheme.primary : colorScheme.onSurface,
+                  ),
                 ),
+                subtitle: Text(
+                  lang['native'] as String,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                trailing: isSelected
+                    ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
+                    : null,
+                onTap: () {
+                  AppHaptics.selectionClick();
+                  settings.setSelectedLanguage(lang['code'] as String);
+                  Navigator.pop(context);
+                },
               ),
-              title: Text(
-                lang['name'] as String,
-                style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected ? colorScheme.primary : colorScheme.onSurface,
-                ),
-              ),
-              subtitle: Text(
-                lang['native'] as String,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              trailing: isSelected
-                  ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
-                  : null,
-              onTap: () {
-                AppHaptics.selectionClick();
-                settings.setSelectedLanguage(lang['code'] as String);
-                Navigator.pop(context);
-              },
-            ),
-          );
-        }).toList(),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
 
   static void showCurrencyPicker(BuildContext context, SettingsProvider settings) {
+    final l10n = AppLocalizations.of(context);
     final currencies = [
       {'code': 'LKR', 'symbol': 'Rs.', 'name': 'Sri Lankan Rupee'},
       {'code': 'INR', 'symbol': '₹', 'name': 'Indian Rupee'},
@@ -260,40 +270,47 @@ class SettingsDialogs {
 
     AppBottomSheet.show(
       context: context,
-      title: 'Select Currency',
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: currencies.map((c) {
-          final isSelected = settings.currency == c['symbol'];
-          final colorScheme = Theme.of(context).colorScheme;
+      title: l10n?.selectCurrency ?? 'Select Currency',
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.65,
+        ),
+        child: ListView(
+          shrinkWrap: true,
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.zero,
+          children: currencies.map((c) {
+            final isSelected = settings.currency == c['symbol'];
+            final colorScheme = Theme.of(context).colorScheme;
 
-          return Material(
-            color: Colors.transparent,
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: isSelected
-                    ? colorScheme.primary
-                    : colorScheme.surfaceContainerHighest,
-                child: Text(
-                  c['symbol']!,
-                  style: TextStyle(
-                    color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
-                    fontWeight: FontWeight.bold,
+            return Material(
+              color: Colors.transparent,
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: isSelected
+                      ? colorScheme.primary
+                      : colorScheme.surfaceContainerHighest,
+                  child: Text(
+                    c['symbol']!,
+                    style: TextStyle(
+                      color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
+                title: Text('${c['code']} - ${c['name']}'),
+                trailing: isSelected
+                    ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
+                    : null,
+                onTap: () {
+                  AppHaptics.selectionClick();
+                  settings.setCurrency(c['symbol']!);
+                  Navigator.pop(context);
+                },
               ),
-              title: Text('${c['code']} - ${c['name']}'),
-              trailing: isSelected
-                  ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
-                  : null,
-              onTap: () {
-                AppHaptics.selectionClick();
-                settings.setCurrency(c['symbol']!);
-                Navigator.pop(context);
-              },
-            ),
-          );
-        }).toList(),
+            );
+          }).toList(),
+        ),
       ),
     );
   }

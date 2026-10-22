@@ -7,6 +7,7 @@ import '../../../../core/theme/app_layout.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/app_card.dart';
 import '../../../../data/transaction_model.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../settings/providers/settings_provider.dart';
 import 'account_transfer_sheet.dart';
 
@@ -86,6 +87,7 @@ class FinanceHeroSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
 
     if (isLoading) {
       return const SizedBox(
@@ -182,7 +184,7 @@ class FinanceHeroSummaryCard extends StatelessWidget {
                 child: _miniStat(
                   tt,
                   Icons.south_west,
-                  'Income',
+                  l10n?.income ?? 'Income',
                   totalIncome,
                   currency,
                   onColor,
@@ -193,7 +195,7 @@ class FinanceHeroSummaryCard extends StatelessWidget {
                 child: _miniStat(
                   tt,
                   Icons.arrow_outward,
-                  'Expense',
+                  l10n?.expense ?? 'Expense',
                   totalExpense,
                   currency,
                   onColor,

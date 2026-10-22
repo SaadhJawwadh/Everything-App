@@ -1,28 +1,28 @@
 <en-US>
 🌟 What's New
-• Russian Language & Ruble (₽) currency support.
-• Split Bills: Settlement history & 1-tap undo.
-• Fluid UI Motion: Expressive spring physics.
+• Android 13+ Per-App Language settings.
+• Full Russian language & Ruble (₽) currency.
 
 🚀 Improvements
-• Reclaimed Notes Space: Clean distraction-free feed.
-• Calm Finances: Focused static cash flow dashboard.
-• Pro Tips: Browseable guide inside Settings.
+• Scrollable language & currency selectors.
+• Locale-aware dates, numbers & currencies.
+• Seamless note card transition animations.
 
 🐛 Fixes
-• Menu polish & refined checklist task previews.
+• TalkBack privacy sealed on lock screen.
+• Clearer task completion badges in light mode.
 </en-US>
 <ta-IN>
 🌟 புதிய அம்சங்கள்
-• ரஷ்ய மொழி & ரூபிள் (₽) நாணய ஆதரவு.
-• பகிர்வு பில்கள்: தீர்வு வரலாறு & 1-தட்டல் மீட்டெடுப்பு.
-• வசீகர இயக்கம்: மென்மையான மாற்றங்கள்.
+• ஆண்ட்ராய்டு 13+ தனிப்பயன் மொழி அமைப்பு.
+• முழு ரஷ்ய மொழி & ரூபிள் (₽) நாணய ஆதரவு.
 
 🚀 மேம்பாடுகள்
-• முகப்பு குறிப்புகள்: சுத்தமான, எளிமையான பார்வை.
-• அமைதியான நிதி மேலாண்மை பலகை.
-• உதவி குறிப்புகள்: அமைப்புகளில் எளிதாக அறியலாம்.
+• எளிதாக உருட்டும் மொழி & நாணய தேர்வுகள்.
+• உள்ளூர்மயமாக்கப்பட்ட தேதிகள் மற்றும் எண்கள்.
+• மென்மையான குறிப்பு மாற்ற அனிமேஷன்.
 
 🐛 பிழை திருத்தங்கள்
-• மெனு ஒழுங்கமைவு & சரிபார்ப்பு பட்டியல் மேம்பாடு.
+• லாக் திரையில் TalkBack தனியுரிமை பாதுகாப்பு.
+• சரிபார்ப்பு பட்டியல் காட்சி தெளிவாக்கம்.
 </ta-IN>

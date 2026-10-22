@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/services/app_haptics.dart';
 import '../../../../core/theme/app_layout.dart';
+import '../../../../l10n/app_localizations.dart';
 
 const Object _customRangeSentinel = Object();
 
@@ -60,6 +61,7 @@ class FinanceDateRangeSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final now = DateTime.now();
@@ -170,7 +172,7 @@ class FinanceDateRangeSheet extends StatelessWidget {
                 Icon(Icons.calendar_month_outlined, color: colorScheme.primary),
                 const SizedBox(width: 8),
                 Text(
-                  'Select Period',
+                  l10n?.selectPeriod ?? 'Select Period',
                   style: textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -182,7 +184,7 @@ class FinanceDateRangeSheet extends StatelessWidget {
               children: [
                 Expanded(
                   child: buildPresetCard(
-                    'This Month',
+                    l10n?.thisMonth ?? 'This Month',
                     Icons.today_outlined,
                     thisMonth,
                   ),
@@ -190,7 +192,7 @@ class FinanceDateRangeSheet extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: buildPresetCard(
-                    'Last Month',
+                    l10n?.lastMonth ?? 'Last Month',
                     Icons.history_outlined,
                     lastMonth,
                   ),
@@ -202,7 +204,7 @@ class FinanceDateRangeSheet extends StatelessWidget {
               children: [
                 Expanded(
                   child: buildPresetCard(
-                    'Last 90 Days',
+                    l10n?.last90Days ?? 'Last 90 Days',
                     Icons.auto_graph_outlined,
                     last90Days,
                   ),
@@ -210,7 +212,7 @@ class FinanceDateRangeSheet extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: buildPresetCard(
-                    'This Year',
+                    l10n?.thisYear ?? 'This Year',
                     Icons.calendar_today_outlined,
                     thisYear,
                   ),
@@ -219,7 +221,7 @@ class FinanceDateRangeSheet extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             buildPresetCard(
-              'All Time (Full History)',
+              l10n?.allTime ?? 'All Time (Full History)',
               Icons.all_inclusive_outlined,
               allTime,
             ),
@@ -234,11 +236,11 @@ class FinanceDateRangeSheet extends StatelessWidget {
                 ),
               ),
               title: Text(
-                'Custom Date Range…',
+                l10n?.customDateRange ?? 'Custom Date Range…',
                 style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
               subtitle: Text(
-                'Pick exact start and end dates from calendar',
+                l10n?.customDateRangeSubtitle ?? 'Pick exact start and end dates from calendar',
                 style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
               ),
               trailing: const Icon(Icons.chevron_right),

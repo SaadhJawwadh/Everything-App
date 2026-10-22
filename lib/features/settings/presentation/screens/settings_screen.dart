@@ -88,6 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final isSearching = _searchQuery.trim().isNotEmpty;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
@@ -103,7 +104,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               physics: const BouncingScrollPhysics(),
               slivers: [
                 ExpressiveSliverAppBar(
-                  titleText: AppLocalizations.of(context)?.settingsTitle ?? 'Settings',
+                  titleText: l10n?.settingsTitle ?? 'Settings',
                   showBackButton: true,
                 ),
 
@@ -146,7 +147,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               fontWeight: FontWeight.w600,
                             ),
                             decoration: InputDecoration(
-                              hintText: '${AppLocalizations.of(context)?.settingsTitle ?? 'Settings'} / Search...',
+                              hintText: '${l10n?.settingsTitle ?? 'Settings'} / ${l10n?.search ?? 'Search'}...',
                               hintStyle: theme.textTheme.bodyMedium?.copyWith(
                                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                               ),
@@ -230,7 +231,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         ),
                                         const SizedBox(height: 16),
                                         Text(
-                                          'No settings matching "$_searchQuery"',
+                                          l10n?.noSettingsFound(_searchQuery) ?? 'No settings matching "$_searchQuery"',
                                           style: theme.textTheme.titleMedium?.copyWith(
                                             color: colorScheme.onSurfaceVariant,
                                             fontWeight: FontWeight.w600,
@@ -238,7 +239,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         ),
                                         const SizedBox(height: 8),
                                         Text(
-                                          'Quick suggestions:',
+                                          l10n?.quickSuggestions ?? 'Quick suggestions:',
                                           style: theme.textTheme.bodySmall?.copyWith(
                                             color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                                           ),
@@ -303,7 +304,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     bottom: AppLayout.spaceM,
                                   ),
                                   child: Text(
-                                    'Preferences & Workspaces',
+                                    l10n?.preferencesAndWorkspaces ?? 'Preferences & Workspaces',
                                     style: theme.textTheme.titleSmall?.copyWith(
                                       fontWeight: FontWeight.bold,
                                       color: colorScheme.primary,
@@ -315,7 +316,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 // 1. Appearance & UI Hub Card
                                 _buildDomainHubCard(
                                   context: context,
-                                  title: 'Appearance & UI',
+                                  title: l10n?.appearance ?? 'Appearance & UI',
                                   subtitle: '${SettingsDialogs.getThemeLabel(settings.themeMode)} Mode • ${settings.useDynamicColor ? 'Dynamic Wallpaper' : 'Standard'} • ${SettingsDialogs.getLanguageDisplayName(settings.selectedLanguageCode)}',
                                   icon: Icons.palette_outlined,
                                   accentColor: colorScheme.primary,
@@ -326,7 +327,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 // 2. Notes & Editor Workspace Hub Card
                                 _buildDomainHubCard(
                                   context: context,
-                                  title: 'Notes & Editor Workspace',
+                                  title: l10n?.notesAndEditorWorkspace ?? 'Notes & Editor Workspace',
                                   subtitle: '${settings.minimalEditorMode ? 'Minimal Toolbar' : 'Standard Writing'} • ${settings.showTagFilterBar ? 'Tags Active' : 'Clean List'} • ${settings.trashAutoPurgeDays <= 0 ? 'Purge Off' : '${settings.trashAutoPurgeDays}d Auto-Purge'}',
                                   icon: Icons.edit_note_rounded,
                                   accentColor: const Color(0xFFF59E0B),
@@ -337,7 +338,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 // 3. Finances & Health Modules Hub Card
                                 _buildDomainHubCard(
                                   context: context,
-                                  title: 'Finances & Health Modules',
+                                  title: l10n?.financesAndHealthModules ?? 'Finances & Health Modules',
                                   subtitle: 'Finances ${settings.showFinancialManager ? 'Active (${settings.currency})' : 'Disabled'} • Period Tracker ${settings.isPeriodTrackerEnabled ? 'Active' : 'Disabled'}',
                                   icon: Icons.apps_rounded,
                                   accentColor: const Color(0xFF10B981),
@@ -348,7 +349,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 // 4. Privacy & Security Hub Card
                                 _buildDomainHubCard(
                                   context: context,
-                                  title: 'Privacy & Security',
+                                  title: l10n?.privacyAndSecurity ?? l10n?.security ?? 'Privacy & Security',
                                   subtitle: 'App Lock ${settings.appLockEnabled ? 'Active (${SettingsDialogs.getTimeoutLabel(settings.appLockTimeout)})' : 'Disabled'} • ${settings.useBiometrics ? 'Biometrics' : 'PIN / Passcode'}',
                                   icon: Icons.security_outlined,
                                   accentColor: colorScheme.primary,
@@ -359,7 +360,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 // 5. Data, Sync & Backups Hub Card
                                 _buildDomainHubCard(
                                   context: context,
-                                  title: 'Data, Sync & Backups',
+                                  title: l10n?.syncAndBackups ?? l10n?.backupRestore ?? 'Data, Sync & Backups',
                                   subtitle: 'P2P Device Sync • Encrypted JSON • ${settings.autoBackupEnabled ? 'Auto-Backup (${SettingsDialogs.getFrequencyLabel(settings.autoBackupFrequency)})' : 'Manual Backup'}',
                                   icon: Icons.cloud_sync_outlined,
                                   accentColor: const Color(0xFF0EA5E9),
@@ -370,7 +371,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 // 6. About & Guides Hub Card
                                 _buildDomainHubCard(
                                   context: context,
-                                  title: 'About & Guides',
+                                  title: l10n?.aboutAndDeviceAi ?? l10n?.about ?? 'About & Guides',
                                   subtitle: _appVersion.isNotEmpty
                                       ? 'Everything App $_appVersion • Changelog • Diagnostics'
                                       : 'Changelog • Diagnostics & Setup Guides',

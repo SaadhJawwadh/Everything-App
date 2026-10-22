@@ -379,7 +379,7 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
                                       openColor: colorScheme.surface,
                                       openBuilder: (context, _) => NoteEditorScreen(note: note),
                                       closedElevation: 0,
-                                      closedColor: Colors.transparent,
+                                      closedColor: colorScheme.surfaceContainer,
                                       closedShape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(AppLayout.radiusL),
                                       ),

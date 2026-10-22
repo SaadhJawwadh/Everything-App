@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/services/app_haptics.dart';
 import 'package:provider/provider.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
-import '../../providers/note_provider.dart';
+import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import '../../features/sync/providers/p2p_sync_provider.dart';
 import 'package:note_taking_app/features/sync/presentation/screens/p2p_sync_screen.dart';
 import 'package:note_taking_app/features/settings/presentation/screens/settings_screen.dart';
@@ -154,6 +154,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
   }
 
   Widget _buildSelectionMode(BuildContext context, NoteProvider noteProvider) {
+    final l10n = AppLocalizations.of(context);
     final allSelected = noteProvider.selectedNoteIds.length == noteProvider.notes.length &&
         noteProvider.notes.isNotEmpty;
 
@@ -162,7 +163,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
         const SizedBox(width: 8),
         IconButton(
           icon: const Icon(Icons.close_rounded),
-          tooltip: 'Clear selection',
+          tooltip: l10n?.clearSelection ?? 'Clear selection',
           onPressed: () {
             AppHaptics.selectionClick();
             widget.onClearSelection();
@@ -171,7 +172,8 @@ class _HomeAppBarState extends State<HomeAppBar> {
         const SizedBox(width: 8),
         Expanded(
           child: Text(
-            '${noteProvider.selectedNoteIds.length} selected',
+            l10n?.selectedCount(noteProvider.selectedNoteIds.length) ??
+                '${noteProvider.selectedNoteIds.length} selected',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -182,7 +184,9 @@ class _HomeAppBarState extends State<HomeAppBar> {
         ),
         IconButton(
           icon: Icon(allSelected ? Icons.deselect_rounded : Icons.select_all_rounded),
-          tooltip: allSelected ? 'Deselect all' : 'Select all',
+          tooltip: allSelected
+              ? (l10n?.deselectAll ?? 'Deselect all')
+              : (l10n?.selectAll ?? 'Select all'),
           onPressed: () {
             AppHaptics.selectionClick();
             if (allSelected) {
@@ -198,13 +202,14 @@ class _HomeAppBarState extends State<HomeAppBar> {
   }
 
   Widget _buildSearchMode(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
     return Row(
       children: [
         IconButton(
           icon: const Icon(Icons.arrow_back),
-          tooltip: 'Close search',
+          tooltip: l10n?.closeSearch ?? 'Close search',
           onPressed: () {
             context.read<NoteProvider>().setSearchQuery('');
             setState(() {
@@ -223,7 +228,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
             textCapitalization: TextCapitalization.sentences,
             autocorrect: true,
             decoration: InputDecoration(
-              hintText: AppLocalizations.of(context)?.searchNotes ?? 'Search notes, settings, tags...',
+              hintText: l10n?.searchNotes ?? 'Search notes, settings, tags...',
               hintStyle: theme.textTheme.titleMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
               ),
@@ -251,7 +256,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
         if (_searchController.text.isNotEmpty)
           IconButton(
             icon: const Icon(Icons.close_rounded, size: 20),
-            tooltip: 'Clear query',
+            tooltip: l10n?.clearQuery ?? 'Clear query',
             onPressed: () {
               _searchController.clear();
               context.read<NoteProvider>().setSearchQuery('');
@@ -260,7 +265,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
           ),
         IconButton(
           icon: const Icon(Icons.search_rounded),
-          tooltip: 'Search',
+          tooltip: l10n?.search ?? 'Search',
           onPressed: () {
             FocusScope.of(context).unfocus();
           },
@@ -271,17 +276,18 @@ class _HomeAppBarState extends State<HomeAppBar> {
   }
 
   void _showCreateFolderDialog(BuildContext context, NoteProvider noteProvider) {
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AppDialog(
-        title: 'Create New Folder',
+        title: l10n?.createNewFolder ?? 'Create New Folder',
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Folder name',
-            prefixIcon: Icon(Icons.create_new_folder_outlined),
+          decoration: InputDecoration(
+            hintText: l10n?.folderName ?? 'Folder name',
+            prefixIcon: const Icon(Icons.create_new_folder_outlined),
           ),
           onSubmitted: (v) {
             final name = v.trim();
@@ -291,8 +297,8 @@ class _HomeAppBarState extends State<HomeAppBar> {
             }
           },
         ),
-        cancelLabel: 'Cancel',
-        confirmLabel: 'Create',
+        cancelLabel: l10n?.cancel ?? 'Cancel',
+        confirmLabel: l10n?.save ?? 'Create',
         onCancel: () => Navigator.pop(ctx),
         onConfirm: () {
           final name = controller.text.trim();
@@ -306,16 +312,23 @@ class _HomeAppBarState extends State<HomeAppBar> {
   }
 
   void _showFolderPicker(BuildContext context, NoteProvider noteProvider) {
+    final l10n = AppLocalizations.of(context);
     final folders = ['Notes', 'All Notes', ...noteProvider.folders];
     final currentFolder = noteProvider.selectedFolder ?? 'Notes';
 
+    String getFolderTitle(String folder) {
+      if (folder == 'Notes') return l10n?.navNotes ?? 'Notes';
+      if (folder == 'All Notes') return l10n?.allNotes ?? 'All Notes';
+      return folder;
+    }
+
     AppBottomSheet.show(
       context: context,
-      title: 'Filter by folder',
+      title: l10n?.filterByFolder ?? 'Filter by folder',
       actions: [
         TextButton.icon(
           icon: const Icon(Icons.create_new_folder_outlined, size: 18),
-          label: const Text('New Folder'),
+          label: Text(l10n?.newFolder ?? 'New Folder'),
           onPressed: () {
             Navigator.pop(context); // Close bottom sheet
             _showCreateFolderDialog(context, noteProvider);
@@ -339,7 +352,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
                 color: isSelected ? Theme.of(context).colorScheme.primary : null,
               ),
               title: Text(
-                folder,
+                getFolderTitle(folder),
                 style: TextStyle(
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   color: isSelected ? Theme.of(context).colorScheme.primary : null,
@@ -377,7 +390,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
                   : Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             title: Text(
-              'Checklists & Tasks',
+              l10n?.checklistsAndTasks ?? 'Checklists & Tasks',
               style: TextStyle(
                 fontWeight: noteProvider.filterChecklistsOnly ? FontWeight.bold : FontWeight.normal,
                 color: noteProvider.filterChecklistsOnly ? Theme.of(context).colorScheme.primary : null,
@@ -396,7 +409,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
           ),
           ListTile(
             leading: Icon(Icons.archive_outlined, color: Theme.of(context).colorScheme.onSurfaceVariant),
-            title: const Text('Archived Notes'),
+            title: Text(l10n?.archivedNotes ?? 'Archived Notes'),
             trailing: noteProvider.archivedCount > 0
                 ? AppChip(
                     label: '${noteProvider.archivedCount}',
@@ -410,7 +423,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
           ),
           ListTile(
             leading: Icon(Icons.delete_outline_rounded, color: Theme.of(context).colorScheme.error),
-            title: Text('Trash Bin', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            title: Text(l10n?.trashBin ?? 'Trash Bin', style: TextStyle(color: Theme.of(context).colorScheme.error)),
             trailing: noteProvider.trashCount > 0
                 ? AppChip(
                     label: '${noteProvider.trashCount}',
@@ -429,12 +442,19 @@ class _HomeAppBarState extends State<HomeAppBar> {
   }
 
   Widget _buildNormalMode(BuildContext context, SettingsProvider settings) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final noteProvider = context.watch<NoteProvider>();
     final displayFolder = noteProvider.selectedFolder ?? 'Notes';
     final count = noteProvider.folderCounts[displayFolder] ?? noteProvider.tagCounts['All'] ?? 0;
+
+    String getFolderLabel(String folder) {
+      if (folder == 'Notes') return l10n?.navNotes ?? 'Notes';
+      if (folder == 'All Notes') return l10n?.allNotes ?? 'All Notes';
+      return folder;
+    }
 
     return Row(
       children: [
@@ -445,7 +465,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                AppLocalizations.of(context)?.navNotes ?? 'Notes',
+                l10n?.navNotes ?? 'Notes',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleLarge?.copyWith(
@@ -461,7 +481,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
                   children: [
                     Semantics(
                       button: true,
-                      label: 'Folder: $displayFolder, $count notes. Tap to change folder',
+                      label: 'Folder: ${getFolderLabel(displayFolder)}, $count notes. Tap to change folder',
                       child: InkWell(
                         borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
                         onTap: () {
@@ -487,7 +507,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '$displayFolder • $count',
+                                '${getFolderLabel(displayFolder)} • $count',
                                 style: theme.textTheme.labelSmall?.copyWith(
                                       color: colorScheme.onSurface,
                                       fontWeight: FontWeight.bold,
@@ -513,7 +533,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
         ),
         IconButton(
           icon: const Icon(Icons.search),
-          tooltip: AppLocalizations.of(context)?.searchNotes ?? 'Search notes',
+          tooltip: l10n?.searchNotes ?? 'Search notes',
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           visualDensity: VisualDensity.compact,
@@ -525,7 +545,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
         ),
         PopupMenuButton<String>(
           icon: const Icon(Icons.sort_rounded),
-          tooltip: 'Sort notes',
+          tooltip: l10n?.sortNotes ?? 'Sort notes',
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           elevation: 3,
@@ -546,10 +566,10 @@ class _HomeAppBarState extends State<HomeAppBar> {
             final currentSort = noteProvider.sortMode;
 
             return [
-              ('modified', 'Sort by Last Modified', Icons.access_time_rounded),
-              ('created', 'Sort by Date Created', Icons.calendar_today_rounded),
-              ('title', 'Sort by Title', Icons.sort_by_alpha_rounded),
-              ('color', 'Sort by Color', Icons.palette_outlined),
+              ('modified', l10n?.sortByLastModified ?? 'Sort by Last Modified', Icons.access_time_rounded),
+              ('created', l10n?.sortByDateCreated ?? 'Sort by Date Created', Icons.calendar_today_rounded),
+              ('title', l10n?.sortByTitle ?? 'Sort by Title', Icons.sort_by_alpha_rounded),
+              ('color', l10n?.sortByColor ?? 'Sort by Color', Icons.palette_outlined),
             ].map((item) {
               final isSelected = currentSort == item.$1;
               return PopupMenuItem<String>(
@@ -646,7 +666,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
         ),
         PopupMenuButton<String>(
           icon: const Icon(Icons.more_vert_rounded),
-          tooltip: 'Notes Tools',
+          tooltip: l10n?.navNotes ?? 'Notes Tools',
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           elevation: 3,
@@ -689,7 +709,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        _getTooltipForMode(settings.noteViewMode),
+                        _getTooltipForMode(settings.noteViewMode, l10n),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w500,
                               color: colorScheme.onSurface,
@@ -707,7 +727,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
                     Icon(Icons.label_outline_rounded, size: 20, color: colorScheme.onSurfaceVariant),
                     const SizedBox(width: 12),
                     Text(
-                      'Manage Tags',
+                      l10n?.manageTags ?? 'Manage Tags',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w500,
                             color: colorScheme.onSurface,
@@ -724,7 +744,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
                     Icon(Icons.import_contacts_rounded, size: 20, color: colorScheme.onSurfaceVariant),
                     const SizedBox(width: 12),
                     Text(
-                      'Import Notes',
+                      l10n?.importNotes ?? 'Import Notes',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w500,
                             color: colorScheme.onSurface,
@@ -741,7 +761,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
                     Icon(Icons.archive_outlined, size: 20, color: colorScheme.onSurfaceVariant),
                     const SizedBox(width: 12),
                     Text(
-                      'Archived Notes',
+                      l10n?.archivedNotes ?? 'Archived Notes',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w500,
                             color: colorScheme.onSurface,
@@ -758,7 +778,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
                     Icon(Icons.delete_outline_rounded, size: 20, color: colorScheme.error),
                     const SizedBox(width: 12),
                     Text(
-                      'Trash Bin',
+                      l10n?.trashBin ?? 'Trash Bin',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             fontWeight: FontWeight.w500,
                             color: colorScheme.error,
@@ -772,7 +792,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
         ),
         IconButton(
           icon: const Icon(Icons.settings_outlined),
-          tooltip: 'Settings',
+          tooltip: l10n?.settingsTitle ?? 'Settings',
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           visualDensity: VisualDensity.compact,
@@ -794,12 +814,12 @@ class _HomeAppBarState extends State<HomeAppBar> {
     }
   }
 
-  String _getTooltipForMode(NoteViewMode mode) {
+  String _getTooltipForMode(NoteViewMode mode, AppLocalizations? l10n) {
     switch (mode) {
       case NoteViewMode.list:
-        return 'Switch to grid view';
+        return l10n?.switchToGridView ?? 'Switch to grid view';
       case NoteViewMode.grid:
-        return 'Switch to list view';
+        return l10n?.switchToListView ?? 'Switch to list view';
     }
   }
 }

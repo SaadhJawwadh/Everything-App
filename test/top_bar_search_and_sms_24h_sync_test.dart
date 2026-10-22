@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:note_taking_app/core/theme/app_theme.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
-import 'package:note_taking_app/providers/note_provider.dart';
+import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import 'package:note_taking_app/features/sync/providers/p2p_sync_provider.dart';
 import 'package:note_taking_app/features/finances/providers/financial_manager_provider.dart';
 import 'package:note_taking_app/features/finances/presentation/screens/financial_manager_screen.dart';

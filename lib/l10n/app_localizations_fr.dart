@@ -290,4 +290,369 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get onDeviceAi => 'IA sur l\'Appareil';
+
+  @override
+  String get preferencesAndWorkspaces => 'Préférences et espaces';
+
+  @override
+  String get notesAndEditorWorkspace => 'Notes et éditeur';
+
+  @override
+  String get financesAndHealthModules => 'Finances et santé';
+
+  @override
+  String get privacyAndSecurity => 'Confidentialité et sécurité';
+
+  @override
+  String get syncAndBackups => 'Synchronisation et sauvegardes';
+
+  @override
+  String get aboutAndDeviceAi => 'À propos et IA';
+
+  @override
+  String get startFromTemplate => 'Partir d\'un modèle';
+
+  @override
+  String get templateMeetingNotes => 'Notes de réunion';
+
+  @override
+  String get templateMeetingNotesDesc => 'Ordre du jour, discussion et actions';
+
+  @override
+  String get templateShoppingList => 'Liste de courses';
+
+  @override
+  String get templateShoppingListDesc => 'Liste à cocher prête à l\'emploi';
+
+  @override
+  String get templateJournal => 'Journal';
+
+  @override
+  String get templateJournalDesc => 'Réflexions quotidiennes';
+
+  @override
+  String get themeAndColorSystem => 'Thème et couleurs';
+
+  @override
+  String get appThemeMode => 'Mode du thème';
+
+  @override
+  String get dynamicWallpaperTheme => 'Couleurs dynamiques';
+
+  @override
+  String get dynamicWallpaperSubtitle =>
+      'Harmoniser les couleurs avec le fond d\'écran (Android 12+)';
+
+  @override
+  String get interactionAndAccessibility => 'Interaction et accessibilité';
+
+  @override
+  String get tactileHaptics => 'Retour haptique';
+
+  @override
+  String get tactileHapticsSubtitle =>
+      'Vibrations légères pour les gestes et actions';
+
+  @override
+  String get textScale => 'Taille du texte';
+
+  @override
+  String get textScaleSubtitle => 'Taille de police globale';
+
+  @override
+  String get textScaleSmall => 'Petit';
+
+  @override
+  String get textScaleMedium => 'Moyen';
+
+  @override
+  String get textScaleLarge => 'Grand';
+
+  @override
+  String get appLanguage => 'Langue de l\'app';
+
+  @override
+  String get selectCurrency => 'Sélectionner la devise';
+
+  @override
+  String noSettingsFound(String query) {
+    return 'Aucun paramètre trouvé pour \"$query\"';
+  }
+
+  @override
+  String get quickSuggestions => 'Suggestions rapides :';
+
+  @override
+  String get clearSelection => 'Effacer la sélection';
+
+  @override
+  String selectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sélectionnés',
+      one: '1 sélectionné',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get selectAll => 'Tout sélectionner';
+
+  @override
+  String get deselectAll => 'Tout désélectionner';
+
+  @override
+  String get closeSearch => 'Fermer la recherche';
+
+  @override
+  String get clearQuery => 'Effacer la requête';
+
+  @override
+  String get createNewFolder => 'Créer un nouveau dossier';
+
+  @override
+  String get folderName => 'Nom du dossier';
+
+  @override
+  String get filterByFolder => 'Filtrer par dossier';
+
+  @override
+  String get newFolder => 'Nouveau dossier';
+
+  @override
+  String get allNotes => 'Toutes les notes';
+
+  @override
+  String get checklistsAndTasks => 'Listes et tâches';
+
+  @override
+  String get archivedNotes => 'Notes archivées';
+
+  @override
+  String get trashBin => 'Corbeille';
+
+  @override
+  String get sortNotes => 'Trier les notes';
+
+  @override
+  String get sortByLastModified => 'Par dernière modification';
+
+  @override
+  String get sortByDateCreated => 'Par date de création';
+
+  @override
+  String get sortByTitle => 'Par titre';
+
+  @override
+  String get sortByColor => 'Par couleur';
+
+  @override
+  String get importNotes => 'Importer des notes';
+
+  @override
+  String get switchToGridView => 'Passer en vue grille';
+
+  @override
+  String get switchToListView => 'Passer en vue liste';
+
+  @override
+  String get selectPeriod => 'Sélectionner la période';
+
+  @override
+  String get thisMonth => 'Ce mois-ci';
+
+  @override
+  String get lastMonth => 'Le mois dernier';
+
+  @override
+  String get last90Days => '90 derniers jours';
+
+  @override
+  String get thisYear => 'Cette année';
+
+  @override
+  String get allTime => 'Tout l\'historique';
+
+  @override
+  String get customDateRange => 'Plage de dates personnalisée…';
+
+  @override
+  String get customDateRangeSubtitle =>
+      'Choisir les dates exactes sur le calendrier';
+
+  @override
+  String allTasksCompleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Toutes les $count tâches terminées',
+      one: '1 tâche terminée',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String moreItems(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count autres éléments',
+      one: '1 autre élément',
+    );
+    return '+$_temp0';
+  }
+
+  @override
+  String get manageCategories => 'Gérer les catégories';
+
+  @override
+  String get restoreDefaults => 'Restaurer les valeurs par défaut';
+
+  @override
+  String get restoreDefaultCategoriesTitle =>
+      'Restaurer les catégories par défaut ?';
+
+  @override
+  String get restoreDefaultCategoriesContent =>
+      'Les catégories personnalisées seront supprimées et les catégories intégrées retrouveront leurs couleurs et mots-clés par défaut. Les transactions existantes conservent leurs étiquettes.';
+
+  @override
+  String get categoriesRestored => 'Catégories restaurées par défaut';
+
+  @override
+  String get newCategory => 'Nouvelle catégorie';
+
+  @override
+  String get editCategory => 'Modifier la catégorie';
+
+  @override
+  String get categoryName => 'Nom de la catégorie';
+
+  @override
+  String get categoryNameRequired => 'Nom de catégorie requis';
+
+  @override
+  String get categoryNameExists => 'Ce nom de catégorie existe déjà';
+
+  @override
+  String get icon => 'Icône';
+
+  @override
+  String get colour => 'Couleur';
+
+  @override
+  String get keywords => 'Mots-clés';
+
+  @override
+  String get addKeywordHint => 'Ajouter un mot-clé…';
+
+  @override
+  String get noKeywords => 'Aucun mot-clé';
+
+  @override
+  String get deleteCategoryTooltip => 'Supprimer la catégorie';
+
+  @override
+  String get editCategoryTooltip => 'Modifier la catégorie';
+
+  @override
+  String get cannotDeleteOtherCategory =>
+      'La catégorie par défaut « Autre » ne peut pas être supprimée.';
+
+  @override
+  String deleteCategoryTitle(String name) {
+    return 'Supprimer « $name » ?';
+  }
+
+  @override
+  String get deleteCategoryContent =>
+      'Les transactions existantes avec cette catégorie seront réaffectées à « Autre » pour préserver votre historique.';
+
+  @override
+  String get cyclePhaseGuide => 'Guide des phases du cycle';
+
+  @override
+  String get menstrualPhase => 'Phase menstruelle';
+
+  @override
+  String get menstrualPhaseDays => 'Jours 1–5';
+
+  @override
+  String get menstrualPhaseDesc =>
+      'Desquamation de la muqueuse utérine. Énergie plus basse ; privilégiez repos, hydratation et mouvements doux.';
+
+  @override
+  String get follicularPhase => 'Phase folliculaire';
+
+  @override
+  String get follicularPhaseDays => 'Jours 6–13';
+
+  @override
+  String get follicularPhaseDesc =>
+      'Les œstrogènes augmentent avec la maturation des follicules. Énergie, humeur et créativité sont au plus haut.';
+
+  @override
+  String get ovulatoryPhase => 'Phase ovulatoire';
+
+  @override
+  String get ovulatoryPhaseDays => 'Jours 14–16';
+
+  @override
+  String get ovulatoryPhaseDesc =>
+      'Le pic de LH déclenche l\'ovulation. Confiance, énergie sociale et fertilité maximales.';
+
+  @override
+  String get lutealPhase => 'Phase lutéale';
+
+  @override
+  String get lutealPhaseDays => 'Jours 17–28';
+
+  @override
+  String get lutealPhaseDesc =>
+      'La progestérone augmente. L\'énergie diminue ; le SPM peut apparaître. Privilégiez la détente.';
+
+  @override
+  String get symptomCramps => 'Crampes';
+
+  @override
+  String get symptomBloating => 'Ballonnements';
+
+  @override
+  String get symptomHeadache => 'Maux de tête';
+
+  @override
+  String get symptomFatigue => 'Fatigue';
+
+  @override
+  String get symptomAcne => 'Acné';
+
+  @override
+  String get symptomMoodSwings => 'Sautes d\'humeur';
+
+  @override
+  String get symptomNausea => 'Nausées';
+
+  @override
+  String get symptomBackache => 'Mal de dos';
+
+  @override
+  String get intensityLight => 'Légère';
+
+  @override
+  String get intensityMedium => 'Moyenne';
+
+  @override
+  String get intensityHeavy => 'Forte';
+
+  @override
+  String get startDateAfterEndDate =>
+      'La date de début ne peut pas être postérieure à la date de fin';
+
+  @override
+  String get overlapDetectedTitle => 'Chevauchement détecté';
+
+  @override
+  String get overlapDetectedMessage =>
+      'Les dates sélectionnées chevauchent une période déjà enregistrée. Veuillez ajuster les dates.';
 }

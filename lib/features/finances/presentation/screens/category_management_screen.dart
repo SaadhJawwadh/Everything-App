@@ -13,6 +13,7 @@ import 'package:note_taking_app/core/ui/expressive_sliver_app_bar.dart';
 import 'package:note_taking_app/core/ui/expressive_shape_morph_indicator.dart';
 import 'package:note_taking_app/utils/app_route.dart';
 import 'package:note_taking_app/features/finances/presentation/screens/sms_rules_screen.dart';
+import 'package:note_taking_app/l10n/app_localizations.dart';
 
 class CategoryManagementScreen extends StatefulWidget {
   const CategoryManagementScreen({super.key});
@@ -59,20 +60,21 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
 
   Future<void> _confirmRestoreDefaults() async {
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Restore default categories?'),
-        content: const Text(
+        title: Text(l10n?.restoreDefaultCategoriesTitle ?? 'Restore default categories?'),
+        content: Text(l10n?.restoreDefaultCategoriesContent ??
             'Custom categories will be removed and built-in categories reset to their default colors and keywords. Existing transactions keep their category labels.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(l10n?.cancel ?? 'Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Restore'),
+            child: Text(l10n?.restore ?? 'Restore'),
           ),
         ],
       ),
@@ -83,7 +85,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
     await _saveAndReload();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Categories restored to defaults')),
+        SnackBar(content: Text(l10n?.categoriesRestored ?? 'Categories restored to defaults')),
       );
     }
   }
@@ -116,22 +118,23 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
   }
 
   Future<void> _deleteCategory(CategoryDefinition def) async {
+    final l10n = AppLocalizations.of(context);
     if (def.name == CategoryConstants.other) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('The "Other" fallback category cannot be deleted.')),
+        SnackBar(content: Text(l10n?.cannotDeleteOtherCategory ?? 'The "Other" fallback category cannot be deleted.')),
       );
       return;
     }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Delete "${def.name}"?'),
-        content: const Text(
+        title: Text(l10n?.deleteCategoryTitle(def.name) ?? 'Delete "${def.name}"?'),
+        content: Text(l10n?.deleteCategoryContent ??
             'Existing transactions with this category will be reassigned to "Other" so your history stays intact.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(l10n?.cancel ?? 'Cancel'),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
@@ -139,7 +142,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
               foregroundColor: Theme.of(ctx).colorScheme.onError,
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
+            child: Text(l10n?.delete ?? 'Delete'),
           ),
         ],
       ),
@@ -155,6 +158,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       body: NotificationListener<UserScrollNotification>(
@@ -163,12 +167,12 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
           child: CustomScrollView(
             slivers: [
               ExpressiveSliverAppBar(
-                titleText: 'Manage Categories',
+                titleText: l10n?.manageCategories ?? 'Manage Categories',
                 showBackButton: true,
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.settings_backup_restore),
-                    tooltip: 'Restore defaults',
+                    tooltip: l10n?.restoreDefaults ?? 'Restore defaults',
                     onPressed: _confirmRestoreDefaults,
                   ),
                 ],
@@ -230,7 +234,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                                           const SizedBox(width: 12),
                                           Expanded(
                                             child: Text(
-                                              cat.name,
+                                              TransactionCategory.localizedName(context, cat.name),
                                               style: textTheme.titleSmall?.copyWith(
                                                 fontWeight: FontWeight.bold,
                                               ),
@@ -241,14 +245,14 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                                               icon: const Icon(Icons.delete_outline),
                                               iconSize: 20,
                                               color: colorScheme.error,
-                                              tooltip: 'Delete category',
+                                              tooltip: l10n?.deleteCategoryTooltip ?? 'Delete category',
                                               onPressed: () => _deleteCategory(cat),
                                             ),
                                           IconButton(
                                             icon: const Icon(Icons.edit_outlined),
                                             iconSize: 20,
                                             color: colorScheme.onSurfaceVariant,
-                                            tooltip: 'Edit category',
+                                            tooltip: l10n?.editCategoryTooltip ?? 'Edit category',
                                             onPressed: () => _showEditDialog(cat),
                                           ),
                                         ],
@@ -287,7 +291,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                                         Padding(
                                           padding: const EdgeInsets.only(top: 6),
                                           child: Text(
-                                            'No keywords',
+                                            l10n?.noKeywords ?? 'No keywords',
                                             style: textTheme.labelSmall?.copyWith(
                                               color: colorScheme.onSurfaceVariant,
                                               fontStyle: FontStyle.italic,
@@ -313,7 +317,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
       floatingActionButton: AppMorphingFab(
         isExpanded: _isFabExpanded,
         icon: Icons.add,
-        label: 'New Category',
+        label: l10n?.newCategory ?? 'New Category',
         onPressed: () => _showAddDialog(),
         secondaryAction: IconButton(
           tooltip: 'SMS Rules',
@@ -421,9 +425,10 @@ class _EditCategoryDialogState extends State<_EditCategoryDialog> {
   }
 
   Future<void> _save() async {
+    final l10n = AppLocalizations.of(context);
     final newName = _nameController.text.trim();
     if (newName.isEmpty) {
-      setState(() => _nameError = 'Category name required');
+      setState(() => _nameError = l10n?.categoryNameRequired ?? 'Category name required');
       return;
     }
     if (newName.toLowerCase() != widget.definition.name.toLowerCase()) {
@@ -431,7 +436,7 @@ class _EditCategoryDialogState extends State<_EditCategoryDialog> {
         (c) => c.name.toLowerCase() == newName.toLowerCase(),
       );
       if (exists) {
-        setState(() => _nameError = 'Category name already exists');
+        setState(() => _nameError = l10n?.categoryNameExists ?? 'Category name already exists');
         return;
       }
     }
@@ -452,9 +457,10 @@ class _EditCategoryDialogState extends State<_EditCategoryDialog> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
 
     return AlertDialog(
-      title: const Text('Edit Category'),
+      title: Text(l10n?.editCategory ?? 'Edit Category'),
       content: SizedBox(
         width: double.maxFinite,
         child: SingleChildScrollView(
@@ -466,7 +472,7 @@ class _EditCategoryDialogState extends State<_EditCategoryDialog> {
               TextField(
                 controller: _nameController,
                 decoration: InputDecoration(
-                  labelText: 'Category Name',
+                  labelText: l10n?.categoryName ?? 'Category Name',
                   errorText: _nameError,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppLayout.radiusM),
@@ -480,7 +486,7 @@ class _EditCategoryDialogState extends State<_EditCategoryDialog> {
               const SizedBox(height: 16),
               // Icon Picker
               Text(
-                'Icon',
+                l10n?.icon ?? 'Icon',
                 style: textTheme.labelMedium
                     ?.copyWith(color: colorScheme.onSurfaceVariant),
               ),
@@ -505,7 +511,7 @@ class _EditCategoryDialogState extends State<_EditCategoryDialog> {
                       },
                       child: Container(
                         decoration: BoxDecoration(
-                          color: isSelected
+                           color: isSelected
                               ? _selectedColor.withValues(alpha: 0.2)
                               : colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                           shape: BoxShape.circle,
@@ -526,7 +532,7 @@ class _EditCategoryDialogState extends State<_EditCategoryDialog> {
               const SizedBox(height: 16),
               // Colour Picker
               Text(
-                'Colour',
+                l10n?.colour ?? 'Colour',
                 style: textTheme.labelMedium
                     ?.copyWith(color: colorScheme.onSurfaceVariant),
               ),
@@ -566,7 +572,7 @@ class _EditCategoryDialogState extends State<_EditCategoryDialog> {
               const SizedBox(height: 16),
               // Keywords
               Text(
-                'Keywords',
+                l10n?.keywords ?? 'Keywords',
                 style: textTheme.labelMedium
                     ?.copyWith(color: colorScheme.onSurfaceVariant),
               ),
@@ -577,7 +583,7 @@ class _EditCategoryDialogState extends State<_EditCategoryDialog> {
                     child: TextField(
                       controller: _addKeywordController,
                       decoration: InputDecoration(
-                        hintText: 'Add keyword…',
+                        hintText: l10n?.addKeywordHint ?? 'Add keyword…',
                         isDense: true,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(AppLayout.radiusM),
@@ -605,7 +611,7 @@ class _EditCategoryDialogState extends State<_EditCategoryDialog> {
               const SizedBox(height: 8),
               if (_keywords.isEmpty)
                 Text(
-                  'No keywords — this category will only be used explicitly.',
+                  l10n?.noKeywords ?? 'No keywords',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                         fontStyle: FontStyle.italic,
@@ -642,7 +648,7 @@ class _EditCategoryDialogState extends State<_EditCategoryDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(l10n?.cancel ?? 'Cancel'),
         ),
         FilledButton(
           onPressed: _saving ? null : _save,
@@ -652,7 +658,7 @@ class _EditCategoryDialogState extends State<_EditCategoryDialog> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Save'),
+              : Text(l10n?.save ?? 'Save'),
         ),
       ],
     );
@@ -698,16 +704,17 @@ class _AddCategoryDialogState extends State<_AddCategoryDialog> {
   }
 
   Future<void> _save() async {
+    final l10n = AppLocalizations.of(context);
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      setState(() => _nameError = 'Name is required');
+      setState(() => _nameError = l10n?.categoryNameRequired ?? 'Category name required');
       return;
     }
     final exists = widget.existingCategories.any(
       (c) => c.name.toLowerCase() == name.toLowerCase(),
     );
     if (exists) {
-      setState(() => _nameError = 'Category already exists');
+      setState(() => _nameError = l10n?.categoryNameExists ?? 'Category name already exists');
       return;
     }
     setState(() {
@@ -730,9 +737,10 @@ class _AddCategoryDialogState extends State<_AddCategoryDialog> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context);
 
     return AlertDialog(
-      title: const Text('New Category'),
+      title: Text(l10n?.newCategory ?? 'New Category'),
       content: SizedBox(
         width: double.maxFinite,
         child: SingleChildScrollView(
@@ -744,7 +752,7 @@ class _AddCategoryDialogState extends State<_AddCategoryDialog> {
               TextField(
                 controller: _nameController,
                 decoration: InputDecoration(
-                  labelText: 'Category name',
+                  labelText: l10n?.categoryName ?? 'Category Name',
                   errorText: _nameError,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppLayout.radiusM),
@@ -760,7 +768,7 @@ class _AddCategoryDialogState extends State<_AddCategoryDialog> {
               const SizedBox(height: 16),
               // Icon Picker
               Text(
-                'Icon',
+                l10n?.icon ?? 'Icon',
                 style: textTheme.labelMedium
                     ?.copyWith(color: colorScheme.onSurfaceVariant),
               ),
@@ -806,7 +814,7 @@ class _AddCategoryDialogState extends State<_AddCategoryDialog> {
               const SizedBox(height: 16),
               // Color picker
               Text(
-                'Colour',
+                l10n?.colour ?? 'Colour',
                 style: textTheme.labelMedium
                     ?.copyWith(color: colorScheme.onSurfaceVariant),
               ),
@@ -847,7 +855,7 @@ class _AddCategoryDialogState extends State<_AddCategoryDialog> {
               const SizedBox(height: 16),
               // Keywords
               Text(
-                'Keywords',
+                l10n?.keywords ?? 'Keywords',
                 style: textTheme.labelMedium
                     ?.copyWith(color: colorScheme.onSurfaceVariant),
               ),
@@ -858,7 +866,7 @@ class _AddCategoryDialogState extends State<_AddCategoryDialog> {
                     child: TextField(
                       controller: _keywordController,
                       decoration: InputDecoration(
-                        hintText: 'Add keyword…',
+                        hintText: l10n?.addKeywordHint ?? 'Add keyword…',
                         isDense: true,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(AppLayout.radiusM),
@@ -915,7 +923,7 @@ class _AddCategoryDialogState extends State<_AddCategoryDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(l10n?.cancel ?? 'Cancel'),
         ),
         FilledButton(
           onPressed: _saving ? null : _save,
@@ -925,7 +933,7 @@ class _AddCategoryDialogState extends State<_AddCategoryDialog> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Create'),
+              : Text(l10n?.save ?? 'Save'),
         ),
       ],
     );

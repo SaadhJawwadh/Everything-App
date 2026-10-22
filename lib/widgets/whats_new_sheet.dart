@@ -37,6 +37,11 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.translate_rounded,
+            title: "Per-App Language Settings",
+            desc: "Select your preferred language for Everything App directly inside Android System Settings (Android 13+).",
+          ),
+          _WhatsNewItem(
             icon: Icons.language_rounded,
             title: "Russian Language & Ruble",
             desc: "Full Russian localization and authentic Ruble (₽) currency formatting across ledgers.",
@@ -47,14 +52,9 @@ class WhatsNewSheet extends StatelessWidget {
             desc: "View complete shared bill records with friends, exact settlement dates, and per-bill status in a clean sheet.",
           ),
           _WhatsNewItem(
-            icon: Icons.undo_rounded,
-            title: "Instant Settlement Undo",
-            desc: "Reopen settled bills or participant shares in one tap with automatic ledger transaction reversal.",
-          ),
-          _WhatsNewItem(
             icon: Icons.animation_rounded,
-            title: "Fluid UI Motion",
-            desc: "Expressive spring physics, seamless container transitions, and origin-safe scale-fade effects across all screens.",
+            title: "Fluid Note Transitions",
+            desc: "Seamless note opening animations with container transforms and zero background flashes.",
           ),
         ],
       ),
@@ -65,6 +65,16 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.tertiaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.view_list_rounded,
+            title: "Scrollable Pickers",
+            desc: "Browse all 9 languages and 15 currencies comfortably on any display size or zoom level.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.format_list_numbered_rounded,
+            title: "Locale-Aware Formatting",
+            desc: "Precise, localized formatting for numbers, currencies, dates, and times throughout every screen.",
+          ),
+          _WhatsNewItem(
             icon: Icons.space_dashboard_outlined,
             title: "Reclaimed Notes Feed",
             desc: "Notes appear immediately below the app bar with pro tips neatly relocated to About & Guides.",
@@ -73,16 +83,6 @@ class WhatsNewSheet extends StatelessWidget {
             icon: Icons.speed_rounded,
             title: "Calm Financial Dashboard",
             desc: "Focused, non-distracting cash flow overview without flashing or unexpected auto-flipping numbers.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.account_balance_wallet_rounded,
-            title: "Split Ledger Parity",
-            desc: "Linked settlements directly to ledger transactions for exact, penny-perfect cash flow tracking.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.widgets_rounded,
-            title: "Android Widgets",
-            desc: "Enabled vertical resizing on all home screen widgets with restored month analytics sparklines.",
           ),
         ],
       ),
@@ -93,24 +93,24 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.secondaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.privacy_tip_rounded,
+            title: "TalkBack Privacy Protection",
+            desc: "Screen readers can no longer inspect private notes or financial balances when app lock is active.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.contrast_rounded,
+            title: "Checklist Contrast",
+            desc: "Enhanced task completion badge contrast for optimal light-theme readability (WCAG AA).",
+          ),
+          _WhatsNewItem(
+            icon: Icons.auto_awesome_outlined,
+            title: "Smarter AI Controls",
+            desc: "On-device AI shortcuts automatically hide on devices without hardware acceleration.",
+          ),
+          _WhatsNewItem(
             icon: Icons.folder_open_rounded,
             title: "Unified Folder Navigation",
             desc: "Removed redundant folder menu options for a cleaner, unified navigation experience.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.checklist_rounded,
-            title: "Checklist Previews",
-            desc: "Polished note card previews to cleanly highlight pending actionable tasks.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.history_rounded,
-            title: "Friend-Paid Bill Reopening",
-            desc: "Restored 1-tap undo on bills paid by friends without affecting older historical settlements.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.security_rounded,
-            title: "Database Resilience",
-            desc: "Seamless schema upgrades and rolling snapshots preserving all data safely.",
           ),
         ],
       ),

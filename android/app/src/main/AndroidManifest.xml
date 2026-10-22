@@ -35,6 +35,7 @@
     <application
         android:label="Everything App"
         android:name="${applicationName}"
+        android:localeConfig="@xml/locales_config"
         android:hardwareAccelerated="true"
         android:enableOnBackInvokedCallback="true"
         android:allowBackup="true"

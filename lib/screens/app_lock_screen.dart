@@ -400,9 +400,12 @@ class AppLockScreenState extends State<AppLockScreen>
 
       return Stack(
         children: [
-          IgnorePointer(
-            ignoring: true,
-            child: widget.child,
+          ExcludeSemantics(
+            excluding: true,
+            child: IgnorePointer(
+              ignoring: true,
+              child: widget.child,
+            ),
           ),
           lockOverlay,
         ],

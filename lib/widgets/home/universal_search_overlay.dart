@@ -7,7 +7,7 @@ import '../../data/transaction_model.dart';
 import '../../data/period_log_model.dart';
 import '../../data/transaction_category.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
-import '../../providers/note_provider.dart';
+import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import '../../features/finances/presentation/screens/category_management_screen.dart';
 import '../../features/finances/presentation/screens/sms_contacts_screen.dart';
 import '../../features/finances/presentation/screens/sms_rules_screen.dart';
