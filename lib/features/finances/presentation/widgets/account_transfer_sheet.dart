@@ -38,6 +38,11 @@ class _AccountTransferSheetState extends State<AccountTransferSheet> {
   void initState() {
     super.initState();
     _amountController.text = '';
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<FinancialManagerProvider>().loadTransactions();
+      }
+    });
   }
 
   @override
@@ -93,14 +98,12 @@ class _AccountTransferSheetState extends State<AccountTransferSheet> {
         : financeProvider.savingsVaultCashFlow;
 
     final amount = double.tryParse(_amountController.text) ?? 0.0;
-    final isOverBalance = fromBalance > 0 && amount > fromBalance;
+    final isOverBalance = amount > 0 && (fromBalance - amount) < 0;
 
-    return Padding(
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 8,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 8,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -155,31 +158,40 @@ class _AccountTransferSheetState extends State<AccountTransferSheet> {
 
               // Floating overlapping swap button
               Positioned(
-                child: Material(
-                  color: cs.surfaceContainerHighest,
-                  shape: const CircleBorder(),
-                  elevation: 2,
-                  shadowColor: cs.shadow.withValues(alpha: 0.15),
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: _swapAccounts,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: cs.outlineVariant.withValues(alpha: 0.5),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: AnimatedRotation(
-                        turns: _swapTurns,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOutBack,
-                        child: Icon(
-                          Icons.swap_vert_rounded,
-                          size: 20,
-                          color: cs.primary,
+                child: Semantics(
+                  button: true,
+                  label: 'Swap accounts',
+                  child: Material(
+                    color: cs.surfaceContainerHighest,
+                    shape: const CircleBorder(),
+                    elevation: 2,
+                    shadowColor: cs.shadow.withValues(alpha: 0.15),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: _swapAccounts,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: cs.outlineVariant.withValues(alpha: 0.5),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: AnimatedRotation(
+                              turns: _swapTurns,
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOutBack,
+                              child: Icon(
+                                Icons.swap_vert_rounded,
+                                size: 20,
+                                color: cs.primary,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -257,7 +269,7 @@ class _AccountTransferSheetState extends State<AccountTransferSheet> {
                       });
                     },
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                     tooltip: 'Clear',
                   ),
                 ],

@@ -340,7 +340,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
         padding: EdgeInsets.zero,
         children: [
           ...folders.map((folder) {
-            final isSelected = folder == currentFolder;
+            final isSelected = !noteProvider.filterChecklistsOnly && folder == currentFolder;
             final count = noteProvider.folderCounts[folder];
             return ListTile(
               leading: Icon(
@@ -396,14 +396,23 @@ class _HomeAppBarState extends State<HomeAppBar> {
                 color: noteProvider.filterChecklistsOnly ? Theme.of(context).colorScheme.primary : null,
               ),
             ),
-            trailing: noteProvider.checklistNotesCount > 0
-                ? AppChip(
-                    label: '${noteProvider.checklistNotesCount}',
-                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  )
-                : null,
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (noteProvider.checklistNotesCount > 0)
+                  Padding(
+                    padding: EdgeInsets.only(right: noteProvider.filterChecklistsOnly ? 8 : 0),
+                    child: AppChip(
+                      label: '${noteProvider.checklistNotesCount}',
+                      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    ),
+                  ),
+                if (noteProvider.filterChecklistsOnly)
+                  Icon(Icons.check, color: Theme.of(context).colorScheme.primary),
+              ],
+            ),
             onTap: () {
-              noteProvider.setFilterChecklistsOnly(true);
+              noteProvider.setFilterChecklistsOnly(!noteProvider.filterChecklistsOnly);
               Navigator.pop(context);
             },
           ),
@@ -418,7 +427,8 @@ class _HomeAppBarState extends State<HomeAppBar> {
                 : null,
             onTap: () {
               Navigator.pop(context);
-              AppRoute.push(context, const FilteredNotesScreen(filterType: FilterType.archived));
+              AppRoute.push(context, const FilteredNotesScreen(filterType: FilterType.archived))
+                  .then((_) => widget.onRefresh());
             },
           ),
           ListTile(
@@ -433,7 +443,8 @@ class _HomeAppBarState extends State<HomeAppBar> {
                 : null,
             onTap: () {
               Navigator.pop(context);
-              AppRoute.push(context, const FilteredNotesScreen(filterType: FilterType.trash));
+              AppRoute.push(context, const FilteredNotesScreen(filterType: FilterType.trash))
+                  .then((_) => widget.onRefresh());
             },
           ),
         ],
@@ -447,14 +458,21 @@ class _HomeAppBarState extends State<HomeAppBar> {
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final noteProvider = context.watch<NoteProvider>();
+    final isChecklistsView = noteProvider.filterChecklistsOnly;
     final displayFolder = noteProvider.selectedFolder ?? 'Notes';
-    final count = noteProvider.folderCounts[displayFolder] ?? noteProvider.tagCounts['All'] ?? 0;
+    final count = isChecklistsView
+        ? noteProvider.checklistNotesCount
+        : (noteProvider.folderCounts[displayFolder] ?? noteProvider.tagCounts['All'] ?? 0);
 
     String getFolderLabel(String folder) {
       if (folder == 'Notes') return l10n?.navNotes ?? 'Notes';
       if (folder == 'All Notes') return l10n?.allNotes ?? 'All Notes';
       return folder;
     }
+
+    final scopeLabel = isChecklistsView
+        ? (l10n?.checklistsAndTasks ?? 'Checklists & Tasks')
+        : getFolderLabel(displayFolder);
 
     return Row(
       children: [
@@ -481,7 +499,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
                   children: [
                     Semantics(
                       button: true,
-                      label: 'Folder: ${getFolderLabel(displayFolder)}, $count notes. Tap to change folder',
+                      label: 'Folder: $scopeLabel, $count notes. Tap to change folder',
                       child: InkWell(
                         borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
                         onTap: () {
@@ -501,13 +519,13 @@ class _HomeAppBarState extends State<HomeAppBar> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                Icons.folder_outlined,
+                                isChecklistsView ? Icons.checklist_rtl_rounded : Icons.folder_outlined,
                                 color: colorScheme.primary,
                                 size: 13,
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '${getFolderLabel(displayFolder)} • $count',
+                                '$scopeLabel • $count',
                                 style: theme.textTheme.labelSmall?.copyWith(
                                       color: colorScheme.onSurface,
                                       fontWeight: FontWeight.bold,
@@ -683,13 +701,16 @@ class _HomeAppBarState extends State<HomeAppBar> {
             if (action == 'view_mode') {
               widget.onCycleViewMode();
             } else if (action == 'manage_tags') {
-              AppRoute.push(context, const ManageTagsScreen());
+              AppRoute.push(context, const ManageTagsScreen())
+                  .then((_) => widget.onRefresh());
             } else if (action == 'import_notes') {
               NoteMigrationSheet.show(context);
             } else if (action == 'archived') {
-              AppRoute.push(context, const FilteredNotesScreen(filterType: FilterType.archived));
+              AppRoute.push(context, const FilteredNotesScreen(filterType: FilterType.archived))
+                  .then((_) => widget.onRefresh());
             } else if (action == 'trash') {
-              AppRoute.push(context, const FilteredNotesScreen(filterType: FilterType.trash));
+              AppRoute.push(context, const FilteredNotesScreen(filterType: FilterType.trash))
+                  .then((_) => widget.onRefresh());
             }
           },
           itemBuilder: (context) {

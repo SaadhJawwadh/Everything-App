@@ -21,7 +21,8 @@ class LedgerFloatingToolbar extends StatelessWidget {
     AppBottomSheet.show(
       context: context,
       title: 'Assign Category (${provider.selectedCount} selected)',
-      child: Padding(
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: Wrap(
           spacing: 8,

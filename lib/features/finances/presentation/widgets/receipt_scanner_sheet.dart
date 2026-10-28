@@ -111,8 +111,10 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final currencySymbol = context.watch<SettingsProvider>().currencySymbol;
 
-    return Padding(
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom + AppLayout.spaceL,
       ),
@@ -227,7 +229,7 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
                         const SizedBox(height: AppLayout.spaceXS),
                         Text(
                           _scanResult?.totalAmount != null
-                              ? 'Extracted Total: Rs. ${_scanResult!.totalAmount!.toStringAsFixed(2)}'
+                              ? 'Extracted Total: $currencySymbol ${_scanResult!.totalAmount!.toStringAsFixed(2)}'
                               : 'Total not detected automatically. Please verify below.',
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: _scanResult?.totalAmount != null ? Colors.green : colorScheme.onSurfaceVariant,
@@ -263,13 +265,13 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
                 controller: _totalController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
-                  labelText: 'Total Bill Amount (${context.read<SettingsProvider>().currency})',
+                  labelText: 'Total Bill Amount ($currencySymbol)',
                   prefixIcon: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: Center(
                       widthFactor: 0.0,
                       child: Text(
-                        context.read<SettingsProvider>().currency,
+                        currencySymbol,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: colorScheme.primary,

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:note_taking_app/core/services/app_haptics.dart';
 import 'package:note_taking_app/features/notes/data/note_repository.dart';
+import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import 'package:note_taking_app/core/theme/app_theme.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:note_taking_app/core/theme/app_layout.dart';
+import 'package:note_taking_app/core/ui/app_dialog.dart';
 import 'package:note_taking_app/core/ui/expressive_sliver_app_bar.dart';
 import 'package:note_taking_app/core/ui/expressive_shape_morph_indicator.dart';
 
@@ -42,9 +45,9 @@ class _ManageTagsScreenState extends State<ManageTagsScreen> {
 
     await showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(builder: (context, setState) {
-        return AlertDialog(
-          title: const Text('Edit Tag'),
+      builder: (dialogContext) => StatefulBuilder(builder: (dialogContext, setDialogState) {
+        return AppDialog(
+          title: 'Edit Tag',
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -69,9 +72,9 @@ class _ManageTagsScreenState extends State<ManageTagsScreen> {
                       if (isSystem) {
                         final nonZeroColors = AppTheme.noteColors.where((color) => color.toARGB32() != 0).toList();
                         final randomColor = (nonZeroColors..shuffle()).first;
-                        setState(() => selectedColor = randomColor.toARGB32());
+                        setDialogState(() => selectedColor = randomColor.toARGB32());
                       } else {
-                        setState(() => selectedColor = c.toARGB32());
+                        setDialogState(() => selectedColor = c.toARGB32());
                       }
                     },
                     child: SizedBox(
@@ -84,13 +87,13 @@ class _ManageTagsScreenState extends State<ManageTagsScreen> {
                           height: isSelected ? 36 : 32,
                           decoration: BoxDecoration(
                             color: isSystem
-                                ? Theme.of(context).colorScheme.surfaceContainerHigh
+                                ? Theme.of(dialogContext).colorScheme.surfaceContainerHigh
                                 : c,
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: isSelected
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).colorScheme.outlineVariant,
+                                  ? Theme.of(dialogContext).colorScheme.primary
+                                  : Theme.of(dialogContext).colorScheme.outlineVariant,
                               width: isSelected ? 3 : 1,
                             ),
                             boxShadow: isSelected
@@ -120,61 +123,49 @@ class _ManageTagsScreenState extends State<ManageTagsScreen> {
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                final newName = controller.text.trim();
-                if (newName.isNotEmpty) {
-                  if (newName != tag) {
-                    await NoteRepository.instance.renameTag(tag, newName);
-                  }
-                  if (selectedColor != (_tagColors[tag] ?? 0)) {
-                    await NoteRepository.instance
-                        .setTagColor(newName, selectedColor);
-                  }
-                  AppHaptics.mediumImpact();
-                  if (!context.mounted) return;
-                  Navigator.pop(context);
-                  await _loadTags();
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
+          cancelLabel: 'Cancel',
+          confirmLabel: 'Save',
+          onCancel: () => Navigator.pop(dialogContext),
+          onConfirm: () async {
+            final newName = controller.text.trim();
+            if (newName.isNotEmpty) {
+              if (newName != tag) {
+                await NoteRepository.instance.renameTag(tag, newName);
+              }
+              if (selectedColor != (_tagColors[tag] ?? 0)) {
+                await NoteRepository.instance.setTagColor(newName, selectedColor);
+              }
+              AppHaptics.mediumImpact();
+              if (dialogContext.mounted) {
+                Navigator.pop(dialogContext);
+              }
+              await _loadTags();
+              if (mounted) {
+                await context.read<NoteProvider>().handleTagRenamed(tag, newName);
+              }
+            }
+          },
         );
       }),
     );
   }
 
   Future<void> _deleteTag(String tag) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await AppDialog.showConfirm(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Tag?'),
-        content: Text(
-            'Are you sure you want to delete "$tag"? This will remove the tag from all notes.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error, foregroundColor: Theme.of(context).colorScheme.onError),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+      title: 'Delete Tag?',
+      message: 'Are you sure you want to delete "$tag"? This will remove the tag from all notes.',
+      confirmLabel: 'Delete',
+      isDestructive: true,
     );
 
     if (confirmed == true) {
       AppHaptics.mediumImpact();
       await NoteRepository.instance.deleteTag(tag);
       await _loadTags();
+      if (mounted) {
+        await context.read<NoteProvider>().refreshNotes();
+      }
     }
   }
 

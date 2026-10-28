@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/app_haptics.dart';
 import '../../core/theme/app_layout.dart';
+import '../../core/ui/app_bottom_sheet.dart';
 import '../../features/notes/data/note_repository.dart';
 import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import '../../utils/widget_helper.dart';
@@ -15,11 +16,10 @@ class QuickAddTodoSheet extends StatefulWidget {
   const QuickAddTodoSheet({super.key, required this.activeNoteId});
 
   static Future<void> show(BuildContext context, String activeNoteId) {
-    return showModalBottomSheet(
+    return AppBottomSheet.show(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => QuickAddTodoSheet(activeNoteId: activeNoteId),
+      child: QuickAddTodoSheet(activeNoteId: activeNoteId),
     );
   }
 
@@ -86,34 +86,15 @@ class _QuickAddTodoSheetState extends State<QuickAddTodoSheet> {
     final colorScheme = theme.colorScheme;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    return Container(
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       padding: EdgeInsets.only(
-        left: AppLayout.spaceL,
-        right: AppLayout.spaceL,
-        top: AppLayout.spaceL,
-        bottom: bottomInset + AppLayout.spaceL,
-      ),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHigh,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppLayout.radiusXXL),
-        ),
+        bottom: bottomInset + AppLayout.spaceS,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: colorScheme.outlineVariant,
-                borderRadius: BorderRadius.circular(AppLayout.radiusS),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppLayout.spaceM),
           Row(
             children: [
               Icon(

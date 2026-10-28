@@ -2,9 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:note_taking_app/services/sms_service.dart';
 import 'package:note_taking_app/screens/app_lock_screen.dart';
 import 'package:note_taking_app/core/theme/app_layout.dart';
+import 'package:note_taking_app/core/ui/app_bottom_sheet.dart';
+import 'package:note_taking_app/core/ui/app_dialog.dart';
 
 class SmsImportSheet extends StatefulWidget {
   const SmsImportSheet({super.key});
+
+  static Future<void> show(BuildContext context) {
+    return AppBottomSheet.show(
+      context: context,
+      title: 'Advanced SMS Import Options',
+      child: const SmsImportSheet(),
+    );
+  }
 
   @override
   State<SmsImportSheet> createState() => _SmsImportSheetState();
@@ -27,18 +37,13 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
     if (!mounted) return;
 
     if (!granted) {
-      final proceed = await showDialog<bool>(
+      final proceed = await AppDialog.showConfirm(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('SMS Access'),
-          content: const Text(
+        title: 'SMS Access',
+        message:
             'This app needs permission to read your SMS messages so it can detect and import bank transactions.\n\nOnly messages from recognised bank senders are processed. No messages are sent off-device or shared.',
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Not now')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Allow')),
-          ],
-        ),
+        cancelLabel: 'Not now',
+        confirmLabel: 'Allow',
       );
       if (proceed != true) return;
 
@@ -84,31 +89,15 @@ class _SmsImportSheetState extends State<SmsImportSheet> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHigh,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      ),
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 12,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + AppLayout.spaceS,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.manage_search_rounded, color: colorScheme.primary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text('Advanced SMS Import Options', style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
           Text(
             'Quick sync automatically scans messages from the last 24 hours. Select a custom date range below to scan older history or re-import past transactions.',
             style: textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),

@@ -9,9 +9,11 @@ import '../../data/transaction_category.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
 import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import '../../features/finances/presentation/screens/category_management_screen.dart';
+import '../../features/finances/presentation/screens/financial_manager_screen.dart';
 import '../../features/finances/presentation/screens/sms_contacts_screen.dart';
 import '../../features/finances/presentation/screens/sms_rules_screen.dart';
 import '../../features/finances/presentation/screens/transaction_editor_screen.dart';
+import '../../features/finances/providers/financial_manager_provider.dart';
 import '../../features/health/presentation/screens/period_tracker_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/notes/presentation/screens/manage_tags_screen.dart';
@@ -341,11 +343,18 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           'salary',
         ],
         onTap: () {
-          final currency = context.read<SettingsProvider>().currency;
+          final currency = context.read<SettingsProvider>().currencySymbol;
           RecurringRulesSheet.show(
             context: context,
             currency: currency,
-            onRulesUpdated: () {},
+            onRulesUpdated: () {
+              if (!mounted) return;
+              setState(() {
+                _updateSearchFuture();
+              });
+              context.read<FinancialManagerProvider?>()?.loadTransactions();
+              FinancialManagerScreen.refreshNotifier.value++;
+            },
           );
         },
       ),
@@ -449,7 +458,13 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         section: 'Features',
         icon: Icons.label_outlined,
         keywords: ['tags', 'manage tags', 'labels', 'tag colors', 'rename tag'],
-        onTap: () => AppRoute.push(context, const ManageTagsScreen()),
+        onTap: () {
+          AppRoute.push(context, const ManageTagsScreen()).then((_) {
+            if (context.mounted) {
+              context.read<NoteProvider>().refreshNotes();
+            }
+          });
+        },
       ),
       SettingsSearchResult(
         title: 'Archive',
@@ -457,8 +472,16 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         section: 'Features',
         icon: Icons.archive_outlined,
         keywords: ['archive', 'archived', 'hidden notes'],
-        onTap: () => AppRoute.push(context,
-            const FilteredNotesScreen(filterType: FilterType.archived)),
+        onTap: () {
+          AppRoute.push(
+            context,
+            const FilteredNotesScreen(filterType: FilterType.archived),
+          ).then((_) {
+            if (context.mounted) {
+              context.read<NoteProvider>().refreshNotes();
+            }
+          });
+        },
       ),
       SettingsSearchResult(
         title: 'Trash',
@@ -466,8 +489,16 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         section: 'Features',
         icon: Icons.delete_outline,
         keywords: ['trash', 'deleted', 'restore deleted', 'bin', 'purge'],
-        onTap: () => AppRoute.push(
-            context, const FilteredNotesScreen(filterType: FilterType.trash)),
+        onTap: () {
+          AppRoute.push(
+            context,
+            const FilteredNotesScreen(filterType: FilterType.trash),
+          ).then((_) {
+            if (context.mounted) {
+              context.read<NoteProvider>().refreshNotes();
+            }
+          });
+        },
       ),
       SettingsSearchResult(
         title: 'Folders',
@@ -856,7 +887,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         subtitle: Text("${t.category} • ${DateFormat.yMMMd().format(t.date)}",
             style: const TextStyle(fontSize: 12)),
         trailing: Text(
-          "${t.isExpense ? '-' : '+'}${t.amount.toStringAsFixed(2)}",
+          "${t.isExpense ? '-' : '+'}${context.watch<SettingsProvider>().currencySymbol} ${t.amount.toStringAsFixed(2)}",
           style: TextStyle(
             color: t.isExpense
                 ? theme.colorScheme.error
@@ -864,8 +895,16 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
             fontWeight: FontWeight.bold,
           ),
         ),
-        onTap: () =>
-            AppRoute.push(context, TransactionEditorScreen(transaction: t)),
+        onTap: () {
+          AppRoute.push(context, TransactionEditorScreen(transaction: t)).then((_) {
+            if (!mounted || !context.mounted) return;
+            setState(() {
+              _updateSearchFuture();
+            });
+            context.read<FinancialManagerProvider?>()?.loadTransactions();
+            FinancialManagerScreen.refreshNotifier.value++;
+          });
+        },
       ),
     ),
   );

@@ -83,8 +83,12 @@ class TransactionRepository {
     Duration window = const Duration(days: 2),
   }) async {
     final db = await _db;
-    final startDate = targetDate.subtract(window).toIso8601String();
-    final endDate = targetDate.add(window).toIso8601String();
+    final rawStart = targetDate.subtract(window);
+    final rawEnd = targetDate.add(window);
+    final startDate = DateTime(rawStart.year, rawStart.month, rawStart.day)
+        .toIso8601String();
+    final endDate = DateTime(rawEnd.year, rawEnd.month, rawEnd.day, 23, 59, 59, 999)
+        .toIso8601String();
 
     final result = await db.query(
       TableNames.transactions,
@@ -105,13 +109,16 @@ class TransactionRepository {
 
       final txDescLower = tx.description.toLowerCase().trim();
       final isCategoryMatch = tx.category.toLowerCase() == category.toLowerCase();
-      final isDescMatch = descLower.contains(txDescLower) ||
-          txDescLower.contains(descLower) ||
-          (descLower.isNotEmpty &&
-              txDescLower.isNotEmpty &&
-              descLower.split(' ').any((w) => w.length > 3 && txDescLower.contains(w)));
+      final isDescMatch = descLower.isNotEmpty &&
+          txDescLower.isNotEmpty &&
+          (descLower.contains(txDescLower) ||
+              txDescLower.contains(descLower) ||
+              descLower
+                  .split(RegExp(r'\s+'))
+                  .any((w) => w.length > 3 && txDescLower.contains(w)));
 
-      if (isCategoryMatch || isDescMatch) {
+      final isSmsImported = tx.smsId != null && tx.smsId!.isNotEmpty;
+      if (isDescMatch || (isSmsImported && isCategoryMatch)) {
         return tx;
       }
     }

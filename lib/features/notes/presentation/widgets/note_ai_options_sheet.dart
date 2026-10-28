@@ -566,7 +566,8 @@ class NoteAiOptionsSheet {
       ),
       builder: (ctx) {
         return SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
             padding: EdgeInsets.only(
               left: 20,
               right: 20,

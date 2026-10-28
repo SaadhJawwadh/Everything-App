@@ -351,7 +351,7 @@ class SyncMergeService {
             if (map['isExpense'] is bool) {
               map['isExpense'] = (map['isExpense'] as bool) ? 1 : 0;
             }
-            batch.insert('recurring_rules', map, conflictAlgorithm: ConflictAlgorithm.ignore);
+            batch.insert('recurring_rules', map, conflictAlgorithm: ConflictAlgorithm.replace);
           }
         }
         await batch.commit(noResult: true);

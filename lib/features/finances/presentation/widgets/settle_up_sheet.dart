@@ -70,7 +70,8 @@ class _SettleUpSheetState extends State<SettleUpSheet> {
     final absAmount = widget.netAmount.abs();
     final cardAccentColor = isContactOwingUser ? successColor : debtColor;
 
-    return Padding(
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: AppLayout.spaceM, vertical: AppLayout.spaceS),
       child: Column(
         mainAxisSize: MainAxisSize.min,

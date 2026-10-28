@@ -228,6 +228,18 @@ void main() {
       await tester.tap(tamilFinder, warnIfMissed: false);
       await tester.pumpAndSettle();
       expect(settings.selectedLanguageCode, 'ta');
+
+      // Test Primary Currency selection (e.g. $ USD)
+      expect(settings.currency, 'LKR');
+      expect(settings.currencySymbol, 'Rs.');
+      final usdFinder = find.widgetWithText(FilterChip, '\$ USD');
+      expect(usdFinder, findsOneWidget);
+      await tester.ensureVisible(usdFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(usdFinder, warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(settings.currency, 'USD');
+      expect(settings.currencySymbol, '\$');
     });
 
     testWidgets('Tapping Configure P2P Sync on page 4 navigates to P2pSyncScreen', (WidgetTester tester) async {

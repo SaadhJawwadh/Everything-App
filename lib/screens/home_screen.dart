@@ -881,6 +881,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               await Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const SplitBillEditorScreen()),
               );
+              if (context.mounted) {
+                await context.read<FinancialManagerProvider>().loadTransactions();
+                FinancialManagerScreen.refreshNotifier.value++;
+              }
             } else {
               await Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => const TransactionEditorScreen()),
@@ -958,40 +962,43 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     AppBottomSheet.show(
       context: context,
       title: l10n?.startFromTemplate ?? 'Start from a template',
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ...NoteTemplate.all(l10n).map(
-            (t) => ListTile(
-              leading: CircleAvatar(
-                backgroundColor:
-                    Theme.of(context).colorScheme.primaryContainer,
-                child: Icon(t.icon,
-                    color: Theme.of(context)
-                        .colorScheme
-                        .onPrimaryContainer),
-              ),
-              title: Text(t.name),
-              subtitle: Text(t.description),
-              onTap: () async {
-                Navigator.pop(context);
-                final noteProvider = Provider.of<NoteProvider>(context, listen: false);
-                final returned = await Navigator.push<bool>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => NoteEditorScreen(
-                      templateTitle: t.title,
-                      templateContent: t.contentDeltaJson,
-                      initialFolder: noteProvider.selectedFolder,
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ...NoteTemplate.all(l10n).map(
+              (t) => ListTile(
+                leading: CircleAvatar(
+                  backgroundColor:
+                      Theme.of(context).colorScheme.primaryContainer,
+                  child: Icon(t.icon,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onPrimaryContainer),
+                ),
+                title: Text(t.name),
+                subtitle: Text(t.description),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final noteProvider = Provider.of<NoteProvider>(context, listen: false);
+                  final returned = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => NoteEditorScreen(
+                        templateTitle: t.title,
+                        templateContent: t.contentDeltaJson,
+                        initialFolder: noteProvider.selectedFolder,
+                      ),
                     ),
-                  ),
-                );
-                if (returned == true) await refreshNotes(scrollOnModified: true);
-              },
+                  );
+                  if (returned == true) await refreshNotes(scrollOnModified: true);
+                },
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-        ],
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }

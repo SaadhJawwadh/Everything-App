@@ -290,6 +290,8 @@ class DatabaseHelper {
       if (!hasSettlementTxCol) {
         await db.execute('ALTER TABLE ${TableNames.splitParticipants} ADD COLUMN ${SplitParticipantFields.settlementTransactionId} INTEGER');
       }
+
+      await ensureRecurringRulesColumns(db);
     } catch (e) {
       debugPrint('[DatabaseHelper] PRAGMA & Index creation onOpen warning: $e');
     }
@@ -446,7 +448,9 @@ class DatabaseHelper {
         ${RecurringRuleFields.category} TEXT NOT NULL,
         ${RecurringRuleFields.isExpense} INTEGER NOT NULL,
         ${RecurringRuleFields.frequency} TEXT NOT NULL,
-        ${RecurringRuleFields.nextDue} TEXT NOT NULL
+        ${RecurringRuleFields.nextDue} TEXT NOT NULL,
+        ${RecurringRuleFields.account} TEXT NOT NULL DEFAULT 'daily',
+        ${RecurringRuleFields.anchorDay} INTEGER
       )
     ''');
 
@@ -695,6 +699,22 @@ class DatabaseHelper {
         await db.execute('ALTER TABLE ${TableNames.splitParticipants} ADD COLUMN ${SplitParticipantFields.settlementTransactionId} INTEGER');
       }
     }
+    await ensureRecurringRulesColumns(db);
+  }
+
+  static Future<void> ensureRecurringRulesColumns(Database db) async {
+    try {
+      final cols = await db.rawQuery('PRAGMA table_info(${TableNames.recurringRules})');
+      if (cols.isEmpty) return;
+      final hasAccountCol = cols.any((col) => col['name'] == RecurringRuleFields.account);
+      if (!hasAccountCol) {
+        await db.execute("ALTER TABLE ${TableNames.recurringRules} ADD COLUMN ${RecurringRuleFields.account} TEXT NOT NULL DEFAULT 'daily'");
+      }
+      final hasAnchorDayCol = cols.any((col) => col['name'] == RecurringRuleFields.anchorDay);
+      if (!hasAnchorDayCol) {
+        await db.execute("ALTER TABLE ${TableNames.recurringRules} ADD COLUMN ${RecurringRuleFields.anchorDay} INTEGER");
+      }
+    } catch (_) {}
   }
 
   Future<void> close() async {

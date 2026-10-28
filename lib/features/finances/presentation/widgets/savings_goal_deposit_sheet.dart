@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/services/app_haptics.dart';
@@ -7,6 +8,7 @@ import 'package:note_taking_app/features/settings/providers/settings_provider.da
 import '../../../../data/transaction_model.dart';
 import '../../../../data/transaction_category.dart';
 import '../../data/models/savings_goal_model.dart';
+import '../../providers/financial_manager_provider.dart';
 import '../../providers/savings_goal_provider.dart';
 
 enum _PocketAction { deposit, withdraw, liquidate }
@@ -75,9 +77,21 @@ class _SavingsGoalDepositSheetState extends State<SavingsGoalDepositSheet> {
       return;
     }
 
-    final provider = context.read<SavingsGoalProvider>();
-    final note = _noteController.text.trim().isEmpty ? null : _noteController.text.trim();
     final goal = widget.goal;
+    if (_action == _PocketAction.withdraw && amount > goal.currentAmount) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Withdrawal cannot exceed pocket balance (${goal.currentAmount.toStringAsFixed(2)})',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final provider = context.read<SavingsGoalProvider>();
+    final finProvider = context.read<FinancialManagerProvider?>();
+    final note = _noteController.text.trim().isEmpty ? null : _noteController.text.trim();
 
     final settings = Provider.of<SettingsProvider?>(context, listen: false);
     final showDelight = settings?.showMilestoneDelight ?? true;
@@ -112,7 +126,12 @@ class _SavingsGoalDepositSheetState extends State<SavingsGoalDepositSheet> {
         amount: goal.currentAmount,
         category: _liquidationCategory,
         merchantTitle: goal.title,
+        recordLedgerTransaction: _recordInLedger,
       );
+    }
+
+    if (finProvider != null) {
+      unawaited(finProvider.loadTransactions());
     }
 
     if (mounted && willComplete && showDelight) {

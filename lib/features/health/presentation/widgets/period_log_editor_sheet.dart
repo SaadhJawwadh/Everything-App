@@ -157,18 +157,15 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
     final colorScheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context);
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        24,
-        8,
-        24,
-        24 + MediaQuery.of(context).viewInsets.bottom,
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom + AppLayout.spaceS,
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
             Row(
               children: [
                 Text(
@@ -301,16 +298,15 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
 
             const SizedBox(height: 24),
 
-            FilledButton(
-              onPressed: _handleSave,
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(double.infinity, 54),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppLayout.radiusL)),
-              ),
-              child: Text(l10n?.save ?? 'Save Log'),
+          FilledButton(
+            onPressed: _handleSave,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(double.infinity, 54),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppLayout.radiusL)),
             ),
-          ],
-        ),
+            child: Text(l10n?.save ?? 'Save Log'),
+          ),
+        ],
       ),
     );
   }

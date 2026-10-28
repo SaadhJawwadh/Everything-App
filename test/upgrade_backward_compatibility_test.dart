@@ -221,14 +221,14 @@ void main() {
       expect(settings.trashAutoPurgeDays, 30);
     });
 
-    testWidgets('WhatsNewSheet renders v2.48.4 cards and records version on dismiss', (tester) async {
+    testWidgets('WhatsNewSheet renders v2.49.0 cards and records version on dismiss', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
       SharedPreferences.setMockInitialValues({
-        'lastSeenVersion': '2.48.3',
+        'lastSeenVersion': '2.48.4',
       });
       final settings = SettingsProvider();
       await settings.loadSettings();
@@ -238,7 +238,7 @@ void main() {
           value: settings,
           child: const MaterialApp(
             home: Scaffold(
-              body: WhatsNewSheet(currentVersion: '2.48.4'),
+              body: WhatsNewSheet(currentVersion: '2.49.0'),
             ),
           ),
         ),
@@ -250,11 +250,13 @@ void main() {
       expect(find.text("Improvements"), findsOneWidget);
       expect(find.text("Fixes"), findsOneWidget);
 
-      // Check marquee items
-      expect(find.text("Per-App Language Settings"), findsOneWidget);
-      expect(find.text("Russian Language & Ruble"), findsOneWidget);
-      expect(find.text("Scrollable Pickers"), findsOneWidget);
-      expect(find.text("Locale-Aware Formatting"), findsOneWidget);
+      // Check marquee items and interactive action buttons
+      expect(find.text("Checklists & Tasks View"), findsOneWidget);
+      expect(find.text("Interactive Settings Hub"), findsOneWidget);
+      expect(find.text("Open Settings Hub ➔"), findsOneWidget);
+      expect(find.text("Unified Currency Symbols"), findsOneWidget);
+      expect(find.text("Customize Currency ➔"), findsOneWidget);
+      expect(find.text("Smarter Split Bills Filtering"), findsOneWidget);
 
       // Tap "Awesome, Got It!" to finish
       await tester.runAsync(() async {
@@ -263,7 +265,7 @@ void main() {
       });
       await tester.pumpAndSettle();
 
-      expect(settings.lastSeenVersion, '2.48.4');
+      expect(settings.lastSeenVersion, '2.49.0');
     });
   });
 }

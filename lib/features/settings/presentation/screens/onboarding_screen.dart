@@ -7,6 +7,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_card.dart';
 import '../../../../widgets/bouncing_widget.dart';
+import '../../../../utils/app_constants.dart';
 import '../../providers/settings_provider.dart';
 import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import '../../../sync/presentation/widgets/qr_scanner_dialog.dart';
@@ -629,6 +630,39 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           _buildLanguageChip(theme, '中文', 'zh', settings),
                           _buildLanguageChip(theme, 'Русский', 'ru', settings),
                         ],
+                      ),
+                    ),
+                    const SizedBox(height: AppLayout.spaceM),
+                    Divider(
+                      height: 1,
+                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
+                    ),
+                    const SizedBox(height: AppLayout.spaceM),
+                    Row(
+                      children: [
+                        Icon(Icons.currency_exchange_rounded, color: theme.colorScheme.primary, size: 20),
+                        const SizedBox(width: AppLayout.spaceM),
+                        Expanded(
+                          child: Text(
+                            'Primary Currency (${settings.currencySymbol})',
+                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppLayout.spaceXS),
+                    Text(
+                      'Select your authentic currency symbol for ledgers, budgets, and split bills.',
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                    const SizedBox(height: AppLayout.spaceM),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        children: AppConstants.curatedCurrencies
+                            .map((c) => _buildCurrencyChip(theme, c, settings))
+                            .toList(),
                       ),
                     ),
                   ],
@@ -1332,6 +1366,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           const SizedBox(height: AppLayout.spaceXL),
           _buildFeatureCard(
             theme,
+            icon: Icons.checklist_rtl_rounded,
+            title: 'Unified Checklists & Tasks View',
+            desc: 'Open the Folder Picker at the top of Notes to view and manage all active checklists across every folder in one place.',
+          ),
+          const SizedBox(height: AppLayout.spaceM),
+          _buildFeatureCard(
+            theme,
+            icon: Icons.dashboard_customize_rounded,
+            title: 'Interactive Settings Control Center',
+            desc: 'Tap any top status badge in Settings to jump directly to Finances, Health Tracker, Gemini AI, Security, or Sync & Backups.',
+          ),
+          const SizedBox(height: AppLayout.spaceM),
+          _buildFeatureCard(
+            theme,
             icon: Icons.animation_rounded,
             title: 'Material 3 Expressive Motion & Squircles',
             desc: 'Tactile spring physics, connected squircle morphing, and Google Sans Flex variable typography that react naturally to gesture momentum.',
@@ -1598,6 +1646,44 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         onSelected: (_) {
           AppHaptics.selectionClick();
           settings.setSelectedLanguage(code);
+        },
+      ),
+    );
+  }
+
+  Widget _buildCurrencyChip(
+    ThemeData theme,
+    CurrencyInfo info,
+    SettingsProvider settings,
+  ) {
+    final isSelected =
+        settings.currency == info.code || settings.currency == info.symbol;
+    return Padding(
+      padding: const EdgeInsets.only(right: AppLayout.spaceS),
+      child: FilterChip(
+        selected: isSelected,
+        showCheckmark: false,
+        label: Text(
+          '${info.symbol} ${info.code}',
+          style: theme.textTheme.labelMedium?.copyWith(
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected
+                ? theme.colorScheme.onPrimaryContainer
+                : theme.colorScheme.onSurface,
+          ),
+        ),
+        backgroundColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        selectedColor: theme.colorScheme.primaryContainer,
+        shape: const StadiumBorder(),
+        side: BorderSide(
+          color: isSelected
+              ? theme.colorScheme.primary
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+          width: isSelected ? 1.5 : 1.0,
+        ),
+        onSelected: (_) {
+          AppHaptics.selectionClick();
+          settings.setCurrency(info.code);
         },
       ),
     );

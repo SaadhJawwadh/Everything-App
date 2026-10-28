@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/services/app_haptics.dart';
 import '../../../../core/theme/app_layout.dart';
+import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../l10n/app_localizations.dart';
 
 const Object _customRangeSentinel = Object();
@@ -23,15 +24,12 @@ class FinanceDateRangeSheet extends StatelessWidget {
     BuildContext context, {
     required DateTimeRange currentRange,
   }) async {
-    final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
 
-    final result = await showModalBottomSheet<dynamic>(
+    final result = await AppBottomSheet.show<dynamic>(
       context: context,
-      backgroundColor: colorScheme.surfaceContainerHigh,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) => FinanceDateRangeSheet(currentRange: currentRange),
+      title: l10n?.selectPeriod ?? 'Select Period',
+      child: FinanceDateRangeSheet(currentRange: currentRange),
     );
 
     if (result is DateTimeRange) {
@@ -149,46 +147,21 @@ class FinanceDateRangeSheet extends StatelessWidget {
       );
     }
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 32,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: colorScheme.outlineVariant,
-                  borderRadius: BorderRadius.circular(2),
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: buildPresetCard(
+                  l10n?.thisMonth ?? 'This Month',
+                  Icons.today_outlined,
+                  thisMonth,
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Icon(Icons.calendar_month_outlined, color: colorScheme.primary),
-                const SizedBox(width: 8),
-                Text(
-                  l10n?.selectPeriod ?? 'Select Period',
-                  style: textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: buildPresetCard(
-                    l10n?.thisMonth ?? 'This Month',
-                    Icons.today_outlined,
-                    thisMonth,
-                  ),
-                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: buildPresetCard(
@@ -250,7 +223,6 @@ class FinanceDateRangeSheet extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 }

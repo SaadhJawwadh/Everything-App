@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:note_taking_app/core/services/app_haptics.dart';
 import 'package:provider/provider.dart';
 import 'package:note_taking_app/features/notes/data/note_repository.dart';
+import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import 'package:note_taking_app/data/note_model.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
 import 'package:animations/animations.dart';
@@ -85,6 +87,7 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
     setState(() => _selectedNoteIds.clear());
     await refreshNotes();
     if (mounted) {
+      unawaited(context.read<NoteProvider>().refreshNotes());
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -116,6 +119,7 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
       setState(() => _selectedNoteIds.clear());
       await refreshNotes();
       if (mounted) {
+        unawaited(context.read<NoteProvider>().refreshNotes());
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -137,6 +141,7 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
     setState(() => _selectedNoteIds.clear());
     await refreshNotes();
     if (mounted) {
+      unawaited(context.read<NoteProvider>().refreshNotes());
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -157,6 +162,7 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
     setState(() => _selectedNoteIds.clear());
     await refreshNotes();
     if (mounted) {
+      unawaited(context.read<NoteProvider>().refreshNotes());
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -385,6 +391,9 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
                                       ),
                                       onClosed: (returned) async {
                                         await refreshNotes();
+                                        if (context.mounted) {
+                                          unawaited(context.read<NoteProvider>().refreshNotes());
+                                        }
                                       },
                                       closedBuilder: (context, openContainer) {
                                         return NoteCard(

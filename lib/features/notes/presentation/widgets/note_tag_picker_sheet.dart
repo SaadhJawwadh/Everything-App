@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../core/ui/app_chip.dart';
 import '../../data/note_repository.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -30,12 +31,11 @@ class NoteTagPickerSheet extends StatefulWidget {
     required void Function(String tag, bool isSelected) onTagToggled,
     required void Function(String tag, int color) onTagCreated,
   }) {
-    return showModalBottomSheet(
+    final l10n = AppLocalizations.of(context);
+    return AppBottomSheet.show(
       context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      showDragHandle: true,
-      builder: (_) => NoteTagPickerSheet(
+      title: l10n?.manageTags ?? 'Manage Tags',
+      child: NoteTagPickerSheet(
         currentTags: currentTags,
         allTags: allTags,
         tagColors: tagColors,
@@ -73,40 +73,29 @@ class _NoteTagPickerSheetState extends State<NoteTagPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
-    final maxHeight = mediaQuery.size.height * 0.75;
-    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: maxHeight),
-      child: SingleChildScrollView(
-        padding: EdgeInsets.only(
-          bottom: mediaQuery.viewInsets.bottom + 16,
-          left: 16,
-          right: 16,
-          top: 8,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              l10n?.manageTags ?? 'Manage Tags',
-              style: theme.textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _tagTextController,
-              decoration: InputDecoration(
-                hintText: 'Create new tag',
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: _handleCreateTag,
-                ),
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.only(
+        bottom: mediaQuery.viewInsets.bottom + 8,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: _tagTextController,
+            decoration: InputDecoration(
+              hintText: 'Create new tag',
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.add),
+                onPressed: _handleCreateTag,
               ),
-              onSubmitted: (_) => _handleCreateTag(),
             ),
+            onSubmitted: (_) => _handleCreateTag(),
+          ),
             const SizedBox(height: 16),
             Text(
               'TAG COLOR',
@@ -231,7 +220,6 @@ class _NoteTagPickerSheetState extends State<NoteTagPickerSheet> {
             ],
           ],
         ),
-      ),
-    );
+      );
   }
 }

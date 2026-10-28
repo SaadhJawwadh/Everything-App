@@ -132,10 +132,9 @@ class _TeachSmsRuleSheetState extends State<TeachSmsRuleSheet> {
     final tt = Theme.of(context).textTheme;
 
     return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
       padding: EdgeInsets.only(
-        left: AppLayout.spaceL,
-        right: AppLayout.spaceL,
-        top: AppLayout.spaceS,
+        top: AppLayout.spaceXS,
         bottom: MediaQuery.of(context).viewInsets.bottom + AppLayout.spaceXL,
       ),
       child: Column(

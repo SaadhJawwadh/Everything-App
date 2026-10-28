@@ -126,7 +126,7 @@ class SavingsGoalRepository {
           description: desc,
           date: now,
           isExpense: false,
-          category: 'Savings',
+          category: 'Transfer',
           account: toAccount,
         );
         await txn.insert(TableNames.transactions, creditTx.toJson());
@@ -155,7 +155,9 @@ class SavingsGoalRepository {
     final goal = await getGoalById(goalId);
     if (goal == null) return null;
 
-    final newAmount = (goal.currentAmount - amount).clamp(0.0, double.infinity);
+    final actualWithdrawn = amount > goal.currentAmount ? goal.currentAmount : amount;
+    if (actualWithdrawn <= 0) return goal;
+    final newAmount = (goal.currentAmount - actualWithdrawn).clamp(0.0, double.infinity);
     final isCompleted = newAmount >= goal.targetAmount;
     final now = DateTime.now();
 
@@ -179,7 +181,7 @@ class SavingsGoalRepository {
             : 'Goal Withdrawal: ${goal.title}';
 
         final debitTx = TransactionModel(
-          amount: amount,
+          amount: actualWithdrawn,
           description: desc,
           date: now,
           isExpense: true,
@@ -189,7 +191,7 @@ class SavingsGoalRepository {
         await txn.insert(TableNames.transactions, debitTx.toJson());
 
         final creditTx = TransactionModel(
-          amount: amount,
+          amount: actualWithdrawn,
           description: desc,
           date: now,
           isExpense: false,
@@ -214,6 +216,7 @@ class SavingsGoalRepository {
     required double amount,
     required String category,
     required String merchantTitle,
+    bool recordLedgerTransaction = true,
   }) async {
     final db = await _dbHelper.database;
     final goal = await getGoalById(goalId);
@@ -233,15 +236,17 @@ class SavingsGoalRepository {
         whereArgs: [goalId],
       );
 
-      final expenseTx = TransactionModel(
-        amount: amount,
-        description: merchantTitle.isNotEmpty ? merchantTitle : 'Spent Goal: ${goal.title}',
-        date: now,
-        isExpense: true,
-        category: category,
-        account: goal.account,
-      );
-      await txn.insert(TableNames.transactions, expenseTx.toJson());
+      if (recordLedgerTransaction) {
+        final expenseTx = TransactionModel(
+          amount: amount,
+          description: merchantTitle.isNotEmpty ? merchantTitle : 'Spent Goal: ${goal.title}',
+          date: now,
+          isExpense: true,
+          category: category,
+          account: goal.account,
+        );
+        await txn.insert(TableNames.transactions, expenseTx.toJson());
+      }
     });
 
     try {

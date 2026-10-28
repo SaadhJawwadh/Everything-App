@@ -1,15 +1,19 @@
 
 ### 🌟 What's New
-- **Per-App Language Settings**: Select your preferred language for Everything App directly inside Android System Settings (Android 13+).
-- **Full Russian Localization**: Complete, natural Russian translation across notes, finances, period tracker, and settings with authentic Ruble (`₽`) currency.
+- **Checklists & Tasks Virtual Folder**: View and manage all active checklists across every folder from a single unified view in the Folder Picker.
+- **Interactive Settings Control Center**: Jump directly to Finances, Health Tracker, Gemini AI, Security, or Sync & Backups from the top status pills.
+- **Primary Currency Onboarding Selector**: Choose your preferred authentic currency symbol (`Rs.`, `₹`, `$`, `€`, `£`, `₽`, and more) directly during onboarding setup.
 
 ### 🚀 Improvements
-- **Scrollable Language & Currency Pickers**: Easily browse all 9 languages and 15 currencies on any display size or zoom level.
-- **Locale-Aware Formatting**: Precise, localized formatting for numbers, currencies, dates, and times throughout every screen.
-- **Fluid Screen Transitions**: Seamless note opening animations with zero background flashes.
+- **Unified Currency Symbols**: Consistent currency symbols (`Rs.`, `₹`, `$`, `€`, `£`, `₽`) across balance cards, ledgers, split bills, search, and settings.
+- **Smarter Split Bills Filtering**: Filter both People and Bills views by "I am owed" and "I owe" with one tap on summary cards or filter chips.
+- **Transfer Balance Advisory**: Live account balance preview and friendly over-balance notice when transferring between Daily and Savings accounts.
+- **Categorized Settings Search**: Instant grouped search results with exact match counts and smooth section dividers.
+- **Synced Recurring Rules & Tag Management**: Editing a recurring payment updates future cycles automatically, and tag renames/deletes synchronize immediately across notes.
 
 ### 🐛 Fixes
-- **TalkBack Privacy Protection**: Screen readers can no longer inspect private notes or financial balances when app lock is active.
-- **Checklist Contrast**: Enhanced task completion badge contrast for optimal light-theme readability (WCAG AA).
-- **Smarter AI Controls**: On-device AI shortcuts automatically hide on devices without hardware acceleration.
+- **Accurate Checklist Counts**: Fixed note card checklist badges counting blank lines and prevented completion text truncation on grid cards.
+- **Neutral Savings Goal Deposits**: Recording a savings goal deposit from your Daily account now uses a neutral transfer so monthly income totals aren't inflated.
+- **Keyboard-Safe Modal Sheets**: Eliminated layout overflows across all bottom sheets and pickers when the on-screen keyboard is open or display zoom is high.
+- **Share Sheet Lock Protection**: Sharing notes, checklists, or split reminders no longer triggers an unintended app lock screen upon returning.
 

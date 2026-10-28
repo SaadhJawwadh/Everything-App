@@ -35,17 +35,72 @@ class SettingsDialogs {
     AppBottomSheet.show(
       context: context,
       title: 'Trash Auto-Purge Duration',
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: options.map((opt) {
-          final isSelected = settings.trashAutoPurgeDays == opt.days;
-          final colorScheme = Theme.of(context).colorScheme;
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: options.map((opt) {
+            final isSelected = settings.trashAutoPurgeDays == opt.days;
+            final colorScheme = Theme.of(context).colorScheme;
 
-          return Material(
-            color: Colors.transparent,
-            child: ListTile(
+            return Material(
+              color: Colors.transparent,
+              child: ListTile(
+                leading: Icon(
+                  Icons.auto_delete_outlined,
+                  color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                ),
+                title: Text(
+                  opt.label,
+                  style: TextStyle(
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    color: isSelected ? colorScheme.primary : colorScheme.onSurface,
+                  ),
+                ),
+                subtitle: Text(
+                  opt.desc,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                trailing: isSelected
+                    ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
+                    : null,
+                onTap: () {
+                  AppHaptics.selectionClick();
+                  settings.setTrashAutoPurgeDays(opt.days);
+                  Navigator.pop(context);
+                },
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  static void showThemePicker(BuildContext context, SettingsProvider settings) {
+    final options = [
+      (label: 'System Default', mode: ThemeMode.system, icon: Icons.brightness_auto_rounded, desc: 'Follow device dark mode settings'),
+      (label: 'Light Theme', mode: ThemeMode.light, icon: Icons.light_mode_rounded, desc: 'Clean high-contrast light mode'),
+      (label: 'Dark Theme', mode: ThemeMode.dark, icon: Icons.dark_mode_rounded, desc: 'Sleek dark mode surface theme'),
+    ];
+
+    AppBottomSheet.show(
+      context: context,
+      title: 'Choose Theme',
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: options.map((opt) {
+            final isSelected = settings.themeMode == opt.mode;
+            final colorScheme = Theme.of(context).colorScheme;
+
+            return ListTile(
               leading: Icon(
-                Icons.auto_delete_outlined,
+                opt.icon,
                 color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
               ),
               title: Text(
@@ -67,61 +122,12 @@ class SettingsDialogs {
                   : null,
               onTap: () {
                 AppHaptics.selectionClick();
-                settings.setTrashAutoPurgeDays(opt.days);
+                settings.setThemeMode(opt.mode);
                 Navigator.pop(context);
               },
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  static void showThemePicker(BuildContext context, SettingsProvider settings) {
-    final options = [
-      (label: 'System Default', mode: ThemeMode.system, icon: Icons.brightness_auto_rounded, desc: 'Follow device dark mode settings'),
-      (label: 'Light Theme', mode: ThemeMode.light, icon: Icons.light_mode_rounded, desc: 'Clean high-contrast light mode'),
-      (label: 'Dark Theme', mode: ThemeMode.dark, icon: Icons.dark_mode_rounded, desc: 'Sleek dark mode surface theme'),
-    ];
-
-    AppBottomSheet.show(
-      context: context,
-      title: 'Choose Theme',
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: options.map((opt) {
-          final isSelected = settings.themeMode == opt.mode;
-          final colorScheme = Theme.of(context).colorScheme;
-
-          return ListTile(
-            leading: Icon(
-              opt.icon,
-              color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
-            ),
-            title: Text(
-              opt.label,
-              style: TextStyle(
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? colorScheme.primary : colorScheme.onSurface,
-              ),
-            ),
-            subtitle: Text(
-              opt.desc,
-              style: TextStyle(
-                fontSize: 12,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ),
-            trailing: isSelected
-                ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
-                : null,
-            onTap: () {
-              AppHaptics.selectionClick();
-              settings.setThemeMode(opt.mode);
-              Navigator.pop(context);
-            },
-          );
-        }).toList(),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
@@ -280,7 +286,9 @@ class SettingsDialogs {
           physics: const BouncingScrollPhysics(),
           padding: EdgeInsets.zero,
           children: currencies.map((c) {
-            final isSelected = settings.currency == c['symbol'];
+            final isSelected = settings.currency == c['symbol'] ||
+                settings.currency == c['code'] ||
+                settings.currencySymbol == c['symbol'];
             final colorScheme = Theme.of(context).colorScheme;
 
             return Material(
@@ -399,24 +407,27 @@ class SettingsDialogs {
     AppBottomSheet.show(
       context: context,
       title: 'Auto-Lock Timeout',
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: timeouts.map((t) {
-          final isSelected = settings.appLockTimeout == t.seconds;
-          final colorScheme = Theme.of(context).colorScheme;
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: timeouts.map((t) {
+            final isSelected = settings.appLockTimeout == t.seconds;
+            final colorScheme = Theme.of(context).colorScheme;
 
-          return ListTile(
-            title: Text(t.label),
-            trailing: isSelected
-                ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
-                : null,
-            onTap: () {
-              AppHaptics.selectionClick();
-              settings.setAppLockTimeout(t.seconds);
-              Navigator.pop(context);
-            },
-          );
-        }).toList(),
+            return ListTile(
+              title: Text(t.label),
+              trailing: isSelected
+                  ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
+                  : null,
+              onTap: () {
+                AppHaptics.selectionClick();
+                settings.setAppLockTimeout(t.seconds);
+                Navigator.pop(context);
+              },
+            );
+          }).toList(),
+        ),
       ),
     );
   }
@@ -524,10 +535,12 @@ class SettingsDialogs {
 
               final snapshots = snapshot.data ?? [];
 
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+              return SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -705,9 +718,10 @@ class SettingsDialogs {
                         ),
                       );
                     }),
-                  const SizedBox(height: AppLayout.spaceM),
-                ],
-              );
+                      const SizedBox(height: AppLayout.spaceM),
+                    ],
+                  ),
+                );
             },
           );
         },
@@ -750,6 +764,10 @@ class SettingsDialogs {
           final tt = Theme.of(ctx).textTheme;
 
           return SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(ctx).bottom + AppLayout.spaceM,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [

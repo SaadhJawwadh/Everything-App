@@ -40,7 +40,8 @@ class NoteProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String get selectedTag => _selectedTags.isEmpty ? 'All' : (_selectedTags.length == 1 ? _selectedTags.first : 'All');
   Set<String> get selectedTags => Set.unmodifiable(_selectedTags);
-  bool isTagSelected(String tag) => tag == 'All' ? _selectedTags.isEmpty : _selectedTags.contains(tag);
+  bool isTagSelected(String tag) =>
+      tag == 'All' ? (_selectedTags.isEmpty && !_filterChecklistsOnly) : _selectedTags.contains(tag);
   List<String> get allTags => _allTags;
   Set<String> get selectedNoteIds => _selectedNoteIds;
   bool get isSelectionMode => _isSelectionMode;
@@ -68,8 +69,7 @@ class NoteProvider extends ChangeNotifier {
   void setFilterChecklistsOnly(bool value) {
     if (_filterChecklistsOnly == value) return;
     _filterChecklistsOnly = value;
-    _applySearchFilter();
-    notifyListeners();
+    refreshNotes();
   }
 
   void setFolder(String? folder) {
@@ -83,6 +83,16 @@ class NoteProvider extends ChangeNotifier {
       }
     });
     refreshNotes();
+  }
+
+  /// Updates active tag selection if a currently selected tag is renamed, then refreshes notes.
+  Future<void> handleTagRenamed(String oldName, String newName) async {
+    if (_selectedTags.contains(oldName)) {
+      _selectedTags.remove(oldName);
+      _selectedTags.add(newName);
+      _persistSelectedTags();
+    }
+    await refreshNotes();
   }
 
   void createFolder(String name) {
@@ -164,13 +174,13 @@ class NoteProvider extends ChangeNotifier {
         isArchived: _selectedTags.contains('Archived'),
         isTrashed: _selectedTags.contains('Trash'),
         sortMode: _sortMode,
-        folder: _selectedFolder,
+        folder: _filterChecklistsOnly ? 'All Notes' : _selectedFolder,
       );
       _tagCounts = await _noteRepository.getTagCounts();
       _folderCounts = await _noteRepository.getFolderCounts();
       _archivedCount = await _noteRepository.getArchivedCount();
       _trashCount = await _noteRepository.getTrashCount();
-      _checklistNotesCount = await _noteRepository.getChecklistNotesCount(folder: _selectedFolder);
+      _checklistNotesCount = await _noteRepository.getChecklistNotesCount(folder: 'All Notes');
       _folders = await _noteRepository.getAllFolders();
       _emptyFolders.removeWhere((f) => _folders.contains(f));
       if (_selectedFolder != null &&
@@ -182,7 +192,11 @@ class NoteProvider extends ChangeNotifier {
       }
 
       _allTags = ['All', ...tags];
+      final prevTagCount = _selectedTags.length;
       _selectedTags.removeWhere((t) => !tags.contains(t));
+      if (_selectedTags.length != prevTagCount) {
+        _persistSelectedTags();
+      }
 
       _tagColors = colors;
       _notes = fetchedNotes;
@@ -289,6 +303,7 @@ class NoteProvider extends ChangeNotifier {
   void toggleTag(String tag) {
     if (tag == 'All') {
       _selectedTags.clear();
+      _filterChecklistsOnly = false;
     } else {
       if (_selectedTags.contains(tag)) {
         _selectedTags.remove(tag);
@@ -323,7 +338,7 @@ class NoteProvider extends ChangeNotifier {
         isArchived: _selectedTags.contains('Archived'),
         isTrashed: _selectedTags.contains('Trash'),
         sortMode: _sortMode,
-        folder: _selectedFolder,
+        folder: _filterChecklistsOnly ? 'All Notes' : _selectedFolder,
       );
 
       if (moreNotes.length < _pageSize) {
@@ -335,7 +350,7 @@ class NoteProvider extends ChangeNotifier {
       final newNotes = moreNotes.where((n) => !existingIds.contains(n.id)).toList();
       
       _notes.addAll(newNotes);
-      _filteredNotes = List.from(_notes);
+      _applySearchFilter();
     } catch (e) {
       debugPrint('Error loading more notes: $e');
     } finally {

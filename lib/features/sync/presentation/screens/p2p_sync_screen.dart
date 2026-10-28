@@ -192,54 +192,57 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
     AppBottomSheet.show(
       context: context,
       title: 'Primary Host QR Code',
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: AppLayout.spaceS),
-          Container(
-            padding: const EdgeInsets.all(AppLayout.spaceM),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(AppLayout.radiusL),
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
-              ),
-            ),
-            child: QrImageView(
-              data: qrData,
-              version: QrVersions.auto,
-              size: 210.0,
-              eyeStyle: const QrEyeStyle(
-                eyeShape: QrEyeShape.square,
-                color: Colors.black,
-              ),
-              dataModuleStyle: const QrDataModuleStyle(
-                dataModuleShape: QrDataModuleShape.circle,
-                color: Colors.black,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppLayout.spaceL),
-          Text(
-            'Pair Code: ${provider.currentPairCode}',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 4.0,
-                  color: Theme.of(context).colorScheme.primary,
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: AppLayout.spaceS),
+            Container(
+              padding: const EdgeInsets.all(AppLayout.spaceM),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppLayout.radiusL),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
                 ),
-          ),
-          if (provider.localIpAddress != null) ...[
-            const SizedBox(height: 4),
+              ),
+              child: QrImageView(
+                data: qrData,
+                version: QrVersions.auto,
+                size: 210.0,
+                eyeStyle: const QrEyeStyle(
+                  eyeShape: QrEyeShape.square,
+                  color: Colors.black,
+                ),
+                dataModuleStyle: const QrDataModuleStyle(
+                  dataModuleShape: QrDataModuleShape.circle,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppLayout.spaceL),
             Text(
-              'Local IP: ${provider.localIpAddress}',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+              'Pair Code: ${provider.currentPairCode}',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 4.0,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
             ),
+            if (provider.localIpAddress != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Local IP: ${provider.localIpAddress}',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
+            const SizedBox(height: AppLayout.spaceL),
           ],
-          const SizedBox(height: AppLayout.spaceL),
-        ],
+        ),
       ),
     );
   }

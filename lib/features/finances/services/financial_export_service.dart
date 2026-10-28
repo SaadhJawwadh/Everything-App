@@ -150,81 +150,84 @@ Please format your response using clean Markdown with tables, code blocks, rende
     AppBottomSheet.show(
       context: context,
       title: 'Export & AI Spending Analysis',
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: colorScheme.primaryContainer,
-                shape: BoxShape.circle,
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.auto_awesome_rounded, color: colorScheme.onPrimaryContainer, size: 20),
               ),
-              child: Icon(Icons.auto_awesome_rounded, color: colorScheme.onPrimaryContainer, size: 20),
-            ),
-            title: const Text('Export CSV with AI Analysis Prompt', style: TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: const Text('Pre-loads structured prompt for Claude, ChatGPT, Gemini & NotebookLM'),
-            onTap: () {
-              Navigator.pop(context);
-              shareTransactionsCsv(
-                transactions,
-                currency: currency,
-                includeAiPrompt: true,
-              );
-            },
-          ),
-          const SizedBox(height: 4),
-          ListTile(
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.copy_rounded, color: colorScheme.onSurfaceVariant, size: 20),
-            ),
-            title: const Text('Copy AI Prompt to Clipboard', style: TextStyle(fontWeight: FontWeight.w500)),
-            subtitle: const Text('Copy prompt text to paste alongside your data in any LLM'),
-            onTap: () async {
-              Navigator.pop(context);
-              final prompt = buildAiAnalysisPrompt(
-                transactionCount: transactions.length,
-                currency: currency,
-              );
-              await Clipboard.setData(ClipboardData(text: prompt));
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('AI Analysis Prompt copied to clipboard'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
+              title: const Text('Export CSV with AI Analysis Prompt', style: TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: const Text('Pre-loads structured prompt for Claude, ChatGPT, Gemini & NotebookLM'),
+              onTap: () {
+                Navigator.pop(context);
+                shareTransactionsCsv(
+                  transactions,
+                  currency: currency,
+                  includeAiPrompt: true,
                 );
-              }
-            },
-          ),
-          const SizedBox(height: 4),
-          ListTile(
-            leading: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHighest,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.table_chart_outlined, color: colorScheme.onSurfaceVariant, size: 20),
+              },
             ),
-            title: const Text('Standard CSV Export', style: TextStyle(fontWeight: FontWeight.w500)),
-            subtitle: const Text('Clean RFC 4180 CSV for Excel, Google Sheets, or Numbers'),
-            onTap: () {
-              Navigator.pop(context);
-              shareTransactionsCsv(
-                transactions,
-                currency: currency,
-                includeAiPrompt: false,
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-        ],
+            const SizedBox(height: 4),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.copy_rounded, color: colorScheme.onSurfaceVariant, size: 20),
+              ),
+              title: const Text('Copy AI Prompt to Clipboard', style: TextStyle(fontWeight: FontWeight.w500)),
+              subtitle: const Text('Copy prompt text to paste alongside your data in any LLM'),
+              onTap: () async {
+                Navigator.pop(context);
+                final prompt = buildAiAnalysisPrompt(
+                  transactionCount: transactions.length,
+                  currency: currency,
+                );
+                await Clipboard.setData(ClipboardData(text: prompt));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('AI Analysis Prompt copied to clipboard'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+            ),
+            const SizedBox(height: 4),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.table_chart_outlined, color: colorScheme.onSurfaceVariant, size: 20),
+              ),
+              title: const Text('Standard CSV Export', style: TextStyle(fontWeight: FontWeight.w500)),
+              subtitle: const Text('Clean RFC 4180 CSV for Excel, Google Sheets, or Numbers'),
+              onTap: () {
+                Navigator.pop(context);
+                shareTransactionsCsv(
+                  transactions,
+                  currency: currency,
+                  includeAiPrompt: false,
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
       ),
     );
   }

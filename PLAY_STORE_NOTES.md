@@ -1,28 +1,30 @@
 <en-US>
-🌟 What's New
-• Android 13+ Per-App Language settings.
-• Full Russian language & Ruble (₽) currency.
+🌟 What's New in 2.49
+• Unified Checklists & Tasks virtual folder view.
+• Interactive Settings Control Center status pills.
+• Primary Currency picker in Onboarding & What's New.
 
 🚀 Improvements
-• Scrollable language & currency selectors.
-• Locale-aware dates, numbers & currencies.
-• Seamless note card transition animations.
+• Unified currency symbols across all screens.
+• Smarter Split Bills People & Bills filtering.
+• Live transfer balance preview & search groups.
 
 🐛 Fixes
-• TalkBack privacy sealed on lock screen.
-• Clearer task completion badges in light mode.
+• Accurate checklist counts & full badge labels.
+• Neutral savings transfers & keyboard-safe sheets.
 </en-US>
 <ta-IN>
-🌟 புதிய அம்சங்கள்
-• ஆண்ட்ராய்டு 13+ தனிப்பயன் மொழி அமைப்பு.
-• முழு ரஷ்ய மொழி & ரூபிள் (₽) நாணய ஆதரவு.
+🌟 2.49 புதிய அம்சங்கள்
+• ஒருங்கிணைந்த சரிபார்ப்பு பட்டியல்கள் (Checklists) காட்சி.
+• உடனடி அமைப்புகள் (Settings) நிலை பொத்தான்கள்.
+• அறிமுகத் திரையில் நேரடி நாணயத் தேர்வு வசதி.
 
 🚀 மேம்பாடுகள்
-• எளிதாக உருட்டும் மொழி & நாணய தேர்வுகள்.
-• உள்ளூர்மயமாக்கப்பட்ட தேதிகள் மற்றும் எண்கள்.
-• மென்மையான குறிப்பு மாற்ற அனிமேஷன்.
+• அனைத்து திரைகளிலும் சீரான நாணய குறியீடுகள்.
+• பில் பகிர்வில் மேம்பட்ட வடிகட்டுதல் வசதி.
+• கணக்கு பரிமாற்ற இருப்பு முன்னோட்டம்.
 
 🐛 பிழை திருத்தங்கள்
-• லாக் திரையில் TalkBack தனியுரிமை பாதுகாப்பு.
-• சரிபார்ப்பு பட்டியல் காட்சி தெளிவாக்கம்.
+• துல்லியமான சரிபார்ப்பு பட்டியல் எண்ணிக்கை.
+• சேமிப்பு பரிமாற்றம் & விசைப்பலகை திரை சீரமைப்பு.
 </ta-IN>

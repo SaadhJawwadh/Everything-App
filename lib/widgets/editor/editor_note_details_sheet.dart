@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_layout.dart';
+import '../../core/ui/app_bottom_sheet.dart';
 
 /// A Material 3 bottom sheet showing statistics (words, chars, read time)
 /// and metadata (folder, created date, modified date) for a note.
@@ -26,14 +27,10 @@ class EditorNoteDetailsSheet extends StatelessWidget {
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
-    showModalBottomSheet(
+    AppBottomSheet.show(
       context: context,
-      showDragHandle: true,
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) => EditorNoteDetailsSheet(
+      title: 'Note Details & Stats',
+      child: EditorNoteDetailsSheet(
         plainText: plainText,
         folder: folder,
         createdAt: createdAt,
@@ -60,47 +57,33 @@ class EditorNoteDetailsSheet extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.info_outline, color: colorScheme.primary, size: 24),
-                const SizedBox(width: 12),
-                Text(
-                  'Note Details & Stats',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                _StatCard(
-                  icon: Icons.notes,
-                  value: '$words',
-                  label: 'Words',
-                ),
-                const SizedBox(width: 12),
-                _StatCard(
-                  icon: Icons.text_fields,
-                  value: '$chars',
-                  label: 'Characters',
-                ),
-                const SizedBox(width: 12),
-                _StatCard(
-                  icon: Icons.timer_outlined,
-                  value: readingTimeStr,
-                  label: 'Read Time',
-                ),
-              ],
-            ),
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _StatCard(
+                icon: Icons.notes,
+                value: '$words',
+                label: 'Words',
+              ),
+              const SizedBox(width: 12),
+              _StatCard(
+                icon: Icons.text_fields,
+                value: '$chars',
+                label: 'Characters',
+              ),
+              const SizedBox(width: 12),
+              _StatCard(
+                icon: Icons.timer_outlined,
+                value: readingTimeStr,
+                label: 'Read Time',
+              ),
+            ],
+          ),
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(16),
@@ -171,8 +154,7 @@ class EditorNoteDetailsSheet extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 }
 

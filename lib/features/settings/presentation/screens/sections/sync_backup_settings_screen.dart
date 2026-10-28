@@ -105,46 +105,55 @@ class SyncBackupSettingsScreen extends StatelessWidget {
                               await syncAutoBackupSchedule();
                             },
                           ),
-                          if (settings.autoBackupEnabled) ...[
-                            SettingsTile(
-                              icon: Icons.schedule_outlined,
-                              iconColor: colorScheme.primary,
-                              title: 'Backup Frequency',
-                              subtitle: 'Frequency of automated backup tasks',
-                              valueBadge: SettingsDialogs.getFrequencyLabel(settings.autoBackupFrequency),
-                              showArrow: true,
-                              onTap: () => SettingsDialogs.showFrequencyPicker(context, settings),
-                            ),
-                            SettingsTile(
-                              icon: Icons.folder_outlined,
-                              iconColor: colorScheme.secondary,
-                              title: 'Backup Location',
-                              subtitle: settings.autoBackupPath ?? 'Secure App Storage (Resilient)',
-                              showArrow: true,
-                              onTap: () => SettingsDialogs.showBackupLocationPicker(context, settings),
-                            ),
-                            if (settings.lastAutoBackupTime != null)
-                              SettingsTile(
-                                icon: Icons.history_outlined,
-                                iconColor: colorScheme.tertiary,
-                                title: 'Last Auto Backup',
-                                subtitle: 'Most recent successful backup',
-                                valueBadge: SettingsDialogs.formatLastBackupTime(settings.lastAutoBackupTime!),
-                              ),
-                            SettingsTile(
-                              icon: Icons.play_arrow_rounded,
-                              iconColor: colorScheme.primary,
-                              title: 'Run Auto-Backup Now',
-                              subtitle: 'Trigger and verify background auto-backup immediately',
-                              showArrow: true,
-                              onTap: () async {
-                                AppHaptics.selectionClick();
-                                if (context.mounted) {
-                                  await BackupService.performAutoBackupNow(context);
-                                }
-                              },
-                            ),
-                          ],
+                          AnimatedSize(
+                            duration: AppLayout.animModal,
+                            curve: AppLayout.curveEmphasizedDecelerate,
+                            child: settings.autoBackupEnabled
+                                ? Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      SettingsTile(
+                                        icon: Icons.schedule_outlined,
+                                        iconColor: colorScheme.primary,
+                                        title: 'Backup Frequency',
+                                        subtitle: 'Frequency of automated backup tasks',
+                                        valueBadge: SettingsDialogs.getFrequencyLabel(settings.autoBackupFrequency),
+                                        showArrow: true,
+                                        onTap: () => SettingsDialogs.showFrequencyPicker(context, settings),
+                                      ),
+                                      SettingsTile(
+                                        icon: Icons.folder_outlined,
+                                        iconColor: colorScheme.secondary,
+                                        title: 'Backup Location',
+                                        subtitle: settings.autoBackupPath ?? 'Secure App Storage (Resilient)',
+                                        showArrow: true,
+                                        onTap: () => SettingsDialogs.showBackupLocationPicker(context, settings),
+                                      ),
+                                      if (settings.lastAutoBackupTime != null)
+                                        SettingsTile(
+                                          icon: Icons.history_outlined,
+                                          iconColor: colorScheme.tertiary,
+                                          title: 'Last Auto Backup',
+                                          subtitle: 'Most recent successful backup',
+                                          valueBadge: SettingsDialogs.formatLastBackupTime(settings.lastAutoBackupTime!),
+                                        ),
+                                      SettingsTile(
+                                        icon: Icons.play_arrow_rounded,
+                                        iconColor: colorScheme.primary,
+                                        title: 'Run Auto-Backup Now',
+                                        subtitle: 'Trigger and verify background auto-backup immediately',
+                                        showArrow: true,
+                                        onTap: () async {
+                                          AppHaptics.selectionClick();
+                                          if (context.mounted) {
+                                            await BackupService.performAutoBackupNow(context);
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
                         ],
                       ),
                     ],

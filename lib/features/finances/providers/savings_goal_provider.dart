@@ -88,12 +88,14 @@ class SavingsGoalProvider extends ChangeNotifier {
     required double amount,
     required String category,
     required String merchantTitle,
+    bool recordLedgerTransaction = true,
   }) async {
     await _repository.liquidateGoal(
       goalId: goalId,
       amount: amount,
       category: category,
       merchantTitle: merchantTitle,
+      recordLedgerTransaction: recordLedgerTransaction,
     );
     await loadGoals();
   }

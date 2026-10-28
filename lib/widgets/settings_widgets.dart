@@ -16,6 +16,9 @@ class SettingsHeroCard extends StatelessWidget {
   final ThemeMode currentThemeMode;
   final ValueChanged<ThemeMode> onThemeModeChanged;
   final VoidCallback? onAppLockTap;
+  final VoidCallback? onFinancesTap;
+  final VoidCallback? onHealthTap;
+  final VoidCallback? onAiTap;
   final VoidCallback? onBackupTap;
 
   const SettingsHeroCard({
@@ -29,6 +32,9 @@ class SettingsHeroCard extends StatelessWidget {
     required this.currentThemeMode,
     required this.onThemeModeChanged,
     this.onAppLockTap,
+    this.onFinancesTap,
+    this.onHealthTap,
+    this.onAiTap,
     this.onBackupTap,
   });
 
@@ -178,32 +184,39 @@ class SettingsHeroCard extends StatelessWidget {
                     runSpacing: AppLayout.spaceXS,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      if (isFinancialManagerEnabled)
-                        AppChip(
-                          isCompact: true,
-                          icon: Icons.account_balance_wallet_rounded,
-                          label: 'Finances',
-                          isSelected: true,
-                          selectedBackgroundColor:
-                              const Color(0xFF10B981).withValues(alpha: isDark ? 0.22 : 0.14),
-                          textColor: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857),
-                        ),
-                      if (isPeriodTrackerEnabled)
-                        AppChip(
-                          isCompact: true,
-                          icon: Icons.favorite_rounded,
-                          label: 'Health Tracker',
-                          isSelected: true,
-                          selectedBackgroundColor:
-                              const Color(0xFFF43F5E).withValues(alpha: isDark ? 0.22 : 0.14),
-                          textColor: isDark ? const Color(0xFFFDA4AF) : const Color(0xFFBE123C),
-                        ),
+                      AppChip(
+                        isCompact: true,
+                        icon: Icons.account_balance_wallet_rounded,
+                        label: isFinancialManagerEnabled ? 'Finances' : 'Finances Off',
+                        isSelected: isFinancialManagerEnabled,
+                        onTap: onFinancesTap,
+                        selectedBackgroundColor:
+                            const Color(0xFF10B981).withValues(alpha: isDark ? 0.22 : 0.14),
+                        backgroundColor: colorScheme.surfaceContainerHighest,
+                        textColor: isFinancialManagerEnabled
+                            ? (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857))
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                      AppChip(
+                        isCompact: true,
+                        icon: Icons.favorite_rounded,
+                        label: isPeriodTrackerEnabled ? 'Health Tracker' : 'Health Off',
+                        isSelected: isPeriodTrackerEnabled,
+                        onTap: onHealthTap,
+                        selectedBackgroundColor:
+                            const Color(0xFFF43F5E).withValues(alpha: isDark ? 0.22 : 0.14),
+                        backgroundColor: colorScheme.surfaceContainerHighest,
+                        textColor: isPeriodTrackerEnabled
+                            ? (isDark ? const Color(0xFFFDA4AF) : const Color(0xFFBE123C))
+                            : colorScheme.onSurfaceVariant,
+                      ),
                       if (isAiEnabled)
                         AppChip(
                           isCompact: true,
                           icon: Icons.auto_awesome_rounded,
                           label: 'Gemini AI',
                           isSelected: true,
+                          onTap: onAiTap,
                           selectedBackgroundColor:
                               colorScheme.primary.withValues(alpha: isDark ? 0.22 : 0.14),
                           textColor: colorScheme.primary,
@@ -212,12 +225,12 @@ class SettingsHeroCard extends StatelessWidget {
                         isCompact: true,
                         icon: autoBackupEnabled
                             ? Icons.cloud_done_rounded
-                            : Icons.cloud_off_rounded,
+                            : Icons.cloud_sync_rounded,
                         label: autoBackupEnabled
                             ? (lastAutoBackupTimeFormatted != null
                                 ? 'Backup: $lastAutoBackupTimeFormatted'
                                 : 'Auto-Backup On')
-                            : 'Manual Backup',
+                            : 'Sync & Backup',
                         isSelected: autoBackupEnabled,
                         onTap: onBackupTap,
                         selectedBackgroundColor:
@@ -252,17 +265,32 @@ class SettingsHeroCard extends StatelessWidget {
                             ButtonSegment(
                               value: ThemeMode.system,
                               icon: const Icon(Icons.brightness_auto_rounded, size: 16),
-                              label: Text(AppLocalizations.of(context)?.themeSystem ?? 'Auto'),
+                              label: Text(
+                                () {
+                                  final raw = AppLocalizations.of(context)?.themeSystem ?? 'Auto';
+                                  return raw.toLowerCase() == 'system default' ? 'Auto' : raw;
+                                }(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                             ButtonSegment(
                               value: ThemeMode.light,
                               icon: const Icon(Icons.light_mode_rounded, size: 16),
-                              label: Text(AppLocalizations.of(context)?.themeLight ?? 'Light'),
+                              label: Text(
+                                AppLocalizations.of(context)?.themeLight ?? 'Light',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                             ButtonSegment(
                               value: ThemeMode.dark,
                               icon: const Icon(Icons.dark_mode_rounded, size: 16),
-                              label: Text(AppLocalizations.of(context)?.themeDark ?? 'Dark'),
+                              label: Text(
+                                AppLocalizations.of(context)?.themeDark ?? 'Dark',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ],
                           selected: {currentThemeMode},
@@ -382,7 +410,17 @@ class SettingsSection extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 4),
-                ...children,
+                for (int i = 0; i < children.length; i++) ...[
+                  children[i],
+                  if (i < children.length - 1)
+                    Divider(
+                      height: 1,
+                      thickness: 0.7,
+                      indent: 60,
+                      endIndent: 16,
+                      color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.22 : 0.30),
+                    ),
+                ],
                 const SizedBox(height: 4),
               ],
             ),

@@ -155,6 +155,7 @@ class FinancialManagerProvider extends ChangeNotifier {
   Future<void> addTransaction(TransactionModel transaction) async {
     await _repository.createTransaction(transaction);
     await loadTransactions();
+    FinancialManagerScreen.refreshNotifier.value++;
   }
 
   /// Transfers funds between accounts using double-entry Transfer records.
@@ -191,6 +192,7 @@ class FinancialManagerProvider extends ChangeNotifier {
     await _repository.createTransaction(withdrawal);
     await _repository.createTransaction(deposit);
     await loadTransactions();
+    FinancialManagerScreen.refreshNotifier.value++;
   }
 
   Future<void> deleteTransaction(int id) async {

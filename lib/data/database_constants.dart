@@ -91,6 +91,8 @@ class RecurringRuleFields {
   static const String isExpense = 'isExpense';
   static const String frequency = 'frequency'; // daily | weekly | monthly
   static const String nextDue = 'nextDue';
+  static const String account = 'account'; // daily | savings
+  static const String anchorDay = 'anchorDay';
 }
 
 class TagFields {

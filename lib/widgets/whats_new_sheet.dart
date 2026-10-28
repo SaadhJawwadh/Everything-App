@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:provider/provider.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
+import 'package:note_taking_app/features/settings/presentation/screens/settings_screen.dart';
+import 'package:note_taking_app/features/settings/presentation/screens/sections/finances_settings_screen.dart';
 import '../core/services/app_haptics.dart';
 import '../core/theme/app_layout.dart';
 import '../core/ui/app_card.dart';
@@ -37,24 +39,40 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.translate_rounded,
-            title: "Per-App Language Settings",
-            desc: "Select your preferred language for Everything App directly inside Android System Settings (Android 13+).",
+            icon: Icons.checklist_rtl_rounded,
+            title: "Checklists & Tasks View",
+            desc: "View and manage all active checklists across every folder from one unified view in the Folder Picker.",
           ),
           _WhatsNewItem(
-            icon: Icons.language_rounded,
-            title: "Russian Language & Ruble",
-            desc: "Full Russian localization and authentic Ruble (₽) currency formatting across ledgers.",
+            icon: Icons.dashboard_customize_rounded,
+            title: "Interactive Settings Hub",
+            desc: "Jump directly to Finances, Health Tracker, Gemini AI, Security, or Sync from the top status pills.",
+            actionLabel: "Open Settings Hub ➔",
+            onAction: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsScreen()),
+              );
+            },
           ),
           _WhatsNewItem(
-            icon: Icons.receipt_long_rounded,
-            title: "Split Settlement History",
-            desc: "View complete shared bill records with friends, exact settlement dates, and per-bill status in a clean sheet.",
+            icon: Icons.currency_exchange_rounded,
+            title: "Unified Currency Symbols",
+            desc: "Authentic currency symbols (Rs., ₹, \$, €, £, ₽) displayed consistently across balance cards, ledgers, split bills, and search.",
+            actionLabel: "Customize Currency ➔",
+            onAction: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const FinancesSettingsScreen()),
+              );
+            },
           ),
           _WhatsNewItem(
-            icon: Icons.animation_rounded,
-            title: "Fluid Note Transitions",
-            desc: "Seamless note opening animations with container transforms and zero background flashes.",
+            icon: Icons.group_work_rounded,
+            title: "Smarter Split Bills Filtering",
+            desc: "Filter both People and Bills views by 'I am owed' and 'I owe' with one tap on summary cards or chips.",
           ),
         ],
       ),
@@ -65,24 +83,24 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.tertiaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.view_list_rounded,
-            title: "Scrollable Pickers",
-            desc: "Browse all 9 languages and 15 currencies comfortably on any display size or zoom level.",
+            icon: Icons.swap_horiz_rounded,
+            title: "Transfer Balance Advisory",
+            desc: "Live account balance preview and friendly over-balance notice when transferring between Daily and Savings accounts.",
           ),
           _WhatsNewItem(
-            icon: Icons.format_list_numbered_rounded,
-            title: "Locale-Aware Formatting",
-            desc: "Precise, localized formatting for numbers, currencies, dates, and times throughout every screen.",
+            icon: Icons.search_rounded,
+            title: "Categorized Settings Search",
+            desc: "Instant grouped search results with exact match counts, deep-linked sub-settings, and smooth section dividers.",
           ),
           _WhatsNewItem(
-            icon: Icons.space_dashboard_outlined,
-            title: "Reclaimed Notes Feed",
-            desc: "Notes appear immediately below the app bar with pro tips neatly relocated to About & Guides.",
+            icon: Icons.event_repeat_rounded,
+            title: "Synced Recurring Rules",
+            desc: "Editing a recurring transaction's amount, category, or schedule automatically updates all future cycles.",
           ),
           _WhatsNewItem(
-            icon: Icons.speed_rounded,
-            title: "Calm Financial Dashboard",
-            desc: "Focused, non-distracting cash flow overview without flashing or unexpected auto-flipping numbers.",
+            icon: Icons.label_important_outline_rounded,
+            title: "Seamless Tag Management",
+            desc: "Renaming or deleting tags in the Tag Manager immediately synchronizes across your notes and filter bar.",
           ),
         ],
       ),
@@ -93,24 +111,24 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.secondaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.privacy_tip_rounded,
-            title: "TalkBack Privacy Protection",
-            desc: "Screen readers can no longer inspect private notes or financial balances when app lock is active.",
+            icon: Icons.fact_check_rounded,
+            title: "Accurate Checklist Counts",
+            desc: "Fixed note card checklist badges counting blank lines and prevented completion text truncation.",
           ),
           _WhatsNewItem(
-            icon: Icons.contrast_rounded,
-            title: "Checklist Contrast",
-            desc: "Enhanced task completion badge contrast for optimal light-theme readability (WCAG AA).",
+            icon: Icons.savings_rounded,
+            title: "Neutral Savings Transfers",
+            desc: "Savings goal deposits from your Daily account now use neutral transfers so monthly income stays accurate.",
           ),
           _WhatsNewItem(
-            icon: Icons.auto_awesome_outlined,
-            title: "Smarter AI Controls",
-            desc: "On-device AI shortcuts automatically hide on devices without hardware acceleration.",
+            icon: Icons.keyboard_hide_rounded,
+            title: "Keyboard-Safe Modal Sheets",
+            desc: "Eliminated layout overflows across all bottom sheets and pickers when the keyboard is open.",
           ),
           _WhatsNewItem(
-            icon: Icons.folder_open_rounded,
-            title: "Unified Folder Navigation",
-            desc: "Removed redundant folder menu options for a cleaner, unified navigation experience.",
+            icon: Icons.lock_open_rounded,
+            title: "Share Sheet Lock Protection",
+            desc: "Sharing notes, checklists, or split reminders no longer triggers an unintended app lock on return.",
           ),
         ],
       ),
@@ -286,6 +304,32 @@ class WhatsNewSheet extends StatelessWidget {
                                                           fontSize: 13,
                                                         ),
                                                       ),
+                                                      if (item.actionLabel != null && item.onAction != null) ...[
+                                                        const SizedBox(height: AppLayout.spaceS),
+                                                        TextButton(
+                                                          onPressed: () {
+                                                            AppHaptics.selectionClick();
+                                                            item.onAction!();
+                                                          },
+                                                          style: TextButton.styleFrom(
+                                                            padding: const EdgeInsets.symmetric(
+                                                              horizontal: 14,
+                                                              vertical: 8,
+                                                            ),
+                                                            minimumSize: const Size(0, 36),
+                                                            backgroundColor: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+                                                            foregroundColor: theme.colorScheme.primary,
+                                                            shape: const StadiumBorder(),
+                                                          ),
+                                                          child: Text(
+                                                            item.actionLabel!,
+                                                            style: const TextStyle(
+                                                              fontWeight: FontWeight.bold,
+                                                              fontSize: 12,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ],
                                                   ),
                                                 ),
@@ -359,10 +403,14 @@ class _WhatsNewItem {
   final IconData icon;
   final String title;
   final String desc;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   _WhatsNewItem({
     required this.icon,
     required this.title,
     required this.desc,
+    this.actionLabel,
+    this.onAction,
   });
 }

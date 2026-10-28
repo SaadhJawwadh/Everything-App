@@ -673,12 +673,16 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
         if (!matchesGroup) return false;
       }
 
-      // Filter by active filter status ('all', 'unsettled', 'settled')
+      // Filter by active filter status ('all', 'unsettled', 'settled', 'i_am_owed', 'i_owe')
       final netBalance = balances[name] ?? 0.0;
       if (splitProvider.activeFilter == 'unsettled') {
         return netBalance != 0.0;
       } else if (splitProvider.activeFilter == 'settled') {
         return netBalance == 0.0;
+      } else if (splitProvider.activeFilter == 'i_am_owed') {
+        return netBalance > 0.0;
+      } else if (splitProvider.activeFilter == 'i_owe') {
+        return netBalance < 0.0;
       }
 
       return true;
@@ -1437,10 +1441,12 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
             }
           }
 
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+          return SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               AppCard.tonal(
                 color: currentNetBalance > 0
                     ? successColor.withValues(alpha: 0.15)
@@ -1697,8 +1703,9 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                     },
                   ),
                 ),
-              const SizedBox(height: AppLayout.spaceS),
-            ],
+                const SizedBox(height: AppLayout.spaceS),
+              ],
+            ),
           );
         },
       ),

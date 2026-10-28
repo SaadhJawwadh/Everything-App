@@ -20,6 +20,7 @@ import 'package:note_taking_app/features/finances/providers/financial_manager_pr
 
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/theme/app_layout.dart';
+import '../../../../core/ui/app_dialog.dart';
 import '../../../../core/ui/expressive_wavy_progress.dart';
 
 import '../../../../widgets/bouncing_widget.dart';
@@ -184,7 +185,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
   Map<String, double> get _categoryExpenses {
     final Map<String, double> totals = {};
     for (final t in _allDateFiltered) {
-      if (t.isExpense) {
+      if (t.isExpense && t.category.toLowerCase() != 'transfer') {
         totals[t.category] = (totals[t.category] ?? 0.0) + t.amount;
       }
     }
@@ -193,7 +194,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
 
   double get _totalDateExpense {
     return _allDateFiltered
-        .where((t) => t.isExpense)
+        .where((t) => t.isExpense && t.category.toLowerCase() != 'transfer')
         .fold(0.0, (sum, t) => sum + t.amount);
   }
 
@@ -233,6 +234,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
       setState(() {
         _trashedCount = trashed.length;
       });
+      unawaited(context.read<FinancialManagerProvider>().loadTransactions());
     }
   }
 
@@ -281,13 +283,13 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
 
   double get _totalExpense {
     return _transactions
-        .where((t) => t.isExpense)
+        .where((t) => t.isExpense && t.category.toLowerCase() != 'transfer')
         .fold(0.0, (sum, t) => sum + t.amount);
   }
 
   double get _totalIncome {
     return _transactions
-        .where((t) => !t.isExpense)
+        .where((t) => !t.isExpense && t.category.toLowerCase() != 'transfer')
         .fold(0.0, (sum, t) => sum + t.amount);
   }
 
@@ -310,7 +312,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
       dailyNetMap[tDate] = (dailyNetMap[tDate] ?? 0) + delta;
     }
 
-    final currency = context.read<SettingsProvider>().currency;
+    final currency = context.read<SettingsProvider>().currencySymbol;
     final numFormat = NumberFormat('#,##0.##');
 
     for (final t in _transactions) {
@@ -359,27 +361,15 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
     if (!mounted) return;
 
     if (!granted) {
-      final proceed = await showDialog<bool>(
+      final proceed = await AppDialog.showConfirm(
         context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('SMS Access'),
-          content: const Text(
-            'This app needs permission to read your SMS messages '
+        title: 'SMS Access',
+        message: 'This app needs permission to read your SMS messages '
             'so it can detect and import bank transactions.\n\n'
             'Only messages from recognised bank senders are processed. '
             'No messages are sent off-device or shared.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Not now'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Allow'),
-            ),
-          ],
-        ),
+        cancelLabel: 'Not now',
+        confirmLabel: 'Allow',
       );
       if (proceed != true) return;
 
@@ -434,7 +424,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final settings = Provider.of<SettingsProvider>(context);
-    final currency = settings.currency;
+    final currency = settings.currencySymbol;
     final finProvider = Provider.of<FinancialManagerProvider>(context);
 
     return PopScope(
@@ -519,22 +509,32 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           ),
           if (progress.isSyncing) ...[
             const SizedBox(width: 8),
-            GestureDetector(
-              onTap: () {
-                AppHaptics.selectionClick();
-                SmsService.cancelSync();
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(AppLayout.radiusMAX),
-                ),
-                child: Text(
-                  'Cancel',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onPrimaryContainer,
+            Semantics(
+              button: true,
+              label: 'Cancel sync',
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  AppHaptics.selectionClick();
+                  SmsService.cancelSync();
+                },
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(AppLayout.radiusMAX),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -730,12 +730,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                   },
                   onLongPress: () {
                     AppHaptics.mediumImpact();
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      showDragHandle: true,
-                      builder: (_) => const SmsImportSheet(),
-                    );
+                    SmsImportSheet.show(context);
                   },
                   child: Center(
                     child: Padding(
@@ -776,7 +771,9 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           onSelected: (value) {
             if (value == 'savings_goals') {
               setState(() => _selectedTab = 'Budgets');
-              SavingsGoalEditorSheet.show(context);
+              SavingsGoalEditorSheet.show(context).then((_) {
+                if (mounted) _refreshTransactions();
+              });
             } else if (value == 'sms_rules') {
               AppRoute.push(context, const SmsRulesScreen());
             } else if (value == 'recurring') {
@@ -792,7 +789,9 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                 currency: currency,
               );
             } else if (value == 'transfer') {
-              AccountTransferSheet.show(context);
+              AccountTransferSheet.show(context).then((_) {
+                if (mounted) _refreshTransactions();
+              });
             } else if (value == 'trash') {
               FinancialTrashSheet.show(context).then((_) {
                 if (mounted) _refreshTransactions();
@@ -1188,36 +1187,47 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
               child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer,
+                  Semantics(
+                    button: true,
+                    label: 'Clear search filter $_searchQuery',
+                    child: InkWell(
                       borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.search, size: 14, color: colorScheme.onPrimaryContainer),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Search: "$_searchQuery"',
-                          style: textTheme.labelMedium?.copyWith(
-                            color: colorScheme.onPrimaryContainer,
-                            fontWeight: FontWeight.bold,
+                      onTap: () {
+                        _searchController.clear();
+                        setState(() {
+                          _searchQuery = '';
+                          _applyFilters();
+                        });
+                      },
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.search, size: 14, color: colorScheme.onPrimaryContainer),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Search: "$_searchQuery"',
+                                  style: textTheme.labelMedium?.copyWith(
+                                    color: colorScheme.onPrimaryContainer,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Icon(Icons.close_rounded, size: 16, color: colorScheme.onPrimaryContainer),
+                              ],
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        InkWell(
-                          onTap: () {
-                            _searchController.clear();
-                            setState(() {
-                              _searchQuery = '';
-                              _applyFilters();
-                            });
-                          },
-                          child: Icon(Icons.close_rounded, size: 14, color: colorScheme.onPrimaryContainer),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ],

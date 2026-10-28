@@ -78,7 +78,7 @@ class FinancesSettingsScreen extends StatelessWidget {
                             iconColor: const Color(0xFF10B981),
                             title: 'Currency',
                             subtitle: 'Base ledger currency symbol',
-                            valueBadge: settings.currency,
+                            valueBadge: settings.currencySymbol,
                             showArrow: true,
                             onTap: () => SettingsDialogs.showCurrencyPicker(context, settings),
                           ),
@@ -90,15 +90,20 @@ class FinancesSettingsScreen extends StatelessWidget {
                             value: settings.enableSmsImport,
                             onChanged: settings.setEnableSmsImport,
                           ),
-                          if (settings.enableSmsImport)
-                            SettingsTile(
-                              icon: Icons.mark_chat_unread_outlined,
-                              iconColor: colorScheme.secondary,
-                              title: 'SMS & Bank Automation Rules',
-                              subtitle: 'Auto-sync, import rules, sender blocklist & parser testing',
-                              showArrow: true,
-                              onTap: () => AppRoute.push(context, const SmsRulesScreen()),
-                            ),
+                          AnimatedSize(
+                            duration: AppLayout.animModal,
+                            curve: AppLayout.curveEmphasizedDecelerate,
+                            child: settings.enableSmsImport
+                                ? SettingsTile(
+                                    icon: Icons.mark_chat_unread_outlined,
+                                    iconColor: colorScheme.secondary,
+                                    title: 'SMS & Bank Automation Rules',
+                                    subtitle: 'Auto-sync, import rules, sender blocklist & parser testing',
+                                    showArrow: true,
+                                    onTap: () => AppRoute.push(context, const SmsRulesScreen()),
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
                           SettingsSwitchTile(
                             icon: Icons.donut_large_outlined,
                             iconColor: colorScheme.tertiary,
@@ -131,19 +136,24 @@ class FinancesSettingsScreen extends StatelessWidget {
                             value: settings.enableRecurringRules,
                             onChanged: settings.setEnableRecurringRules,
                           ),
-                          if (settings.enableRecurringRules)
-                            SettingsTile(
-                              icon: Icons.edit_calendar_outlined,
-                              iconColor: const Color(0xFF10B981),
-                              title: 'Manage Subscriptions',
-                              subtitle: 'Manage repeating bills, salaries & automated rules',
-                              showArrow: true,
-                              onTap: () => RecurringRulesSheet.show(
-                                context: context,
-                                currency: settings.currency,
-                                onRulesUpdated: () {},
-                              ),
-                            ),
+                          AnimatedSize(
+                            duration: AppLayout.animModal,
+                            curve: AppLayout.curveEmphasizedDecelerate,
+                            child: settings.enableRecurringRules
+                                ? SettingsTile(
+                                    icon: Icons.edit_calendar_outlined,
+                                    iconColor: const Color(0xFF10B981),
+                                    title: 'Manage Subscriptions',
+                                    subtitle: 'Manage repeating bills, salaries & automated rules',
+                                    showArrow: true,
+                                    onTap: () => RecurringRulesSheet.show(
+                                      context: context,
+                                      currency: settings.currencySymbol,
+                                      onRulesUpdated: () {},
+                                    ),
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
                           SettingsSwitchTile(
                             icon: Icons.account_balance_wallet_outlined,
                             iconColor: colorScheme.secondary,
@@ -153,15 +163,20 @@ class FinancesSettingsScreen extends StatelessWidget {
                             value: settings.enableSavingsVault,
                             onChanged: settings.setEnableSavingsVault,
                           ),
-                          if (settings.enableSavingsVault)
-                            SettingsTile(
-                              icon: Icons.drive_file_rename_outline_rounded,
-                              iconColor: colorScheme.primary,
-                              title: 'Account Names & Routing',
-                              subtitle: '${settings.account1Name} & ${settings.account2Name} • Category defaults',
-                              showArrow: true,
-                              onTap: () => SettingsDialogs.showAccountNamingAndRoutingSheet(context, settings),
-                            ),
+                          AnimatedSize(
+                            duration: AppLayout.animModal,
+                            curve: AppLayout.curveEmphasizedDecelerate,
+                            child: settings.enableSavingsVault
+                                ? SettingsTile(
+                                    icon: Icons.drive_file_rename_outline_rounded,
+                                    iconColor: colorScheme.primary,
+                                    title: 'Account Names & Routing',
+                                    subtitle: '${settings.account1Name} & ${settings.account2Name} • Category defaults',
+                                    showArrow: true,
+                                    onTap: () => SettingsDialogs.showAccountNamingAndRoutingSheet(context, settings),
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
                           SettingsSwitchTile(
                             icon: Icons.pie_chart_outline_rounded,
                             iconColor: colorScheme.tertiary,
@@ -171,17 +186,22 @@ class FinancesSettingsScreen extends StatelessWidget {
                             value: settings.showSplitBills,
                             onChanged: settings.setShowSplitBills,
                           ),
-                          if (settings.showSplitBills)
-                            SettingsTile(
-                              icon: Icons.account_balance_outlined,
-                              iconColor: colorScheme.secondary,
-                              title: 'Default Payment Details',
-                              subtitle: settings.defaultPaymentInfo.isNotEmpty
-                                  ? settings.defaultPaymentInfo
-                                  : 'Set bank / mobile pay details for WhatsApp split reminders',
-                              showArrow: true,
-                              onTap: () => SettingsDialogs.showDefaultPaymentInfoDialog(context, settings),
-                            ),
+                          AnimatedSize(
+                            duration: AppLayout.animModal,
+                            curve: AppLayout.curveEmphasizedDecelerate,
+                            child: settings.showSplitBills
+                                ? SettingsTile(
+                                    icon: Icons.account_balance_outlined,
+                                    iconColor: colorScheme.secondary,
+                                    title: 'Default Payment Details',
+                                    subtitle: settings.defaultPaymentInfo.isNotEmpty
+                                        ? settings.defaultPaymentInfo
+                                        : 'Set bank / mobile pay details for WhatsApp split reminders',
+                                    showArrow: true,
+                                    onTap: () => SettingsDialogs.showDefaultPaymentInfoDialog(context, settings),
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
                         ],
                       ),
                     ],

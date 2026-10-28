@@ -162,19 +162,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ),
                         if (_searchQuery.isNotEmpty)
-                          IconButton(
-                            icon: const Icon(Icons.close_rounded, size: 18),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            visualDensity: VisualDensity.compact,
-                            onPressed: () {
-                              AppHaptics.selectionClick();
-                              _searchController.clear();
-                              setState(() {
-                                _searchQuery = '';
-                                _selectedSearchCategory = 'All';
-                              });
-                            },
+                          Semantics(
+                            button: true,
+                            label: 'Clear search',
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                AppHaptics.selectionClick();
+                                _searchController.clear();
+                                setState(() {
+                                  _searchQuery = '';
+                                  _selectedSearchCategory = 'All';
+                                });
+                              },
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  minWidth: 48,
+                                  minHeight: 36,
+                                ),
+                                child: const Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Icon(Icons.close_rounded, size: 18),
+                                ),
+                              ),
+                            ),
                           ),
                       ],
                     ),
@@ -288,11 +299,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   onThemeModeChanged: settings.setThemeMode,
                                   onAppLockTap: () {
                                     AppHaptics.selectionClick();
-                                    settings.setAppLockEnabled(!settings.appLockEnabled);
+                                    AppRoute.push(context, const SecuritySettingsScreen());
+                                  },
+                                  onFinancesTap: () {
+                                    AppHaptics.selectionClick();
+                                    AppRoute.push(context, const FinancesSettingsScreen());
+                                  },
+                                  onHealthTap: () {
+                                    AppHaptics.selectionClick();
+                                    AppRoute.push(context, const FinancesSettingsScreen());
+                                  },
+                                  onAiTap: () {
+                                    AppHaptics.selectionClick();
+                                    AppRoute.push(context, const NotesSettingsScreen());
                                   },
                                   onBackupTap: () {
                                     AppHaptics.selectionClick();
-                                    BackupService.exportBackup(context);
+                                    AppRoute.push(context, const SyncBackupSettingsScreen());
                                   },
                                 ),
                                 const SizedBox(height: AppLayout.spaceL),
@@ -317,7 +340,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 _buildDomainHubCard(
                                   context: context,
                                   title: l10n?.appearance ?? 'Appearance & UI',
-                                  subtitle: '${SettingsDialogs.getThemeLabel(settings.themeMode)} Mode • ${settings.useDynamicColor ? 'Dynamic Wallpaper' : 'Standard'} • ${SettingsDialogs.getLanguageDisplayName(settings.selectedLanguageCode)}',
+                                  subtitle: () {
+                                    final themeLabel = settings.themeMode == ThemeMode.system
+                                        ? 'Auto Theme'
+                                        : '${SettingsDialogs.getThemeLabel(settings.themeMode)} Theme';
+                                    final colorLabel = settings.useDynamicColor ? 'Dynamic Color' : 'Standard Palette';
+                                    final langLabel = settings.selectedLanguageCode == 'system'
+                                        ? 'System Language'
+                                        : SettingsDialogs.getLanguageDisplayName(settings.selectedLanguageCode);
+                                    return '$themeLabel • $colorLabel • $langLabel';
+                                  }(),
                                   icon: Icons.palette_outlined,
                                   accentColor: colorScheme.primary,
                                   onTap: () => AppRoute.push(context, const AppearanceSettingsScreen()),
@@ -339,7 +371,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 _buildDomainHubCard(
                                   context: context,
                                   title: l10n?.financesAndHealthModules ?? 'Finances & Health Modules',
-                                  subtitle: 'Finances ${settings.showFinancialManager ? 'Active (${settings.currency})' : 'Disabled'} • Period Tracker ${settings.isPeriodTrackerEnabled ? 'Active' : 'Disabled'}',
+                                  subtitle: 'Finances ${settings.showFinancialManager ? 'Active (${settings.currencySymbol})' : 'Disabled'} • Period Tracker ${settings.isPeriodTrackerEnabled ? 'Active' : 'Disabled'}',
                                   icon: Icons.apps_rounded,
                                   accentColor: const Color(0xFF10B981),
                                   onTap: () => AppRoute.push(context, const FinancesSettingsScreen()),
@@ -471,8 +503,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   List<Widget> _buildSearchResults(BuildContext context, SettingsProvider settings) {
     final query = _searchQuery.toLowerCase().trim();
     final catFilter = _selectedSearchCategory;
+    final colorScheme = Theme.of(context).colorScheme;
 
-    final items = <Widget>[];
+    final groupedItems = <String, List<Widget>>{};
 
     bool matchesCategory(String categoryName) {
       if (catFilter == 'All') return true;
@@ -515,11 +548,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final matchKeywords = combinedKeywords.any((k) => k.toLowerCase().contains(query));
 
       if (matchTitle || matchSubtitle || matchCat || matchKeywords) {
-        items.add(tile);
+        groupedItems.putIfAbsent(categoryName, () => []).add(tile);
       }
     }
 
     // 1. Appearance & UI
+    addTile(
+      SettingsTile(
+        icon: Icons.brightness_medium_rounded,
+        title: 'App Theme Mode',
+        subtitle: SettingsDialogs.getThemeLabel(settings.themeMode),
+        valueBadge: SettingsDialogs.getThemeLabel(settings.themeMode),
+        showArrow: true,
+        onTap: () => SettingsDialogs.showThemePicker(context, settings),
+      ),
+      'Appearance',
+      'App Theme Mode',
+      'System Default, Light, or Dark mode',
+      ['theme', 'dark', 'light', 'oled', 'mode'],
+    );
     addTile(
       SettingsSwitchTile(
         icon: Icons.color_lens_outlined,
@@ -574,6 +621,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'Language',
       SettingsDialogs.getLanguageDisplayName(settings.selectedLanguageCode),
     );
+    if (!kIsWeb && Platform.isAndroid) {
+      addTile(
+        SettingsTile(
+          icon: Icons.widgets_outlined,
+          title: 'Home Screen Widgets',
+          subtitle: 'Pin Checklist, Financial Manager, or Unified Dual-Domain widgets',
+          showArrow: true,
+          onTap: () => SettingsDialogs.showPinWidgetSheet(context),
+        ),
+        'Appearance',
+        'Home Screen Widgets',
+        'Pin Checklist, Financial Manager, or Unified Dual-Domain widgets',
+        ['widget', 'home screen', 'launcher', 'todo widget', 'finance widget'],
+      );
+    }
 
     // 2. Notes & Editor
     addTile(
@@ -715,13 +777,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'Period Tracker',
       'Optional cycle tracking & predictions',
     );
+    if (settings.isPeriodTrackerEnabled) {
+      addTile(
+        SettingsSwitchTile(
+          icon: Icons.visibility_off_outlined,
+          title: 'Discreet Privacy Mode',
+          subtitle: 'Conceal cycle day numbers and phases on dashboard with tap-to-reveal',
+          value: settings.isDiscreetHealthMode,
+          onChanged: settings.setIsDiscreetHealthMode,
+        ),
+        'Features',
+        'Discreet Privacy Mode',
+        'Conceal cycle day numbers and phases on dashboard with tap-to-reveal',
+        ['discreet', 'privacy', 'hide cycle', 'period privacy'],
+      );
+      addTile(
+        SettingsTile(
+          icon: Icons.notifications_none_outlined,
+          title: 'Discreet Notification Text',
+          subtitle: 'Text shown in cycle prediction alerts',
+          valueBadge: settings.discreetNotificationText,
+          showArrow: true,
+          onTap: () => SettingsDialogs.showNotificationTextDialog(context, settings),
+        ),
+        'Features',
+        'Discreet Notification Text',
+        'Text shown in cycle prediction alerts',
+        ['notification', 'alert text', 'period alert', 'discreet'],
+      );
+    }
     if (settings.showFinancialManager) {
       addTile(
         SettingsTile(
           icon: Icons.currency_exchange_outlined,
           title: 'Currency',
           subtitle: 'Base ledger currency symbol',
-          valueBadge: settings.currency,
+          valueBadge: settings.currencySymbol,
           showArrow: true,
           onTap: () => SettingsDialogs.showCurrencyPicker(context, settings),
         ),
@@ -800,7 +891,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             showArrow: true,
             onTap: () => RecurringRulesSheet.show(
               context: context,
-              currency: settings.currency,
+              currency: settings.currencySymbol,
               onRulesUpdated: () {},
             ),
           ),
@@ -943,6 +1034,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'Import Backup',
       'Restore from a JSON backup file',
     );
+    addTile(
+      SettingsTile(
+        icon: Icons.restore_rounded,
+        title: 'Database Snapshots & Recovery',
+        subtitle: 'Inspect or restore rolling pre-migration & pre-sync snapshots',
+        showArrow: true,
+        onTap: () => SettingsDialogs.showDatabaseSnapshotsSheet(context),
+      ),
+      'Data',
+      'Database Snapshots & Recovery',
+      'Inspect or restore rolling pre-migration & pre-sync snapshots',
+      ['snapshot', 'recovery', 'restore database', 'rollback', 'migration'],
+    );
     if (!kIsWeb && Platform.isAndroid) {
       addTile(
         SettingsSwitchTile(
@@ -1060,17 +1164,68 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'Replay Setup & Intro',
       'Configure theme, modules, and AI assistant',
     );
-
-    if (items.isEmpty) return [];
-
-    final matchingCount = (items.length / 2).ceil();
-
-    return [
-      SettingsSection(
-        title: 'Matching Results ($matchingCount)',
-        icon: Icons.search_rounded,
-        children: items,
+    addTile(
+      SettingsTile(
+        icon: Icons.lightbulb_outline_rounded,
+        title: 'Tips & Gestural Shortcuts',
+        subtitle: 'Discover pro gestures, shortcuts, and features',
+        showArrow: true,
+        onTap: () => AppRoute.push(context, const AboutSettingsScreen()),
       ),
-    ];
+      'About',
+      'Tips & Gestural Shortcuts',
+      'Discover pro gestures, shortcuts, and features',
+      ['tips', 'shortcuts', 'gestures', 'help', 'guide'],
+    );
+
+    if (groupedItems.isEmpty) return [];
+
+    final sectionMeta = <String, ({String label, IconData icon, Color color})>{
+      'Appearance': (
+        label: 'Appearance & UI',
+        icon: Icons.palette_outlined,
+        color: colorScheme.primary,
+      ),
+      'Features': (
+        label: 'Notes, Editor & Modules',
+        icon: Icons.edit_note_rounded,
+        color: const Color(0xFFF59E0B),
+      ),
+      'Finances': (
+        label: 'Finances & Ledger',
+        icon: Icons.account_balance_wallet_outlined,
+        color: const Color(0xFF10B981),
+      ),
+      'Security': (
+        label: 'Privacy & Security',
+        icon: Icons.security_outlined,
+        color: colorScheme.primary,
+      ),
+      'Data': (
+        label: 'Data, Sync & Backups',
+        icon: Icons.cloud_sync_outlined,
+        color: const Color(0xFF0EA5E9),
+      ),
+      'About': (
+        label: 'About & Diagnostics',
+        icon: Icons.info_outline_rounded,
+        color: colorScheme.onSurfaceVariant,
+      ),
+    };
+
+    return groupedItems.entries.map((entry) {
+      final meta = sectionMeta[entry.key] ??
+          (
+            label: entry.key,
+            icon: Icons.settings_outlined,
+            color: colorScheme.primary,
+          );
+      return SettingsSection(
+        title: '${meta.label} (${entry.value.length})',
+        icon: meta.icon,
+        accentColor: meta.color,
+        children: entry.value,
+      );
+    }).toList();
   }
 }

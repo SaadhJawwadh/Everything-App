@@ -871,34 +871,30 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   void _showImageOptions() {
-    showModalBottomSheet(
+    AppBottomSheet.show(
       context: context,
-      showDragHandle: true,
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        final textColor = Theme.of(context).colorScheme.onSurface;
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(Icons.photo_library, color: textColor),
-                title: Text('Gallery', style: TextStyle(color: textColor)),
-                onTap: () => _pickImage(ImageSource.gallery),
-              ),
-              ListTile(
-                leading: Icon(Icons.camera_alt, color: textColor),
-                title: Text('Camera', style: TextStyle(color: textColor)),
-                onTap: () => _pickImage(ImageSource.camera),
-              ),
-              const SizedBox(height: 16),
-            ],
+      title: 'Insert Image',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.photo_library_outlined),
+            title: const Text('Gallery'),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppLayout.radiusM),
+            ),
+            onTap: () => _pickImage(ImageSource.gallery),
           ),
-        );
-      },
+          ListTile(
+            leading: const Icon(Icons.camera_alt_outlined),
+            title: const Text('Camera'),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppLayout.radiusM),
+            ),
+            onTap: () => _pickImage(ImageSource.camera),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1270,6 +1266,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
               onTap: () {
                 Navigator.pop(context);
                 if (shareContent.isNotEmpty) {
+                  AppLockScreen.ignoreNextResumeLock();
                   Share.share(shareContent, subject: title.isEmpty ? 'Note' : title);
                 }
               },
@@ -1285,6 +1282,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                 Navigator.pop(context);
                 final mdContent = title.isEmpty ? markdown : '# $title\n\n$markdown';
                 if (mdContent.isNotEmpty) {
+                  AppLockScreen.ignoreNextResumeLock();
                   Share.share(mdContent, subject: title.isEmpty ? 'Note' : title);
                 }
               },
@@ -1302,6 +1300,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                 final safeTitle = (title.isEmpty ? 'Note' : title).replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
                 final file = File('${tempDir.path}/$safeTitle.txt');
                 await file.writeAsString(shareContent);
+                AppLockScreen.ignoreNextResumeLock();
                 await Share.shareXFiles([XFile(file.path)], text: title.isEmpty ? 'Note Export' : title);
               },
             ),
@@ -1373,16 +1372,18 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     final controller = TextEditingController();
     final chosen = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Move to folder'),
+      builder: (ctx) => AppDialog(
+        title: 'Move to folder',
         content: SizedBox(
           width: double.maxFinite,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Flexible(
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 220),
                 child: ListView(
                   shrinkWrap: true,
+                  physics: const BouncingScrollPhysics(),
                   children: [
                     ListTile(
                       leading: const Icon(Icons.notes_outlined),
@@ -1415,19 +1416,13 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final v = controller.text.trim();
-              if (v.isNotEmpty) Navigator.pop(ctx, v);
-            },
-            child: const Text('Create & Move'),
-          ),
-        ],
+        cancelLabel: 'Cancel',
+        confirmLabel: 'Create & Move',
+        onCancel: () => Navigator.pop(ctx),
+        onConfirm: () {
+          final v = controller.text.trim();
+          if (v.isNotEmpty) Navigator.pop(ctx, v);
+        },
       ),
     );
 
@@ -2405,25 +2400,13 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                                             onPressed: () async {
                                                               AppHaptics.mediumImpact();
                                                               if (!context.mounted) return;
-                                                              final confirm = await showDialog<bool>(
+                                                              final confirm = await AppDialog.showConfirm(
                                                                 context: context,
-                                                                builder: (ctx) => AlertDialog(
-                                                                  title: const Text('Delete Completed Items?'),
-                                                                  content: Text(
-                                                                      'This will permanently remove ${_completedItems.length} finished items from this note.'),
-                                                                  actions: [
-                                                                    TextButton(
-                                                                      onPressed: () => Navigator.pop(ctx, false),
-                                                                      child: const Text('Cancel'),
-                                                                    ),
-                                                                    TextButton(
-                                                                      onPressed: () => Navigator.pop(ctx, true),
-                                                                      style: TextButton.styleFrom(
-                                                                          foregroundColor: theme.colorScheme.error),
-                                                                      child: const Text('Delete'),
-                                                                    ),
-                                                                  ],
-                                                                ),
+                                                                title: 'Delete Completed Items?',
+                                                                message:
+                                                                    'This will permanently remove ${_completedItems.length} finished items from this note.',
+                                                                confirmLabel: 'Delete',
+                                                                isDestructive: true,
                                                               );
                                                               if (confirm == true) {
                                                                 _completedItems.clear();
@@ -2485,8 +2468,9 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                                                     IconButton(
                                                                       icon: Icon(Icons.close_rounded,
                                                                           size: 16, color: noteScheme.onSurfaceVariant.withValues(alpha: 0.7)),
+                                                                      tooltip: 'Remove item',
                                                                       padding: EdgeInsets.zero,
-                                                                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                                                                      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                                                                       onPressed: () async {
                                                                         AppHaptics.selectionClick();
                                                                         _completedItems.remove(item);

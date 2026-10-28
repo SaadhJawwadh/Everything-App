@@ -1,3 +1,4 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import '../database_helper.dart';
 import '../database_constants.dart';
@@ -11,7 +12,36 @@ class RecurringRuleRepository {
 
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
-  Future<Database> get _db async => await _dbHelper.database;
+  Future<Database> get _db async {
+    final db = await _dbHelper.database;
+    await DatabaseHelper.ensureRecurringRulesColumns(db);
+    return db;
+  }
+
+  static const Set<String> _matchingStopwords = {
+    'payment',
+    'purchase',
+    'debit',
+    'credit',
+    'transfer',
+    'monthly',
+    'weekly',
+    'daily',
+    'subscription',
+    'subscriptions',
+    'bill',
+    'bills',
+    'card',
+    'bank',
+    'online',
+    'store',
+    'shop',
+    'paid',
+    'from',
+    'with',
+    'auto',
+    'recurring',
+  };
 
   Future<RecurringRule> createRule(RecurringRule rule) async {
     final db = await _db;
@@ -31,6 +61,8 @@ class RecurringRuleRepository {
         category: rule.category,
         isExpense: rule.isExpense,
         nextDue: rule.nextDue,
+        account: rule.account,
+        anchorDay: rule.anchorDay,
       );
       await db.update(
         TableNames.recurringRules,
@@ -72,20 +104,44 @@ class RecurringRuleRepository {
     required bool isExpense,
     double? amount,
   }) async {
-    final allRules = await readAllRules();
     final descLower = description.trim().toLowerCase();
+    if (descLower.isEmpty) return null;
+
+    final allRules = await readAllRules();
     final catLower = category.trim().toLowerCase();
 
     for (final rule in allRules) {
       if (rule.isExpense != isExpense) continue;
       final ruleDescLower = rule.description.trim().toLowerCase();
+      if (ruleDescLower.isEmpty) continue;
       final ruleCatLower = rule.category.trim().toLowerCase();
 
       final isExactDesc = ruleDescLower == descLower;
-      final isSubstring = descLower.contains(ruleDescLower) || ruleDescLower.contains(descLower);
-      final isWordMatch = descLower.split(' ').any((w) => w.length > 3 && ruleDescLower.contains(w));
+      if (isExactDesc) return rule;
 
-      if (isExactDesc || (isSubstring && (ruleCatLower == catLower || (amount != null && (rule.amount - amount).abs() < 1.0))) || isWordMatch) {
+      final isAmountClose = amount == null ||
+          (rule.amount - amount).abs() < 1.0 ||
+          (rule.amount - amount).abs() <= (rule.amount * 0.05);
+
+      final minLen = descLower.length < ruleDescLower.length
+          ? descLower.length
+          : ruleDescLower.length;
+      final isSubstring = minLen >= 3 &&
+          (descLower.contains(ruleDescLower) || ruleDescLower.contains(descLower));
+
+      final ruleWords = ruleDescLower
+          .split(RegExp(r'[^a-z0-9]+'))
+          .where((w) => w.length > 3 && !_matchingStopwords.contains(w))
+          .toSet();
+      final descWords = descLower
+          .split(RegExp(r'[^a-z0-9]+'))
+          .where((w) => w.length > 3 && !_matchingStopwords.contains(w))
+          .toSet();
+      final isWordMatch = ruleWords.isNotEmpty &&
+          descWords.any((w) => ruleWords.contains(w));
+
+      if ((isSubstring || isWordMatch) &&
+          (ruleCatLower == catLower || isAmountClose)) {
         return rule;
       }
     }
@@ -98,10 +154,29 @@ class RecurringRuleRepository {
         where: '${RecurringRuleFields.id} = ?', whereArgs: [id]);
   }
 
+  static Duration _deduplicationWindowFor(RecurringFrequency frequency) {
+    switch (frequency) {
+      case RecurringFrequency.daily:
+        return Duration.zero;
+      case RecurringFrequency.weekly:
+        return const Duration(days: 2);
+      case RecurringFrequency.monthly:
+        return const Duration(days: 3);
+    }
+  }
+
   /// Inserts a real transaction for every period that has elapsed on every
   /// rule, then advances the rule's next-due date. Returns how many
   /// transactions were created. Safe to call on every dashboard refresh.
-  Future<int> materializeDueRules() async {
+  Future<int> materializeDueRules({bool force = false}) async {
+    if (!force) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final isEnabled = prefs.getBool('enableRecurringRules') ?? true;
+        if (!isEnabled) return 0;
+      } catch (_) {}
+    }
+
     final now = DateTime.now();
     final rules = await readAllRules();
     var created = 0;
@@ -111,9 +186,11 @@ class RecurringRuleRepository {
       // the ledger in one refresh.
       var iterations = 0;
       var advanced = false;
+      final dedupWindow = _deduplicationWindowFor(rule.frequency);
+
       while (!rule.nextDue.isAfter(now) && iterations < 36) {
         // Smart cycle-aware deduplication: check if a transaction (manual or SMS)
-        // already exists within ±3 days of this due date matching amount & category/description.
+        // already exists within the frequency-scoped window of this due date.
         final existingMatch =
             await TransactionRepository.instance.findMatchingRecurringTransaction(
           amount: rule.amount,
@@ -121,7 +198,7 @@ class RecurringRuleRepository {
           category: rule.category,
           targetDate: rule.nextDue,
           isExpense: rule.isExpense,
-          window: const Duration(days: 3),
+          window: dedupWindow,
         );
 
         if (existingMatch == null) {
@@ -132,19 +209,26 @@ class RecurringRuleRepository {
               date: rule.nextDue,
               isExpense: rule.isExpense,
               category: rule.category,
+              account: rule.account,
             ),
           );
           created++;
         }
         iterations++;
-        rule = rule.copyWith(nextDue: rule.advance(rule.nextDue));
+        rule = rule.copyWith(
+          nextDue: rule.advance(rule.nextDue),
+          anchorDay: rule.anchorDay,
+        );
         advanced = true;
       }
       if (advanced) {
         final db = await _db;
         await db.update(
           TableNames.recurringRules,
-          {RecurringRuleFields.nextDue: rule.nextDue.toIso8601String()},
+          {
+            RecurringRuleFields.nextDue: rule.nextDue.toIso8601String(),
+            RecurringRuleFields.anchorDay: rule.anchorDay,
+          },
           where: '${RecurringRuleFields.id} = ?',
           whereArgs: [rule.id],
         );

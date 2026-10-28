@@ -234,12 +234,30 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
           }
         }
         if (existing != null) {
+          final dateChanged = _selectedDate.year != _initDate.year ||
+              _selectedDate.month != _initDate.month ||
+              _selectedDate.day != _initDate.day;
+          final freqChanged = _repeatFrequency != existing.frequency;
+          DateTime? newNextDue;
+          int? newAnchorDay;
+          if (dateChanged || freqChanged) {
+            final tempRule = existing.copyWith(
+              frequency: _repeatFrequency!,
+              nextDue: _selectedDate,
+              anchorDay: _selectedDate.day,
+            );
+            newNextDue = tempRule.advance(_selectedDate);
+            newAnchorDay = _selectedDate.day;
+          }
           final updatedRule = existing.copyWith(
             description: description,
             amount: amount,
             category: _category,
             isExpense: _isExpense,
             frequency: _repeatFrequency!,
+            account: _account,
+            nextDue: newNextDue,
+            anchorDay: newAnchorDay,
           );
           await RecurringRuleRepository.instance.updateRule(updatedRule);
         } else {
@@ -251,8 +269,13 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
             isExpense: _isExpense,
             frequency: _repeatFrequency!,
             nextDue: _selectedDate,
+            account: _account,
+            anchorDay: _selectedDate.day,
           );
-          rule = rule.copyWith(nextDue: rule.advance(_selectedDate));
+          rule = rule.copyWith(
+            nextDue: rule.advance(_selectedDate),
+            anchorDay: _selectedDate.day,
+          );
           await RecurringRuleRepository.instance.createRule(rule);
         }
       } else {
@@ -265,8 +288,13 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
           isExpense: _isExpense,
           frequency: _repeatFrequency!,
           nextDue: _selectedDate,
+          account: _account,
+          anchorDay: _selectedDate.day,
         );
-        rule = rule.copyWith(nextDue: rule.advance(_selectedDate));
+        rule = rule.copyWith(
+          nextDue: rule.advance(_selectedDate),
+          anchorDay: _selectedDate.day,
+        );
         await RecurringRuleRepository.instance.createRule(rule);
       }
       if (mounted) {
@@ -826,7 +854,7 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final settings = Provider.of<SettingsProvider>(context);
-    final currency = settings.currency;
+    final currency = settings.currencySymbol;
 
     return PopScope(
       canPop: !_isDirty && !_isLoading,
@@ -1147,7 +1175,7 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
                         const SizedBox(height: 8),
                         Text(
                           'This will be added automatically every '
-                          '${_repeatFrequency!.label.toLowerCase().replaceFirst('ly', '')} '
+                          '${_repeatFrequency!.unitName} '
                           'starting from the date above.',
                           style: textTheme.bodySmall
                               ?.copyWith(color: colorScheme.onSurfaceVariant),

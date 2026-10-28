@@ -36,12 +36,15 @@ class AppConstants {
       curatedCurrencies.map((c) => c.code).toList();
 
   static CurrencyInfo getCurrencyInfo(String code) {
+    final clean = code.trim().toUpperCase();
     return curatedCurrencies.firstWhere(
-      (c) => c.code.toUpperCase() == code.toUpperCase(),
+      (c) =>
+          c.code.toUpperCase() == clean ||
+          c.symbol.toUpperCase() == clean,
       orElse: () => CurrencyInfo(
-        code: code.toUpperCase(),
-        symbol: code.toUpperCase(),
-        name: code.toUpperCase(),
+        code: clean,
+        symbol: code.trim(),
+        name: clean,
       ),
     );
   }

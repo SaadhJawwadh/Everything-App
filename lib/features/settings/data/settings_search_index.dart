@@ -76,6 +76,14 @@ class SettingsSearchIndex {
       keywords: ['tips', 'pro tips', 'hints', 'help', 'powerup', 'guide'],
       settingKey: 'showProTips',
     ),
+    SettingsIndexItem(
+      id: 'home_screen_widgets',
+      title: 'Home Screen Widgets',
+      subtitle: 'Pin Checklist, Financial Manager, or Unified Dual-Domain widgets',
+      section: 'Appearance',
+      icon: Icons.widgets_outlined,
+      keywords: ['widget', 'home screen', 'launcher', 'todo widget', 'finance widget', 'pin widget'],
+    ),
 
     // 2. Features & Modules
     SettingsIndexItem(
@@ -112,6 +120,15 @@ class SettingsSearchIndex {
       icon: Icons.water_drop_outlined,
       keywords: ['period', 'cycle', 'health', 'menstrual', 'ovulation', 'fertility', 'lunar', 'symptoms'],
       settingKey: 'isPeriodTrackerEnabled',
+    ),
+    SettingsIndexItem(
+      id: 'discreet_health_mode',
+      title: 'Discreet Privacy Mode',
+      subtitle: 'Conceal cycle day numbers and phases on dashboard with tap-to-reveal',
+      section: 'Features',
+      icon: Icons.visibility_off_outlined,
+      keywords: ['discreet', 'privacy', 'hide cycle', 'period privacy', 'notification text'],
+      settingKey: 'isDiscreetHealthMode',
     ),
 
     // 3. Finances & Banking
@@ -235,6 +252,14 @@ class SettingsSearchIndex {
       section: 'Data',
       icon: Icons.devices_rounded,
       keywords: ['sync', 'p2p', 'wifi sync', 'peer to peer', 'device sync', 'beacon', 'pair code', 'qr code'],
+    ),
+    SettingsIndexItem(
+      id: 'database_snapshots',
+      title: 'Database Snapshots & Recovery',
+      subtitle: 'Inspect or restore rolling pre-migration & pre-sync snapshots',
+      section: 'Data',
+      icon: Icons.restore_rounded,
+      keywords: ['snapshot', 'recovery', 'restore database', 'rollback', 'migration'],
     ),
 
     // 6. About & System

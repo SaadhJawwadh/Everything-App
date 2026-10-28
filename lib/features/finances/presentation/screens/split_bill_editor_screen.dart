@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../core/ui/app_card.dart';
 import '../../../../core/ui/app_dialog.dart';
 import '../../../../core/ui/app_morphing_fab.dart';
@@ -17,9 +18,11 @@ import '../../../../features/settings/providers/settings_provider.dart';
 import '../../../../widgets/calculator_dialog.dart';
 import '../../data/models/split_bill_model.dart';
 import '../../data/repositories/split_bill_repository.dart';
+import '../../providers/financial_manager_provider.dart';
 import '../../providers/split_bill_provider.dart';
 import '../widgets/receipt_scanner_sheet.dart';
 import '../../../../data/transaction_model.dart';
+import '../../../../utils/app_globals.dart';
 import '../../data/transaction_repository.dart';
 import 'financial_manager_screen.dart';
 
@@ -399,82 +402,37 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
     final tipPercentController = TextEditingController();
     final flatFeeController = TextEditingController();
 
-    showModalBottomSheet(
+    AppBottomSheet.show(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (modalContext) {
-        final theme = Theme.of(modalContext);
-        final colorScheme = theme.colorScheme;
+      title: 'Proportional Tax & Tip Allocator',
+      child: StatefulBuilder(
+        builder: (context, setSheetState) {
+          final theme = Theme.of(context);
+          final colorScheme = theme.colorScheme;
+          final mediaQuery = MediaQuery.of(context);
+          final taxPct = double.tryParse(taxPercentController.text.trim()) ?? 0.0;
+          final tipPct = double.tryParse(tipPercentController.text.trim()) ?? 0.0;
+          final flatFee = double.tryParse(flatFeeController.text.trim()) ?? 0.0;
 
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            final mediaQuery = MediaQuery.of(context);
-            final taxPct = double.tryParse(taxPercentController.text.trim()) ?? 0.0;
-            final tipPct = double.tryParse(tipPercentController.text.trim()) ?? 0.0;
-            final flatFee = double.tryParse(flatFeeController.text.trim()) ?? 0.0;
+          final currentSubtotalSum = _allocatedExactSum;
+          final calculatedTax = currentSubtotalSum * (taxPct / 100.0);
+          final calculatedTip = currentSubtotalSum * (tipPct / 100.0);
+          final grandCalculatedTotal = currentSubtotalSum + calculatedTax + calculatedTip + flatFee;
 
-            final currentSubtotalSum = _allocatedExactSum;
-            final calculatedTax = currentSubtotalSum * (taxPct / 100.0);
-            final calculatedTip = currentSubtotalSum * (tipPct / 100.0);
-            final grandCalculatedTotal = currentSubtotalSum + calculatedTax + calculatedTip + flatFee;
-
-            return Container(
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerLow,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(AppLayout.radiusXL)),
-              ),
-              padding: EdgeInsets.only(
-                left: AppLayout.spaceL,
-                right: AppLayout.spaceL,
-                top: AppLayout.spaceM,
-                bottom: mediaQuery.viewInsets.bottom + AppLayout.spaceL,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 36,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: colorScheme.outlineVariant,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppLayout.spaceM),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(AppLayout.radiusM),
-                          ),
-                          child: Icon(Icons.calculate_rounded, color: colorScheme.primary, size: 20),
-                        ),
-                        const SizedBox(width: AppLayout.spaceM),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Proportional Tax & Tip Allocator',
-                                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                              Text(
-                                'Distributes tax, tip & service fees across subtotals',
-                                style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppLayout.spaceL),
+          return SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.only(
+              bottom: mediaQuery.viewInsets.bottom + AppLayout.spaceS,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Distributes tax, tip & service fees across subtotals',
+                  style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: AppLayout.spaceM),
 
                     // Inputs Row: Tax % & Tip %
                     Row(
@@ -642,11 +600,9 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
                     ),
                   ],
                 ),
-              ),
-            );
-          },
-        );
-      },
+              );
+        },
+      ),
     );
   }
 
@@ -743,13 +699,13 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                 style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                                 decoration: InputDecoration(
-                                  labelText: 'Total Bill Amount (${settings.currency})',
+                                  labelText: 'Total Bill Amount (${settings.currencySymbol})',
                                   prefixIcon: Padding(
                                     padding: const EdgeInsets.symmetric(horizontal: 12),
                                     child: Center(
                                       widthFactor: 0.0,
                                       child: Text(
-                                        settings.currency,
+                                        settings.currencySymbol,
                                         style: theme.textTheme.titleMedium?.copyWith(
                                           fontWeight: FontWeight.bold,
                                           color: colorScheme.primary,
@@ -1567,8 +1523,14 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
       }
 
       if (mounted) {
+        try {
+          await context.read<FinancialManagerProvider>().loadTransactions();
+        } catch (_) {}
+      }
+
+      if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
+        appScaffoldMessengerKey.currentState?.showSnackBar(
           SnackBar(
             content: Text(existing != null ? 'Split bill updated.' : 'Split bill created.'),
             behavior: SnackBarBehavior.floating,
@@ -1606,24 +1568,31 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
     );
     if (confirmed == true && mounted) {
       final splitProvider = Provider.of<SplitBillProvider>(context, listen: false);
+      final fmProvider = Provider.of<FinancialManagerProvider?>(context, listen: false);
       await splitProvider.deleteBill(bill.id);
+      if (fmProvider != null) {
+        await fmProvider.loadTransactions();
+      }
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(hasLinkedTx
-                ? 'Split bill and linked expense deleted.'
-                : 'Split bill deleted.'),
-            behavior: SnackBarBehavior.floating,
-            action: SnackBarAction(
-              label: 'UNDO',
-              onPressed: () {
-                splitProvider.restoreBill(bill.id);
-              },
-            ),
-          ),
-        );
       }
+      appScaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: Text(hasLinkedTx
+              ? 'Split bill and linked expense deleted.'
+              : 'Split bill deleted.'),
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'UNDO',
+            onPressed: () async {
+              await splitProvider.restoreBill(bill.id);
+              if (fmProvider != null) {
+                await fmProvider.loadTransactions();
+              }
+            },
+          ),
+        ),
+      );
     }
   }
 }

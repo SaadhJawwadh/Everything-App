@@ -100,6 +100,132 @@ void main() {
       final updatedRules = await RecurringRuleRepository.instance.readAllRules();
       expect(updatedRules.first.nextDue.isAfter(dueDate), isTrue);
     });
+
+    test('daily recurring rule materializes every elapsed calendar day without skipping 3 out of 4 days', () async {
+      final now = DateTime.now();
+      final fourDaysAgo = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 4));
+
+      final dailyRule = RecurringRule(
+        id: 'rule_daily_commute',
+        description: 'Daily Train Pass',
+        amount: 250.0,
+        category: 'Transport',
+        isExpense: true,
+        frequency: RecurringFrequency.daily,
+        nextDue: fourDaysAgo,
+      );
+      await RecurringRuleRepository.instance.createRule(dailyRule);
+
+      // Should materialize for 4 days ago, 3 days ago, 2 days ago, yesterday, and today (5 days total)
+      final createdCount = await RecurringRuleRepository.instance.materializeDueRules();
+      expect(createdCount, 5, reason: 'Daily rule due 4 days ago should materialize 5 consecutive days (including today)');
+
+      final allTx = await TransactionRepository.instance.readAllTransactions();
+      expect(allTx.length, 5);
+    });
+
+    test('two distinct subscriptions with identical amount and category on the same day both materialize', () async {
+      final yesterday = DateTime.now().subtract(const Duration(days: 1));
+
+      final spotifyRule = RecurringRule(
+        id: 'rule_spotify',
+        description: 'Spotify Premium',
+        amount: 9.99,
+        category: 'Subscriptions',
+        isExpense: true,
+        frequency: RecurringFrequency.monthly,
+        nextDue: yesterday,
+      );
+      final appleMusicRule = RecurringRule(
+        id: 'rule_apple_music',
+        description: 'Apple Music',
+        amount: 9.99,
+        category: 'Subscriptions',
+        isExpense: true,
+        frequency: RecurringFrequency.monthly,
+        nextDue: yesterday,
+      );
+
+      await RecurringRuleRepository.instance.createRule(spotifyRule);
+      await RecurringRuleRepository.instance.createRule(appleMusicRule);
+
+      final createdCount = await RecurringRuleRepository.instance.materializeDueRules();
+      expect(createdCount, 2, reason: 'Both Spotify and Apple Music must materialize without cannibalizing each other');
+
+      final allTx = await TransactionRepository.instance.readAllTransactions();
+      expect(allTx.any((t) => t.description == 'Spotify Premium'), isTrue);
+      expect(allTx.any((t) => t.description == 'Apple Music'), isTrue);
+    });
+
+    test('findMatchingRule does not falsely match unrelated transactions via generic words like monthly or payment', () async {
+      final netflixRule = RecurringRule(
+        id: 'rule_netflix_monthly',
+        description: 'Monthly Netflix Payment',
+        amount: 15.99,
+        category: 'Subscriptions',
+        isExpense: true,
+        frequency: RecurringFrequency.monthly,
+        nextDue: DateTime.now().add(const Duration(days: 10)),
+      );
+      await RecurringRuleRepository.instance.createRule(netflixRule);
+
+      // Unrelated transaction that shares "Monthly" and "Payment"
+      final falseMatch = await RecurringRuleRepository.instance.findMatchingRule(
+        description: 'Monthly Grocery Payment',
+        category: 'Groceries',
+        isExpense: true,
+        amount: 120.0,
+      );
+      expect(falseMatch, isNull, reason: 'Generic stopwords must not link unrelated transactions to existing rules');
+
+      // Genuine match on "Netflix"
+      final trueMatch = await RecurringRuleRepository.instance.findMatchingRule(
+        description: 'Netflix Subscription',
+        category: 'Subscriptions',
+        isExpense: true,
+        amount: 15.99,
+      );
+      expect(trueMatch, isNotNull);
+      expect(trueMatch!.id, 'rule_netflix_monthly');
+    });
+
+    test('RecurringRule preserves account (Savings Vault vs Daily) and anchorDay across SQLite persistence', () async {
+      final jan31 = DateTime(2026, 1, 31, 9, 0);
+      final savingsRule = RecurringRule(
+        id: 'rule_savings_transfer',
+        description: 'Monthly Emergency Fund Deposit',
+        amount: 5000.0,
+        category: 'Savings',
+        isExpense: false,
+        frequency: RecurringFrequency.monthly,
+        nextDue: jan31,
+        account: AccountType.savings,
+        anchorDay: 31,
+      );
+
+      await RecurringRuleRepository.instance.createRule(savingsRule);
+
+      // Simulate clamping to Feb 28 in DB
+      final clampedFeb = savingsRule.copyWith(
+        nextDue: savingsRule.advance(jan31),
+        anchorDay: savingsRule.anchorDay,
+      );
+      expect(clampedFeb.nextDue.month, 2);
+      expect(clampedFeb.nextDue.day, 28);
+      await RecurringRuleRepository.instance.updateRule(clampedFeb);
+
+      final loaded = (await RecurringRuleRepository.instance.readAllRules())
+          .firstWhere((r) => r.id == 'rule_savings_transfer');
+      expect(loaded.account, AccountType.savings);
+      expect(loaded.anchorDay, 31, reason: 'anchorDay 31 must survive SQLite round-trip after Feb 28 clamping');
+      expect(loaded.advance(loaded.nextDue), DateTime(2026, 3, 31, 9, 0));
+    });
+
+    test('RecurringFrequency.unitName returns grammatically accurate singular nouns', () {
+      expect(RecurringFrequency.daily.unitName, 'day');
+      expect(RecurringFrequency.weekly.unitName, 'week');
+      expect(RecurringFrequency.monthly.unitName, 'month');
+    });
   });
 
   group('Batch 2: Pro-Tips UI & Provider Tests', () {

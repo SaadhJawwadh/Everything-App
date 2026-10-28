@@ -47,25 +47,34 @@ class SecuritySettingsScreen extends StatelessWidget {
                           value: settings.appLockEnabled,
                           onChanged: settings.setAppLockEnabled,
                         ),
-                        if (settings.appLockEnabled) ...[
-                          SettingsSwitchTile(
-                            icon: Icons.fingerprint_outlined,
-                            iconColor: colorScheme.secondary,
-                            title: 'Use Biometrics',
-                            subtitle: 'Require biometric scan specifically',
-                            value: settings.useBiometrics,
-                            onChanged: settings.setUseBiometrics,
-                          ),
-                          SettingsTile(
-                            icon: Icons.timer_outlined,
-                            iconColor: colorScheme.tertiary,
-                            title: 'Auto-Lock Timeout',
-                            subtitle: 'Inactivity delay before locking',
-                            valueBadge: SettingsDialogs.getTimeoutLabel(settings.appLockTimeout),
-                            showArrow: true,
-                            onTap: () => SettingsDialogs.showTimeoutPicker(context, settings),
-                          ),
-                        ],
+                        AnimatedSize(
+                          duration: AppLayout.animModal,
+                          curve: AppLayout.curveEmphasizedDecelerate,
+                          child: settings.appLockEnabled
+                              ? Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SettingsSwitchTile(
+                                      icon: Icons.fingerprint_outlined,
+                                      iconColor: colorScheme.secondary,
+                                      title: 'Use Biometrics',
+                                      subtitle: 'Require biometric scan specifically',
+                                      value: settings.useBiometrics,
+                                      onChanged: settings.setUseBiometrics,
+                                    ),
+                                    SettingsTile(
+                                      icon: Icons.timer_outlined,
+                                      iconColor: colorScheme.tertiary,
+                                      title: 'Auto-Lock Timeout',
+                                      subtitle: 'Inactivity delay before locking',
+                                      valueBadge: SettingsDialogs.getTimeoutLabel(settings.appLockTimeout),
+                                      showArrow: true,
+                                      onTap: () => SettingsDialogs.showTimeoutPicker(context, settings),
+                                    ),
+                                  ],
+                                )
+                              : const SizedBox.shrink(),
+                        ),
                       ],
                     ),
                     const SizedBox(height: AppLayout.fabBottomPadding),

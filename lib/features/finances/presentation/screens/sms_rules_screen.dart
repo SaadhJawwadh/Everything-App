@@ -177,12 +177,7 @@ class _SmsRulesScreenState extends State<SmsRulesScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: FilledButton.tonalIcon(
-                      onPressed: () => showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        showDragHandle: true,
-                        builder: (_) => const SmsImportSheet(),
-                      ),
+                      onPressed: () => SmsImportSheet.show(context),
                       icon: const Icon(Icons.history_outlined, size: 18),
                       label: const Text('Scan Past SMS'),
                       style: FilledButton.styleFrom(
@@ -426,7 +421,7 @@ class _SmsRulesScreenState extends State<SmsRulesScreen> {
                                       ),
                                       const SizedBox(width: 6),
                                       Text(
-                                        '${parsed.isExpense ? '-' : '+'} ${settings.currency} ${parsed.amount.toStringAsFixed(2)}',
+                                        '${parsed.isExpense ? '-' : '+'} ${settings.currencySymbol} ${parsed.amount.toStringAsFixed(2)}',
                                         style: tt.titleSmall?.copyWith(
                                           fontWeight: FontWeight.bold,
                                           color: parsed.isExpense ? cs.error : cs.primary,

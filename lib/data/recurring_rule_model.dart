@@ -1,13 +1,15 @@
 import 'database_constants.dart';
+import 'transaction_model.dart';
 
 enum RecurringFrequency {
-  daily('daily', 'Daily'),
-  weekly('weekly', 'Weekly'),
-  monthly('monthly', 'Monthly');
+  daily('daily', 'Daily', 'day'),
+  weekly('weekly', 'Weekly', 'week'),
+  monthly('monthly', 'Monthly', 'month');
 
   final String value;
   final String label;
-  const RecurringFrequency(this.value, this.label);
+  final String unitName;
+  const RecurringFrequency(this.value, this.label, this.unitName);
 
   static RecurringFrequency fromValue(String value) =>
       RecurringFrequency.values.firstWhere(
@@ -26,6 +28,7 @@ class RecurringRule {
   final bool isExpense;
   final RecurringFrequency frequency;
   final DateTime nextDue;
+  final String account;
   final int? _anchorDay;
 
   /// The original intended day-of-month for recurrence (e.g. 31),
@@ -40,6 +43,7 @@ class RecurringRule {
     required this.isExpense,
     required this.frequency,
     required this.nextDue,
+    this.account = AccountType.daily,
     int? anchorDay,
   }) : _anchorDay = anchorDay;
 
@@ -51,6 +55,7 @@ class RecurringRule {
     bool? isExpense,
     RecurringFrequency? frequency,
     DateTime? nextDue,
+    String? account,
     int? anchorDay,
   }) =>
       RecurringRule(
@@ -61,6 +66,7 @@ class RecurringRule {
         isExpense: isExpense ?? this.isExpense,
         frequency: frequency ?? this.frequency,
         nextDue: nextDue ?? this.nextDue,
+        account: account ?? this.account,
         anchorDay: anchorDay ?? this.anchorDay,
       );
 
@@ -95,18 +101,26 @@ class RecurringRule {
         RecurringRuleFields.isExpense: isExpense ? 1 : 0,
         RecurringRuleFields.frequency: frequency.value,
         RecurringRuleFields.nextDue: nextDue.toIso8601String(),
+        RecurringRuleFields.account: account,
+        RecurringRuleFields.anchorDay: anchorDay,
       };
 
-  static RecurringRule fromJson(Map<String, Object?> json) => RecurringRule(
-        id: json[RecurringRuleFields.id] as String,
-        description: (json[RecurringRuleFields.description] as String?) ?? '',
-        amount: (json[RecurringRuleFields.amount] as num? ?? 0).toDouble(),
-        category: (json[RecurringRuleFields.category] as String?) ?? 'Other',
-        isExpense: json[RecurringRuleFields.isExpense] == 1,
-        frequency: RecurringFrequency.fromValue(
-            (json[RecurringRuleFields.frequency] as String?) ?? 'monthly'),
-        nextDue: DateTime.tryParse(
-                (json[RecurringRuleFields.nextDue] as String?) ?? '') ??
-            DateTime.now(),
-      );
+  static RecurringRule fromJson(Map<String, Object?> json) {
+    final parsedNextDue = DateTime.tryParse(
+            (json[RecurringRuleFields.nextDue] as String?) ?? '') ??
+        DateTime.now();
+    return RecurringRule(
+      id: json[RecurringRuleFields.id] as String,
+      description: (json[RecurringRuleFields.description] as String?) ?? '',
+      amount: (json[RecurringRuleFields.amount] as num? ?? 0).toDouble(),
+      category: (json[RecurringRuleFields.category] as String?) ?? 'Other',
+      isExpense: json[RecurringRuleFields.isExpense] == 1,
+      frequency: RecurringFrequency.fromValue(
+          (json[RecurringRuleFields.frequency] as String?) ?? 'monthly'),
+      nextDue: parsedNextDue,
+      account:
+          (json[RecurringRuleFields.account] as String?) ?? AccountType.daily,
+      anchorDay: (json[RecurringRuleFields.anchorDay] as num?)?.toInt(),
+    );
+  }
 }

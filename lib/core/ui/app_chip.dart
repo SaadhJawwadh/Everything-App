@@ -147,19 +147,23 @@ class AppChip extends StatelessWidget {
                   Icon(icon, size: iconSize, color: effectiveFg),
                   const SizedBox(width: AppLayout.spaceXS),
                 ],
-                Text(
-                  label,
-                  style: (theme.textTheme.labelMedium ?? const TextStyle()).copyWith(
-                    fontFamily: AppTheme.fontGoogleSansFlex,
-                    fontFamilyFallback: AppTheme.fontFallbacks,
-                    fontSize: fontSize,
-                    color: effectiveFg,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                    fontVariations: AppTheme.buildFontVariations(
-                      size: fontSize,
-                      brightness: theme.brightness,
-                      weight: isSelected ? 650.0 : 500.0,
-                      grade: isSelected ? 50.0 : null,
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: (theme.textTheme.labelMedium ?? const TextStyle()).copyWith(
+                      fontFamily: AppTheme.fontGoogleSansFlex,
+                      fontFamilyFallback: AppTheme.fontFallbacks,
+                      fontSize: fontSize,
+                      color: effectiveFg,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                      fontVariations: AppTheme.buildFontVariations(
+                        size: fontSize,
+                        brightness: theme.brightness,
+                        weight: isSelected ? 650.0 : 500.0,
+                        grade: isSelected ? 50.0 : null,
+                      ),
                     ),
                   ),
                 ),

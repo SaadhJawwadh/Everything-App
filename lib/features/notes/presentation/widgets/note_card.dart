@@ -49,8 +49,22 @@ class NoteCard extends StatelessWidget {
 
     final searchQuery = context.watch<NoteProvider>().searchQuery;
 
-    final checkedCount = RegExp(r'"list"\s*:\s*"checked"').allMatches(note.content).length;
-    final uncheckedCount = RegExp(r'"list"\s*:\s*"unchecked"').allMatches(note.content).length;
+    List<ChecklistItemData> checklistItems = const [];
+    int checkedCount = 0;
+    int uncheckedCount = 0;
+    if (!note.isLocked &&
+        (note.content.contains('"checked"') || note.content.contains('"unchecked"'))) {
+      try {
+        final delta = RichTextUtils.contentToDelta(note.content);
+        final doc = Document.fromDelta(delta);
+        checklistItems = QuillChecklistHelper.extractChecklistData(doc);
+        checkedCount = checklistItems.where((i) => i.isDone).length;
+        uncheckedCount = checklistItems.where((i) => !i.isDone).length;
+      } catch (_) {
+        checkedCount = RegExp(r'"list"\s*:\s*"checked"').allMatches(note.content).length;
+        uncheckedCount = RegExp(r'"list"\s*:\s*"unchecked"').allMatches(note.content).length;
+      }
+    }
     final totalChecklistItems = checkedCount + uncheckedCount;
 
     return Material(
@@ -130,26 +144,29 @@ class NoteCard extends StatelessWidget {
                   const SizedBox(height: AppLayout.spaceS),
                   Row(
                     children: [
-                      Builder(builder: (context) {
-                        final successColor = theme.extension<AppSemanticColors>()?.success ??
-                            (theme.brightness == Brightness.dark ? const Color(0xFF4CAF50) : const Color(0xFF1B873F));
-                        return AppChip(
-                          label: '$checkedCount/$totalChecklistItems Done',
-                          icon: checkedCount == totalChecklistItems
-                              ? Icons.check_circle_outline_rounded
-                              : Icons.checklist_rounded,
-                          backgroundColor: checkedCount == totalChecklistItems
-                              ? successColor.withValues(alpha: 0.15)
-                              : theme.colorScheme.secondaryContainer.withValues(alpha: 0.4),
-                          textColor: checkedCount == totalChecklistItems
-                              ? successColor
-                              : theme.colorScheme.onSecondaryContainer,
-                        );
-                      }),
+                      Flexible(
+                        child: Builder(builder: (context) {
+                          final successColor = theme.extension<AppSemanticColors>()?.success ??
+                              (theme.brightness == Brightness.dark ? const Color(0xFF4CAF50) : const Color(0xFF1B873F));
+                          return AppChip(
+                            label: '$checkedCount/$totalChecklistItems Done',
+                            isCompact: true,
+                            icon: checkedCount == totalChecklistItems
+                                ? Icons.check_circle_outline_rounded
+                                : Icons.checklist_rounded,
+                            backgroundColor: checkedCount == totalChecklistItems
+                                ? successColor.withValues(alpha: 0.15)
+                                : theme.colorScheme.secondaryContainer.withValues(alpha: 0.4),
+                            textColor: checkedCount == totalChecklistItems
+                                ? successColor
+                                : theme.colorScheme.onSecondaryContainer,
+                          );
+                        }),
+                      ),
                     ],
                   ),
                   const SizedBox(height: AppLayout.spaceS),
-                  ..._buildChecklistPreview(context, theme, searchQuery),
+                  ..._buildChecklistPreview(context, theme, searchQuery, checklistItems),
                 ] else if (!note.isLocked && ((note.previewText?.isNotEmpty ?? false) || note.content.isNotEmpty))
                   Flexible(
                     child: HighlightedText(
@@ -218,11 +235,8 @@ class NoteCard extends StatelessWidget {
   );
 }
 
-  List<Widget> _buildChecklistPreview(BuildContext context, ThemeData theme, String searchQuery) {
+  List<Widget> _buildChecklistPreview(BuildContext context, ThemeData theme, String searchQuery, List<ChecklistItemData> items) {
     try {
-      final delta = RichTextUtils.contentToDelta(note.content);
-      final doc = Document.fromDelta(delta);
-      final items = QuillChecklistHelper.extractChecklistData(doc);
       if (items.isEmpty) {
         if ((note.previewText?.isNotEmpty ?? false) || note.content.isNotEmpty) {
           return [
@@ -276,8 +290,9 @@ class NoteCard extends StatelessWidget {
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.primary,
                           fontWeight: FontWeight.w600,
+                          height: 1.25,
                         ),
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),

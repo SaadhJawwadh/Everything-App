@@ -7,6 +7,7 @@ import 'package:flutter_quill/flutter_quill.dart';
 
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/services/app_haptics.dart';
+import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../utils/rich_text_utils.dart';
 
 /// Custom embed builder rendering rounded, full-width responsive images
@@ -92,51 +93,48 @@ class RoundedImageEmbedBuilder extends EmbedBuilder {
       String imageUrl,
       bool isUrl,
       File? file) {
-    showModalBottomSheet(
+    AppBottomSheet.show(
       context: context,
-      showDragHandle: true,
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.fullscreen),
-                title: const Text('View Full Image'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => _FullScreenImageViewer(
-                        imageProvider: isUrl
-                            ? NetworkImage(imageUrl)
-                            : FileImage(file!) as ImageProvider,
-                      ),
-                    ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.delete_outline,
-                    color: Theme.of(context).colorScheme.error),
-                title: Text('Remove Image',
-                    style:
-                        TextStyle(color: Theme.of(context).colorScheme.error)),
-                onTap: () {
-                  final offset = node.documentOffset;
-                  controller.replaceText(offset, 1, '', null);
-                  Navigator.pop(context);
-                },
-              ),
-              const SizedBox(height: 16),
-            ],
+      title: 'Image Options',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.fullscreen),
+            title: const Text('View Full Image'),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppLayout.radiusM),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => _FullScreenImageViewer(
+                    imageProvider: isUrl
+                        ? NetworkImage(imageUrl)
+                        : FileImage(file!) as ImageProvider,
+                  ),
+                ),
+              );
+            },
           ),
-        );
-      },
+          ListTile(
+            leading: Icon(Icons.delete_outline,
+                color: Theme.of(context).colorScheme.error),
+            title: Text('Remove Image',
+                style:
+                    TextStyle(color: Theme.of(context).colorScheme.error)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppLayout.radiusM),
+            ),
+            onTap: () {
+              final offset = node.documentOffset;
+              controller.replaceText(offset, 1, '', null);
+              Navigator.pop(context);
+            },
+          ),
+        ],
+      ),
     );
   }
 }

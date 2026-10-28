@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../core/services/app_haptics.dart';
 import '../../../../data/recurring_rule_model.dart';
@@ -10,6 +11,8 @@ import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../core/ui/app_dialog.dart';
 import '../../../../core/ui/expressive_shape_morph_indicator.dart';
+import '../../providers/financial_manager_provider.dart';
+import '../screens/financial_manager_screen.dart';
 
 /// Interactive modal sheet to view, add, and manage automated recurring transaction rules.
 class RecurringRulesSheet extends StatefulWidget {
@@ -61,10 +64,29 @@ class _RecurringRulesSheetState extends State<RecurringRulesSheet> {
     }
   }
 
+  Future<void> _notifyRulesChanged() async {
+    widget.onRulesUpdated();
+    try {
+      // ignore: deprecated_member_use_from_same_package
+      FinancialManagerScreen.refreshNotifier.value++;
+    } catch (_) {}
+    if (mounted) {
+      try {
+        await Provider.of<FinancialManagerProvider>(context, listen: false)
+            .loadTransactions();
+      } catch (_) {}
+    }
+  }
+
+  static String formatRuleAmount(double amount) {
+    return NumberFormat('#,##0.##').format(amount);
+  }
+
   Future<void> _materializeNow() async {
     AppHaptics.mediumImpact();
-    final count = await RecurringRuleRepository.instance.materializeDueRules();
-    widget.onRulesUpdated();
+    final count =
+        await RecurringRuleRepository.instance.materializeDueRules(force: true);
+    await _notifyRulesChanged();
     await _loadRules();
 
     if (mounted) {
@@ -92,7 +114,7 @@ class _RecurringRulesSheetState extends State<RecurringRulesSheet> {
 
     if (confirmed == true) {
       await RecurringRuleRepository.instance.deleteRule(rule.id);
-      widget.onRulesUpdated();
+      await _notifyRulesChanged();
       await _loadRules();
     }
   }
@@ -263,6 +285,7 @@ class _RecurringRulesSheetState extends State<RecurringRulesSheet> {
                     isExpense: isExpense,
                     frequency: selectedFreq,
                     nextDue: selectedDate,
+                    anchorDay: selectedDate.day,
                   );
 
                   await RecurringRuleRepository.instance.createRule(rule);
@@ -277,7 +300,7 @@ class _RecurringRulesSheetState extends State<RecurringRulesSheet> {
     );
 
     if (created == true) {
-      widget.onRulesUpdated();
+      await _notifyRulesChanged();
       await _loadRules();
     }
   }
@@ -428,6 +451,9 @@ class _RecurringRulesSheetState extends State<RecurringRulesSheet> {
                   final desc = descController.text.trim();
                   if (desc.isEmpty || amount == null || amount <= 0) return;
 
+                  final dateChanged = selectedDate.year != rule.nextDue.year ||
+                      selectedDate.month != rule.nextDue.month ||
+                      selectedDate.day != rule.nextDue.day;
                   final updatedRule = rule.copyWith(
                     description: desc,
                     amount: amount,
@@ -435,6 +461,7 @@ class _RecurringRulesSheetState extends State<RecurringRulesSheet> {
                     isExpense: isExpense,
                     frequency: selectedFreq,
                     nextDue: selectedDate,
+                    anchorDay: dateChanged ? selectedDate.day : rule.anchorDay,
                   );
 
                   await RecurringRuleRepository.instance.updateRule(updatedRule);
@@ -449,7 +476,7 @@ class _RecurringRulesSheetState extends State<RecurringRulesSheet> {
     );
 
     if (updated == true) {
-      widget.onRulesUpdated();
+      await _notifyRulesChanged();
       await _loadRules();
     }
   }
@@ -516,7 +543,7 @@ class _RecurringRulesSheetState extends State<RecurringRulesSheet> {
             Flexible(
               child: ListView.separated(
                 shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
+                physics: const BouncingScrollPhysics(),
                 itemCount: _rules.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
@@ -564,7 +591,7 @@ class _RecurringRulesSheetState extends State<RecurringRulesSheet> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            '${rule.isExpense ? '-' : '+'}${widget.currency} ${rule.amount.toStringAsFixed(0)}',
+                            '${rule.isExpense ? '-' : '+'}${widget.currency} ${formatRuleAmount(rule.amount)}',
                             style: textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.bold,
                               color: rule.isExpense ? colorScheme.error : colorScheme.primary,
