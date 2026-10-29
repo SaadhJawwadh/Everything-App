@@ -20,6 +20,9 @@ lib/
 ├── core/                             # Core Infrastructure & Shared Design System
 │   ├── routes/
 │   │   └── app_router.dart           # Centralized route strings and M3 shared-axis transitions
+│   ├── services/
+│   │   ├── app_haptics.dart          # Centralized tactile haptic engine
+│   │   └── app_intent_dispatcher.dart# Android App Shortcuts & Assistant quick-capture intent router
 │   ├── theme/
 │   │   ├── app_layout.dart           # Single Source of Truth: spacing, padding, radii, motion curves
 │   │   └── app_theme.dart            # Single Source of Truth: ColorSchemes & M3 Expressive typography
@@ -196,10 +199,12 @@ lib/
 │   │   ├── editor_note_details_sheet.dart# Note info & metadata sheet
 │   │   └── editor_table_dialog.dart  # Table insertion configuration dialog
 │   ├── home/
-│   │   ├── home_app_bar.dart         # Responsive search & custom selection toolbar
-│   │   ├── home_tip_card.dart        # Contextual onboarding & feature tips
-│   │   ├── note_view_builder.dart    # Grid/List layouts with OpenContainer transitions
-│   │   └── universal_search_overlay.dart# Full-screen search overlay
+│   │   ├── a2ui_smart_action_card.dart   # A2UI natural-language 1-tap action card in Universal Search
+│   │   ├── home_app_bar.dart             # Responsive search & custom selection toolbar
+│   │   ├── home_tip_card.dart            # Contextual onboarding & feature tips
+│   │   ├── keyboard_shortcuts_dialog.dart# Hardware keyboard shortcuts cheat-sheet modal (Ctrl/Cmd + /)
+│   │   ├── note_view_builder.dart        # Grid/List layouts with OpenContainer transitions
+│   │   └── universal_search_overlay.dart # Full-screen search overlay with live A2UI smart actions
 │   ├── bouncing_widget.dart          # Micro-interaction feedback wrapper
 │   ├── calculator_dialog.dart        # Financial inline calculations pop-up
 │   ├── frosted_glass_sliver_app_bar.dart# Re-exports lib/core/ui/frosted_sliver_app_bar.dart
@@ -501,4 +506,5 @@ sequenceDiagram
     *   `test/features/sms_and_recurring_overhaul_test.dart`: Validates Fuel Pass quota filtering, CEFTS self-transfers, Amana Bank, COMBANK, PickMe Food merchant cleaning, recurring keyword auto-detection, and duplicate prevention.
     *   `test/upgrade_backward_compatibility_test.dart`: Validates database schema migrations, SharedPreferences resiliency, and What's New version card rendering across release cycles.
     *   `test/qol_editor_sms_backup_test.dart`: Validates launcher shortcut intent constants, auto-backup notifications, and SMS parsing stability.
+    *   `test/a2ui_smart_action_test.dart`: Validates offline natural-language intent parsing, A2UI Smart Action Card 1-tap save/undo, account toggles, and KeyboardShortcutsDialog rendering.
 

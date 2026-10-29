@@ -20,4 +20,11 @@ abstract class LocalAiService {
 
   /// Refines the provided text based on a selection mode (e.g. polish, shorten, expand, professional, casual).
   Future<String?> refineText(String text, String mode);
+
+  /// Parses a natural-language user query into a structured A2UI action map
+  /// (e.g. transaction, split_bill, todo, note) using on-device AI or deterministic NLP fallback.
+  Future<Map<String, dynamic>?> parseNaturalLanguageAction(
+    String query,
+    List<String> categories,
+  );
 }

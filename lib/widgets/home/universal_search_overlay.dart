@@ -27,6 +27,8 @@ import '../../services/sms_service.dart';
 import '../../utils/app_route.dart';
 import '../../core/theme/app_layout.dart';
 import '../../core/theme/app_theme.dart';
+import 'a2ui_smart_action_card.dart';
+import 'keyboard_shortcuts_dialog.dart';
 
 class SettingsSearchResult {
   final String title;
@@ -573,6 +575,23 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         keywords: ['onboarding', 'tutorial', 'tour', 'setup wizard', 'welcome', 'guide'],
         onTap: () => AppRoute.push(context, const SettingsScreen(initialQuery: 'Onboarding')),
       ),
+      SettingsSearchResult(
+        title: 'Keyboard Shortcuts',
+        subtitle: 'View hardware keyboard shortcuts for Google Books, tablets, and desktops (Ctrl + /)',
+        section: 'Shortcuts',
+        icon: Icons.keyboard_alt_outlined,
+        keywords: [
+          'keyboard',
+          'shortcuts',
+          'hotkeys',
+          'google book',
+          'laptop',
+          'tablet',
+          'ctrl',
+          'cmd',
+        ],
+        onTap: () => KeyboardShortcutsDialog.show(context),
+      ),
     ];
 
     return allItems.where((item) {
@@ -609,42 +628,62 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
             transactions.isEmpty &&
             periodLogs.isEmpty &&
             noteCount == 0) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 48.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.search_off_rounded,
-                    size: 64,
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No results found',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                A2uiSmartActionCard(
+                  query: widget.query,
+                  onActionExecuted: () {
+                    noteProvider.setSearchQuery('');
+                  },
+                ),
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24.0, vertical: 40.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.search_off_rounded,
+                          size: 64,
+                          color: Theme.of(context).colorScheme.outlineVariant,
                         ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Try searching with a different keyword',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        const SizedBox(height: 16),
+                        Text(
+                          'No results found',
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
                         ),
-                    textAlign: TextAlign.center,
+                        const SizedBox(height: 8),
+                        Text(
+                          'Try searching with a different keyword',
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            noteProvider.setSearchQuery('');
+                          },
+                          icon: const Icon(Icons.clear),
+                          label: const Text('Clear Search'),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 24),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      noteProvider.setSearchQuery('');
-                    },
-                    icon: const Icon(Icons.clear),
-                    label: const Text('Clear Search'),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         }
@@ -654,6 +693,12 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              A2uiSmartActionCard(
+                query: widget.query,
+                onActionExecuted: () {
+                  noteProvider.setSearchQuery('');
+                },
+              ),
               // ── Category Filter Chips Bar (Scope Selection) ─────────────
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,

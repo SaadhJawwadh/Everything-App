@@ -1,3 +1,6 @@
+import '../data/category_constants.dart';
+import '../data/transaction_category.dart';
+
 /// High-performance offline NLP & rule-based engine that acts as a reliable,
 /// 100% offline fallback when Android AI Core / Gemini Nano is uninitialized,
 /// downloading, or unsupported on the device.
@@ -278,5 +281,194 @@ class OfflineAiFallbackService {
       'category': selectedCategory,
       'isExpense': isExpense,
     };
+  }
+
+  /// Deterministically parses natural-language queries in Universal Search into
+  /// structured A2UI action descriptors (`transaction`, `split_bill`, `todo`, `note`)
+  /// in <1ms with zero network or battery overhead.
+  static Map<String, dynamic>? parseNaturalLanguageAction(
+    String query,
+    List<String> categories,
+  ) {
+    final trimmed = query.trim();
+    if (trimmed.length < 3) return null;
+
+    final lower = trimmed.toLowerCase();
+
+    // 1. Check for Split Bill intent: e.g. "split 1200 dinner by 3", "split 900 cab with 2"
+    final splitMatch = RegExp(
+      r'^split\s+(?:rs\.?|lkr|inr|₹|\$|€|£)?\s*([\d,]+(?:\.\d{1,2})?)\s*(.*?)(?:\s+(?:by|with|among|between)\s+(\d+)(?:\s*(?:people|friends|persons|ways))?)?$',
+      caseSensitive: false,
+    ).firstMatch(trimmed);
+    if (splitMatch != null) {
+      final rawAmt = splitMatch.group(1)?.replaceAll(',', '') ?? '';
+      final amount = double.tryParse(rawAmt);
+      if (amount != null && amount > 0) {
+        var rawTitle = (splitMatch.group(2) ?? '').trim();
+        rawTitle = rawTitle
+            .replaceAll(RegExp(r'^(?:for|on|at)\s+', caseSensitive: false), '')
+            .trim();
+        final countStr = splitMatch.group(3);
+        final count = int.tryParse(countStr ?? '') ?? 2;
+        final title = rawTitle.isEmpty
+            ? 'Group Expense'
+            : _capitalizeWords(rawTitle);
+        return {
+          'type': 'split_bill',
+          'amount': amount,
+          'title': title,
+          'participantCount': count.clamp(2, 50),
+        };
+      }
+    }
+
+    // 2. Check for Checklist / Todo intent: e.g. "todo buy milk", "task call dentist", "remind me to submit tax"
+    final todoMatch = RegExp(
+      r'^(?:todo|task|checklist|remind me to|buy|remember to)\s*:?\s+(.+)$',
+      caseSensitive: false,
+    ).firstMatch(trimmed);
+    if (todoMatch != null) {
+      final taskBody = todoMatch.group(1)?.trim() ?? '';
+      // Avoid hijacking "buy 200 coffee" if it's clearly an expense with a number
+      final hasLeadingCurrencyAmount = RegExp(r'^(?:rs\.?|lkr|₹|\$)?\s*\d+(\.\d+)?\b', caseSensitive: false).hasMatch(taskBody);
+      if (taskBody.length >= 2 && !(lower.startsWith('buy ') && hasLeadingCurrencyAmount)) {
+        final finalTask = lower.startsWith('buy ')
+            ? 'Buy ${_capitalizeFirst(taskBody)}'
+            : _capitalizeFirst(taskBody);
+        return {
+          'type': 'todo',
+          'taskText': finalTask,
+        };
+      }
+    }
+
+    // 3. Check for Quick Note intent: e.g. "note meeting at 4pm", "memo flight AB123"
+    final noteMatch = RegExp(
+      r'^(?:note|memo|jot|draft)\s*:?\s+(.+)$',
+      caseSensitive: false,
+    ).firstMatch(trimmed);
+    if (noteMatch != null) {
+      final body = noteMatch.group(1)?.trim() ?? '';
+      if (body.length >= 2) {
+        final cleanBody = _capitalizeFirst(body);
+        final titleWords = cleanBody.split(RegExp(r'\s+')).take(6).join(' ');
+        return {
+          'type': 'note',
+          'title': titleWords,
+          'content': cleanBody,
+        };
+      }
+    }
+
+    // 4. Check for Financial Transaction intent:
+    // Patterns like:
+    // - "spent 450 on coffee" / "paid 250 for uber" / "expense 1200 groceries"
+    // - "+5000 salary" / "received 2500 freelance" / "income 10000" / "saved 3000 vault"
+    // - "450 coffee" (only when explicit verb or currency or "+/-" is present, or number + known category word)
+    final txVerbPattern = RegExp(
+      r'^(?:(spent|paid|bought|expense|debit|log|received|earned|credited|income|saved|deposit|deposited|\+|\-)\s*)?(?:rs\.?|lkr|inr|usd|₹|\$|€|£)?\s*([\d,]+(?:\.\d{1,2})?)\s+(?:(?:on|for|at|to|from|in|into)\s+)?(.+)$',
+      caseSensitive: false,
+    );
+    final txVerbEndAmountPattern = RegExp(
+      r'^(spent|paid|expense|received|earned|income|saved|deposit)\s+(.+?)\s+(?:for|of|at)?\s*(?:rs\.?|lkr|inr|usd|₹|\$|€|£)?\s*([\d,]+(?:\.\d{1,2})?)$',
+      caseSensitive: false,
+    );
+
+    String? verb;
+    double? amount;
+    String? rawDesc;
+
+    final match1 = txVerbPattern.firstMatch(trimmed);
+    if (match1 != null) {
+      verb = match1.group(1)?.toLowerCase();
+      amount = double.tryParse((match1.group(2) ?? '').replaceAll(',', ''));
+      rawDesc = match1.group(3)?.trim();
+    } else {
+      final match2 = txVerbEndAmountPattern.firstMatch(trimmed);
+      if (match2 != null) {
+        verb = match2.group(1)?.toLowerCase();
+        rawDesc = match2.group(2)?.trim();
+        amount = double.tryParse((match2.group(3) ?? '').replaceAll(',', ''));
+      }
+    }
+
+    if (amount != null && amount > 0 && rawDesc != null && rawDesc.isNotEmpty) {
+      final hasExplicitCurrency = RegExp(r'(?:rs\.?|lkr|inr|usd|₹|\$|€|£)', caseSensitive: false).hasMatch(trimmed);
+      final matchedCategory = _matchCategory(rawDesc, categories);
+
+      // Require either an explicit financial verb/sign, currency symbol, or a recognized category keyword
+      // so plain note searches like "2026 roadmap" don't trigger a false-positive expense card.
+      final isYearLike = amount >= 1990 && amount <= 2035 && verb == null && !hasExplicitCurrency;
+      if (!isYearLike && (verb != null || hasExplicitCurrency || matchedCategory != CategoryConstants.other)) {
+        final isIncome = verb == 'received' ||
+            verb == 'earned' ||
+            verb == 'credited' ||
+            verb == 'income' ||
+            verb == 'saved' ||
+            verb == 'deposit' ||
+            verb == 'deposited' ||
+            verb == '+' ||
+            lower.contains('salary') ||
+            lower.contains('refund');
+
+        final isSavingsAccount = verb == 'saved' ||
+            verb == 'deposit' ||
+            verb == 'deposited' ||
+            lower.contains('savings') ||
+            lower.contains('vault');
+
+        var cleanDesc = rawDesc
+            .replaceAll(RegExp(r'\b(?:in|into|to|from)\s+(?:daily|savings|vault|account)\b', caseSensitive: false), '')
+            .trim();
+        if (cleanDesc.isEmpty) {
+          cleanDesc = isIncome ? 'Income Deposit' : 'Quick Expense';
+        } else {
+          cleanDesc = _capitalizeWords(cleanDesc);
+        }
+
+        final finalCategory = isIncome && matchedCategory == CategoryConstants.other
+            ? (categories.contains(CategoryConstants.deposit) ? CategoryConstants.deposit : matchedCategory)
+            : matchedCategory;
+
+        return {
+          'type': 'transaction',
+          'amount': amount,
+          'description': cleanDesc.length > 32 ? cleanDesc.substring(0, 32) : cleanDesc,
+          'category': finalCategory,
+          'isExpense': !isIncome,
+          'accountType': isSavingsAccount ? 'savings' : 'daily',
+        };
+      }
+    }
+
+    return null;
+  }
+
+  static String _matchCategory(String text, List<String> categories) {
+    final textLower = text.toLowerCase();
+    for (final cat in categories) {
+      if (textLower.contains(cat.toLowerCase())) {
+        return cat;
+      }
+    }
+    final detected = TransactionCategory.fromDescriptionCached(text);
+    if (categories.isEmpty || categories.contains(detected)) {
+      return detected;
+    }
+    return categories.contains('Other') ? 'Other' : categories.first;
+  }
+
+  static String _capitalizeFirst(String input) {
+    if (input.isEmpty) return input;
+    return input[0].toUpperCase() + input.substring(1);
+  }
+
+  static String _capitalizeWords(String input) {
+    if (input.isEmpty) return input;
+    return input
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .map((w) => w[0].toUpperCase() + w.substring(1))
+        .join(' ');
   }
 }

@@ -3,6 +3,7 @@ import '../../core/services/app_haptics.dart';
 import '../../core/theme/app_layout.dart';
 import '../../core/ui/app_card.dart';
 import '../../features/notes/presentation/widgets/note_migration_sheet.dart';
+import 'keyboard_shortcuts_dialog.dart';
 
 class ProTipItem {
   final IconData icon;
@@ -34,6 +35,20 @@ class HomeTipCard extends StatelessWidget {
 
   static List<ProTipItem> getCatalog(BuildContext context) {
     return [
+      const ProTipItem(
+        icon: Icons.bolt_rounded,
+        title: 'Smart Action Search Cards',
+        description:
+            'Type natural phrases like "spent 1200 on coffee", "todo buy milk", or "split 3000 dinner" in Search to log transactions, tasks, or split bills in 1 tap.',
+      ),
+      ProTipItem(
+        icon: Icons.keyboard_command_key_rounded,
+        title: 'Hardware Keyboard Shortcuts',
+        description:
+            'Use Ctrl/Cmd + K for Search, Ctrl/Cmd + N for New Note, Ctrl/Cmd + E for New Expense, or Ctrl/Cmd + / for the full shortcut cheat-sheet.',
+        actionLabel: 'View Shortcuts',
+        onAction: () => KeyboardShortcutsDialog.show(context),
+      ),
       ProTipItem(
         icon: Icons.import_contacts_rounded,
         title: 'Migrate from Google Keep',

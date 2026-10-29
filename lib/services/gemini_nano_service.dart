@@ -219,4 +219,47 @@ $text
         return text;
     }
   }
+
+  @override
+  Future<Map<String, dynamic>?> parseNaturalLanguageAction(
+    String query,
+    List<String> categories,
+  ) async {
+    final baseAction = OfflineAiFallbackService.parseNaturalLanguageAction(
+      query,
+      categories,
+    );
+    if (!await isSupported()) return baseAction;
+
+    final categoriesStr = categories.map((c) => '"$c"').join(', ');
+    final prompt = """
+You are an on-device Android A2UI intent parser. Parse the user's natural language input into a JSON object.
+Respond with ONLY a raw JSON object with one of these schemas:
+1. For expense/income: {"type": "transaction", "amount": 450.0, "description": "Coffee", "category": "Food & Dining", "isExpense": true, "accountType": "daily"} (category MUST be from [$categoriesStr]; accountType is "daily" or "savings")
+2. For split bill: {"type": "split_bill", "amount": 1200.0, "title": "Dinner", "participantCount": 3}
+3. For checklist task: {"type": "todo", "taskText": "Buy milk"}
+4. For quick note: {"type": "note", "title": "Meeting Notes", "content": "Meeting at 4pm"}
+
+User input: $query
+""";
+
+    final response = await generateText(prompt);
+    if (response != null && response.trim().isNotEmpty) {
+      try {
+        var cleaned = response.trim();
+        final start = cleaned.indexOf('{');
+        final end = cleaned.lastIndexOf('}');
+        if (start != -1 && end != -1 && end > start) {
+          cleaned = cleaned.substring(start, end + 1);
+        }
+        final decoded = json.decode(cleaned);
+        if (decoded is Map<String, dynamic> && decoded['type'] != null) {
+          return decoded;
+        }
+      } catch (_) {
+        // Fall through to deterministic baseAction
+      }
+    }
+    return baseAction;
+  }
 }

@@ -1,30 +1,19 @@
 <en-US>
-🌟 What's New in 2.49
-• Unified Checklists & Tasks virtual folder view.
-• Interactive Settings Control Center status pills.
-• Primary Currency picker in Onboarding & What's New.
+🌟 Welcome to Everything App 3.0!
+• Smart Action Search: Type "spent 1200 on coffee", "todo buy milk", or "split 3000 dinner" in Search to log in 1 tap.
+• Hands-Free Quick Capture: Log expenses, tasks, or notes via Assistant shortcuts.
+• Keyboard Shortcuts: Press Ctrl+K, Ctrl+N, Ctrl+E, or Ctrl+/ on tablets & laptops.
 
-🚀 Improvements
-• Unified currency symbols across all screens.
-• Smarter Split Bills People & Bills filtering.
-• Live transfer balance preview & search groups.
-
-🐛 Fixes
-• Accurate checklist counts & full badge labels.
-• Neutral savings transfers & keyboard-safe sheets.
+🚀 Improvements & Fixes
+• Live Android 15+ widget previews.
+• Future-proof local Wi-Fi sync & multi-window support.
 </en-US>
 <ta-IN>
-🌟 2.49 புதிய அம்சங்கள்
-• ஒருங்கிணைந்த சரிபார்ப்பு பட்டியல்கள் (Checklists) காட்சி.
-• உடனடி அமைப்புகள் (Settings) நிலை பொத்தான்கள்.
-• அறிமுகத் திரையில் நேரடி நாணயத் தேர்வு வசதி.
+🌟 Everything App 3.0 புதிய அம்சங்கள்!
+• உடனடி தேடல் செயல் அட்டைகள்: தேடலில் "spent 1200 on coffee" அல்லது "todo buy milk" என தட்டச்சு செய்து ஒரே தட்டலில் சேமியுங்கள்.
+• குரல் வழிப் பதிவு: Assistant மூலம் செலவுகள் மற்றும் குறிப்புகளை உடனடியாகச் சேர்க்கவும்.
+• விசைப்பலகை குறுக்குவழிகள்: டேப்லெட் & மடிக்கணினிகளில் Ctrl+K, Ctrl+N, Ctrl+E, Ctrl+/ வசதி.
 
 🚀 மேம்பாடுகள்
-• அனைத்து திரைகளிலும் சீரான நாணய குறியீடுகள்.
-• பில் பகிர்வில் மேம்பட்ட வடிகட்டுதல் வசதி.
-• கணக்கு பரிமாற்ற இருப்பு முன்னோட்டம்.
-
-🐛 பிழை திருத்தங்கள்
-• துல்லியமான சரிபார்ப்பு பட்டியல் எண்ணிக்கை.
-• சேமிப்பு பரிமாற்றம் & விசைப்பலகை திரை சீரமைப்பு.
+• நேரடி விட்ஜெட் முன்னோட்டங்கள் & வேகமான Wi-Fi ஒத்திசைவு.
 </ta-IN>

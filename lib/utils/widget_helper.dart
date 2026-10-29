@@ -335,13 +335,13 @@ class WidgetHelper {
   }
 
   /// Appends a new checklist item to the specified note (or default/new checklist note)
-  /// and updates widget data.
-  static Future<void> quickAddTask({
+  /// and updates widget data. Returns the updated or newly created [Note].
+  static Future<Note?> quickAddTask({
     String? noteId,
     required String taskText,
   }) async {
     final cleaned = taskText.trim();
-    if (cleaned.isEmpty) return;
+    if (cleaned.isEmpty) return null;
 
     try {
       await syncPendingTodoToggles();
@@ -354,12 +354,32 @@ class WidgetHelper {
       }
 
       if (targetNote == null) {
-        // Find existing "My Tasks" or first checklist note
+        // Check if any Todo widget instance has a specific active note pinned
+        final prefs = await SharedPreferences.getInstance();
+        for (final key in prefs.getKeys()) {
+          if (key.startsWith('widget_active_note_id_')) {
+            final candidateId = prefs.getString(key);
+            if (candidateId != null &&
+                candidateId.isNotEmpty &&
+                candidateId != 'ALL_NOTES') {
+              final n = await repo.readNote(candidateId);
+              if (n != null && !n.isLocked && n.deletedAt == null && !n.isArchived) {
+                targetNote = n;
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      if (targetNote == null) {
+        // Find existing "My Tasks" / "Quick Tasks" or first pinned checklist note
         final activeNotes = await repo.readAllNotes(isArchived: false, isTrashed: false);
         for (final n in activeNotes) {
           if (n.isLocked) continue;
           final titleLower = n.title.trim().toLowerCase();
           if (titleLower == 'my tasks' ||
+              titleLower == 'quick tasks' ||
               titleLower == 'todo' ||
               titleLower == 'tasks') {
             targetNote = n;
@@ -370,7 +390,7 @@ class WidgetHelper {
         if (targetNote == null && activeNotes.isNotEmpty) {
           for (final n in activeNotes) {
             if (n.isLocked) continue;
-            // Strict checklist signature check
+            // Strict checklist signature check (activeNotes is already ordered with isPinned DESC)
             if (n.content.contains('"list":"checked"') ||
                 n.content.contains('"list":"unchecked"') ||
                 n.content.contains('- [ ]') ||
@@ -382,6 +402,7 @@ class WidgetHelper {
         }
       }
 
+      Note savedNote;
       if (targetNote != null) {
         final delta = RichTextUtils.contentToDelta(targetNote.content);
         final doc = Document.fromDelta(delta);
@@ -389,6 +410,7 @@ class WidgetHelper {
         targetNote.content = RichTextUtils.deltaToJson(doc.toDelta());
         targetNote.dateModified = DateTime.now();
         await repo.updateNote(targetNote);
+        savedNote = targetNote;
       } else {
         // Create new "My Tasks" note with authentic UUIDv4 identifier
         final now = DateTime.now();
@@ -403,11 +425,14 @@ class WidgetHelper {
           category: 'Notes',
         );
         await repo.createNote(newNote);
+        savedNote = newNote;
       }
 
       await updateTodoWidgetData();
+      return savedNote;
     } catch (e) {
       debugPrint('Quick add task failed: $e');
+      return null;
     }
   }
 

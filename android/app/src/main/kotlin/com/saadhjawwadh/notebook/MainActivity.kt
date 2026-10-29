@@ -29,6 +29,7 @@ class MainActivity: FlutterFragmentActivity() {
     private var receiver: BroadcastReceiver? = null
     private var pendingWidgetAction: String? = null
     private var pendingSharedText: String? = null
+    private var pendingIntentExtras: Map<String, Any?>? = null
 
     companion object {
         private var instance: MainActivity? = null
@@ -80,6 +81,29 @@ class MainActivity: FlutterFragmentActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
+        val extrasMap = mutableMapOf<String, Any?>()
+        intent?.extras?.let { bundle ->
+            for (key in listOf(
+                "amount",
+                "description",
+                "category",
+                "is_expense",
+                "account_type",
+                "todo_text",
+                "title",
+                "content",
+                "folder",
+                "query"
+            )) {
+                if (bundle.containsKey(key)) {
+                    extrasMap[key] = bundle.get(key)?.toString()
+                }
+            }
+        }
+        if (extrasMap.isNotEmpty()) {
+            pendingIntentExtras = extrasMap
+        }
+
         when (intent?.action) {
             "com.saadhjawwadh.notebook.ADD_TRANSACTION" -> pendingWidgetAction = "add_transaction"
             "com.saadhjawwadh.notebook.VIEW_LEDGER" -> pendingWidgetAction = "view_ledger"
@@ -116,6 +140,26 @@ class MainActivity: FlutterFragmentActivity() {
         }
         if (intent?.getBooleanExtra("pin_todo_widget", false) == true) {
             requestPinAppWidget("todo")
+        }
+    }
+
+    private fun publishGeneratedWidgetPreviews(context: Context) {
+        if (Build.VERSION.SDK_INT < 35) return
+        try {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val category = android.appwidget.AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN
+            val mappings = listOf(
+                ComponentName(context, FinanceWidgetProvider::class.java) to R.layout.finance_widget_layout,
+                ComponentName(context, NotesWidgetProvider::class.java) to R.layout.notes_widget_layout,
+                ComponentName(context, TodoWidgetProvider::class.java) to R.layout.todo_widget_layout,
+                ComponentName(context, UnifiedWidgetProvider::class.java) to R.layout.unified_widget_layout
+            )
+            for ((component, layoutRes) in mappings) {
+                val remoteViews = android.widget.RemoteViews(context.packageName, layoutRes)
+                appWidgetManager.setWidgetPreview(component, category, remoteViews)
+            }
+        } catch (_: Exception) {
+            // Gracefully ignore on OEM launchers that do not support generated previews
         }
     }
 
@@ -196,6 +240,7 @@ class MainActivity: FlutterFragmentActivity() {
                     NotesWidgetProvider.updateAllWidgets(context)
                     TodoWidgetProvider.updateAllWidgets(context)
                     UnifiedWidgetProvider.updateAllWidgets(context)
+                    publishGeneratedWidgetPreviews(context)
                     result.success(true)
                 }
                 "pinWidget", "requestPinAppWidget" -> {
@@ -205,9 +250,16 @@ class MainActivity: FlutterFragmentActivity() {
                 "pinTodoWidget" -> {
                     result.success(requestPinAppWidget("todo"))
                 }
+                "peekPendingAction" -> {
+                    result.success(pendingWidgetAction)
+                }
                 "getPendingAction" -> {
                     result.success(pendingWidgetAction)
                     pendingWidgetAction = null
+                }
+                "getPendingIntentExtras" -> {
+                    result.success(pendingIntentExtras)
+                    pendingIntentExtras = null
                 }
                 "getPendingSharedText" -> {
                     result.success(pendingSharedText)

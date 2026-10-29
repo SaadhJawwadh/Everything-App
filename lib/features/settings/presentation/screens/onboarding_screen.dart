@@ -15,6 +15,7 @@ import '../../../sync/providers/p2p_sync_provider.dart';
 import '../../../sync/presentation/screens/p2p_sync_screen.dart';
 import '../../../finances/presentation/screens/sms_rules_screen.dart';
 import '../../../notes/presentation/widgets/note_migration_sheet.dart';
+import '../../../../widgets/home/keyboard_shortcuts_dialog.dart';
 
 /// Full-Screen Interactive Onboarding Wizard
 class OnboardingScreen extends StatefulWidget {
@@ -1310,7 +1311,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text(
-                    'Enables note summaries, title suggestions, and smart SMS auto-categorization.',
+                    'Enables note summaries, title suggestions, smart SMS auto-categorization, and natural-language Search Action refinement.',
                     style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                   ),
                   value: settings.useOnDeviceAi,
@@ -1364,6 +1365,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppLayout.spaceXL),
+          _buildFeatureCard(
+            theme,
+            icon: Icons.bolt_rounded,
+            title: 'Smart Action Cards in Search',
+            desc: 'Type natural phrases like "spent 1200 on coffee", "todo buy milk", or "split 3000 dinner" in Universal Search to log expenses, tasks, or split bills in one tap.',
+          ),
+          const SizedBox(height: AppLayout.spaceM),
+          _buildFeatureCard(
+            theme,
+            icon: Icons.keyboard_command_key_rounded,
+            title: 'Laptop & Tablet Keyboard Shortcuts',
+            desc: 'Full hardware keyboard navigation (Ctrl/Cmd + K Search, Ctrl/Cmd + N Note, Ctrl/Cmd + E Expense, and Ctrl/Cmd + / Shortcut Cheat-Sheet).',
+            actionLabel: 'View Keyboard Shortcuts ➔',
+            onAction: () {
+              KeyboardShortcutsDialog.show(context);
+            },
+          ),
+          const SizedBox(height: AppLayout.spaceM),
           _buildFeatureCard(
             theme,
             icon: Icons.checklist_rtl_rounded,

@@ -19,6 +19,7 @@ import '../core/ui/app_dialog.dart';
 import '../core/ui/expressive_floating_toolbar.dart';
 import '../widgets/tag_filter_bar.dart';
 import '../widgets/home/home_app_bar.dart';
+import '../widgets/home/keyboard_shortcuts_dialog.dart';
 import '../widgets/home/note_view_builder.dart';
 import '../widgets/home/universal_search_overlay.dart';
 export 'package:note_taking_app/features/notes/presentation/widgets/note_card.dart';
@@ -99,6 +100,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           final isLocked = settings.appLockEnabled && !AppLockScreen.sessionAuthenticated.value;
           if (!isLocked) {
             unawaited(_checkAndProcessPendingIntents());
+          } else {
+            unawaited(AppIntentDispatcher.processBackgroundQuickCaptureIfAny(context));
           }
         }
       }
@@ -108,7 +111,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (mounted) {
         unawaited(WidgetHelper.updateWidgetData());
         unawaited(WidgetHelper.updateTodoWidgetData());
-        unawaited(_checkAndProcessPendingIntents());
+        final settings = Provider.of<SettingsProvider>(context, listen: false);
+        final isLocked = settings.appLockEnabled && !AppLockScreen.sessionAuthenticated.value;
+        if (!isLocked) {
+          unawaited(_checkAndProcessPendingIntents());
+        } else {
+          unawaited(AppIntentDispatcher.processBackgroundQuickCaptureIfAny(context));
+        }
       }
     });
   }
@@ -161,6 +170,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final bool isLocked = settings.appLockEnabled && !AppLockScreen.sessionAuthenticated.value;
       if (!isLocked) {
         _checkAndProcessPendingIntents();
+      } else {
+        unawaited(AppIntentDispatcher.processBackgroundQuickCaptureIfAny(context));
       }
     }
   }
@@ -594,13 +605,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final bool hasExtraFeatures = settings.showFinancialManager || settings.isPeriodTrackerEnabled;
       
       if (!hasExtraFeatures) {
-        return Scaffold(
-          extendBody: true,
-          body: _buildNotesScaffold(context, settings),
-          floatingActionButton: isSelectionMode ? null : _buildFAB(context),
-          bottomNavigationBar: isSelectionMode
-              ? activeToolbar
-              : null,
+        return _wrapWithKeyboardShortcuts(
+          context: context,
+          settings: settings,
+          noteProvider: noteProvider,
+          finProvider: finProvider,
+          destinationsCount: 1,
+          child: Scaffold(
+            extendBody: true,
+            body: _buildNotesScaffold(context, settings),
+            floatingActionButton: isSelectionMode ? null : _buildFAB(context),
+            bottomNavigationBar: isSelectionMode
+                ? activeToolbar
+                : null,
+          ),
         );
       }
 
@@ -610,87 +628,198 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final bool isTablet = AppLayout.isDualPane(context);
 
       if (isTablet) {
-        return Scaffold(
-          extendBody: true,
-          body: Row(
-            children: [
-              NavigationRail(
-                selectedIndex: _currentIndex,
-                onDestinationSelected: (index) {
-                  AppHaptics.selectionClick();
-                  if (noteProvider.isSelectionMode) noteProvider.clearSelection();
-                  if (finProvider.isSelectionMode) finProvider.clearSelection();
-                  setState(() => _currentIndex = index);
-                },
-                labelType: NavigationRailLabelType.all,
-                destinations: _buildNavRailDestinations(settings),
-                backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
-              ),
-              Expanded(
-                child: NotificationListener<UserScrollNotification>(
-                  onNotification: _onScrollNotification,
-                  child: IndexedStack(
-                    index: _currentIndex,
-                    children: _buildFeatureScreens(settings),
+        return _wrapWithKeyboardShortcuts(
+          context: context,
+          settings: settings,
+          noteProvider: noteProvider,
+          finProvider: finProvider,
+          destinationsCount: destinations.length,
+          child: Scaffold(
+            extendBody: true,
+            body: Row(
+              children: [
+                NavigationRail(
+                  selectedIndex: _currentIndex,
+                  onDestinationSelected: (index) {
+                    AppHaptics.selectionClick();
+                    if (noteProvider.isSelectionMode) noteProvider.clearSelection();
+                    if (finProvider.isSelectionMode) finProvider.clearSelection();
+                    setState(() => _currentIndex = index);
+                  },
+                  labelType: NavigationRailLabelType.all,
+                  destinations: _buildNavRailDestinations(settings),
+                  backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+                  trailing: Expanded(
+                    child: Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: AppLayout.spaceM),
+                        child: IconButton(
+                          key: const ValueKey('keyboard_shortcuts_rail_button'),
+                          tooltip: 'Keyboard Shortcuts (Ctrl + /)',
+                          icon: const Icon(Icons.keyboard_alt_outlined),
+                          onPressed: () => KeyboardShortcutsDialog.show(context),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ],
+                Expanded(
+                  child: NotificationListener<UserScrollNotification>(
+                    onNotification: _onScrollNotification,
+                    child: IndexedStack(
+                      index: _currentIndex,
+                      children: _buildFeatureScreens(settings),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            floatingActionButton: isSelectionMode ? null : _buildCurrentFAB(context, settings),
+            bottomNavigationBar: isSelectionMode
+                ? activeToolbar
+                : null,
           ),
-          floatingActionButton: isSelectionMode ? null : _buildCurrentFAB(context, settings),
-          bottomNavigationBar: isSelectionMode
-              ? activeToolbar
-              : null,
         );
       }
 
-      return Scaffold(
-        extendBody: true,
-        body: NotificationListener<UserScrollNotification>(
-          onNotification: _onScrollNotification,
-          child: IndexedStack(
-            index: _currentIndex,
-            children: _buildFeatureScreens(settings),
+      return _wrapWithKeyboardShortcuts(
+        context: context,
+        settings: settings,
+        noteProvider: noteProvider,
+        finProvider: finProvider,
+        destinationsCount: destinations.length,
+        child: Scaffold(
+          extendBody: true,
+          body: NotificationListener<UserScrollNotification>(
+            onNotification: _onScrollNotification,
+            child: IndexedStack(
+              index: _currentIndex,
+              children: _buildFeatureScreens(settings),
+            ),
           ),
-        ),
-        floatingActionButton: isSelectionMode ? null : _buildCurrentFAB(context, settings),
-        bottomNavigationBar: AnimatedSwitcher(
-          duration: AppLayout.animDefault,
-          switchInCurve: AppLayout.curveExpressiveSpatial,
-          switchOutCurve: AppLayout.curveEmphasizedAccelerate,
-          transitionBuilder: (child, animation) {
-            return SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0.0, 1.0),
-                end: Offset.zero,
-              ).animate(animation),
-              child: child,
-            );
-          },
-          child: isSelectionMode
-              ? (activeToolbar ?? const SizedBox.shrink())
-              : Container(
-                  key: const ValueKey('navigation_bar'),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerLow,
-                    border: null,
+          floatingActionButton: isSelectionMode ? null : _buildCurrentFAB(context, settings),
+          bottomNavigationBar: AnimatedSwitcher(
+            duration: AppLayout.animDefault,
+            switchInCurve: AppLayout.curveExpressiveSpatial,
+            switchOutCurve: AppLayout.curveEmphasizedAccelerate,
+            transitionBuilder: (child, animation) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.0, 1.0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              );
+            },
+            child: isSelectionMode
+                ? (activeToolbar ?? const SizedBox.shrink())
+                : Container(
+                    key: const ValueKey('navigation_bar'),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerLow,
+                      border: null,
+                    ),
+                    child: NavigationBar(
+                      backgroundColor: Colors.transparent,
+                      elevation: 0,
+                      selectedIndex: _currentIndex,
+                      onDestinationSelected: (index) {
+                        AppHaptics.selectionClick();
+                        if (noteProvider.isSelectionMode) noteProvider.clearSelection();
+                        if (finProvider.isSelectionMode) finProvider.clearSelection();
+                        setState(() => _currentIndex = index);
+                      },
+                      destinations: _buildNavDestinations(settings),
+                    ),
                   ),
-                  child: NavigationBar(
-                    backgroundColor: Colors.transparent,
-                    elevation: 0,
-                    selectedIndex: _currentIndex,
-                    onDestinationSelected: (index) {
-                      AppHaptics.selectionClick();
-                      if (noteProvider.isSelectionMode) noteProvider.clearSelection();
-                      if (finProvider.isSelectionMode) finProvider.clearSelection();
-                      setState(() => _currentIndex = index);
-                    },
-                    destinations: _buildNavDestinations(settings),
-                  ),
-                ),
+          ),
         ),
       );
     });
+  }
+
+  Widget _wrapWithKeyboardShortcuts({
+    required BuildContext context,
+    required SettingsProvider settings,
+    required NoteProvider noteProvider,
+    required FinancialManagerProvider finProvider,
+    required int destinationsCount,
+    required Widget child,
+  }) {
+    void openNewNote() async {
+      AppHaptics.lightImpact();
+      final returned = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) =>
+              NoteEditorScreen(initialFolder: noteProvider.selectedFolder),
+        ),
+      );
+      if (returned == true) await refreshNotes(scrollOnModified: true);
+    }
+
+    void openNewTransaction() async {
+      if (!settings.showFinancialManager) return;
+      AppHaptics.lightImpact();
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const TransactionEditorScreen()),
+      );
+      if (context.mounted) {
+        await finProvider.loadTransactions();
+        FinancialManagerScreen.refreshNotifier.value++;
+      }
+    }
+
+    void focusSearch() {
+      AppHaptics.selectionClick();
+      if (_currentIndex != 0) {
+        setState(() => _currentIndex = 0);
+      }
+      HomeAppBar.searchRequestedNotifier.value = true;
+    }
+
+    void switchTab(int target) {
+      if (target >= 0 && target < destinationsCount && _currentIndex != target) {
+        AppHaptics.selectionClick();
+        if (noteProvider.isSelectionMode) noteProvider.clearSelection();
+        if (finProvider.isSelectionMode) finProvider.clearSelection();
+        setState(() => _currentIndex = target);
+      }
+    }
+
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.keyN, control: true): openNewNote,
+        const SingleActivator(LogicalKeyboardKey.keyN, meta: true): openNewNote,
+        const SingleActivator(LogicalKeyboardKey.keyT, control: true): openNewTransaction,
+        const SingleActivator(LogicalKeyboardKey.keyT, meta: true): openNewTransaction,
+        const SingleActivator(LogicalKeyboardKey.keyF, control: true): focusSearch,
+        const SingleActivator(LogicalKeyboardKey.keyF, meta: true): focusSearch,
+        const SingleActivator(LogicalKeyboardKey.digit1, control: true): () => switchTab(0),
+        const SingleActivator(LogicalKeyboardKey.digit1, meta: true): () => switchTab(0),
+        const SingleActivator(LogicalKeyboardKey.digit2, control: true): () => switchTab(1),
+        const SingleActivator(LogicalKeyboardKey.digit2, meta: true): () => switchTab(1),
+        const SingleActivator(LogicalKeyboardKey.digit3, control: true): () => switchTab(2),
+        const SingleActivator(LogicalKeyboardKey.digit3, meta: true): () => switchTab(2),
+        const SingleActivator(LogicalKeyboardKey.slash, control: true): () =>
+            KeyboardShortcutsDialog.show(context),
+        const SingleActivator(LogicalKeyboardKey.slash, meta: true): () =>
+            KeyboardShortcutsDialog.show(context),
+        const SingleActivator(LogicalKeyboardKey.escape): () {
+          if (noteProvider.isSelectionMode) {
+            noteProvider.clearSelection();
+          } else if (finProvider.isSelectionMode) {
+            finProvider.clearSelection();
+          } else if (noteProvider.searchQuery.isNotEmpty) {
+            noteProvider.setSearchQuery('');
+          }
+        },
+      },
+      child: Focus(
+        autofocus: true,
+        child: child,
+      ),
+    );
   }
 
   Widget _buildSelectionToolbar(BuildContext context, NoteProvider noteProvider) {

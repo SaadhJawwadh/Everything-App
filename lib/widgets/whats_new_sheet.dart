@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
 import 'package:note_taking_app/features/settings/presentation/screens/settings_screen.dart';
 import 'package:note_taking_app/features/settings/presentation/screens/sections/finances_settings_screen.dart';
+import 'package:note_taking_app/widgets/home/keyboard_shortcuts_dialog.dart';
 import '../core/services/app_haptics.dart';
 import '../core/theme/app_layout.dart';
 import '../core/ui/app_card.dart';
@@ -39,10 +40,38 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.bolt_rounded,
+            title: "Smart Action Search Cards",
+            desc: "Type natural phrases like 'spent 1200 on coffee', 'todo buy milk', or 'split 3000 dinner' in Search to log in one tap.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.mic_external_on_rounded,
+            title: "Hands-Free Quick Capture",
+            desc: "Log expenses, tasks, or notes instantly from Android Assistant and system shortcuts with 1-tap Undo safety.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.keyboard_command_key_rounded,
+            title: "Hardware Keyboard Shortcuts",
+            desc: "Full keyboard navigation for tablets, foldables, and laptops (Ctrl+K Search, Ctrl+N Note, Ctrl+E Expense, Ctrl+/).",
+            actionLabel: "View Shortcuts ➔",
+            onAction: () {
+              Navigator.pop(context);
+              KeyboardShortcutsDialog.show(context);
+            },
+          ),
+          _WhatsNewItem(
             icon: Icons.checklist_rtl_rounded,
             title: "Checklists & Tasks View",
             desc: "View and manage all active checklists across every folder from one unified view in the Folder Picker.",
           ),
+        ],
+      ),
+      _WhatsNewCategory(
+        categoryTitle: "Improvements",
+        categoryIcon: Icons.trending_up_rounded,
+        categoryColor: theme.colorScheme.tertiary,
+        bgColor: theme.colorScheme.tertiaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
+        items: [
           _WhatsNewItem(
             icon: Icons.dashboard_customize_rounded,
             title: "Interactive Settings Hub",
@@ -55,6 +84,11 @@ class WhatsNewSheet extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => const SettingsScreen()),
               );
             },
+          ),
+          _WhatsNewItem(
+            icon: Icons.widgets_rounded,
+            title: "Live Widget Previews",
+            desc: "Rich, themed previews of your Todo, Finance, and Unified widgets in the Android 15+ home screen widget picker.",
           ),
           _WhatsNewItem(
             icon: Icons.currency_exchange_rounded,
@@ -70,37 +104,9 @@ class WhatsNewSheet extends StatelessWidget {
             },
           ),
           _WhatsNewItem(
-            icon: Icons.group_work_rounded,
-            title: "Smarter Split Bills Filtering",
-            desc: "Filter both People and Bills views by 'I am owed' and 'I owe' with one tap on summary cards or chips.",
-          ),
-        ],
-      ),
-      _WhatsNewCategory(
-        categoryTitle: "Improvements",
-        categoryIcon: Icons.trending_up_rounded,
-        categoryColor: theme.colorScheme.tertiary,
-        bgColor: theme.colorScheme.tertiaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
-        items: [
-          _WhatsNewItem(
-            icon: Icons.swap_horiz_rounded,
-            title: "Transfer Balance Advisory",
-            desc: "Live account balance preview and friendly over-balance notice when transferring between Daily and Savings accounts.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.search_rounded,
-            title: "Categorized Settings Search",
-            desc: "Instant grouped search results with exact match counts, deep-linked sub-settings, and smooth section dividers.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.event_repeat_rounded,
-            title: "Synced Recurring Rules",
-            desc: "Editing a recurring transaction's amount, category, or schedule automatically updates all future cycles.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.label_important_outline_rounded,
-            title: "Seamless Tag Management",
-            desc: "Renaming or deleting tags in the Tag Manager immediately synchronizes across your notes and filter bar.",
+            icon: Icons.wifi_tethering_rounded,
+            title: "Future-Proof P2P Wi-Fi Sync",
+            desc: "Enhanced local network discovery for Android 16/17 alongside multi-window desktop resizing support.",
           ),
         ],
       ),
@@ -112,23 +118,23 @@ class WhatsNewSheet extends StatelessWidget {
         items: [
           _WhatsNewItem(
             icon: Icons.fact_check_rounded,
-            title: "Accurate Checklist Counts",
-            desc: "Fixed note card checklist badges counting blank lines and prevented completion text truncation.",
+            title: "Pinned Checklist Routing",
+            desc: "Quick-added tasks now automatically append to your active pinned widget checklist before creating a fallback list.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.undo_rounded,
+            title: "Instant Action Undo Rollback",
+            desc: "Undoing a quick-saved transaction or task cleanly restores your ledger balance or removes the newly added checklist item.",
           ),
           _WhatsNewItem(
             icon: Icons.savings_rounded,
             title: "Neutral Savings Transfers",
-            desc: "Savings goal deposits from your Daily account now use neutral transfers so monthly income stays accurate.",
+            desc: "Savings goal deposits from your Daily account use neutral transfers so monthly income totals stay accurate.",
           ),
           _WhatsNewItem(
             icon: Icons.keyboard_hide_rounded,
             title: "Keyboard-Safe Modal Sheets",
-            desc: "Eliminated layout overflows across all bottom sheets and pickers when the keyboard is open.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.lock_open_rounded,
-            title: "Share Sheet Lock Protection",
-            desc: "Sharing notes, checklists, or split reminders no longer triggers an unintended app lock on return.",
+            desc: "Eliminated layout overflows across all bottom sheets and pickers when the on-screen keyboard is open.",
           ),
         ],
       ),

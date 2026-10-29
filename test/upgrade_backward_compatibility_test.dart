@@ -221,14 +221,14 @@ void main() {
       expect(settings.trashAutoPurgeDays, 30);
     });
 
-    testWidgets('WhatsNewSheet renders v2.49.0 cards and records version on dismiss', (tester) async {
+    testWidgets('WhatsNewSheet renders v3.0.0 cards and records version on dismiss', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
       SharedPreferences.setMockInitialValues({
-        'lastSeenVersion': '2.48.4',
+        'lastSeenVersion': '2.49.0',
       });
       final settings = SettingsProvider();
       await settings.loadSettings();
@@ -238,7 +238,7 @@ void main() {
           value: settings,
           child: const MaterialApp(
             home: Scaffold(
-              body: WhatsNewSheet(currentVersion: '2.49.0'),
+              body: WhatsNewSheet(currentVersion: '3.0.0'),
             ),
           ),
         ),
@@ -251,12 +251,14 @@ void main() {
       expect(find.text("Fixes"), findsOneWidget);
 
       // Check marquee items and interactive action buttons
-      expect(find.text("Checklists & Tasks View"), findsOneWidget);
+      expect(find.text("Smart Action Search Cards"), findsOneWidget);
+      expect(find.text("Hands-Free Quick Capture"), findsOneWidget);
+      expect(find.text("Hardware Keyboard Shortcuts"), findsOneWidget);
+      expect(find.text("View Shortcuts ➔"), findsOneWidget);
       expect(find.text("Interactive Settings Hub"), findsOneWidget);
       expect(find.text("Open Settings Hub ➔"), findsOneWidget);
       expect(find.text("Unified Currency Symbols"), findsOneWidget);
       expect(find.text("Customize Currency ➔"), findsOneWidget);
-      expect(find.text("Smarter Split Bills Filtering"), findsOneWidget);
 
       // Tap "Awesome, Got It!" to finish
       await tester.runAsync(() async {
@@ -265,7 +267,7 @@ void main() {
       });
       await tester.pumpAndSettle();
 
-      expect(settings.lastSeenVersion, '2.49.0');
+      expect(settings.lastSeenVersion, '3.0.0');
     });
   });
 }

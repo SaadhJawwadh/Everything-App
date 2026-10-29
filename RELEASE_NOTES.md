@@ -1,19 +1,16 @@
 
 ### 🌟 What's New
-- **Checklists & Tasks Virtual Folder**: View and manage all active checklists across every folder from a single unified view in the Folder Picker.
-- **Interactive Settings Control Center**: Jump directly to Finances, Health Tracker, Gemini AI, Security, or Sync & Backups from the top status pills.
-- **Primary Currency Onboarding Selector**: Choose your preferred authentic currency symbol (`Rs.`, `₹`, `$`, `€`, `£`, `₽`, and more) directly during onboarding setup.
+- **Smart Action Cards in Search**: Type natural phrases like `"spent 1200 on coffee"`, `"received 5000 salary"`, `"todo buy milk"`, or `"split 3000 dinner"` in Universal Search to preview and save transactions, tasks, or split bills in one tap.
+- **Hands-Free Assistant Quick Capture**: Log expenses, tasks, or notes directly from Android Assistant and system shortcuts with instant Undo feedback.
+- **Hardware Keyboard Shortcuts**: Full keyboard navigation for tablets, foldables, and laptops (`Ctrl/Cmd + K` Search, `Ctrl/Cmd + N` New Note, `Ctrl/Cmd + E` New Expense, `Ctrl/Cmd + 1–4` Switch Tabs, and `Ctrl/Cmd + /` Shortcut Cheat-Sheet).
 
 ### 🚀 Improvements
-- **Unified Currency Symbols**: Consistent currency symbols (`Rs.`, `₹`, `$`, `€`, `£`, `₽`) across balance cards, ledgers, split bills, search, and settings.
-- **Smarter Split Bills Filtering**: Filter both People and Bills views by "I am owed" and "I owe" with one tap on summary cards or filter chips.
-- **Transfer Balance Advisory**: Live account balance preview and friendly over-balance notice when transferring between Daily and Savings accounts.
-- **Categorized Settings Search**: Instant grouped search results with exact match counts and smooth section dividers.
-- **Synced Recurring Rules & Tag Management**: Editing a recurring payment updates future cycles automatically, and tag renames/deletes synchronize immediately across notes.
+- **Account Toggle & Editor Handoff in Search**: Switch between Daily and Savings accounts directly on Smart Action Cards, or tap Edit to customize splits, tags, and dates before saving.
+- **On-Device AI Natural Language Refinement**: Refine ambiguous search phrases with local Gemini Nano AI when hardware acceleration is active.
+- **Live Home Screen Widget Previews**: Automatically publishes rich, themed previews of your Todo, Finance, and Unified widgets to the Android 15+ widget picker.
+- **Future-Proof Local Wi-Fi Sync & Multi-Window**: Added Android 16/17 local network discovery support and freeform desktop window resizing.
 
 ### 🐛 Fixes
-- **Accurate Checklist Counts**: Fixed note card checklist badges counting blank lines and prevented completion text truncation on grid cards.
-- **Neutral Savings Goal Deposits**: Recording a savings goal deposit from your Daily account now uses a neutral transfer so monthly income totals aren't inflated.
-- **Keyboard-Safe Modal Sheets**: Eliminated layout overflows across all bottom sheets and pickers when the on-screen keyboard is open or display zoom is high.
-- **Share Sheet Lock Protection**: Sharing notes, checklists, or split reminders no longer triggers an unintended app lock screen upon returning.
+- **Pinned Checklist Task Routing**: Quick-added tasks now automatically append to your active pinned widget checklist before creating a fallback list.
+- **Instant Action Undo Rollback**: Undoing a quick-saved transaction or task cleanly restores your ledger balance or removes the newly added checklist line.
 
