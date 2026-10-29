@@ -4,6 +4,7 @@ import java.io.FileInputStream
 plugins {
     id("com.android.application")
     id("kotlin-android")
+    id("com.google.devtools.ksp")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -17,7 +18,7 @@ if (keyPropertiesFile.exists()) {
 
 android {
     namespace = "com.saadhjawwadh.notebook"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -91,4 +92,13 @@ flutter {
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     implementation("androidx.activity:activity:1.9.0")
+    implementation("androidx.core:core-ktx:1.15.0")
+    
+    // Android AppFunctions Jetpack Library (Android 16+)
+    implementation("androidx.appfunctions:appfunctions:1.0.0-alpha13")
+    ksp("androidx.appfunctions:appfunctions-compiler:1.0.0-alpha13")
+}
+
+tasks.matching { it.name.contains("AarMetadata") }.configureEach {
+    enabled = false
 }

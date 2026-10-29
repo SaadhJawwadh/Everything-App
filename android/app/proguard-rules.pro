@@ -95,6 +95,11 @@
 -dontwarn java.lang.invoke.**
 -dontwarn j$.**
 
+# Android AppFunctions Jetpack Library (Android 16+)
+-keep class androidx.appfunctions.** { *; }
+-dontwarn androidx.appfunctions.**
+-keep class com.saadhjawwadh.notebook.appfunctions.** { *; }
+
 # Preserve Enum Values for JSON/Reflection Deserialization
 -keepclassmembers enum * {
     public static **[] values();

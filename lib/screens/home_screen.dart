@@ -13,6 +13,7 @@ import '../core/theme/app_theme.dart';
 import '../core/theme/app_layout.dart';
 import '../core/services/app_haptics.dart';
 import '../core/services/app_intent_dispatcher.dart';
+import '../core/services/app_function_inbox_service.dart';
 import '../core/ui/app_morphing_fab.dart';
 import '../core/ui/app_bottom_sheet.dart';
 import '../core/ui/app_dialog.dart';
@@ -111,6 +112,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (mounted) {
         unawaited(WidgetHelper.updateWidgetData());
         unawaited(WidgetHelper.updateTodoWidgetData());
+        unawaited(AppFunctionInboxService.drainPendingQueue(context));
         final settings = Provider.of<SettingsProvider>(context, listen: false);
         final isLocked = settings.appLockEnabled && !AppLockScreen.sessionAuthenticated.value;
         if (!isLocked) {
@@ -159,6 +161,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
+      unawaited(AppFunctionInboxService.drainPendingQueue(context));
       unawaited(() async {
         await WidgetHelper.syncPendingTodoToggles();
         if (mounted) {

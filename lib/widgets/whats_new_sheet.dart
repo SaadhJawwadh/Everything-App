@@ -40,6 +40,11 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.hub_rounded,
+            title: "Android 16+ AppFunctions & Gemini",
+            desc: "On-device tool provider for Google Gemini & Android AI. Log expenses, add tasks, or create notes hands-free with ambient Undo.",
+          ),
+          _WhatsNewItem(
             icon: Icons.bolt_rounded,
             title: "Smart Action Search Cards",
             desc: "Type natural phrases like 'spent 1200 on coffee', 'todo buy milk', or 'split 3000 dinner' in Search to log in one tap.",

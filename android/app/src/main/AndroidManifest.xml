@@ -190,6 +190,30 @@
                 android:resource="@xml/filepaths" />
         </provider>
 
+        <!-- Android 16+ AppFunctions Global Metadata -->
+        <property
+            android:name="android.app.appfunctions.app_metadata"
+            android:resource="@xml/app_metadata" />
+
+        <!-- Android 16+ AppFunctions Bound Service -->
+        <service
+            android:name=".appfunctions.GeneratedEverythingAppFunctionService"
+            android:permission="android.permission.BIND_APP_FUNCTION_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.app.appfunctions.AppFunctionService" />
+            </intent-filter>
+        </service>
+
+        <!-- AppFunctions Undo Receiver for 1-Tap Ambient Notification Undo -->
+        <receiver
+            android:name=".appfunctions.AppFunctionUndoReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.saadhjawwadh.notebook.ACTION_UNDO_APPFUNCTION" />
+            </intent-filter>
+        </receiver>
+
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
