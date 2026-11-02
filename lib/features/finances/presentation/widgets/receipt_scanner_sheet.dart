@@ -164,7 +164,7 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
                     const ExpressiveShapeMorphIndicator(size: 48),
                     const SizedBox(height: AppLayout.spaceM),
                     AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 250),
+                      duration: AppLayout.animModal,
                       child: Row(
                         key: ValueKey<int>(_scanPhase),
                         mainAxisSize: MainAxisSize.min,

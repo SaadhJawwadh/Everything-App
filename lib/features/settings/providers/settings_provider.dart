@@ -122,7 +122,8 @@ class SettingsProvider extends ChangeNotifier {
   bool _useBiometrics = false;
   bool get useBiometrics => _useBiometrics;
 
-  int _appLockTimeout = 0;
+  // 30s grace so quick app switches (OTP, copy a number) don't re-lock.
+  int _appLockTimeout = 30;
   int get appLockTimeout => _appLockTimeout;
 
   String _discreetNotificationText = 'Check the app';
@@ -253,7 +254,7 @@ class SettingsProvider extends ChangeNotifier {
     _isDiscreetHealthMode = prefs.getBool('isDiscreetHealthMode') ?? false;
     _appLockEnabled = prefs.getBool('appLockEnabled') ?? false;
     _useBiometrics = prefs.getBool('useBiometrics') ?? false;
-    _appLockTimeout = prefs.getInt('appLockTimeout') ?? 0;
+    _appLockTimeout = prefs.getInt('appLockTimeout') ?? 30;
     _discreetNotificationText =
         prefs.getString('discreetNotificationText') ?? 'Check the app';
 

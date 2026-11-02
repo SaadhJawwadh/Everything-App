@@ -209,5 +209,20 @@
   "intensityHeavy": "Сильная",
   "startDateAfterEndDate": "Дата начала не может быть позже даты окончания",
   "overlapDetectedTitle": "Обнаружено пересечение",
-  "overlapDetectedMessage": "Выбранные даты пересекаются с уже записанным периодом. Пожалуйста, скорректируйте даты."
+  "overlapDetectedMessage": "Выбранные даты пересекаются с уже записанным периодом. Пожалуйста, скорректируйте даты.",
+  "notesMovedToTrash": "{count, plural, =1{Заметка перемещена в корзину} few{{count} заметки перемещены в корзину} many{{count} заметок перемещено в корзину} other{{count} заметки перемещены в корзину}}",
+  "lockedNoteDescription": "Эта заметка защищена паролем или биометрией.",
+  "unlockNote": "Разблокировать заметку",
+  "timeJustNow": "Только что",
+  "timeMinutesAgo": "{minutes} мин назад",
+  "timeHoursAgo": "{hours} ч назад",
+  "appLockSubtitle": "Для доступа к содержимому требуется аутентификация",
+  "appLockAuthReason": "Пройдите аутентификацию для доступа к приложению",
+  "appLockNoCredentials": "На этом устройстве не настроена блокировка экрана или биометрия.",
+  "appLockAuthFailed": "Не удалось пройти аутентификацию. Повторите попытку.",
+  "disableAppLock": "Отключить блокировку приложения",
+  "autoLockTimeoutTitle": "Время автоблокировки",
+  "timeoutImmediately": "Сразу",
+  "timeoutSeconds": "{seconds} сек.",
+  "timeoutMinutes": "{minutes, plural, =1{1 минута} few{{minutes} минуты} many{{minutes} минут} other{{minutes} минуты}}"
 }

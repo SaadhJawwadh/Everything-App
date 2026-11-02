@@ -183,8 +183,8 @@ class _AccountTransferSheetState extends State<AccountTransferSheet> {
                             ),
                             child: AnimatedRotation(
                               turns: _swapTurns,
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeOutBack,
+                              duration: AppLayout.animModal,
+                              curve: AppLayout.curveExpressiveBouncy,
                               child: Icon(
                                 Icons.swap_vert_rounded,
                                 size: 20,

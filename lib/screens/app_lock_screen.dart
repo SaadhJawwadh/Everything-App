@@ -8,6 +8,8 @@ import 'package:provider/provider.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
 import '../core/ui/app_card.dart';
+import '../core/theme/app_layout.dart';
+import '../l10n/app_localizations.dart';
 
 class AppLockScreen extends StatefulWidget {
   final Widget child;
@@ -66,11 +68,18 @@ class AppLockScreenState extends State<AppLockScreen>
   final LocalAuthentication auth = LocalAuthentication();
   
   bool _isInBackground = false;
+  // True only once the app is truly backgrounded (paused/hidden). Drives a blank
+  // cover so content doesn't leak into the Recents thumbnail on Android < 13.
+  // Deliberately NOT set on `inactive` so the notification shade never flashes it.
+  bool _showPrivacyCover = false;
+  bool? _lastRecentsHide;
   bool _isAuthenticating = false;
-  DateTime? _backgroundTime;
+  // Monotonic timer for the auto-lock grace period — immune to wall-clock skew / tampering.
+  Stopwatch? _backgroundStopwatch;
   StreamSubscription? _intentDataStreamSubscription;
   String? _authErrorMessage;
   bool _canDisableLockFallback = false;
+  bool _wasAuthenticatedBeforePause = false;
 
   bool get _isSessionAuthenticated => AppLockScreen.sessionAuthenticated.value;
   set _isSessionAuthenticated(bool val) => AppLockScreen.sessionAuthenticated.value = val;
@@ -131,9 +140,10 @@ class AppLockScreenState extends State<AppLockScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (_isAuthenticating) {
+    if (_isAuthenticating && state != AppLifecycleState.resumed) {
       // Ignore lifecycle changes caused by the biometric authentication dialog itself
-      // (its system UI briefly backgrounds the app on some platforms/OEM skins).
+      // (its system UI briefly backgrounds the app on some platforms/OEM skins),
+      // BUT permit processing on resumed so state recovers when biometric dialog is dismissed/cancelled.
       return;
     }
 
@@ -141,6 +151,8 @@ class AppLockScreenState extends State<AppLockScreen>
     if (mounted) {
       setState(() {
         _isInBackground = isBackground;
+        _showPrivacyCover = state == AppLifecycleState.paused ||
+            state == AppLifecycleState.hidden;
       });
     }
 
@@ -148,9 +160,10 @@ class AppLockScreenState extends State<AppLockScreen>
     final shouldIgnoreLock = AppLockScreen._ignoreNextResumeLock || AppLockScreen._ignoreLockCount > 0;
 
     if (isBackground) {
+      _wasAuthenticatedBeforePause = _isSessionAuthenticated;
       if (!shouldIgnoreLock) {
-        // Record when the app went to the background
-        _backgroundTime ??= DateTime.now();
+        // Record elapsed background time with a monotonic stopwatch
+        _backgroundStopwatch ??= (Stopwatch()..start());
         // Only lock immediately on true background (paused), NOT on inactive
         // (notification shade, permission dialogs, split-screen transitions).
         if (settings.appLockTimeout == 0 && state == AppLifecycleState.paused) {
@@ -160,29 +173,73 @@ class AppLockScreenState extends State<AppLockScreen>
     } else {
       // App is resuming
       if (shouldIgnoreLock) {
-        _isSessionAuthenticated = true;
+        // Only restore authenticated state if the app was actually authenticated before pausing!
+        if (_wasAuthenticatedBeforePause) {
+          _isSessionAuthenticated = true;
+        }
         if (AppLockScreen._ignoreLockCount == 0) {
           AppLockScreen._ignoreNextResumeLock = false;
         }
-      } else if (_backgroundTime != null) {
-        final elapsed = DateTime.now().difference(_backgroundTime!).inSeconds;
+      } else if (_backgroundStopwatch != null) {
+        final elapsed = _backgroundStopwatch!.elapsed.inSeconds;
         if (elapsed >= settings.appLockTimeout) {
           _isSessionAuthenticated = false;
         }
       }
-      _backgroundTime = null;
+      _backgroundStopwatch?.stop();
+      _backgroundStopwatch = null;
     }
 
-    if (state == AppLifecycleState.resumed && !shouldIgnoreLock) {
+    if (state == AppLifecycleState.resumed) {
       unawaited(_checkAuthOnResume());
     }
   }
 
+  /// Android only: asks the native side whether the screen turned off since the
+  /// last resume or the keyguard is locked. If so, locks immediately regardless of timeout.
+  Future<void> _lockIfScreenWasOff() async {
+    if (kIsWeb || !Platform.isAndroid) return;
+    try {
+      final wasOff = await _channel.invokeMethod<bool>('consumeScreenOff') ?? false;
+      final isDeviceLocked = await _channel.invokeMethod<bool>('isDeviceLocked') ?? false;
+      if (!wasOff && !isDeviceLocked) return;
+      if (!mounted) return;
+      final settings = Provider.of<SettingsProvider>(context, listen: false);
+      if (!settings.appLockEnabled) return;
+      _backgroundStopwatch?.stop();
+      _backgroundStopwatch = null;
+      // Screen-off or keyguard lock invalidates any bypass/grace period
+      AppLockScreen._ignoreLockCount = 0;
+      AppLockScreen._ignoreNextResumeLock = false;
+      _isSessionAuthenticated = false;
+    } catch (e) {
+      debugPrint('Error checking screen-off state: $e');
+    }
+  }
+
+  /// Android 13+: hides app content from the Recents thumbnail while app lock is on.
+  void _syncRecentsPrivacy(bool hide) {
+    if (_lastRecentsHide == hide) return;
+    _lastRecentsHide = hide;
+    if (kIsWeb || !Platform.isAndroid) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        await _channel.invokeMethod('setSecureRecents', {'hide': hide});
+      } catch (e) {
+        debugPrint('Error updating Recents privacy: $e');
+      }
+    });
+  }
+
   Future<void> _checkAuthOnResume() async {
-    // Wait 150ms to allow incoming sharing intents to fire and call unlockSession()
+    // 1. A screen-off or device lock always ends the session immediately.
+    await _lockIfScreenWasOff();
+
+    // 2. Wait 150ms to allow incoming sharing intents to fire and call unlockSession()
     await Future.delayed(const Duration(milliseconds: 150));
 
-    if (!_isSessionAuthenticated) {
+    final shouldIgnoreLock = AppLockScreen._ignoreNextResumeLock || AppLockScreen._ignoreLockCount > 0;
+    if (!_isSessionAuthenticated && !shouldIgnoreLock) {
       if (mounted) {
         await _checkAuth(context);
       }
@@ -210,10 +267,11 @@ class AppLockScreenState extends State<AppLockScreen>
 
     try {
       final bool didAuthenticate = await auth.authenticate(
-        localizedReason: 'Please authenticate to access the app',
-        options: AuthenticationOptions(
+        localizedReason: AppLocalizations.of(context)?.appLockAuthReason ??
+            'Please authenticate to access the app',
+        options: const AuthenticationOptions(
           stickyAuth: true,
-          biometricOnly: settings.useBiometrics,
+          biometricOnly: false,
         ),
       );
 
@@ -244,11 +302,12 @@ class AppLockScreenState extends State<AppLockScreen>
               (e.code == 'NotAvailable' ||
                   e.code == 'PasscodeNotSet' ||
                   e.code == 'NotEnrolled')) {
-            _authErrorMessage =
+            _authErrorMessage = AppLocalizations.of(context)?.appLockNoCredentials ??
                 'No screen lock or biometric credentials enrolled on this device.';
             _canDisableLockFallback = true;
           } else {
-            _authErrorMessage = 'Authentication failed. Please try again.';
+            _authErrorMessage = AppLocalizations.of(context)?.appLockAuthFailed ??
+                'Authentication failed. Please try again.';
           }
         });
       }
@@ -264,6 +323,8 @@ class AppLockScreenState extends State<AppLockScreen>
   @override
   Widget build(BuildContext context) {
     final settings = Provider.of<SettingsProvider>(context);
+
+    _syncRecentsPrivacy(settings.appLockEnabled);
 
     if (!settings.appLockEnabled) {
       return widget.child;
@@ -286,11 +347,16 @@ class AppLockScreenState extends State<AppLockScreen>
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         TweenAnimationBuilder<double>(
-                          duration: const Duration(milliseconds: 600),
+                          // Shown on every resume (high frequency): fast ease-out
+                          // entrance from 0.92 scale — never from scale(0).
+                          duration: AppLayout.shouldReduceMotion(context)
+                              ? Duration.zero
+                              : AppLayout.animShort,
+                          curve: AppLayout.curveStrongEaseOut,
                           tween: Tween(begin: 0.0, end: 1.0),
                           builder: (context, value, child) {
                             return Transform.scale(
-                              scale: value,
+                              scale: 0.92 + (0.08 * value),
                               child: Opacity(
                                 opacity: value,
                                 child: child,
@@ -319,14 +385,15 @@ class AppLockScreenState extends State<AppLockScreen>
                         ),
                         const SizedBox(height: 24),
                         Text(
-                          'App Locked',
+                          AppLocalizations.of(context)?.appLocked ?? 'App Locked',
                           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Authentication required to access content',
+                          AppLocalizations.of(context)?.appLockSubtitle ??
+                              'Authentication required to access content',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
@@ -368,7 +435,7 @@ class AppLockScreenState extends State<AppLockScreen>
                           FilledButton.icon(
                             onPressed: () => _checkAuth(context),
                             icon: const Icon(Icons.fingerprint),
-                            label: const Text('Unlock'),
+                            label: Text(AppLocalizations.of(context)?.unlock ?? 'Unlock'),
                             style: FilledButton.styleFrom(
                               minimumSize: const Size(160, 48),
                               shape: const StadiumBorder(),
@@ -379,11 +446,26 @@ class AppLockScreenState extends State<AppLockScreen>
                             TextButton.icon(
                               onPressed: () async {
                                 final s = Provider.of<SettingsProvider>(context, listen: false);
+                                final authReason = AppLocalizations.of(context)?.appLockAuthReason ??
+                                    'Authenticate to disable App Lock';
+                                try {
+                                  final canCheck = await auth.canCheckBiometrics || await auth.isDeviceSupported();
+                                  if (canCheck) {
+                                    final didAuth = await auth.authenticate(
+                                      localizedReason: authReason,
+                                      options: const AuthenticationOptions(
+                                        stickyAuth: true,
+                                        biometricOnly: false,
+                                      ),
+                                    );
+                                    if (!didAuth) return;
+                                  }
+                                } catch (_) {}
                                 await s.setAppLockEnabled(false);
                                 AppLockScreen.unlockSession();
                               },
                               icon: const Icon(Icons.lock_open_rounded, size: 18),
-                              label: const Text('Disable App Lock'),
+                              label: Text(AppLocalizations.of(context)?.disableAppLock ?? 'Disable App Lock'),
                               style: TextButton.styleFrom(
                                 foregroundColor: Theme.of(context).colorScheme.error,
                               ),
@@ -398,16 +480,42 @@ class AppLockScreenState extends State<AppLockScreen>
             ),
           );
 
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) {
+            SystemNavigator.pop();
+          }
+        },
+        child: Stack(
+          children: [
+            ExcludeSemantics(
+              excluding: true,
+              child: IgnorePointer(
+                ignoring: true,
+                child: widget.child,
+              ),
+            ),
+            lockOverlay,
+          ],
+        ),
+      );
+    }
+
+    if (_showPrivacyCover) {
+      final scheme = Theme.of(context).colorScheme;
       return Stack(
+        fit: StackFit.expand,
         children: [
-          ExcludeSemantics(
-            excluding: true,
-            child: IgnorePointer(
-              ignoring: true,
-              child: widget.child,
+          widget.child,
+          Positioned.fill(
+            child: ColoredBox(
+              color: scheme.surface,
+              child: Center(
+                child: Icon(Icons.lock_outline, size: 56, color: scheme.onSurfaceVariant),
+              ),
             ),
           ),
-          lockOverlay,
         ],
       );
     }

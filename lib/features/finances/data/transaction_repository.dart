@@ -26,6 +26,21 @@ class TransactionRepository {
     return result;
   }
 
+  /// Inserts two matching transfer records (withdrawal and deposit) atomically in a single transaction.
+  Future<List<TransactionModel>> createTransferTransactions({
+    required TransactionModel withdrawal,
+    required TransactionModel deposit,
+  }) async {
+    final db = await _db;
+    final results = await db.transaction((txn) async {
+      final wId = await txn.insert(TableNames.transactions, withdrawal.toJson());
+      final dId = await txn.insert(TableNames.transactions, deposit.toJson());
+      return [withdrawal.copy(id: wId), deposit.copy(id: dId)];
+    });
+    await WidgetHelper.updateWidgetData();
+    return results;
+  }
+
   Future<TransactionModel?> createSmsTransaction(
     TransactionModel transaction, {
     bool bypassTombstones = false,
@@ -426,11 +441,12 @@ class TransactionRepository {
           'SELECT SUM(CASE WHEN isExpense = 0 THEN amount ELSE 0.0 END) AS totalIncome, '
           'SUM(CASE WHEN isExpense = 1 THEN amount ELSE 0.0 END) AS totalExpense '
           'FROM ${TableNames.transactions} '
-          'WHERE date >= ? AND date < ? AND category != ? AND ${TransactionFields.deletedAt} IS NULL',
+          'WHERE date >= ? AND date < ? AND category != ? AND LOWER(category) != ? AND ${TransactionFields.deletedAt} IS NULL',
           [
             periodStart.toIso8601String(),
             periodEnd.toIso8601String(),
-            '__reversal__'
+            '__reversal__',
+            'transfer',
           ]);
       result.add({
         'month': periodStart,
@@ -447,8 +463,8 @@ class TransactionRepository {
         'SELECT SUM(CASE WHEN isExpense = 0 THEN amount ELSE 0.0 END) AS totalIncome, '
         'SUM(CASE WHEN isExpense = 1 THEN amount ELSE 0.0 END) AS totalExpense '
         'FROM ${TableNames.transactions} '
-        'WHERE category != ? AND ${TransactionFields.deletedAt} IS NULL',
-        ['__reversal__']);
+        'WHERE category != ? AND LOWER(category) != ? AND ${TransactionFields.deletedAt} IS NULL',
+        ['__reversal__', 'transfer']);
     return {
       'totalIncome': (rows.first['totalIncome'] as num?)?.toDouble() ?? 0.0,
       'totalExpense': (rows.first['totalExpense'] as num?)?.toDouble() ?? 0.0

@@ -1303,6 +1303,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The selected dates overlap with an existing logged period. Please adjust the dates.'**
   String get overlapDetectedMessage;
+
+  /// No description provided for @notesMovedToTrash.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Note moved to Trash} other{{count} notes moved to Trash}}'**
+  String notesMovedToTrash(int count);
+
+  /// No description provided for @lockedNoteDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'This note is protected with a password or biometrics.'**
+  String get lockedNoteDescription;
+
+  /// No description provided for @unlockNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock Note'**
+  String get unlockNote;
+
+  /// No description provided for @timeJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get timeJustNow;
+
+  /// No description provided for @timeMinutesAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes}m ago'**
+  String timeMinutesAgo(int minutes);
+
+  /// No description provided for @timeHoursAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h ago'**
+  String timeHoursAgo(int hours);
+
+  /// No description provided for @appLockSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication required to access content'**
+  String get appLockSubtitle;
+
+  /// No description provided for @appLockAuthReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Please authenticate to access the app'**
+  String get appLockAuthReason;
+
+  /// No description provided for @appLockNoCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'No screen lock or biometric credentials enrolled on this device.'**
+  String get appLockNoCredentials;
+
+  /// No description provided for @appLockAuthFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication failed. Please try again.'**
+  String get appLockAuthFailed;
+
+  /// No description provided for @disableAppLock.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable App Lock'**
+  String get disableAppLock;
+
+  /// No description provided for @autoLockTimeoutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-Lock Timeout'**
+  String get autoLockTimeoutTitle;
+
+  /// No description provided for @timeoutImmediately.
+  ///
+  /// In en, this message translates to:
+  /// **'Immediately'**
+  String get timeoutImmediately;
+
+  /// No description provided for @timeoutSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} Seconds'**
+  String timeoutSeconds(int seconds);
+
+  /// No description provided for @timeoutMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes, plural, =1{1 Minute} other{{minutes} Minutes}}'**
+  String timeoutMinutes(int minutes);
 }
 
 class _AppLocalizationsDelegate

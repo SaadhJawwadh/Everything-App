@@ -221,14 +221,14 @@ void main() {
       expect(settings.trashAutoPurgeDays, 30);
     });
 
-    testWidgets('WhatsNewSheet renders v3.1.1 cards and records version on dismiss', (tester) async {
+    testWidgets('WhatsNewSheet renders v3.2.0 cards and records version on dismiss', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
       SharedPreferences.setMockInitialValues({
-        'lastSeenVersion': '3.0.0',
+        'lastSeenVersion': '3.1.1',
       });
       final settings = SettingsProvider();
       await settings.loadSettings();
@@ -238,7 +238,7 @@ void main() {
           value: settings,
           child: const MaterialApp(
             home: Scaffold(
-              body: WhatsNewSheet(currentVersion: '3.1.1'),
+              body: WhatsNewSheet(currentVersion: '3.2.0'),
             ),
           ),
         ),
@@ -268,7 +268,7 @@ void main() {
       });
       await tester.pumpAndSettle();
 
-      expect(settings.lastSeenVersion, '3.1.1');
+      expect(settings.lastSeenVersion, '3.2.0');
     });
   });
 }

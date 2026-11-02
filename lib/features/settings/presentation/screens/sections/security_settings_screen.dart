@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:local_auth/local_auth.dart';
 import '../../../../../core/theme/app_layout.dart';
 import '../../../../../core/ui/expressive_sliver_app_bar.dart';
 import '../../../../../widgets/settings_widgets.dart';
@@ -45,7 +46,27 @@ class SecuritySettingsScreen extends StatelessWidget {
                           title: 'App Lock',
                           subtitle: 'Require authentication to open app',
                           value: settings.appLockEnabled,
-                          onChanged: settings.setAppLockEnabled,
+                          onChanged: (enabled) async {
+                            if (!enabled) {
+                              final auth = LocalAuthentication();
+                              try {
+                                final canCheck = await auth.canCheckBiometrics || await auth.isDeviceSupported();
+                                if (canCheck) {
+                                  final didAuth = await auth.authenticate(
+                                    localizedReason: l10n?.appLockAuthReason ?? 'Authenticate to disable App Lock',
+                                    options: const AuthenticationOptions(
+                                      stickyAuth: true,
+                                      biometricOnly: false,
+                                    ),
+                                  );
+                                  if (!didAuth) return;
+                                }
+                              } catch (e) {
+                                debugPrint('Auth error disabling app lock: $e');
+                              }
+                            }
+                            await settings.setAppLockEnabled(enabled);
+                          },
                         ),
                         AnimatedSize(
                           duration: AppLayout.animModal,
@@ -67,7 +88,7 @@ class SecuritySettingsScreen extends StatelessWidget {
                                       iconColor: colorScheme.tertiary,
                                       title: 'Auto-Lock Timeout',
                                       subtitle: 'Inactivity delay before locking',
-                                      valueBadge: SettingsDialogs.getTimeoutLabel(settings.appLockTimeout),
+                                      valueBadge: SettingsDialogs.getTimeoutLabel(context, settings.appLockTimeout),
                                       showArrow: true,
                                       onTap: () => SettingsDialogs.showTimeoutPicker(context, settings),
                                     ),

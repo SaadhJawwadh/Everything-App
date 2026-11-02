@@ -656,4 +656,74 @@ class AppLocalizationsTa extends AppLocalizations {
   @override
   String get overlapDetectedMessage =>
       'தேர்ந்தெடுக்கப்பட்ட தேதிகள் ஏற்கனவே பதிவுசெய்யப்பட்ட மாதவிடாய் காலத்துடன் முரண்படுகின்றன. தேதிகளை சரிசெய்யவும்.';
+
+  @override
+  String notesMovedToTrash(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count குறிப்புகள் குப்பைக்கு நகர்த்தப்பட்டன',
+      one: 'குறிப்பு குப்பைக்கு நகர்த்தப்பட்டது',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get lockedNoteDescription =>
+      'இந்தக் குறிப்பு கடவுச்சொல் அல்லது பயோமெட்ரிக்ஸால் பாதுகாக்கப்பட்டுள்ளது.';
+
+  @override
+  String get unlockNote => 'குறிப்பைத் திற';
+
+  @override
+  String get timeJustNow => 'இப்போது';
+
+  @override
+  String timeMinutesAgo(int minutes) {
+    return '$minutes நிமி. முன்';
+  }
+
+  @override
+  String timeHoursAgo(int hours) {
+    return '$hours மணி. முன்';
+  }
+
+  @override
+  String get appLockSubtitle => 'உள்ளடக்கத்தை அணுக அங்கீகாரம் தேவை';
+
+  @override
+  String get appLockAuthReason => 'பயன்பாட்டை அணுக அங்கீகரிக்கவும்';
+
+  @override
+  String get appLockNoCredentials =>
+      'இந்தச் சாதனத்தில் திரைப் பூட்டு அல்லது பயோமெட்ரிக் அமைக்கப்படவில்லை.';
+
+  @override
+  String get appLockAuthFailed =>
+      'அங்கீகாரம் தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும்.';
+
+  @override
+  String get disableAppLock => 'ஆப் பூட்டை முடக்கு';
+
+  @override
+  String get autoLockTimeoutTitle => 'தானியங்கு பூட்டு நேரம்';
+
+  @override
+  String get timeoutImmediately => 'உடனடியாக';
+
+  @override
+  String timeoutSeconds(int seconds) {
+    return '$seconds விநாடிகள்';
+  }
+
+  @override
+  String timeoutMinutes(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes நிமிடங்கள்',
+      one: '1 நிமிடம்',
+    );
+    return '$_temp0';
+  }
 }

@@ -119,7 +119,7 @@ Future<String> generateBackupJson({Map<String, dynamic>? settingsOverride}) asyn
       'isPeriodTrackerEnabled': prefs.getBool('isPeriodTrackerEnabled') ?? false,
       'appLockEnabled': prefs.getBool('appLockEnabled') ?? false,
       'useBiometrics': prefs.getBool('useBiometrics') ?? false,
-      'appLockTimeout': prefs.getInt('appLockTimeout') ?? 0,
+      'appLockTimeout': prefs.getInt('appLockTimeout') ?? 30,
       'discreetNotificationText': prefs.getString('discreetNotificationText') ?? 'Check the app',
       'customExpenseRules': prefs.getStringList('customExpenseRules') ?? [],
       'customIncomeRules': prefs.getStringList('customIncomeRules') ?? [],
@@ -388,21 +388,23 @@ class BackupService {
     final db = await DatabaseHelper.instance.database;
     
     await db.transaction((txn) async {
-      // Clear existing dynamic data to ensure integrity
+      // Clear existing dynamic data to ensure integrity (children before parents for FK safety)
+      await txn.delete('note_tags');
       await txn.delete('notes');
       await txn.delete('tags');
-      await txn.delete('note_tags');
       await txn.delete('transactions');
       await txn.delete('period_logs');
       await txn.delete('recurring_rules');
       try {
-        await txn.delete('split_bills');
         await txn.delete('split_participants');
+        await txn.delete('split_bills');
         await txn.delete('split_contacts');
+        await txn.delete('savings_goals');
       } catch (_) {}
       try {
         await txn.delete('deleted_notes');
         await txn.delete('deleted_transaction_sms_ids');
+        await txn.delete('deleted_period_logs');
       } catch (_) {}
       // Built-in categories and contacts are kept, but we replace custom ones
       await txn.delete('category_definitions', where: 'isBuiltIn = 0');
@@ -434,6 +436,9 @@ class BackupService {
           }
           if (map['isPinned'] is bool) {
             map['isPinned'] = (map['isPinned'] as bool) ? 1 : 0;
+          }
+          if (map['isLocked'] is bool) {
+            map['isLocked'] = (map['isLocked'] as bool) ? 1 : 0;
           }
           if (!map.containsKey('previewText') || map['previewText'] == null) {
             final content = map['content'] as String? ?? '';
@@ -486,6 +491,9 @@ class BackupService {
           if (map['isExpense'] is bool) {
             map['isExpense'] = (map['isExpense'] as bool) ? 1 : 0;
           }
+          if (map['isAiRefined'] is bool) {
+            map['isAiRefined'] = (map['isAiRefined'] as bool) ? 1 : 0;
+          }
           if (!map.containsKey('category') || map['category'] == null) {
             map['category'] = 'Other';
           }
@@ -527,14 +535,22 @@ class BackupService {
       if (data.containsKey('splitBills') && data['splitBills'] is List) {
         for (final row in data['splitBills']) {
           if (row is Map) {
-            batch.insert('split_bills', Map<String, Object?>.from(row), conflictAlgorithm: ConflictAlgorithm.replace);
+            final map = Map<String, Object?>.from(row);
+            if (map['isPayerUser'] is bool) {
+              map['isPayerUser'] = (map['isPayerUser'] as bool) ? 1 : 0;
+            }
+            batch.insert('split_bills', map, conflictAlgorithm: ConflictAlgorithm.replace);
           }
         }
       }
       if (data.containsKey('splitParticipants') && data['splitParticipants'] is List) {
         for (final row in data['splitParticipants']) {
           if (row is Map) {
-            batch.insert('split_participants', Map<String, Object?>.from(row), conflictAlgorithm: ConflictAlgorithm.replace);
+            final map = Map<String, Object?>.from(row);
+            if (map['hasPaid'] is bool) {
+              map['hasPaid'] = (map['hasPaid'] as bool) ? 1 : 0;
+            }
+            batch.insert('split_participants', map, conflictAlgorithm: ConflictAlgorithm.replace);
           }
         }
       }
@@ -545,10 +561,16 @@ class BackupService {
           }
         }
       }
-      if (data.containsKey('savingsGoals') && data['savingsGoals'] is List) {
-        for (final row in data['savingsGoals']) {
+      final savingsGoalsList = data['savingsGoals'] ?? data['savings_goals'];
+      if (savingsGoalsList is List) {
+        for (final row in savingsGoalsList) {
           if (row is Map) {
-            batch.insert('savings_goals', Map<String, Object?>.from(row), conflictAlgorithm: ConflictAlgorithm.replace);
+            final map = Map<String, Object?>.from(row);
+            if (map['isCompleted'] is bool) {
+              map['isCompleted'] = (map['isCompleted'] as bool) ? 1 : 0;
+            }
+            map['createdAt'] ??= DateTime.now().toIso8601String();
+            batch.insert('savings_goals', map, conflictAlgorithm: ConflictAlgorithm.replace);
           }
         }
       }

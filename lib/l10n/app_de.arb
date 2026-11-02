@@ -199,5 +199,20 @@
   "intensityHeavy": "Stark",
   "startDateAfterEndDate": "Das Startdatum darf nicht nach dem Enddatum liegen",
   "overlapDetectedTitle": "Überschneidung erkannt",
-  "overlapDetectedMessage": "Die ausgewählten Daten überschneiden sich mit einer bereits eingetragenen Periode. Bitte Daten anpassen."
+  "overlapDetectedMessage": "Die ausgewählten Daten überschneiden sich mit einer bereits eingetragenen Periode. Bitte Daten anpassen.",
+  "notesMovedToTrash": "{count, plural, =1{Notiz in den Papierkorb verschoben} other{{count} Notizen in den Papierkorb verschoben}}",
+  "lockedNoteDescription": "Diese Notiz ist durch ein Passwort oder Biometrie geschützt.",
+  "unlockNote": "Notiz entsperren",
+  "timeJustNow": "Gerade eben",
+  "timeMinutesAgo": "vor {minutes} Min.",
+  "timeHoursAgo": "vor {hours} Std.",
+  "appLockSubtitle": "Authentifizierung erforderlich, um auf Inhalte zuzugreifen",
+  "appLockAuthReason": "Bitte authentifiziere dich, um auf die App zuzugreifen",
+  "appLockNoCredentials": "Auf diesem Gerät ist keine Bildschirmsperre oder Biometrie eingerichtet.",
+  "appLockAuthFailed": "Authentifizierung fehlgeschlagen. Bitte versuche es erneut.",
+  "disableAppLock": "App-Sperre deaktivieren",
+  "autoLockTimeoutTitle": "Zeitlimit für Auto-Sperre",
+  "timeoutImmediately": "Sofort",
+  "timeoutSeconds": "{seconds} Sekunden",
+  "timeoutMinutes": "{minutes, plural, =1{1 Minute} other{{minutes} Minuten}}"
 }

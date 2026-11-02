@@ -105,7 +105,7 @@ class ClarityMosaicStrip extends StatelessWidget {
                   child: Tooltip(
                     message: '${_formatDayLabel(day)}: $activityCount action${activityCount == 1 ? '' : 's'}',
                     child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
+                      duration: AppLayout.animModal,
                       width: isToday ? 12 : 9,
                       height: isToday ? 12 : 9,
                       decoration: BoxDecoration(

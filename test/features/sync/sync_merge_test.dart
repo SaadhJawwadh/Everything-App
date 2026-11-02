@@ -239,5 +239,86 @@ void main() {
       final note = (await db.query('notes', where: 'id = ?', whereArgs: ['note_skew_arch'])).first;
       expect(note['isArchived'], equals(1));
     });
+
+    test('normalizes boolean attributes (isLocked, isAiRefined, isPayerUser, hasPaid) to integers', () async {
+      final now = DateTime.now().toIso8601String();
+      final remotePayload = {
+        'notes': [
+          {
+            'id': 'note_bool_test',
+            'title': 'Locked Note',
+            'content': 'Locked Content',
+            'dateCreated': now,
+            'dateModified': now,
+            'color': 0,
+            'isPinned': false,
+            'isArchived': false,
+            'isLocked': true, // boolean attribute
+            'category': 'Notes',
+          },
+        ],
+        'transactions': [
+          {
+            'date': now,
+            'amount': 25.50,
+            'description': 'AI Refined Coffee',
+            'category': 'Dining',
+            'isExpense': true, // boolean attribute
+            'isAiRefined': true, // boolean attribute
+            'smsId': 'sms_bool_1',
+          },
+        ],
+        'splitBills': [
+          {
+            'id': 'split_bool_1',
+            'title': 'Dinner Split',
+            'totalAmount': 50.0,
+            'payerName': 'Me',
+            'isPayerUser': true, // boolean attribute
+            'date': now,
+          },
+        ],
+        'splitParticipants': [
+          {
+            'id': 'part_bool_1',
+            'billId': 'split_bool_1',
+            'contactName': 'Alex',
+            'shareAmount': 25.0,
+            'hasPaid': true, // boolean attribute
+          },
+        ],
+        'savingsGoals': [
+          {
+            'id': 'goal_bool_1',
+            'title': 'Vacation Fund',
+            'targetAmount': 1000.0,
+            'currentAmount': 1000.0,
+            'isCompleted': true, // boolean attribute
+            'createdAt': now,
+          },
+        ],
+      };
+
+      final result = await SyncMergeService.instance.mergeRemoteData(remotePayload);
+      expect(result.notesMerged, greaterThanOrEqualTo(1));
+      expect(result.transactionsMerged, greaterThanOrEqualTo(1));
+
+      final note = (await db.query('notes', where: 'id = ?', whereArgs: ['note_bool_test'])).first;
+      expect(note['isLocked'], equals(1));
+      expect(note['isPinned'], equals(0));
+
+      final tx = (await db.query('transactions', where: 'smsId = ?', whereArgs: ['sms_bool_1'])).first;
+      expect(tx['isExpense'], equals(1));
+      expect(tx['isAiRefined'], equals(1));
+
+      final bill = (await db.query('split_bills', where: 'id = ?', whereArgs: ['split_bool_1'])).first;
+      expect(bill['isPayerUser'], equals(1));
+
+      final part = (await db.query('split_participants', where: 'id = ?', whereArgs: ['part_bool_1'])).first;
+      expect(part['hasPaid'], equals(1));
+
+      final goal = (await db.query('savings_goals', where: 'id = ?', whereArgs: ['goal_bool_1'])).first;
+      expect(goal['isCompleted'], equals(1));
+    });
   });
 }

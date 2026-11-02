@@ -135,7 +135,7 @@ class SyncBackupSettingsScreen extends StatelessWidget {
                                           iconColor: colorScheme.tertiary,
                                           title: 'Last Auto Backup',
                                           subtitle: 'Most recent successful backup',
-                                          valueBadge: SettingsDialogs.formatLastBackupTime(settings.lastAutoBackupTime!),
+                                          valueBadge: SettingsDialogs.formatLastBackupTime(context, settings.lastAutoBackupTime!),
                                         ),
                                       SettingsTile(
                                         icon: Icons.play_arrow_rounded,

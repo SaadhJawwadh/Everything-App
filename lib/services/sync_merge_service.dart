@@ -8,13 +8,25 @@ class SyncMergeResult {
   final int transactionsMerged;
   final int periodLogsMerged;
   final int categoriesMerged;
+  final int splitBillsMerged;
+  final int savingsGoalsMerged;
 
   SyncMergeResult({
     this.notesMerged = 0,
     this.transactionsMerged = 0,
     this.periodLogsMerged = 0,
     this.categoriesMerged = 0,
+    this.splitBillsMerged = 0,
+    this.savingsGoalsMerged = 0,
   });
+
+  int get totalMerged =>
+      notesMerged +
+      transactionsMerged +
+      periodLogsMerged +
+      categoriesMerged +
+      splitBillsMerged +
+      savingsGoalsMerged;
 }
 
 class SyncMergeService {
@@ -33,6 +45,8 @@ class SyncMergeService {
     int transactionsMerged = 0;
     int periodLogsMerged = 0;
     int categoriesMerged = 0;
+    int splitBillsMerged = 0;
+    int savingsGoalsMerged = 0;
 
     await db.transaction((txn) async {
       // 0. Merge Tombstones (deleted_notes & deleted_transaction_sms_ids)
@@ -131,6 +145,9 @@ class SyncMergeService {
           }
           if (remoteRow['isPinned'] is bool) {
             remoteRow['isPinned'] = (remoteRow['isPinned'] as bool) ? 1 : 0;
+          }
+          if (remoteRow['isLocked'] is bool) {
+            remoteRow['isLocked'] = (remoteRow['isLocked'] as bool) ? 1 : 0;
           }
           if (!remoteRow.containsKey('previewText') || remoteRow['previewText'] == null) {
             final content = remoteRow['content'] as String? ?? '';
@@ -256,6 +273,9 @@ class SyncMergeService {
           if (remoteMap['isExpense'] is bool) {
             remoteMap['isExpense'] = (remoteMap['isExpense'] as bool) ? 1 : 0;
           }
+          if (remoteMap['isAiRefined'] is bool) {
+            remoteMap['isAiRefined'] = (remoteMap['isAiRefined'] as bool) ? 1 : 0;
+          }
           if (!remoteMap.containsKey('category') || remoteMap['category'] == null) {
             remoteMap['category'] = 'Other';
           }
@@ -273,6 +293,27 @@ class SyncMergeService {
             if (!localSmsMap.containsKey(smsId)) {
               batch.insert('transactions', remoteMap, conflictAlgorithm: ConflictAlgorithm.ignore);
               transactionsMerged++;
+            } else {
+              // Existing local transaction: propagate remote soft-delete and categorization/account updates
+              final localTx = localSmsMap[smsId]!;
+              final remoteDeletedAt = remoteMap['deletedAt'] as String?;
+              final localDeletedAt = localTx['deletedAt'] as String?;
+
+              if (remoteDeletedAt != null && localDeletedAt == null) {
+                batch.update('transactions', {'deletedAt': remoteDeletedAt}, where: 'smsId = ?', whereArgs: [smsId]);
+                transactionsMerged++;
+              } else if (remoteMap['account'] != localTx['account'] ||
+                  remoteMap['category'] != localTx['category'] ||
+                  remoteMap['isAiRefined'] != localTx['isAiRefined'] ||
+                  remoteMap['description'] != localTx['description']) {
+                batch.update('transactions', {
+                  'category': remoteMap['category'],
+                  'account': remoteMap['account'],
+                  'isAiRefined': remoteMap['isAiRefined'],
+                  'description': remoteMap['description'],
+                }, where: 'smsId = ?', whereArgs: [smsId]);
+                transactionsMerged++;
+              }
             }
           } else {
             final date = remoteMap['date'] as String? ?? '';
@@ -359,19 +400,67 @@ class SyncMergeService {
 
       // 8. Merge Split Bills, Participants & Contacts
       if (remoteData.containsKey('splitBills') && remoteData['splitBills'] is List) {
+        final localBills = await txn.query('split_bills');
+        final localBillMap = {for (final b in localBills) b['id'] as String: b};
         final batch = txn.batch();
         for (final item in remoteData['splitBills'] as List) {
           if (item is Map) {
-            batch.insert('split_bills', Map<String, Object?>.from(item), conflictAlgorithm: ConflictAlgorithm.replace);
+            final map = Map<String, Object?>.from(item);
+            if (map['isPayerUser'] is bool) {
+              map['isPayerUser'] = (map['isPayerUser'] as bool) ? 1 : 0;
+            }
+            final id = map['id'] as String?;
+            if (id == null) continue;
+
+            final local = localBillMap[id];
+            if (local == null) {
+              batch.insert('split_bills', map, conflictAlgorithm: ConflictAlgorithm.replace);
+              splitBillsMerged++;
+            } else {
+              final localDeleted = local['deletedAt'] as String?;
+              final remoteDeleted = map['deletedAt'] as String?;
+              if (localDeleted != null && remoteDeleted == null) {
+                // Keep locally soft-deleted state
+                continue;
+              } else if (remoteDeleted != null && localDeleted == null) {
+                batch.update('split_bills', {'deletedAt': remoteDeleted}, where: 'id = ?', whereArgs: [id]);
+                splitBillsMerged++;
+              } else {
+                batch.update('split_bills', map, where: 'id = ?', whereArgs: [id]);
+                splitBillsMerged++;
+              }
+            }
           }
         }
         await batch.commit(noResult: true);
       }
       if (remoteData.containsKey('splitParticipants') && remoteData['splitParticipants'] is List) {
+        final localParticipants = await txn.query('split_participants');
+        final localPartMap = {for (final p in localParticipants) p['id'] as String: p};
         final batch = txn.batch();
         for (final item in remoteData['splitParticipants'] as List) {
           if (item is Map) {
-            batch.insert('split_participants', Map<String, Object?>.from(item), conflictAlgorithm: ConflictAlgorithm.replace);
+            final map = Map<String, Object?>.from(item);
+            if (map['hasPaid'] is bool) {
+              map['hasPaid'] = (map['hasPaid'] as bool) ? 1 : 0;
+            }
+            final id = map['id'] as String?;
+            if (id == null) continue;
+
+            final local = localPartMap[id];
+            if (local == null) {
+              batch.insert('split_participants', map, conflictAlgorithm: ConflictAlgorithm.replace);
+            } else {
+              final localPaid = (local['hasPaid'] as num?)?.toInt() == 1;
+              final remotePaid = (map['hasPaid'] as num?)?.toInt() == 1;
+              if (remotePaid && !localPaid) {
+                batch.update('split_participants', map, where: 'id = ?', whereArgs: [id]);
+              } else if (!remotePaid && localPaid) {
+                continue;
+              } else {
+                batch.update('split_participants', map, where: 'id = ?', whereArgs: [id]);
+              }
+            }
           }
         }
         await batch.commit(noResult: true);
@@ -388,10 +477,37 @@ class SyncMergeService {
       // 9. Merge Savings Goals
       final savingsList = remoteData['savingsGoals'] ?? remoteData['savings_goals'];
       if (savingsList is List) {
+        final localGoals = await txn.query('savings_goals');
+        final localGoalMap = {for (final g in localGoals) g['id'] as String: g};
         final batch = txn.batch();
         for (final item in savingsList) {
           if (item is Map) {
-            batch.insert('savings_goals', Map<String, Object?>.from(item), conflictAlgorithm: ConflictAlgorithm.replace);
+            final map = Map<String, Object?>.from(item);
+            if (map['isCompleted'] is bool) {
+              map['isCompleted'] = (map['isCompleted'] as bool) ? 1 : 0;
+            }
+            map['createdAt'] ??= DateTime.now().toIso8601String();
+            final id = map['id'] as String?;
+            if (id == null) continue;
+
+            final local = localGoalMap[id];
+            if (local == null) {
+              batch.insert('savings_goals', map, conflictAlgorithm: ConflictAlgorithm.replace);
+              savingsGoalsMerged++;
+            } else {
+              final localDeleted = local['deletedAt'] as String?;
+              final remoteDeleted = map['deletedAt'] as String?;
+              if (localDeleted != null && remoteDeleted == null) {
+                // Keep locally soft-deleted state
+                continue;
+              } else if (remoteDeleted != null && localDeleted == null) {
+                batch.update('savings_goals', {'deletedAt': remoteDeleted}, where: 'id = ?', whereArgs: [id]);
+                savingsGoalsMerged++;
+              } else {
+                batch.update('savings_goals', map, where: 'id = ?', whereArgs: [id]);
+                savingsGoalsMerged++;
+              }
+            }
           }
         }
         await batch.commit(noResult: true);
@@ -415,6 +531,8 @@ class SyncMergeService {
       transactionsMerged: transactionsMerged,
       periodLogsMerged: periodLogsMerged,
       categoriesMerged: categoriesMerged,
+      splitBillsMerged: splitBillsMerged,
+      savingsGoalsMerged: savingsGoalsMerged,
     );
   }
 }

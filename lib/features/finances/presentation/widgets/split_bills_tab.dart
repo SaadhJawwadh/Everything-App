@@ -743,7 +743,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
 
           return AnimationConfiguration.staggeredList(
             position: index,
-            duration: const Duration(milliseconds: 250),
+            duration: AppLayout.animModal,
             child: SlideAnimation(
               verticalOffset: 20.0,
               child: FadeInAnimation(
@@ -960,7 +960,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
 
           return AnimationConfiguration.staggeredList(
             position: index,
-            duration: const Duration(milliseconds: 250),
+            duration: AppLayout.animModal,
             child: SlideAnimation(
               verticalOffset: 20.0,
               child: FadeInAnimation(

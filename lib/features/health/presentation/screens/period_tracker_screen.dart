@@ -50,7 +50,7 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
       _scrollController.animateTo(
         0,
         duration: AppLayout.animDefault,
-        curve: AppLayout.curveExpressive,
+        curve: AppLayout.curveStrongEaseInOut,
       );
     }
   }
@@ -366,7 +366,7 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                                     await _scrollController.animateTo(
                                       0,
                                       duration: AppLayout.animDefault,
-                                      curve: AppLayout.curveExpressive,
+                                      curve: AppLayout.curveStrongEaseInOut,
                                     );
                                   }
                                 },
@@ -494,7 +494,7 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                 SliverToBoxAdapter(
                   child: AnimationConfiguration.staggeredList(
                     position: 0,
-                    duration: const Duration(milliseconds: 220),
+                    duration: AppLayout.animShort,
                     child: SlideAnimation(
                       verticalOffset: 24.0,
                       child: FadeInAnimation(
@@ -519,7 +519,7 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                 SliverToBoxAdapter(
                   child: AnimationConfiguration.staggeredList(
                     position: 1,
-                    duration: const Duration(milliseconds: 220),
+                    duration: AppLayout.animShort,
                     child: SlideAnimation(
                       verticalOffset: 24.0,
                       child: FadeInAnimation(
@@ -538,7 +538,7 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                 SliverToBoxAdapter(
                   child: AnimationConfiguration.staggeredList(
                     position: 2,
-                    duration: const Duration(milliseconds: 220),
+                    duration: AppLayout.animShort,
                     child: SlideAnimation(
                       verticalOffset: 24.0,
                       child: FadeInAnimation(
@@ -558,7 +558,7 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                 SliverToBoxAdapter(
                   child: AnimationConfiguration.staggeredList(
                     position: 3,
-                    duration: const Duration(milliseconds: 220),
+                    duration: AppLayout.animShort,
                     child: SlideAnimation(
                       verticalOffset: 24.0,
                       child: FadeInAnimation(

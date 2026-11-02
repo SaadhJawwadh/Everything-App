@@ -214,6 +214,9 @@ class DatabaseHelper {
         Database? exportDb;
         try {
           exportDb = await openDatabase(path, password: password, singleInstance: false);
+          try {
+            await exportDb.rawQuery('PRAGMA wal_checkpoint(PASSIVE);');
+          } catch (_) {}
           await exportDb.execute("ATTACH DATABASE '${snapshotFile.path}' AS pre_mig_snap KEY '$password'");
           await exportDb.rawQuery("SELECT sqlcipher_export('pre_mig_snap')");
           await exportDb.execute("DETACH DATABASE pre_mig_snap");
@@ -743,9 +746,13 @@ class DatabaseHelper {
         await db.rawQuery('PRAGMA wal_checkpoint(PASSIVE);');
       } catch (_) {}
 
-      await db.execute("ATTACH DATABASE '$snapshotPath' AS pre_sync_snap KEY '$password'");
-      await db.rawQuery("SELECT sqlcipher_export('pre_sync_snap')");
-      await db.execute("DETACH DATABASE pre_sync_snap");
+      final alias = 'pre_sync_${DateTime.now().microsecondsSinceEpoch}';
+      await db.execute("ATTACH DATABASE '$snapshotPath' AS $alias KEY '$password'");
+      try {
+        await db.rawQuery("SELECT sqlcipher_export('$alias')");
+      } finally {
+        await db.execute("DETACH DATABASE $alias");
+      }
       debugPrint('[DatabaseHelper] Created pre-sync snapshot: $snapshotPath');
       await _rotateSnapshots(snapshotsDir);
       return snapshotPath;
@@ -772,9 +779,13 @@ class DatabaseHelper {
         await db.rawQuery('PRAGMA wal_checkpoint(PASSIVE);');
       } catch (_) {}
 
-      await db.execute("ATTACH DATABASE '$snapshotPath' AS manual_snap KEY '$password'");
-      await db.rawQuery("SELECT sqlcipher_export('manual_snap')");
-      await db.execute("DETACH DATABASE manual_snap");
+      final alias = 'manual_snap_${DateTime.now().microsecondsSinceEpoch}';
+      await db.execute("ATTACH DATABASE '$snapshotPath' AS $alias KEY '$password'");
+      try {
+        await db.rawQuery("SELECT sqlcipher_export('$alias')");
+      } finally {
+        await db.execute("DETACH DATABASE $alias");
+      }
       debugPrint('[DatabaseHelper] Created manual snapshot: $snapshotPath');
       await _rotateSnapshots(snapshotsDir);
       return snapshotPath;

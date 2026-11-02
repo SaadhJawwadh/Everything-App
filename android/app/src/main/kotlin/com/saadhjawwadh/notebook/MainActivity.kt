@@ -21,15 +21,20 @@ import android.content.ClipData
 import androidx.core.content.FileProvider
 import java.io.File
 import java.io.FileOutputStream
+import android.net.wifi.WifiManager
 
 class MainActivity: FlutterFragmentActivity() {
     private val CHANNEL = "com.saadhjawwadh.notebook/device_lock"
     private val WIDGET_CHANNEL = "com.saadhjawwadh.notebook/widget"
     private var screenOffLock = false
+    // Set when the screen turns off; unlike [screenOffLock] it is NOT cleared in
+    // onResume, so Dart can read it once after resuming and lock immediately.
+    @Volatile private var screenOffSinceBackground = false
     private var receiver: BroadcastReceiver? = null
     private var pendingWidgetAction: String? = null
     private var pendingSharedText: String? = null
     private var pendingIntentExtras: Map<String, Any?>? = null
+    private var multicastLock: WifiManager.MulticastLock? = null
 
     companion object {
         private var instance: MainActivity? = null
@@ -51,9 +56,11 @@ class MainActivity: FlutterFragmentActivity() {
         receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 screenOffLock = true
+                screenOffSinceBackground = true
             }
         }
         registerReceiver(receiver, filter)
+        acquireMulticastLock()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -69,6 +76,12 @@ class MainActivity: FlutterFragmentActivity() {
     override fun onResume() {
         super.onResume()
         screenOffLock = false
+        acquireMulticastLock()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        releaseMulticastLock()
     }
 
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
@@ -203,6 +216,8 @@ class MainActivity: FlutterFragmentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        releaseMulticastLock()
+        multicastLock = null
         if (instance == this) {
             instance = null
             widgetChannel = null
@@ -216,6 +231,32 @@ class MainActivity: FlutterFragmentActivity() {
         }
     }
 
+    private fun acquireMulticastLock() {
+        try {
+            if (multicastLock == null) {
+                val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+                multicastLock = wifiManager?.createMulticastLock("everything_p2p_multicast_lock")?.apply {
+                    setReferenceCounted(true)
+                }
+            }
+            if (multicastLock?.isHeld != true) {
+                multicastLock?.acquire()
+            }
+        } catch (e: Exception) {
+            // Ignore if Wi-Fi service is unavailable on some platforms
+        }
+    }
+
+    private fun releaseMulticastLock() {
+        try {
+            if (multicastLock?.isHeld == true) {
+                multicastLock?.release()
+            }
+        } catch (e: Exception) {
+            // Ignore
+        }
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
@@ -224,6 +265,19 @@ class MainActivity: FlutterFragmentActivity() {
                 result.success(isLocked)
             } else if (call.method == "resetLockFlag") {
                 screenOffLock = false
+                result.success(true)
+            } else if (call.method == "consumeScreenOff") {
+                // Returns whether the screen was turned off since the last call, then clears it.
+                val wasOff = screenOffSinceBackground
+                screenOffSinceBackground = false
+                result.success(wasOff)
+            } else if (call.method == "setSecureRecents") {
+                // Hide app content from the Recents thumbnail while app lock is on (API 33+).
+                // FLAG_SECURE is deliberately avoided so screenshots keep working.
+                val hide = call.argument<Boolean>("hide") ?: false
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    setRecentsScreenshotEnabled(!hide)
+                }
                 result.success(true)
             } else {
                 result.notImplemented()

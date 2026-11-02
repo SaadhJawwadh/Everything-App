@@ -1107,7 +1107,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
               SliverToBoxAdapter(
                 child: AnimationConfiguration.staggeredList(
                   position: 2,
-                  duration: const Duration(milliseconds: 220),
+                  duration: AppLayout.animShort,
                   child: SlideAnimation(
                     verticalOffset: 24.0,
                     child: FadeInAnimation(
@@ -1139,7 +1139,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           SliverToBoxAdapter(
             child: AnimationConfiguration.staggeredList(
               position: 3,
-              duration: const Duration(milliseconds: 220),
+              duration: AppLayout.animShort,
               child: SlideAnimation(
                 verticalOffset: 24.0,
                 child: FadeInAnimation(
@@ -1287,7 +1287,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           SliverToBoxAdapter(
             child: AnimationConfiguration.staggeredList(
               position: 5,
-              duration: const Duration(milliseconds: 220),
+              duration: AppLayout.animShort,
               child: SlideAnimation(
                 verticalOffset: 24.0,
                 child: FadeInAnimation(

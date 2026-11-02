@@ -655,4 +655,76 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get overlapDetectedMessage =>
       'Les dates sélectionnées chevauchent une période déjà enregistrée. Veuillez ajuster les dates.';
+
+  @override
+  String notesMovedToTrash(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notes déplacées dans la corbeille',
+      one: 'Note déplacée dans la corbeille',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get lockedNoteDescription =>
+      'Cette note est protégée par un mot de passe ou la biométrie.';
+
+  @override
+  String get unlockNote => 'Déverrouiller la note';
+
+  @override
+  String get timeJustNow => 'À l\'instant';
+
+  @override
+  String timeMinutesAgo(int minutes) {
+    return 'il y a $minutes min';
+  }
+
+  @override
+  String timeHoursAgo(int hours) {
+    return 'il y a $hours h';
+  }
+
+  @override
+  String get appLockSubtitle =>
+      'Authentification requise pour accéder au contenu';
+
+  @override
+  String get appLockAuthReason =>
+      'Veuillez vous authentifier pour accéder à l\'application';
+
+  @override
+  String get appLockNoCredentials =>
+      'Aucun verrouillage d\'écran ni donnée biométrique n\'est configuré sur cet appareil.';
+
+  @override
+  String get appLockAuthFailed =>
+      'Échec de l\'authentification. Veuillez réessayer.';
+
+  @override
+  String get disableAppLock => 'Désactiver le verrouillage de l\'appli';
+
+  @override
+  String get autoLockTimeoutTitle => 'Délai de verrouillage automatique';
+
+  @override
+  String get timeoutImmediately => 'Immédiatement';
+
+  @override
+  String timeoutSeconds(int seconds) {
+    return '$seconds secondes';
+  }
+
+  @override
+  String timeoutMinutes(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes minutes',
+      one: '1 minute',
+    );
+    return '$_temp0';
+  }
 }

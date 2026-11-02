@@ -106,5 +106,61 @@ void main() {
       expect(restored.deviceName, 'Work Tablet');
       expect(restored.isNameCustom, isTrue);
     });
+
+    test('parseTargetAddress cleanly sanitizes IP, scheme, path and custom port', () {
+      final res1 = P2pSyncService.parseTargetAddress('http://192.168.1.15:8765/api/sync');
+      expect(res1.$1, '192.168.1.15');
+      expect(res1.$2, 8765);
+
+      final res2 = P2pSyncService.parseTargetAddress('192.168.1.20');
+      expect(res2.$1, '192.168.1.20');
+      expect(res2.$2, P2pSyncService.httpSyncPort);
+
+      final res3 = P2pSyncService.parseTargetAddress('https://10.0.0.5:9000/');
+      expect(res3.$1, '10.0.0.5');
+      expect(res3.$2, 9000);
+
+      final res4 = P2pSyncService.parseTargetAddress('  192.168.0.100:8765  ');
+      expect(res4.$1, '192.168.0.100');
+      expect(res4.$2, 8765);
+
+      final res5 = P2pSyncService.parseTargetAddress('[fe80::1]:8765');
+      expect(res5.$1, 'fe80::1');
+      expect(res5.$2, 8765);
+
+      final res6 = P2pSyncService.parseTargetAddress('192.168.1.5:99999');
+      expect(res6.$1, '192.168.1.5');
+      expect(res6.$2, P2pSyncService.httpSyncPort);
+
+      expect(P2pSyncService.sanitizeTargetIp('http://192.168.1.50:8765'), '192.168.1.50');
+    });
+
+    test('DiscoveredPeer model retains device properties and timestamp', () {
+      final now = DateTime.now();
+      final peer = DiscoveredPeer(
+        deviceId: 'test-device-uuid',
+        deviceName: 'Nearby Pixel',
+        ipAddress: '192.168.1.100',
+        port: 8765,
+        lastSeenAt: now,
+      );
+
+      expect(peer.deviceId, 'test-device-uuid');
+      expect(peer.deviceName, 'Nearby Pixel');
+      expect(peer.ipAddress, '192.168.1.100');
+      expect(peer.port, 8765);
+      expect(peer.lastSeenAt, now);
+    });
+
+    test('formatUserFriendlyErrorMessage transforms exceptions into actionable messages', () {
+      expect(
+        P2pSyncService.formatUserFriendlyErrorMessage('SocketException: OS Error: Connection refused', '192.168.1.5'),
+        contains('Peer device unreachable (192.168.1.5)'),
+      );
+      expect(
+        P2pSyncService.formatUserFriendlyErrorMessage('TimeoutException after 0:00:30.000000', '192.168.1.5'),
+        contains('Connection timed out (192.168.1.5)'),
+      );
+    });
   });
 }

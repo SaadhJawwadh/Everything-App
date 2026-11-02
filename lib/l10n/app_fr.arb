@@ -199,5 +199,20 @@
   "intensityHeavy": "Forte",
   "startDateAfterEndDate": "La date de début ne peut pas être postérieure à la date de fin",
   "overlapDetectedTitle": "Chevauchement détecté",
-  "overlapDetectedMessage": "Les dates sélectionnées chevauchent une période déjà enregistrée. Veuillez ajuster les dates."
+  "overlapDetectedMessage": "Les dates sélectionnées chevauchent une période déjà enregistrée. Veuillez ajuster les dates.",
+  "notesMovedToTrash": "{count, plural, =1{Note déplacée dans la corbeille} other{{count} notes déplacées dans la corbeille}}",
+  "lockedNoteDescription": "Cette note est protégée par un mot de passe ou la biométrie.",
+  "unlockNote": "Déverrouiller la note",
+  "timeJustNow": "À l'instant",
+  "timeMinutesAgo": "il y a {minutes} min",
+  "timeHoursAgo": "il y a {hours} h",
+  "appLockSubtitle": "Authentification requise pour accéder au contenu",
+  "appLockAuthReason": "Veuillez vous authentifier pour accéder à l'application",
+  "appLockNoCredentials": "Aucun verrouillage d'écran ni donnée biométrique n'est configuré sur cet appareil.",
+  "appLockAuthFailed": "Échec de l'authentification. Veuillez réessayer.",
+  "disableAppLock": "Désactiver le verrouillage de l'appli",
+  "autoLockTimeoutTitle": "Délai de verrouillage automatique",
+  "timeoutImmediately": "Immédiatement",
+  "timeoutSeconds": "{seconds} secondes",
+  "timeoutMinutes": "{minutes, plural, =1{1 minute} other{{minutes} minutes}}"
 }

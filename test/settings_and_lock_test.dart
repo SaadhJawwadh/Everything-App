@@ -38,7 +38,7 @@ void main() {
     test('Default values for App Lock are correct', () {
       expect(settings.appLockEnabled, isFalse);
       expect(settings.useBiometrics, isFalse);
-      expect(settings.appLockTimeout, 0);
+      expect(settings.appLockTimeout, 30);
     });
 
     test('setAppLockTimeout updates value and persists', () async {
@@ -54,7 +54,7 @@ void main() {
     test('toBackupMap includes appLockTimeout and smsSyncFrequency', () {
       final map = settings.toBackupMap();
       expect(map.containsKey('appLockTimeout'), isTrue);
-      expect(map['appLockTimeout'], 0);
+      expect(map['appLockTimeout'], 30);
       expect(map['smsSyncFrequency'], '12');
     });
 
@@ -128,6 +128,7 @@ void main() {
 
     testWidgets('Locks screen and requires auth if appLockEnabled is true', (tester) async {
       await settings.setAppLockEnabled(true);
+      await settings.setAppLockTimeout(0); // Test immediate lock on background
       mockAuthResult = false; // Make authentication fail initially
 
       // Ensure a fresh clean session authentication state for tests

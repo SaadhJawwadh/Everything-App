@@ -567,7 +567,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
 
             // In-Sheet Live Feedback Banner
             AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
+              duration: AppLayout.animModal,
               transitionBuilder: (child, animation) => FadeTransition(
                 opacity: animation,
                 child: SizeTransition(sizeFactor: animation, child: child),

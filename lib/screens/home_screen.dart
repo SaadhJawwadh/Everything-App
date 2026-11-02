@@ -196,9 +196,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         duration: const Duration(seconds: 3),
-        content: Text(ids.length == 1
-            ? 'Note moved to Trash'
-            : '${ids.length} notes moved to Trash'),
+        content: Text(AppLocalizations.of(context)?.notesMovedToTrash(ids.length) ??
+            (ids.length == 1
+                ? 'Note moved to Trash'
+                : '${ids.length} notes moved to Trash')),
         action: SnackBarAction(
           label: 'Undo',
           onPressed: () async {

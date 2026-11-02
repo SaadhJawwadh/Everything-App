@@ -101,7 +101,7 @@ class NoteRepository {
     final db = await _db;
     final result = await db.rawQuery('''
       SELECT * FROM ${TableNames.notes} 
-      WHERE (${NoteFields.title} LIKE ? OR ${NoteFields.content} LIKE ? OR 
+      WHERE (${NoteFields.title} LIKE ? OR ${NoteFields.previewText} LIKE ? OR 
              ${NoteFields.id} IN (SELECT note_id FROM note_tags WHERE tag_name LIKE ?))
       AND ${NoteFields.deletedAt} IS NULL
       ORDER BY ${NoteFields.dateModified} DESC

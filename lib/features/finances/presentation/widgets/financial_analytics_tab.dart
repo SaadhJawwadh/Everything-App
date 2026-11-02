@@ -167,7 +167,7 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
 
                 // Animated View Switching
                 AnimatedSize(
-                  duration: const Duration(milliseconds: 250),
+                  duration: AppLayout.animModal,
                   curve: Curves.easeInOutCubic,
                   child: _activeDeckIndex == 0
                       ? _buildDetailedBreakdown(
@@ -627,7 +627,7 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
               });
             },
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
+              duration: AppLayout.animShort,
               curve: Curves.easeOutCubic,
               margin: const EdgeInsets.symmetric(vertical: 2.0),
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),

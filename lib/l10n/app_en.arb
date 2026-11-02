@@ -234,5 +234,45 @@
   "intensityHeavy": "Heavy",
   "startDateAfterEndDate": "Start date cannot be after end date",
   "overlapDetectedTitle": "Overlap Detected",
-  "overlapDetectedMessage": "The selected dates overlap with an existing logged period. Please adjust the dates."
+  "overlapDetectedMessage": "The selected dates overlap with an existing logged period. Please adjust the dates.",
+  "notesMovedToTrash": "{count, plural, =1{Note moved to Trash} other{{count} notes moved to Trash}}",
+  "@notesMovedToTrash": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "lockedNoteDescription": "This note is protected with a password or biometrics.",
+  "unlockNote": "Unlock Note",
+  "timeJustNow": "Just now",
+  "timeMinutesAgo": "{minutes}m ago",
+  "@timeMinutesAgo": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "timeHoursAgo": "{hours}h ago",
+  "@timeHoursAgo": {
+    "placeholders": {
+      "hours": {"type": "int"}
+    }
+  },
+  "appLockSubtitle": "Authentication required to access content",
+  "appLockAuthReason": "Please authenticate to access the app",
+  "appLockNoCredentials": "No screen lock or biometric credentials enrolled on this device.",
+  "appLockAuthFailed": "Authentication failed. Please try again.",
+  "disableAppLock": "Disable App Lock",
+  "autoLockTimeoutTitle": "Auto-Lock Timeout",
+  "timeoutImmediately": "Immediately",
+  "timeoutSeconds": "{seconds} Seconds",
+  "@timeoutSeconds": {
+    "placeholders": {
+      "seconds": {"type": "int"}
+    }
+  },
+  "timeoutMinutes": "{minutes, plural, =1{1 Minute} other{{minutes} Minutes}}",
+  "@timeoutMinutes": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  }
 }

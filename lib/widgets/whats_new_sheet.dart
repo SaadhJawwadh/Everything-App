@@ -40,6 +40,21 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.sync_rounded,
+            title: "Zero-Cloud P2P Device Sync",
+            desc: "Ultra-fast local Wi-Fi pairing and synchronization with Last-Write-Wins merge, soft-delete preservation, and dynamic port fallback.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.security_rounded,
+            title: "Hardened App Lock & Security",
+            desc: "Back-navigation protection with PopScope, native biometric + PIN/pattern fallback, and authentication-protected lock toggling.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.account_balance_wallet_rounded,
+            title: "Atomic Vault Transfers",
+            desc: "Double-entry atomic account transfers between Daily and Savings accounts with cash flow isolation.",
+          ),
+          _WhatsNewItem(
             icon: Icons.hub_rounded,
             title: "Android 16+ AppFunctions & Gemini",
             desc: "On-device tool provider for Google Gemini & Android AI. Log expenses, add tasks, or create notes hands-free with ambient Undo.",
@@ -78,6 +93,16 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.tertiaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.auto_graph_rounded,
+            title: "Calm Technology Metric Charts",
+            desc: "Predictable, static charts with smooth user-gesture swipe navigation (zero intrusive cycling timers).",
+          ),
+          _WhatsNewItem(
+            icon: Icons.search_rounded,
+            title: "Precision Plain-Text Search",
+            desc: "Note searches strictly target rendered document text, preventing false-positive matches on raw Quill Delta JSON syntax.",
+          ),
+          _WhatsNewItem(
             icon: Icons.dashboard_customize_rounded,
             title: "Interactive Settings Hub",
             desc: "Jump directly to Finances, Health Tracker, Gemini AI, Security, or Sync from the top status pills.",
@@ -108,11 +133,6 @@ class WhatsNewSheet extends StatelessWidget {
               );
             },
           ),
-          _WhatsNewItem(
-            icon: Icons.wifi_tethering_rounded,
-            title: "Future-Proof P2P Wi-Fi Sync",
-            desc: "Enhanced local network discovery for Android 16/17 alongside multi-window desktop resizing support.",
-          ),
         ],
       ),
       _WhatsNewCategory(
@@ -122,24 +142,24 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.secondaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.fact_check_rounded,
-            title: "Pinned Checklist Routing",
-            desc: "Quick-added tasks now automatically append to your active pinned widget checklist before creating a fallback list.",
+            icon: Icons.backup_rounded,
+            title: "Relational Backup & Restore",
+            desc: "Cleanly replaces savings goals and tombstone tables during full JSON restore with child-first foreign key safety.",
           ),
           _WhatsNewItem(
-            icon: Icons.undo_rounded,
-            title: "Instant Action Undo Rollback",
-            desc: "Undoing a quick-saved transaction or task cleanly restores your ledger balance or removes the newly added checklist item.",
+            icon: Icons.sync_problem_rounded,
+            title: "SMS Sync Cancellation Banner",
+            desc: "Cancelling an in-progress SMS scan immediately updates UI banners and preserves unimported message ranges.",
           ),
           _WhatsNewItem(
-            icon: Icons.savings_rounded,
-            title: "Neutral Savings Transfers",
-            desc: "Savings goal deposits from your Daily account use neutral transfers so monthly income totals stay accurate.",
+            icon: Icons.format_shapes_rounded,
+            title: "Note Editor Range Clamping",
+            desc: "Search jump offsets are clamped to document bounds to eliminate RangeError exceptions during live editing.",
           ),
           _WhatsNewItem(
-            icon: Icons.keyboard_hide_rounded,
-            title: "Keyboard-Safe Modal Sheets",
-            desc: "Eliminated layout overflows across all bottom sheets and pickers when the on-screen keyboard is open.",
+            icon: Icons.delete_sweep_rounded,
+            title: "Reactive Financial Trash",
+            desc: "Restoring or permanently deleting trashed transactions instantly updates all financial charts, metrics, and ledger views.",
           ),
         ],
       ),
@@ -234,7 +254,7 @@ class WhatsNewSheet extends StatelessWidget {
                           final category = categories[catIndex];
                           return AnimationConfiguration.staggeredList(
                             position: catIndex,
-                            duration: const Duration(milliseconds: 280),
+                            duration: AppLayout.animDefault,
                             child: SlideAnimation(
                               verticalOffset: 24.0,
                               child: FadeInAnimation(

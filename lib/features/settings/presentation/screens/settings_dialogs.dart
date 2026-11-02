@@ -396,33 +396,27 @@ class SettingsDialogs {
   }
 
   static void showTimeoutPicker(BuildContext context, SettingsProvider settings) {
-    final timeouts = [
-      (label: 'Immediately', seconds: 0),
-      (label: '30 Seconds', seconds: 30),
-      (label: '1 Minute', seconds: 60),
-      (label: '5 Minutes', seconds: 300),
-      (label: '15 Minutes', seconds: 900),
-    ];
+    final timeouts = [0, 30, 60, 300, 900];
 
     AppBottomSheet.show(
       context: context,
-      title: 'Auto-Lock Timeout',
+      title: AppLocalizations.of(context)?.autoLockTimeoutTitle ?? 'Auto-Lock Timeout',
       child: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: timeouts.map((t) {
-            final isSelected = settings.appLockTimeout == t.seconds;
+            final isSelected = settings.appLockTimeout == t;
             final colorScheme = Theme.of(context).colorScheme;
 
             return ListTile(
-              title: Text(t.label),
+              title: Text(getTimeoutLabel(context, t)),
               trailing: isSelected
                   ? Icon(Icons.check_circle_rounded, color: colorScheme.primary)
                   : null,
               onTap: () {
                 AppHaptics.selectionClick();
-                settings.setAppLockTimeout(t.seconds);
+                settings.setAppLockTimeout(t);
                 Navigator.pop(context);
               },
             );
@@ -948,25 +942,29 @@ class SettingsDialogs {
     }
   }
 
-  static String getTimeoutLabel(int seconds) {
-    if (seconds == 0) return 'Immediately';
-    if (seconds < 60) return '$seconds Seconds';
-    return '${seconds ~/ 60} Minute${seconds >= 120 ? 's' : ''}';
+  static String getTimeoutLabel(BuildContext context, int seconds) {
+    final l10n = AppLocalizations.of(context);
+    if (seconds == 0) return l10n?.timeoutImmediately ?? 'Immediately';
+    if (seconds < 60) return l10n?.timeoutSeconds(seconds) ?? '$seconds Seconds';
+    final minutes = seconds ~/ 60;
+    return l10n?.timeoutMinutes(minutes) ?? '$minutes Minute${minutes > 1 ? 's' : ''}';
   }
 
   static String getFrequencyLabel(String freq) {
     return freq == 'weekly' ? 'Weekly' : 'Daily';
   }
 
-  static String formatLastBackupTime(dynamic time) {
+  static String formatLastBackupTime(BuildContext context, dynamic time) {
     final dt = time is DateTime ? time : (time is String ? DateTime.tryParse(time) : null);
     if (dt == null) return time?.toString() ?? '';
-    final now = DateTime.now();
-    final diff = now.difference(dt);
-    if (diff.inMinutes < 1) return 'Just now';
-    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
-    if (diff.inDays < 1) return '${diff.inHours}h ago';
-    return '${dt.day}/${dt.month}/${dt.year}';
+    final l10n = AppLocalizations.of(context);
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return l10n?.timeJustNow ?? 'Just now';
+    if (diff.inHours < 1) return l10n?.timeMinutesAgo(diff.inMinutes) ?? '${diff.inMinutes}m ago';
+    if (diff.inDays < 1) return l10n?.timeHoursAgo(diff.inHours) ?? '${diff.inHours}h ago';
+    // Older than a day: absolute, locale-aware date instead of a hand-built d/m/y.
+    return DateFormat.yMMMd(locale).format(dt);
   }
 
   static Future<void> launchExternalUrl(String url) async {

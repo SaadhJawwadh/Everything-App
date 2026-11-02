@@ -279,7 +279,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ),
                                 ])
                           : AnimationConfiguration.toStaggeredList(
-                              duration: const Duration(milliseconds: 220),
+                              duration: AppLayout.animShort,
                               childAnimationBuilder: (widget) => SlideAnimation(
                                 verticalOffset: 24.0,
                                 child: FadeInAnimation(child: widget),
@@ -293,7 +293,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   isAiEnabled: settings.isAiActive,
                                   autoBackupEnabled: settings.autoBackupEnabled,
                                   lastAutoBackupTimeFormatted: settings.lastAutoBackupTime != null
-                                      ? SettingsDialogs.formatLastBackupTime(settings.lastAutoBackupTime!)
+                                      ? SettingsDialogs.formatLastBackupTime(context, settings.lastAutoBackupTime!)
                                       : null,
                                   currentThemeMode: settings.themeMode,
                                   onThemeModeChanged: settings.setThemeMode,
@@ -382,7 +382,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 _buildDomainHubCard(
                                   context: context,
                                   title: l10n?.privacyAndSecurity ?? l10n?.security ?? 'Privacy & Security',
-                                  subtitle: 'App Lock ${settings.appLockEnabled ? 'Active (${SettingsDialogs.getTimeoutLabel(settings.appLockTimeout)})' : 'Disabled'} • ${settings.useBiometrics ? 'Biometrics' : 'PIN / Passcode'}',
+                                  subtitle: 'App Lock ${settings.appLockEnabled ? 'Active (${SettingsDialogs.getTimeoutLabel(context, settings.appLockTimeout)})' : 'Disabled'} • ${settings.useBiometrics ? 'Biometrics' : 'PIN / Passcode'}',
                                   icon: Icons.security_outlined,
                                   accentColor: colorScheme.primary,
                                   onTap: () => AppRoute.push(context, const SecuritySettingsScreen()),
@@ -987,7 +987,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           icon: Icons.timer_outlined,
           title: 'Auto-Lock Timeout',
           subtitle: 'Inactivity delay before locking',
-          valueBadge: SettingsDialogs.getTimeoutLabel(settings.appLockTimeout),
+          valueBadge: SettingsDialogs.getTimeoutLabel(context, settings.appLockTimeout),
           showArrow: true,
           onTap: () => SettingsDialogs.showTimeoutPicker(context, settings),
         ),

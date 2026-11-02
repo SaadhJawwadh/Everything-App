@@ -654,4 +654,74 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get overlapDetectedMessage =>
       'As datas selecionadas se sobrepõem a um período já registrado. Ajuste as datas.';
+
+  @override
+  String notesMovedToTrash(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count notas movidas para a lixeira',
+      one: 'Nota movida para a lixeira',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get lockedNoteDescription =>
+      'Esta nota está protegida por senha ou biometria.';
+
+  @override
+  String get unlockNote => 'Desbloquear nota';
+
+  @override
+  String get timeJustNow => 'Agora mesmo';
+
+  @override
+  String timeMinutesAgo(int minutes) {
+    return 'há $minutes min';
+  }
+
+  @override
+  String timeHoursAgo(int hours) {
+    return 'há $hours h';
+  }
+
+  @override
+  String get appLockSubtitle =>
+      'Autenticação necessária para acessar o conteúdo';
+
+  @override
+  String get appLockAuthReason => 'Autentique-se para acessar o app';
+
+  @override
+  String get appLockNoCredentials =>
+      'Nenhum bloqueio de tela ou biometria configurado neste dispositivo.';
+
+  @override
+  String get appLockAuthFailed => 'Falha na autenticação. Tente novamente.';
+
+  @override
+  String get disableAppLock => 'Desativar bloqueio do app';
+
+  @override
+  String get autoLockTimeoutTitle => 'Tempo de bloqueio automático';
+
+  @override
+  String get timeoutImmediately => 'Imediatamente';
+
+  @override
+  String timeoutSeconds(int seconds) {
+    return '$seconds segundos';
+  }
+
+  @override
+  String timeoutMinutes(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes minutos',
+      one: '1 minuto',
+    );
+    return '$_temp0';
+  }
 }

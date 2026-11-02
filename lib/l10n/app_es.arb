@@ -199,5 +199,20 @@
   "intensityHeavy": "Intensa",
   "startDateAfterEndDate": "La fecha de inicio no puede ser posterior a la de finalización",
   "overlapDetectedTitle": "Superposición detectada",
-  "overlapDetectedMessage": "Las fechas seleccionadas se superponen con un período ya registrado. Ajusta las fechas."
+  "overlapDetectedMessage": "Las fechas seleccionadas se superponen con un período ya registrado. Ajusta las fechas.",
+  "notesMovedToTrash": "{count, plural, =1{Nota movida a la papelera} other{{count} notas movidas a la papelera}}",
+  "lockedNoteDescription": "Esta nota está protegida con contraseña o biometría.",
+  "unlockNote": "Desbloquear nota",
+  "timeJustNow": "Justo ahora",
+  "timeMinutesAgo": "hace {minutes} min",
+  "timeHoursAgo": "hace {hours} h",
+  "appLockSubtitle": "Se requiere autenticación para acceder al contenido",
+  "appLockAuthReason": "Autentícate para acceder a la app",
+  "appLockNoCredentials": "No hay bloqueo de pantalla ni biometría configurados en este dispositivo.",
+  "appLockAuthFailed": "Error de autenticación. Inténtalo de nuevo.",
+  "disableAppLock": "Desactivar bloqueo de la app",
+  "autoLockTimeoutTitle": "Tiempo de bloqueo automático",
+  "timeoutImmediately": "Inmediatamente",
+  "timeoutSeconds": "{seconds} segundos",
+  "timeoutMinutes": "{minutes, plural, =1{1 minuto} other{{minutes} minutos}}"
 }

@@ -625,4 +625,65 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get overlapDetectedMessage => '所选日期与现有记录重叠，请调整日期。';
+
+  @override
+  String notesMovedToTrash(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 条笔记已移至回收站',
+      one: '笔记已移至回收站',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get lockedNoteDescription => '此笔记受密码或生物识别保护。';
+
+  @override
+  String get unlockNote => '解锁笔记';
+
+  @override
+  String get timeJustNow => '刚刚';
+
+  @override
+  String timeMinutesAgo(int minutes) {
+    return '$minutes 分钟前';
+  }
+
+  @override
+  String timeHoursAgo(int hours) {
+    return '$hours 小时前';
+  }
+
+  @override
+  String get appLockSubtitle => '需要身份验证才能访问内容';
+
+  @override
+  String get appLockAuthReason => '请验证身份以访问应用';
+
+  @override
+  String get appLockNoCredentials => '此设备未设置屏幕锁定或生物识别。';
+
+  @override
+  String get appLockAuthFailed => '身份验证失败，请重试。';
+
+  @override
+  String get disableAppLock => '停用应用锁';
+
+  @override
+  String get autoLockTimeoutTitle => '自动锁定超时';
+
+  @override
+  String get timeoutImmediately => '立即';
+
+  @override
+  String timeoutSeconds(int seconds) {
+    return '$seconds 秒';
+  }
+
+  @override
+  String timeoutMinutes(int minutes) {
+    return '$minutes 分钟';
+  }
 }

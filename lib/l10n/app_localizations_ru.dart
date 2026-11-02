@@ -665,4 +665,80 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get overlapDetectedMessage =>
       'Выбранные даты пересекаются с уже записанным периодом. Пожалуйста, скорректируйте даты.';
+
+  @override
+  String notesMovedToTrash(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count заметки перемещены в корзину',
+      many: '$count заметок перемещено в корзину',
+      few: '$count заметки перемещены в корзину',
+      one: 'Заметка перемещена в корзину',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get lockedNoteDescription =>
+      'Эта заметка защищена паролем или биометрией.';
+
+  @override
+  String get unlockNote => 'Разблокировать заметку';
+
+  @override
+  String get timeJustNow => 'Только что';
+
+  @override
+  String timeMinutesAgo(int minutes) {
+    return '$minutes мин назад';
+  }
+
+  @override
+  String timeHoursAgo(int hours) {
+    return '$hours ч назад';
+  }
+
+  @override
+  String get appLockSubtitle =>
+      'Для доступа к содержимому требуется аутентификация';
+
+  @override
+  String get appLockAuthReason =>
+      'Пройдите аутентификацию для доступа к приложению';
+
+  @override
+  String get appLockNoCredentials =>
+      'На этом устройстве не настроена блокировка экрана или биометрия.';
+
+  @override
+  String get appLockAuthFailed =>
+      'Не удалось пройти аутентификацию. Повторите попытку.';
+
+  @override
+  String get disableAppLock => 'Отключить блокировку приложения';
+
+  @override
+  String get autoLockTimeoutTitle => 'Время автоблокировки';
+
+  @override
+  String get timeoutImmediately => 'Сразу';
+
+  @override
+  String timeoutSeconds(int seconds) {
+    return '$seconds сек.';
+  }
+
+  @override
+  String timeoutMinutes(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes минуты',
+      many: '$minutes минут',
+      few: '$minutes минуты',
+      one: '1 минута',
+    );
+    return '$_temp0';
+  }
 }

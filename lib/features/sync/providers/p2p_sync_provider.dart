@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
@@ -24,7 +24,7 @@ class SyncActivityEvent {
   });
 }
 
-class P2pSyncProvider with ChangeNotifier {
+class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
   static const _storageKey = 'p2p_paired_devices_v2';
   static const _legacyStorageKey = 'p2p_paired_devices_v1';
   static const _autoSyncKey = 'p2p_auto_sync_enabled';
@@ -36,6 +36,8 @@ class P2pSyncProvider with ChangeNotifier {
   List<PairedDevice> get pairedDevices => List.unmodifiable(_pairedDevices);
   final List<SyncActivityEvent> _recentActivity = [];
   List<SyncActivityEvent> get recentActivity => List.unmodifiable(_recentActivity);
+  final List<DiscoveredPeer> _discoveredPeers = [];
+  List<DiscoveredPeer> get discoveredPeers => List.unmodifiable(_discoveredPeers);
   SyncStatus _status = SyncStatus.idle;
   SyncStatus get status => _status;
   bool _isAutoSyncEnabled = true;
@@ -57,23 +59,48 @@ class P2pSyncProvider with ChangeNotifier {
 
   StreamSubscription<SyncResult>? _syncResultSubscription;
   StreamSubscription<PairedDevice>? _remotePairSubscription;
+  StreamSubscription<DiscoveredPeer>? _discoveredPeersSubscription;
   Timer? _eventDebounceTimer;
+  Timer? _peerPruneTimer;
   static P2pSyncProvider? _activeInstance;
   static P2pSyncProvider? get activeInstance => _activeInstance;
 
   P2pSyncProvider() {
     _activeInstance = this;
+    WidgetsBinding.instance.addObserver(this);
     unawaited(loadSettings());
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _eventDebounceTimer?.cancel();
+    _eventDebounceTimer = null;
+    _peerPruneTimer?.cancel();
+    _peerPruneTimer = null;
     _syncResultSubscription?.cancel();
+    _syncResultSubscription = null;
     _remotePairSubscription?.cancel();
+    _remotePairSubscription = null;
+    _discoveredPeersSubscription?.cancel();
+    _discoveredPeersSubscription = null;
     unawaited(_service.stopPrimaryHostServer());
     if (identical(_activeInstance, this)) _activeInstance = null;
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_handleAppResumed());
+    }
+  }
+
+  Future<void> _handleAppResumed() async {
+    await refreshDiagnostics();
+    if (!_service.isHosting) {
+      await startPrimaryHostServer();
+    }
   }
 
   Future<void> loadSettings() async {
@@ -116,22 +143,78 @@ class P2pSyncProvider with ChangeNotifier {
 
     _syncResultSubscription ??= _service.syncEvents.listen(_handleSyncEvent);
     _remotePairSubscription ??= _service.remoteDevicePaired.listen((device) async => _upsertDevice(device));
+    _discoveredPeersSubscription ??= _service.discoveredPeers.listen(_handleDiscoveredPeer);
+    _peerPruneTimer ??= Timer.periodic(const Duration(seconds: 4), (_) => _pruneStaleDiscoveredPeers());
     await refreshDiagnostics();
     await startPrimaryHostServer();
     notifyListeners();
   }
 
+  void _handleDiscoveredPeer(DiscoveredPeer peer) {
+    if (peer.deviceId == _localDeviceId) return;
+
+    // 1. If this peer is already a paired device, update its endpoint in real time!
+    final pairedIndex = _pairedDevices.indexWhere((p) => p.deviceId == peer.deviceId);
+    if (pairedIndex != -1) {
+      final existing = _pairedDevices[pairedIndex];
+      final newEndpoint = DeviceEndpoint(
+        ipAddress: peer.ipAddress,
+        port: peer.port,
+        lastSeenAt: DateTime.now(),
+      );
+      final updated = existing.withEndpoint(newEndpoint).copyWith(lastSyncedAt: existing.lastSyncedAt);
+      _pairedDevices[pairedIndex] = updated;
+      unawaited(_saveDevicesToStorage());
+      notifyListeners();
+    }
+
+    // 2. Manage nearby discovered peers list with throttled notification
+    final index = _discoveredPeers.indexWhere((p) => p.deviceId == peer.deviceId);
+    if (index == -1) {
+      _discoveredPeers.add(peer);
+      notifyListeners();
+    } else {
+      final existing = _discoveredPeers[index];
+      final changed = existing.deviceName != peer.deviceName ||
+          existing.ipAddress != peer.ipAddress ||
+          existing.port != peer.port;
+      _discoveredPeers[index] = peer;
+      if (changed) {
+        notifyListeners();
+      }
+    }
+  }
+
+  void _pruneStaleDiscoveredPeers() {
+    final cutoff = DateTime.now().subtract(const Duration(seconds: 15));
+    final beforeCount = _discoveredPeers.length;
+    _discoveredPeers.removeWhere((p) => p.lastSeenAt.isBefore(cutoff));
+    if (_discoveredPeers.length != beforeCount) {
+      notifyListeners();
+    }
+  }
+
   void _handleSyncEvent(SyncResult result) {
+    final eventPeerName = result.peerName ??
+        (_pairedDevices.isNotEmpty ? _pairedDevices.first.deviceName : null);
+
     _recentActivity.insert(
       0,
       SyncActivityEvent(
         timestamp: DateTime.now(),
         result: result,
-        peerName: _pairedDevices.isNotEmpty ? _pairedDevices.first.deviceName : null,
+        peerName: eventPeerName,
       ),
     );
     if (_recentActivity.length > 20) {
       _recentActivity.removeLast();
+    }
+
+    // Guard: Inbound host server merges must not overwrite an active outbound client sync session!
+    if (result.isServerInbound && _status == SyncStatus.syncing) {
+      _lastSyncedAt = DateTime.now();
+      notifyListeners();
+      return;
     }
 
     if (result.success) {
@@ -215,14 +298,14 @@ class P2pSyncProvider with ChangeNotifier {
       throw ArgumentError('A valid local IP address and six-digit pair code are required.');
     }
     final verifiedTargetIp = targetIp.trim();
+    final candidateCode = pairCode.trim();
     _status = SyncStatus.connecting;
     _lastMessage = 'Verifying ${deviceName.trim().isEmpty ? 'device' : deviceName}…';
     notifyListeners();
 
-    _currentPairCode = pairCode.trim();
-    await _persistPairCodeAndRestart();
+    // Verify candidate handshake FIRST without corrupting local host server pair code on failure
     final verifiedRemoteDevice = await _service.sendPairHandshake(
-      _currentPairCode,
+      candidateCode,
       _localDeviceName,
       verifiedTargetIp,
       targetPort: targetPort,
@@ -233,6 +316,9 @@ class P2pSyncProvider with ChangeNotifier {
       notifyListeners();
       throw StateError(_lastMessage!);
     }
+
+    _currentPairCode = candidateCode;
+    await _persistPairCodeAndRestart();
     final verifiedRemoteDeviceId = remoteDeviceId?.trim();
 
     final device = PairedDevice(
@@ -358,37 +444,46 @@ class P2pSyncProvider with ChangeNotifier {
   }
 
   Future<SyncResult> syncDevice(PairedDevice device, {Function()? onCompleted}) async {
-    if (device.endpoints.isEmpty) return SyncResult(success: false, errorMessage: 'No saved endpoint for ${device.deviceName}. Scan its QR code again.');
+    if (device.endpoints.isEmpty) {
+      return SyncResult(success: false, errorMessage: 'No saved endpoint for ${device.deviceName}. Scan its QR code again.');
+    }
     _status = SyncStatus.syncing;
     notifyListeners();
     SyncResult? lastFailure;
-    final endpoints = [...device.endpoints]
-      ..sort((a, b) => (b.lastSyncedAt ?? b.lastSeenAt ?? DateTime.fromMillisecondsSinceEpoch(0))
-          .compareTo(a.lastSyncedAt ?? a.lastSeenAt ?? DateTime.fromMillisecondsSinceEpoch(0)));
-    for (final endpoint in endpoints) {
-      final result = await _service.syncBiDirectional(endpoint.ipAddress, device.pairCode, targetPort: endpoint.port);
-      if (result.success) {
-        final index = _pairedDevices.indexWhere((item) => item.deviceId == device.deviceId);
-        if (index != -1) {
-          _pairedDevices[index] = _pairedDevices[index].withEndpoint(endpoint.copyWith(lastSeenAt: DateTime.now(), lastSyncedAt: DateTime.now())).copyWith(
-                lastSyncedAt: DateTime.now(),
-                transportMode: result.transportUsed,
-              );
-          await _saveDevicesToStorage();
+    try {
+      final endpoints = [...device.endpoints]
+        ..sort((a, b) => (b.lastSyncedAt ?? b.lastSeenAt ?? DateTime.fromMillisecondsSinceEpoch(0))
+            .compareTo(a.lastSyncedAt ?? a.lastSeenAt ?? DateTime.fromMillisecondsSinceEpoch(0)));
+      for (final endpoint in endpoints) {
+        final result = await _service.syncBiDirectional(endpoint.ipAddress, device.pairCode, targetPort: endpoint.port);
+        if (result.success) {
+          final index = _pairedDevices.indexWhere((item) => item.deviceId == device.deviceId);
+          if (index != -1) {
+            _pairedDevices[index] = _pairedDevices[index].withEndpoint(endpoint.copyWith(lastSeenAt: DateTime.now(), lastSyncedAt: DateTime.now())).copyWith(
+                  lastSyncedAt: DateTime.now(),
+                  transportMode: result.transportUsed,
+                );
+            await _saveDevicesToStorage();
+          }
+          _status = SyncStatus.completed;
+          _lastSyncedAt = DateTime.now();
+          _lastMessage = 'Synced with ${device.deviceName}';
+          if (onCompleted != null) onCompleted();
+          notifyListeners();
+          return result;
         }
-        _status = SyncStatus.completed;
-        _lastSyncedAt = DateTime.now();
-        _lastMessage = 'Synced with ${device.deviceName}';
-        if (onCompleted != null) onCompleted();
-        notifyListeners();
-        return result;
+        lastFailure = result;
       }
-      lastFailure = result;
+      _status = SyncStatus.error;
+      _lastMessage = lastFailure?.errorMessage ?? 'Sync failed';
+      notifyListeners();
+      return lastFailure ?? SyncResult(success: false, errorMessage: _lastMessage);
+    } catch (e) {
+      _status = SyncStatus.error;
+      _lastMessage = P2pSyncService.formatUserFriendlyErrorMessage(e);
+      notifyListeners();
+      return SyncResult(success: false, errorMessage: _lastMessage);
     }
-    _status = SyncStatus.error;
-    _lastMessage = lastFailure?.errorMessage ?? 'Sync failed';
-    notifyListeners();
-    return lastFailure ?? SyncResult(success: false, errorMessage: _lastMessage);
   }
 
   Future<SyncResult> syncBiDirectional({String? targetIp, Function()? onCompleted}) {

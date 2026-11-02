@@ -199,5 +199,20 @@
   "intensityHeavy": "重度",
   "startDateAfterEndDate": "开始日期不能晚于结束日期",
   "overlapDetectedTitle": "检测到日期重叠",
-  "overlapDetectedMessage": "所选日期与现有记录重叠，请调整日期。"
+  "overlapDetectedMessage": "所选日期与现有记录重叠，请调整日期。",
+  "notesMovedToTrash": "{count, plural, =1{笔记已移至回收站} other{{count} 条笔记已移至回收站}}",
+  "lockedNoteDescription": "此笔记受密码或生物识别保护。",
+  "unlockNote": "解锁笔记",
+  "timeJustNow": "刚刚",
+  "timeMinutesAgo": "{minutes} 分钟前",
+  "timeHoursAgo": "{hours} 小时前",
+  "appLockSubtitle": "需要身份验证才能访问内容",
+  "appLockAuthReason": "请验证身份以访问应用",
+  "appLockNoCredentials": "此设备未设置屏幕锁定或生物识别。",
+  "appLockAuthFailed": "身份验证失败，请重试。",
+  "disableAppLock": "停用应用锁",
+  "autoLockTimeoutTitle": "自动锁定超时",
+  "timeoutImmediately": "立即",
+  "timeoutSeconds": "{seconds} 秒",
+  "timeoutMinutes": "{minutes} 分钟"
 }

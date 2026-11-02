@@ -7,6 +7,7 @@ import '../../../../core/ui/app_dialog.dart';
 import '../../../../core/ui/expressive_shape_morph_indicator.dart';
 import '../../../../data/transaction_model.dart';
 import '../../data/transaction_repository.dart';
+import '../screens/financial_manager_screen.dart';
 
 class FinancialTrashSheet extends StatefulWidget {
   const FinancialTrashSheet({super.key});
@@ -115,6 +116,7 @@ class _FinancialTrashSheetState extends State<FinancialTrashSheet> {
                 );
                 if (confirm == true && mounted) {
                   await TransactionRepository.instance.emptyTrash();
+                  FinancialManagerScreen.refreshNotifier.value++;
                   await _loadTrashed();
                 }
               },
@@ -210,6 +212,7 @@ class _FinancialTrashSheetState extends State<FinancialTrashSheet> {
                                     });
                                     // 2. Persist in background
                                     await TransactionRepository.instance.restoreTransaction(txn.id!);
+                                    FinancialManagerScreen.refreshNotifier.value++;
                                     await _loadTrashed(showLoading: false);
                                   }
                                 },
@@ -250,6 +253,7 @@ class _FinancialTrashSheetState extends State<FinancialTrashSheet> {
                                     });
                                     // 2. Persist in background
                                     await TransactionRepository.instance.permanentlyDeleteTransaction(txn.id!);
+                                    FinancialManagerScreen.refreshNotifier.value++;
                                     await _loadTrashed(showLoading: false);
                                   }
                                 },

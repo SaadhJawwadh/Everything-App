@@ -21,6 +21,7 @@ import 'dart:io';
 import 'package:any_link_preview/any_link_preview.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:intl/intl.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../services/local_ai_service.dart';
 import '../../../../services/notification_service.dart';
 import 'package:note_taking_app/features/notes/providers/note_provider.dart';
@@ -457,7 +458,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           if ((clampedTarget - currentScroll).abs() > 2.0) {
             _scrollController.animateTo(
               clampedTarget,
-              duration: const Duration(milliseconds: 180),
+              duration: AppLayout.animFast,
               curve: Curves.easeOutCubic,
             );
           }
@@ -781,7 +782,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   @override
   void dispose() {
     _titleController.removeListener(_onContentChanged);
-    _quillController.removeListener(_onContentChanged);
     _quillController.removeListener(_onSelectionChanged);
     _docSubscription?.cancel();
     _debounce?.cancel();
@@ -1140,8 +1140,13 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   void _jumpToMatch(int offset, int length) {
+    final docLen = _quillController.document.length;
+    if (docLen <= 0) return;
+    final maxOffset = docLen - 1;
+    final clampedBase = offset.clamp(0, maxOffset);
+    final clampedExtent = (offset + length).clamp(0, maxOffset);
     _quillController.updateSelection(
-      TextSelection(baseOffset: offset, extentOffset: offset + length),
+      TextSelection(baseOffset: clampedBase, extentOffset: clampedExtent),
       ChangeSource.local,
     );
   }
@@ -1666,12 +1671,19 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               TweenAnimationBuilder<double>(
-                                duration: const Duration(milliseconds: 600),
+                                // Ease-out entrance from 0.92 + fade — never from scale(0).
+                                duration: AppLayout.shouldReduceMotion(context)
+                                    ? Duration.zero
+                                    : AppLayout.animShort,
+                                curve: AppLayout.curveStrongEaseOut,
                                 tween: Tween(begin: 0.0, end: 1.0),
                                 builder: (context, value, child) {
                                   return Transform.scale(
-                                    scale: value,
-                                    child: child,
+                                    scale: 0.92 + (0.08 * value),
+                                    child: Opacity(
+                                      opacity: value,
+                                      child: child,
+                                    ),
                                   );
                                 },
                                 child: Container(
@@ -1685,14 +1697,15 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                               ),
                               const SizedBox(height: 24),
                               Text(
-                                'Note Locked',
+                                AppLocalizations.of(context)?.lockedNote ?? 'Locked note',
                                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'This note is protected with a password or biometrics.',
+                                AppLocalizations.of(context)?.lockedNoteDescription ??
+                                    'This note is protected with a password or biometrics.',
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                   color: cs.onSurfaceVariant,
@@ -1702,7 +1715,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                               FilledButton.icon(
                                 onPressed: _authenticateForLockedNote,
                                 icon: const Icon(Icons.fingerprint),
-                                label: const Text('Unlock Note'),
+                                label: Text(AppLocalizations.of(context)?.unlockNote ?? 'Unlock Note'),
                                 style: FilledButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                                   shape: const StadiumBorder(),
@@ -1839,7 +1852,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                             onTap: _toggleCaseSensitive,
                                             borderRadius: BorderRadius.circular(AppLayout.radiusS),
                                             child: AnimatedContainer(
-                                              duration: const Duration(milliseconds: 150),
+                                              duration: AppLayout.animMicro,
                                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                               decoration: BoxDecoration(
                                                 color: _isCaseSensitive
@@ -1868,7 +1881,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                         const SizedBox(width: 4),
                                         if (_searchController.text.isNotEmpty)
                                           AnimatedContainer(
-                                            duration: const Duration(milliseconds: 150),
+                                            duration: AppLayout.animMicro,
                                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                             margin: const EdgeInsets.symmetric(horizontal: 2),
                                             decoration: BoxDecoration(

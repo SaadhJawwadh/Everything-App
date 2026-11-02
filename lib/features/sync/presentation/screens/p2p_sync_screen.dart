@@ -17,6 +17,7 @@ import 'package:note_taking_app/features/finances/providers/financial_manager_pr
 import 'package:note_taking_app/features/health/providers/period_tracker_provider.dart';
 import 'package:note_taking_app/screens/app_lock_screen.dart';
 import 'package:note_taking_app/services/backup_service.dart';
+import 'package:note_taking_app/services/p2p_sync_service.dart';
 import 'package:note_taking_app/features/sync/providers/p2p_sync_provider.dart';
 import 'package:note_taking_app/features/sync/data/p2p_pairing_model.dart';
 import 'package:note_taking_app/features/sync/presentation/widgets/qr_scanner_dialog.dart';
@@ -37,6 +38,16 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
   int _scannedTargetPort = 8765;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<P2pSyncProvider>().refreshDiagnostics();
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _pairCodeController.dispose();
     _deviceNameController.dispose();
@@ -44,141 +55,234 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
     super.dispose();
   }
 
-  void _showPairDeviceDialog(BuildContext context, P2pSyncProvider syncProvider) {
+  void _showPairDeviceDialog(BuildContext context, P2pSyncProvider syncProvider, {DiscoveredPeer? initialPeer}) {
+    if (initialPeer != null) {
+      _deviceNameController.text = initialPeer.deviceName;
+      _targetIpController.text = initialPeer.ipAddress;
+      _scannedDeviceId = initialPeer.deviceId;
+      _scannedTargetPort = initialPeer.port;
+    }
+
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (dialogCtx) {
-        return AppDialog(
-          title: 'Pair New Device',
-          confirmLabel: 'Pair & Sync Device',
-          onConfirm: () async {
-            final code = _pairCodeController.text.trim();
-            final name = _deviceNameController.text.trim();
-            final ip = _targetIpController.text.trim();
-            if (code.length == 6 && ip.isNotEmpty) {
-              final noteProvider = Provider.of<NoteProvider>(context, listen: false);
-              try {
-                await syncProvider.pairNewDevice(
-                  deviceName: name.isEmpty ? PairedDevice.generateRandomName() : name,
-                  pairCode: code,
-                  targetIp: ip,
-                  targetPort: _scannedTargetPort,
-                  remoteDeviceId: _scannedDeviceId,
-                  role: 'PEER',
-                );
-                await syncProvider.syncBiDirectional(
-                  targetIp: ip,
-                  onCompleted: () {
-                    noteProvider.refreshNotes();
-                  },
-                );
-                _pairCodeController.clear();
-                _deviceNameController.clear();
-                _targetIpController.clear();
-                _scannedDeviceId = null;
-                _scannedTargetPort = 8765;
-                if (dialogCtx.mounted) Navigator.pop(dialogCtx);
-              } catch (_) {
-                // Handled via syncProvider status & lastMessage state
-              }
-            }
-          },
-          content: StatefulBuilder(
-            builder: (context, setDialogState) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Scan the Primary device QR code to auto-detect IP and pair code in 1 tap.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                  const SizedBox(height: AppLayout.spaceM),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: FilledButton.icon(
-                      onPressed: () async {
-                        AppLockScreen.ignoreNextResumeLock();
-                        final scanned = await Navigator.push<String>(
-                          context,
-                          MaterialPageRoute(builder: (_) => const QrScannerScreen()),
-                        );
-                        if (scanned != null && scanned.isNotEmpty) {
-                          try {
-                            final map = json.decode(scanned) as Map<String, dynamic>;
+        bool isPairing = false;
+        String? errorMessage;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final theme = Theme.of(context);
+            final colorScheme = theme.colorScheme;
+
+            return AppDialog(
+              title: 'Pair New Device',
+              showConfirmButton: false,
+              actions: [
+                TextButton(
+                  onPressed: isPairing ? null : () => Navigator.pop(dialogCtx),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: isPairing
+                      ? null
+                      : () async {
+                          final code = _pairCodeController.text.trim();
+                          final name = _deviceNameController.text.trim();
+                          final ip = _targetIpController.text.trim();
+                          if (code.length == 6 && ip.isNotEmpty) {
                             setDialogState(() {
-                              _pairCodeController.text = map['code']?.toString() ?? scanned;
-                              if (map['ip'] != null) _targetIpController.text = map['ip'].toString();
-                              if (map['name'] != null) _deviceNameController.text = map['name'].toString();
-                                _scannedDeviceId = map['deviceId']?.toString();
-                                _scannedTargetPort = map['port'] is int
-                                  ? map['port'] as int
-                                  : int.tryParse('${map['port']}') ?? 8765;
+                              isPairing = true;
+                              errorMessage = null;
                             });
-                          } catch (_) {
+
+                            final noteProvider = Provider.of<NoteProvider>(context, listen: false);
+                            final finProvider = Provider.of<FinancialManagerProvider>(context, listen: false);
+                            final healthProvider = Provider.of<PeriodTrackerProvider>(context, listen: false);
+                            try {
+                              await syncProvider.pairNewDevice(
+                                deviceName: name.isEmpty ? PairedDevice.generateRandomName() : name,
+                                pairCode: code,
+                                targetIp: ip,
+                                targetPort: _scannedTargetPort,
+                                remoteDeviceId: _scannedDeviceId,
+                                role: 'PEER',
+                              );
+                              await syncProvider.syncBiDirectional(
+                                targetIp: ip,
+                                onCompleted: () {
+                                  noteProvider.refreshNotes();
+                                  finProvider.refresh();
+                                  healthProvider.loadData();
+                                },
+                              );
+                              _pairCodeController.clear();
+                              _deviceNameController.clear();
+                              _targetIpController.clear();
+                              _scannedDeviceId = null;
+                              _scannedTargetPort = 8765;
+                              if (dialogCtx.mounted) Navigator.pop(dialogCtx);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Successfully paired with ${name.isEmpty ? ip : name}!'),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              setDialogState(() {
+                                isPairing = false;
+                                errorMessage = P2pSyncService.formatUserFriendlyErrorMessage(e, ip);
+                              });
+                            }
+                          } else {
                             setDialogState(() {
-                              _pairCodeController.text = scanned;
+                              errorMessage = 'Please enter a valid IP address and 6-digit pair code.';
                             });
                           }
-                        }
-                      },
-                      icon: const Icon(Icons.qr_code_scanner_rounded),
-                      label: const Text('Scan QR Code', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                  const SizedBox(height: AppLayout.spaceL),
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: AppLayout.spaceXS),
-                      child: Text(
-                        'OR ENTER MANUAL IP & CODE',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.outline,
+                        },
+                  child: isPairing
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(colorScheme.onPrimary),
+                          ),
+                        )
+                      : const Text('Pair & Sync Device'),
+                ),
+              ],
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (errorMessage != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(AppLayout.spaceS + 2),
+                        margin: const EdgeInsets.only(bottom: AppLayout.spaceM),
+                        decoration: BoxDecoration(
+                          color: colorScheme.errorContainer.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(AppLayout.radiusM),
+                          border: Border.all(color: colorScheme.error.withValues(alpha: 0.4)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.error_outline_rounded, color: colorScheme.error, size: 20),
+                            const SizedBox(width: AppLayout.spaceS),
+                            Expanded(
+                              child: Text(
+                                errorMessage!,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onErrorContainer,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    Text(
+                      'Scan the Primary device QR code to auto-detect IP and pair code in 1 tap.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                    const SizedBox(height: AppLayout.spaceM),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: FilledButton.icon(
+                        onPressed: isPairing
+                            ? null
+                            : () async {
+                                AppLockScreen.ignoreNextResumeLock();
+                                final scanned = await Navigator.push<String>(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const QrScannerScreen()),
+                                );
+                                if (scanned != null && scanned.isNotEmpty) {
+                                  try {
+                                    final map = json.decode(scanned) as Map<String, dynamic>;
+                                    setDialogState(() {
+                                      _pairCodeController.text = map['code']?.toString() ?? scanned;
+                                      if (map['ip'] != null) _targetIpController.text = map['ip'].toString();
+                                      if (map['name'] != null) _deviceNameController.text = map['name'].toString();
+                                      _scannedDeviceId = map['deviceId']?.toString();
+                                      _scannedTargetPort = map['port'] is int
+                                          ? map['port'] as int
+                                          : int.tryParse('${map['port']}') ?? 8765;
+                                    });
+                                  } catch (_) {
+                                    setDialogState(() {
+                                      _pairCodeController.text = scanned;
+                                    });
+                                  }
+                                }
+                              },
+                        icon: const Icon(Icons.qr_code_scanner_rounded),
+                        label: const Text('Scan QR Code', style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: AppLayout.spaceM),
-                  TextField(
-                    controller: _targetIpController,
-                    keyboardType: TextInputType.datetime,
-                    decoration: const InputDecoration(
-                      labelText: 'Primary IP Address (e.g. 192.168.1.15)',
-                      prefixIcon: Icon(Icons.wifi_rounded),
+                    const SizedBox(height: AppLayout.spaceL),
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: AppLayout.spaceXS),
+                        child: Text(
+                          'OR ENTER MANUAL IP & CODE',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.outline,
+                              ),
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppLayout.spaceS),
-                  TextField(
-                    controller: _pairCodeController,
-                    keyboardType: TextInputType.number,
-                    maxLength: 6,
-                    decoration: const InputDecoration(
-                      labelText: '6-Digit Pair Code',
-                      prefixIcon: Icon(Icons.key_outlined),
+                    const SizedBox(height: AppLayout.spaceM),
+                    TextField(
+                      controller: _targetIpController,
+                      enabled: !isPairing,
+                      keyboardType: TextInputType.datetime,
+                      decoration: const InputDecoration(
+                        labelText: 'Primary IP Address (e.g. 192.168.1.15)',
+                        prefixIcon: Icon(Icons.wifi_rounded),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppLayout.spaceS),
-                  TextField(
-                    controller: _deviceNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Device Name (Optional)',
-                      prefixIcon: Icon(Icons.devices_outlined),
+                    const SizedBox(height: AppLayout.spaceS),
+                    TextField(
+                      controller: _pairCodeController,
+                      enabled: !isPairing,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      decoration: const InputDecoration(
+                        labelText: '6-Digit Pair Code',
+                        prefixIcon: Icon(Icons.key_outlined),
+                      ),
                     ),
-                  ),
-                ],
-              );
-            },
-          ),
+                    const SizedBox(height: AppLayout.spaceS),
+                    TextField(
+                      controller: _deviceNameController,
+                      enabled: !isPairing,
+                      decoration: const InputDecoration(
+                        labelText: 'Device Name (Optional)',
+                        prefixIcon: Icon(Icons.devices_outlined),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );
   }
 
-  void _showQrCodeModal(BuildContext context, P2pSyncProvider provider) {
+  Future<void> _showQrCodeModal(BuildContext context, P2pSyncProvider provider) async {
+    await provider.refreshDiagnostics();
+    if (!context.mounted) return;
     final qrData = json.encode({
       'version': 2,
       'role': 'PRIMARY',
@@ -189,7 +293,7 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
       'port': 8765,
     });
 
-    AppBottomSheet.show(
+    await AppBottomSheet.show(
       context: context,
       title: 'Primary Host QR Code',
       child: SingleChildScrollView(
@@ -683,6 +787,97 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                     ),
 
                     const SizedBox(height: AppLayout.spaceL),
+
+                    // Discovered Nearby Devices (via UDP Radio Beacon)
+                    Builder(
+                      builder: (context) {
+                        final nearbyPeers = syncProvider.discoveredPeers.where((p) =>
+                            !syncProvider.pairedDevices.any((d) => d.deviceId == p.deviceId)
+                        ).toList();
+
+                        if (nearbyPeers.isEmpty) return const SizedBox.shrink();
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.radar_rounded, size: 20, color: colorScheme.primary),
+                                    const SizedBox(width: AppLayout.spaceS),
+                                    Text(
+                                      'Nearby Devices (${nearbyPeers.length})',
+                                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                                const AppChip(
+                                  label: 'Discovered',
+                                  isSelected: true,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppLayout.spaceS),
+                            ...List.generate(nearbyPeers.length, (idx) {
+                              final peer = nearbyPeers[idx];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: AppLayout.spaceS),
+                                child: AppCard(
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(AppLayout.radiusM),
+                                    onTap: () => _showPairDeviceDialog(context, syncProvider, initialPeer: peer),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(AppLayout.spaceS),
+                                          decoration: BoxDecoration(
+                                            color: colorScheme.primaryContainer,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(Icons.wifi_tethering_rounded, color: colorScheme.onPrimaryContainer),
+                                        ),
+                                        const SizedBox(width: AppLayout.spaceM),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                peer.deviceName,
+                                                style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                '${peer.ipAddress}:${peer.port} • Ready to Pair',
+                                                style: theme.textTheme.bodySmall?.copyWith(
+                                                  color: colorScheme.onSurfaceVariant,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        FilledButton.tonal(
+                                          onPressed: () => _showPairDeviceDialog(context, syncProvider, initialPeer: peer),
+                                          style: FilledButton.styleFrom(
+                                            visualDensity: VisualDensity.compact,
+                                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                                          ),
+                                          child: const Text('Pair'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                            const SizedBox(height: AppLayout.spaceM),
+                          ],
+                        );
+                      },
+                    ),
 
                     // Paired Devices List Section
                     Row(

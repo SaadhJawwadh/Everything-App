@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
@@ -42,8 +41,6 @@ class MinimalChartDeck extends StatefulWidget {
 class _MinimalChartDeckState extends State<MinimalChartDeck> {
   int _currentPage = 0;
   late final PageController _pageController;
-  Timer? _autoCycleTimer;
-  bool _userInteracted = false;
   int? _lastTouchedSpotIndex;
   int? _lastTouchedPieIndex;
 
@@ -55,38 +52,10 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
   void initState() {
     super.initState();
     _pageController = PageController();
-    _startAutoCycleTimer();
-  }
-
-  void _startAutoCycleTimer() {
-    _autoCycleTimer?.cancel();
-    if (_userInteracted) return;
-    _autoCycleTimer =
-        Timer.periodic(const Duration(milliseconds: 6000), (timer) {
-      if (!mounted || _userInteracted || !_pageController.hasClients) {
-        timer.cancel();
-        return;
-      }
-      if (AppLayout.shouldReduceMotion(context)) return;
-      final nextPage = (_currentPage + 1) % _pageCount;
-      _pageController.animateToPage(
-        nextPage,
-        duration: AppLayout.animDefault,
-        curve: AppLayout.curveStrongEaseInOut,
-      );
-    });
-  }
-
-  void _pauseAutoCycle({bool userAction = true}) {
-    if (userAction) {
-      _userInteracted = true;
-    }
-    _autoCycleTimer?.cancel();
   }
 
   @override
   void dispose() {
-    _autoCycleTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
@@ -186,27 +155,24 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
           ),
           const SizedBox(height: 8),
 
-          // Swipable Visual Chart Area with Auto-Cycle Touch-Freeze
-          Listener(
-            onPointerDown: (_) => _pauseAutoCycle(userAction: true),
-            child: GestureDetector(
-              onTap: _handleDetailsTap,
-              child: SizedBox(
-                height: 125,
-                child: PageView(
-                  controller: _pageController,
-                  physics: const BouncingScrollPhysics(),
-                  onPageChanged: (page) {
-                    setState(() => _currentPage = page);
-                  },
-                  children: [
-                    _buildTrajectorySlide(colorScheme, textTheme),
-                    _buildDonutSlide(colorScheme, textTheme),
-                    if (_hasBudget)
-                      _buildBudgetPaceSlide(
-                          colorScheme, textTheme, widget.forecast!),
-                  ],
-                ),
+          // Swipable Visual Chart Area
+          GestureDetector(
+            onTap: _handleDetailsTap,
+            child: SizedBox(
+              height: 125,
+              child: PageView(
+                controller: _pageController,
+                physics: const BouncingScrollPhysics(),
+                onPageChanged: (page) {
+                  setState(() => _currentPage = page);
+                },
+                children: [
+                  _buildTrajectorySlide(colorScheme, textTheme),
+                  _buildDonutSlide(colorScheme, textTheme),
+                  if (_hasBudget)
+                    _buildBudgetPaceSlide(
+                        colorScheme, textTheme, widget.forecast!),
+                ],
               ),
             ),
           ),
@@ -229,7 +195,6 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
-                      _pauseAutoCycle(userAction: true);
                       _pageController.animateToPage(
                         index,
                         duration: AppLayout.animModal,

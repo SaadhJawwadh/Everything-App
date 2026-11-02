@@ -103,7 +103,7 @@ class FinanceDateRangeSheet extends StatelessWidget {
         },
         borderRadius: BorderRadius.circular(AppLayout.radiusM),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: AppLayout.animFast,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
             color: isSelected

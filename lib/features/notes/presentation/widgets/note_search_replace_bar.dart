@@ -76,7 +76,7 @@ class NoteSearchReplaceBar extends StatelessWidget {
                 onTap: onToggleCaseSensitive,
                 borderRadius: BorderRadius.circular(AppLayout.radiusS),
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
+                  duration: AppLayout.animMicro,
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: isCaseSensitive
@@ -105,7 +105,7 @@ class NoteSearchReplaceBar extends StatelessWidget {
             const SizedBox(width: 4),
             if (searchController.text.isNotEmpty)
               AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
+                duration: AppLayout.animMicro,
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 margin: const EdgeInsets.symmetric(horizontal: 2),
                 decoration: BoxDecoration(

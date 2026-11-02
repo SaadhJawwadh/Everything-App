@@ -611,6 +611,19 @@ class SmsService {
         },
       );
 
+      if (_cancelRequested) {
+        debugPrint('[SmsService] Sync cancelled, skipping completion update');
+        _syncProgressController.add(SmsSyncProgress(
+          isSyncing: false,
+          scanned: 0,
+          total: 0,
+          found: count,
+          alreadyImported: currentAlreadyImported,
+          message: 'Sync cancelled by user',
+        ));
+        return count;
+      }
+
       final now = DateTime.now();
       await prefs.setString('lastSmsSyncTime', now.toIso8601String());
       await prefs.setInt('lastSmsSyncCount', count);

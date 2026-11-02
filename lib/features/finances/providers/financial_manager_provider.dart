@@ -189,8 +189,10 @@ class FinancialManagerProvider extends ChangeNotifier {
       account: toAccount,
     );
 
-    await _repository.createTransaction(withdrawal);
-    await _repository.createTransaction(deposit);
+    await _repository.createTransferTransactions(
+      withdrawal: withdrawal,
+      deposit: deposit,
+    );
     await loadTransactions();
     FinancialManagerScreen.refreshNotifier.value++;
   }
