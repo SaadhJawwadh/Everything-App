@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:encrypt/encrypt.dart' as enc;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +12,7 @@ import 'package:note_taking_app/features/notes/data/note_repository.dart';
 import 'package:note_taking_app/screens/app_lock_screen.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
 import 'package:note_taking_app/services/backup_service.dart';
+import 'package:note_taking_app/services/sync_crypto_service.dart';
 import 'package:note_taking_app/services/sync_merge_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,7 +32,7 @@ void main() {
   setUp(() async {
     db = await openDatabase(
       inMemoryDatabasePath,
-      version: 25,
+      version: 26,
       onCreate: (db, version) async {
         await DatabaseHelper.instance.createTestDatabase(db);
       },
@@ -395,6 +398,217 @@ void main() {
       expect(txns.first['account'], 'savings');
       expect(txns.first['isAiRefined'], 1);
       expect(txns.first['description'], 'Coffee Shop Premium');
+    });
+  });
+
+  group('DatabaseHelper: KeyStore Resilience & Anti-Wipe Guardrail', () {
+    test('SecureStorageKeyMissingException formats correctly and preserves message', () {
+      const defaultException = SecureStorageKeyMissingException();
+      expect(defaultException.toString(), contains('Database file exists on disk'));
+      expect(defaultException.toString(), contains('SecureStorageKeyMissingException:'));
+
+      const customException = SecureStorageKeyMissingException('Custom Keystore Error');
+      expect(customException.toString(), 'SecureStorageKeyMissingException: Custom Keystore Error');
+      expect(customException.message, 'Custom Keystore Error');
+    });
+
+    test('DatabaseAuthException formats correctly and preserves message', () {
+      const defaultAuthException = DatabaseAuthException();
+      expect(defaultAuthException.toString(), contains('Database authentication failed'));
+      expect(defaultAuthException.toString(), contains('DatabaseAuthException:'));
+
+      const customAuthException = DatabaseAuthException('Wrong SQLCipher password');
+      expect(customAuthException.toString(), 'DatabaseAuthException: Wrong SQLCipher password');
+      expect(customAuthException.message, 'Wrong SQLCipher password');
+    });
+  });
+
+  group('SyncCryptoService: PBKDF2 Key Derivation & P2P Transport Hardening', () {
+    test('deriveKey produces stable 256-bit AES key with PBKDF2 and caches results', () {
+      final crypto = SyncCryptoService.instance;
+      final key1 = crypto.deriveKey('123456');
+      final key2 = crypto.deriveKey('123456');
+
+      expect(key1.bytes.length, 32);
+      expect(identical(key1, key2), isTrue, reason: 'Subsequent calls should hit the key derivation cache');
+
+      final keyDiff = crypto.deriveKey('654321');
+      expect(keyDiff.bytes, isNot(equals(key1.bytes)));
+    });
+
+    test('encryptPayload and decryptPayload round-trip successfully with PBKDF2', () {
+      final crypto = SyncCryptoService.instance;
+      const originalPayload = '{"action":"ping","timestamp":1700000000}';
+      const secret = '987654';
+
+      final encrypted = crypto.encryptPayload(originalPayload, secret);
+      expect(encrypted, isNotNull);
+      expect(encrypted, isNotEmpty);
+
+      final decrypted = crypto.decryptPayload(encrypted!, secret);
+      expect(decrypted, originalPayload);
+
+      final wrongKeyAttempt = crypto.decryptPayload(encrypted, '000000');
+      expect(wrongKeyAttempt, isNull, reason: 'Wrong secret key must fail decryption');
+    });
+
+    test('decryptPayload seamlessly decrypts legacy single-round SHA-256 payload (v1 backward compatibility)', () {
+      final crypto = SyncCryptoService.instance;
+      const secret = '555555';
+      const originalPayload = '{"type":"legacy_note","content":"Hello world"}';
+
+      // Manually construct legacy encrypted payload using deriveLegacyKey
+      final legacyKey = crypto.deriveLegacyKey(secret);
+      final iv = enc.IV.fromLength(16);
+      final encrypter = enc.Encrypter(enc.AES(legacyKey, mode: enc.AESMode.cbc));
+      final encryptedData = encrypter.encrypt(originalPayload, iv: iv);
+      final legacyJson = json.encode({
+        'iv': iv.base64,
+        'data': encryptedData.base64,
+      });
+      final legacyBase64Payload = base64.encode(utf8.encode(legacyJson));
+
+      // Decrypt using standard decryptPayload
+      final decrypted = crypto.decryptPayload(legacyBase64Payload, secret);
+      expect(decrypted, originalPayload, reason: 'Legacy payloads must decrypt cleanly via fallback');
+    });
+  });
+
+  group('SyncMergeService: Transaction LWW & UUID Duplication Guard', () {
+    test('Merging updated manual transaction with matching UUID updates in place with 0 duplicates', () async {
+      final now = DateTime.now();
+      const txUuid = 'tx-uuid-12345';
+
+      // 1. Insert local manual transaction
+      final localTx = TransactionModel(
+        amount: 25.0,
+        description: 'Team Lunch',
+        date: now,
+        category: 'Food & Drinks',
+        account: AccountType.daily,
+        uuid: txUuid,
+        dateModified: now,
+      );
+      final inserted = await transactionRepo.createTransaction(localTx);
+      expect(inserted.id, isNotNull);
+
+      // Verify 1 local transaction
+      final initialRows = await db.query('transactions');
+      expect(initialRows.length, 1);
+      expect(initialRows.first['description'], 'Team Lunch');
+
+      // 2. Peer updates transaction description and adds 10 minutes to dateModified
+      final remoteUpdatedTime = now.add(const Duration(minutes: 10));
+      final remoteData = {
+        'transactions': [
+          {
+            'uuid': txUuid,
+            'amount': 30.0,
+            'description': 'Team Lunch Buffet',
+            'date': now.toIso8601String(),
+            'isExpense': 1,
+            'category': 'Food & Drinks',
+            'account': 'daily',
+            'isAiRefined': 0,
+            'dateModified': remoteUpdatedTime.toIso8601String(),
+          }
+        ]
+      };
+
+      // 3. Merge remote data
+      final result = await SyncMergeService.instance.mergeRemoteData(remoteData);
+      expect(result.transactionsMerged, 1);
+
+      // 4. Assert local transaction was updated in place with zero duplicate records
+      final finalRows = await db.query('transactions');
+      expect(finalRows.length, 1, reason: 'Must not create duplicate rows when manual transaction details are edited');
+      expect(finalRows.first['description'], 'Team Lunch Buffet');
+      expect(finalRows.first['amount'], 30.0);
+      expect(finalRows.first['uuid'], txUuid);
+    });
+
+    test('Merging soft-deleted remote transaction soft-deletes local transaction', () async {
+      final now = DateTime.now();
+      const txUuid = 'tx-uuid-to-delete';
+
+      final localTx = TransactionModel(
+        amount: 100.0,
+        description: 'Subscription',
+        date: now,
+        category: 'Entertainment',
+        uuid: txUuid,
+        dateModified: now,
+      );
+      await transactionRepo.createTransaction(localTx);
+
+      final deleteTime = now.add(const Duration(minutes: 5));
+      final remoteData = {
+        'transactions': [
+          {
+            'uuid': txUuid,
+            'amount': 100.0,
+            'description': 'Subscription',
+            'date': now.toIso8601String(),
+            'isExpense': 1,
+            'category': 'Entertainment',
+            'account': 'daily',
+            'isAiRefined': 0,
+            'deletedAt': deleteTime.toIso8601String(),
+            'dateModified': deleteTime.toIso8601String(),
+          }
+        ]
+      };
+
+      final result = await SyncMergeService.instance.mergeRemoteData(remoteData);
+      expect(result.transactionsMerged, 1);
+
+      final finalRows = await db.query('transactions');
+      expect(finalRows.length, 1);
+      expect(finalRows.first['deletedAt'], deleteTime.toIso8601String());
+    });
+  });
+
+  group('BackupService: AES-256 Encryption & Decryption Container', () {
+    test('encryptBackupJson generates AES-256 container with no plaintext data', () {
+      const rawJson = '{"notes": [{"title": "Confidential Note", "content": "Secret Information"}], "version": 11}';
+      const passphrase = 'SuperSecretBackupPassword123!';
+
+      final encryptedOutput = BackupService.encryptBackupJson(rawJson, passphrase);
+      final container = json.decode(encryptedOutput) as Map<String, dynamic>;
+
+      expect(container['version'], 2);
+      expect(container['encrypted'], isTrue);
+      expect(container['salt'], isNotNull);
+      expect(container['iv'], isNotNull);
+      expect(container['ciphertext'], isNotNull);
+
+      // Ciphertext and JSON container must NOT leak plain text
+      expect(encryptedOutput.contains('Confidential Note'), isFalse);
+      expect(encryptedOutput.contains('Secret Information'), isFalse);
+    });
+
+    test('decryptBackupJson successfully round-trips encrypted backup with correct passphrase', () {
+      const rawJson = '{"notes": [{"title": "My Note", "content": "Important Text"}], "version": 11}';
+      const passphrase = 'MyCorrectPassphrase456!';
+
+      final encryptedOutput = BackupService.encryptBackupJson(rawJson, passphrase);
+      final container = json.decode(encryptedOutput) as Map<String, dynamic>;
+
+      final decrypted = BackupService.decryptBackupJson(container, passphrase);
+      expect(decrypted, rawJson);
+    });
+
+    test('decryptBackupJson fails with incorrect passphrase', () {
+      const rawJson = '{"notes": [], "version": 11}';
+      const passphrase = 'ValidPassword';
+
+      final encryptedOutput = BackupService.encryptBackupJson(rawJson, passphrase);
+      final container = json.decode(encryptedOutput) as Map<String, dynamic>;
+
+      expect(
+        () => BackupService.decryptBackupJson(container, 'WrongPassword'),
+        throwsA(anything),
+      );
     });
   });
 }

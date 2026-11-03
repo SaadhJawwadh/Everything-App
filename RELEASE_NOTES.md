@@ -1,18 +1,17 @@
 
 ### 🌟 What's New
-- **Zero-Cloud P2P Device Sync Engine Hardening**: Ultra-resilient local Wi-Fi pairing and synchronization with multi-network endpoint resolution, non-destructive Last-Write-Wins (LWW) delta merge, soft-delete preservation, and dynamic port fallbacks.
-- **Hardened App Lock & Local-First Security**: Back-navigation protection with `PopScope(canPop: false)` and `SystemNavigator.pop()`, native biometric and device PIN/pattern fallback, authentication-protected App Lock toggling, and emergency lockout protection.
-- **Atomic Vault Transfers & Cash-Flow Isolation**: Added double-entry atomic account transfers between Daily Operating and Savings Vault accounts, properly excluding internal transfers from monthly and all-time income and expense totals.
+- **SQLite Database Schema v26**: Automatic migration with persistent UUID and millisecond modified timestamp tracking for frictionless multi-device synchronization.
+- **Resilient Version 2 Encrypted Backups**: AES-256-CBC authenticated backups with automated rolling pre-restore safety snapshots.
+- **Hardware-Hardened KeyStore Encryption**: Exponential backoff and retry guardrails preventing transient startup cryptographic lockouts.
 
 ### 🚀 Improvements
-- **Calm Technology Metric Charts (Invariant 1)**: Removed intrusive auto-cycling timers from the Financial Ledger chart deck; metrics remain calm, static, and predictable with smooth user swipe and indicator dot navigation.
-- **Precision Plain-Text Note Search**: Note searches strictly target rendered text and plain-text snippets, preventing false-positive matches on raw Quill Delta JSON syntax.
-- **Interactive P2P Host & Client UI Reactivity**: Inbound Wi-Fi sync immediately signals and refreshes active ledger streams, savings goals, and notes on host and client devices without restarting the app.
-- **Full-Scope P2P Accounting**: `SyncMergeResult` now tracks and reports merged split bills and savings goals alongside notes, transactions, and period logs.
+- **Modular Note Editor Architecture**: Decomposed note editing pipeline into focused sub-widgets, delivering responsive editing with zero main-thread lag.
+- **Centralized Financial State**: Unified financial state management and chunked background SMS syncing under FinancialManagerProvider.
+- **Instant Unified Settings Search**: 0ms index-based search across all preferences, security tools, and configurations.
+- **Memory-Efficient Note Images**: Proactive 1080p memory downsampling protecting low-memory devices against OOM during intensive editing.
+- **R8 Full-Mode Tree-Shaking**: Clean ProGuard hygiene enabling advanced Android release optimizations.
 
 ### 🐛 Fixes
-- **Relational Backup & Restore Integrity**: Ensured `savings_goals` and `deleted_period_logs` are cleanly wiped before restore with child-first foreign key deletion ordering.
-- **SMS Sync Cancellation Banner**: Cancelling an in-progress SMS scan immediately updates UI banners and prevents advancing `lastSmsSyncTime` so unimported message ranges are preserved.
-- **Note Editor Selection Range Clamping**: Search jump offsets are clamped to document bounds to eliminate `RangeError` exceptions during active editing.
-- **Reactive Financial Trash Bin**: Restoring or permanently deleting trashed transactions instantly notifies all financial charts, metrics, and ledger views.
+- **Micro Touch Target Accessibility**: Enforced ≥48x48dp touch bounds across financial metric cards and split bill controls.
+- **App Lock Timeout Protection**: 60-second authentication timeout preventing infinite biometric lock loops.
 

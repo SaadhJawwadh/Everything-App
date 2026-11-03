@@ -5,12 +5,9 @@ import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/services/app_haptics.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
-import '../../data/transaction_repository.dart';
-import '../../../../data/repositories/recurring_rule_repository.dart';
 import '../../../../data/transaction_model.dart';
 import '../../../../data/transaction_category.dart';
 import '../../../../services/sms_service.dart';
-import '../../../../services/sms_constants.dart';
 import 'package:note_taking_app/features/finances/presentation/screens/transaction_editor_screen.dart';
 import 'package:note_taking_app/features/finances/presentation/screens/sms_rules_screen.dart';
 import 'package:note_taking_app/features/settings/presentation/screens/settings_screen.dart';
@@ -21,7 +18,6 @@ import 'package:note_taking_app/features/finances/providers/financial_manager_pr
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_dialog.dart';
-import '../../../../core/ui/expressive_wavy_progress.dart';
 
 import '../../../../widgets/bouncing_widget.dart';
 import '../widgets/sms_import_sheet.dart';
@@ -35,6 +31,7 @@ import '../widgets/savings_goal_editor_sheet.dart';
 import '../widgets/split_bills_tab.dart';
 import '../widgets/finance_date_range_sheet.dart';
 import '../widgets/finance_hero_summary_card.dart';
+import '../widgets/finance_sms_sync_banner.dart';
 import '../../services/financial_export_service.dart';
 import '../../services/spending_forecast_service.dart';
 
@@ -52,31 +49,11 @@ class FinancialManagerScreen extends StatefulWidget {
 }
 
 class _FinancialManagerScreenState extends State<FinancialManagerScreen> with WidgetsBindingObserver {
-  DateTimeRange _selectedRange = DateTimeRange(
-    start: DateTime(DateTime.now().year, DateTime.now().month, 1),
-    end: DateTime.now(),
-  );
-  List<TransactionModel> _transactions = [];
-  List<TransactionModel> _allDateFiltered = [];
-  bool _isLoading = true;
-  String? _selectedCategory;
-  String _selectedAccount = 'all'; // 'all', 'daily', 'savings'
-  List<String> _activeCategories = [];
   late String _selectedTab;
-
-  List<Map<String, dynamic>> _monthlyData = [];
-  int _trashedCount = 0;
-
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   int _analyticsSubView = 0; // 0: Breakdown, 1: Budgets
-  String _searchQuery = '';
   bool _isSearching = false;
-
-  StreamSubscription<TransactionModel>? _smsSubscription;
-  StreamSubscription<SmsSyncProgress>? _smsProgressSub;
-  bool _isSmsSyncing = false;
-  SmsSyncProgress? _lastSmsProgress;
 
   @override
   void initState() {
@@ -91,51 +68,9 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
     }
     FinancialManagerScreen.activeTabNotifier.value = _selectedTab;
     FinancialManagerScreen.tabRedirectNotifier.addListener(_handleTabRedirect);
-    FinancialManagerScreen.refreshNotifier.addListener(_handleExternalRefresh);
-    _refreshTransactions(showLoading: true);
-    _smsSubscription = SmsService.incomingTransactions.listen((t) async {
-      if (!mounted) return;
-      await _refreshTransactions();
-    });
-    _smsProgressSub = SmsService.syncProgressStream.listen((progress) {
-      if (!mounted) return;
-      final wasSyncing = _isSmsSyncing;
-      setState(() {
-        _isSmsSyncing = progress.isSyncing;
-        _lastSmsProgress = progress;
-      });
-      if (wasSyncing && !progress.isSyncing) {
-        _refreshTransactions(showLoading: false);
-        if (progress.message != 'Sync cancelled by user') {
-          ScaffoldMessenger.of(context).clearSnackBars();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(
-                    progress.found > 0 ? Icons.check_circle_rounded : Icons.info_outline_rounded,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      progress.found > 0
-                          ? (progress.alreadyImported > 0
-                              ? 'Synced ${progress.found} new transaction${progress.found == 1 ? "" : "s"} (${progress.alreadyImported} already up-to-date)'
-                              : 'Synced ${progress.found} new transaction${progress.found == 1 ? "" : "s"} from the last 24h')
-                          : (progress.alreadyImported > 0
-                              ? 'Up to date • ${progress.alreadyImported} transaction${progress.alreadyImported == 1 ? " was" : "s were"} already imported'
-                              : 'Up to date • No new transactions found in the last 24h'),
-                    ),
-                  ),
-                ],
-              ),
-              behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 3),
-            ),
-          );
-        }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<FinancialManagerProvider>().loadTransactions();
       }
     });
   }
@@ -143,13 +78,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
-      _refreshTransactions();
-    }
-  }
-
-  void _handleExternalRefresh() {
-    if (mounted) {
-      _refreshTransactions();
+      context.read<FinancialManagerProvider>().loadTransactions();
     }
   }
 
@@ -176,127 +105,19 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
     _scrollController.dispose();
     _searchController.dispose();
     FinancialManagerScreen.tabRedirectNotifier.removeListener(_handleTabRedirect);
-    FinancialManagerScreen.refreshNotifier.removeListener(_handleExternalRefresh);
-    _smsSubscription?.cancel();
-    _smsProgressSub?.cancel();
     super.dispose();
   }
 
-  Map<String, double> get _categoryExpenses {
-    final Map<String, double> totals = {};
-    for (final t in _allDateFiltered) {
-      if (t.isExpense && t.category.toLowerCase() != 'transfer') {
-        totals[t.category] = (totals[t.category] ?? 0.0) + t.amount;
-      }
-    }
-    return totals;
-  }
-
-  double get _totalDateExpense {
-    return _allDateFiltered
-        .where((t) => t.isExpense && t.category.toLowerCase() != 'transfer')
-        .fold(0.0, (sum, t) => sum + t.amount);
-  }
-
   Future<void> _refreshTransactions({bool showLoading = false}) async {
-    if (showLoading && _transactions.isEmpty) {
-      setState(() {
-        _isLoading = true;
-      });
-    }
-    // Materialize any recurring transactions that came due since last visit.
-    try {
-      await RecurringRuleRepository.instance.materializeDueRules();
-    } catch (e) {
-      debugPrint('Recurring materialization error: $e');
-    }
-    final allTransactions = await TransactionRepository.instance.readAllTransactions();
-
-    _allDateFiltered = allTransactions.where((t) {
-      // Filter out any orphan reversal sentinels
-      if (t.category == SmsConstants.reversalSentinel) return false;
-      final tDate = DateTime(t.date.year, t.date.month, t.date.day);
-      final start = DateTime(_selectedRange.start.year,
-          _selectedRange.start.month, _selectedRange.start.day);
-      final end = DateTime(_selectedRange.end.year, _selectedRange.end.month,
-          _selectedRange.end.day);
-      return tDate.isAfter(start.subtract(const Duration(days: 1))) &&
-          tDate.isBefore(end.add(const Duration(days: 1)));
-    }).toList();
-
-    _monthlyData =
-        await TransactionRepository.instance.getMonthlyTransactionSummary(6);
-
-    final trashed = await TransactionRepository.instance.readTrashedTransactions();
-
-    _applyFilters();
-    if (mounted) {
-      setState(() {
-        _trashedCount = trashed.length;
-      });
-      unawaited(context.read<FinancialManagerProvider>().loadTransactions());
-    }
+    if (!mounted) return;
+    await context.read<FinancialManagerProvider>().refreshTransactions(showLoading: showLoading);
   }
 
-  /// Applies account, category, and search filters from the cached [_allDateFiltered]
-  /// list. No DB call, no loading spinner — instant.
-  void _applyFilters() {
-    final activeCategories =
-        _allDateFiltered.map((t) => t.category).toSet().toList()..sort();
-
-    var filtered = _allDateFiltered;
-
-    if (_selectedAccount != 'all') {
-      filtered = filtered.where((t) => t.account == _selectedAccount).toList();
-    }
-
-    if (_selectedCategory != null) {
-      filtered = filtered.where((t) => t.category == _selectedCategory).toList();
-    }
-
-    if (_searchQuery.isNotEmpty) {
-      filtered = filtered
-          .where((t) =>
-              t.description.toLowerCase().contains(_searchQuery) ||
-              t.category.toLowerCase().contains(_searchQuery))
-          .toList();
-    }
-
-    setState(() {
-      _activeCategories = activeCategories;
-      _transactions = filtered;
-      _isLoading = false;
-    });
-  }
-
-  double get _dailyCashFlow {
-    return _allDateFiltered
-        .where((t) => t.account != AccountType.savings)
-        .fold(0.0, (sum, t) => sum + (t.isExpense ? -t.amount : t.amount));
-  }
-
-  double get _savingsVaultCashFlow {
-    return _allDateFiltered
-        .where((t) => t.account == AccountType.savings)
-        .fold(0.0, (sum, t) => sum + (t.isExpense ? -t.amount : t.amount));
-  }
-
-  double get _totalExpense {
-    return _transactions
-        .where((t) => t.isExpense && t.category.toLowerCase() != 'transfer')
-        .fold(0.0, (sum, t) => sum + t.amount);
-  }
-
-  double get _totalIncome {
-    return _transactions
-        .where((t) => !t.isExpense && t.category.toLowerCase() != 'transfer')
-        .fold(0.0, (sum, t) => sum + t.amount);
-  }
-
-  /// Flat list of [String] date-header labels and [TransactionModel] items,
-  /// ordered newest-first, for the grouped transaction list.
-  List<dynamic> get _groupedTransactions {
-    if (_transactions.isEmpty) return [];
+  List<dynamic> _buildGroupedTransactions(
+    List<TransactionModel> transactions,
+    String currency,
+  ) {
+    if (transactions.isEmpty) return [];
     final items = <dynamic>[];
     DateTime? lastDate;
     final now = DateTime.now();
@@ -305,17 +126,16 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
 
     // Pre-calculate daily net spend per calendar day
     final dailyNetMap = <DateTime, double>{};
-    for (final t in _transactions) {
+    for (final t in transactions) {
       if (t.category.toLowerCase() == 'transfer') continue;
       final tDate = DateTime(t.date.year, t.date.month, t.date.day);
       final delta = t.isExpense ? -t.amount : t.amount;
       dailyNetMap[tDate] = (dailyNetMap[tDate] ?? 0) + delta;
     }
 
-    final currency = context.read<SettingsProvider>().currencySymbol;
     final numFormat = NumberFormat('#,##0.##');
 
-    for (final t in _transactions) {
+    for (final t in transactions) {
       final tDate = DateTime(t.date.year, t.date.month, t.date.day);
       if (lastDate == null || tDate != lastDate) {
         String header;
@@ -343,14 +163,14 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
   }
 
   Future<void> _selectDateRange(BuildContext context) async {
+    final finProvider = context.read<FinancialManagerProvider>();
     final selectedPreset = await FinanceDateRangeSheet.show(
       context,
-      currentRange: _selectedRange,
+      currentRange: finProvider.selectedRange,
     );
 
-    if (selectedPreset != null && selectedPreset != _selectedRange) {
-      setState(() => _selectedRange = selectedPreset);
-      await _refreshTransactions();
+    if (selectedPreset != null && selectedPreset != finProvider.selectedRange) {
+      finProvider.setSelectedRange(selectedPreset);
     }
   }
 
@@ -399,20 +219,24 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
     unawaited(SmsService.performDailySyncManualTrigger());
   }
 
-  Widget _buildHeroSummaryCard(ColorScheme cs, TextTheme tt, String currency) {
+  Widget _buildHeroSummaryCard(
+    FinancialManagerProvider finProvider,
+    ColorScheme cs,
+    TextTheme tt,
+    String currency,
+  ) {
     return FinanceHeroSummaryCard(
-      isLoading: _isLoading,
-      totalIncome: _totalIncome,
-      totalExpense: _totalExpense,
-      dailyCashFlow: _dailyCashFlow,
-      savingsVaultCashFlow: _savingsVaultCashFlow,
-      selectedRange: _selectedRange,
-      transactions: _transactions,
+      isLoading: finProvider.isLoading,
+      totalIncome: finProvider.totalIncome,
+      totalExpense: finProvider.totalExpense,
+      dailyCashFlow: finProvider.dailyCashFlow,
+      savingsVaultCashFlow: finProvider.savingsVaultCashFlow,
+      selectedRange: finProvider.selectedRange,
+      transactions: finProvider.transactions,
       currency: currency,
-      selectedAccount: _selectedAccount,
+      selectedAccount: finProvider.selectedAccount,
       onAccountSelected: (newAccount) {
-        setState(() => _selectedAccount = newAccount);
-        _applyFilters();
+        finProvider.setSelectedAccount(newAccount);
       },
     );
   }
@@ -437,9 +261,8 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           setState(() {
             _isSearching = false;
             _searchController.clear();
-            _searchQuery = '';
-            _applyFilters();
           });
+          finProvider.setSearchQuery('');
         }
       },
       child: Scaffold(
@@ -457,90 +280,10 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                 top: MediaQuery.of(context).padding.top + 70,
                 left: 16,
                 right: 16,
-                child: _buildSyncProgressBanner(context, finProvider.smsSyncProgress!),
+                child: FinanceSmsSyncBanner(progress: finProvider.smsSyncProgress),
               ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSyncProgressBanner(BuildContext context, SmsSyncProgress progress) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(AppLayout.radiusMAX),
-        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.35)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: theme.colorScheme.onPrimaryContainer,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              progress.total > 0
-                  ? 'Scanning SMS (${progress.scanned}/${progress.total})... Found ${progress.found}'
-                  : progress.message ?? 'Scanning bank messages in background...',
-              style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onPrimaryContainer,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (progress.isSyncing) ...[
-            const SizedBox(width: 8),
-            Semantics(
-              button: true,
-              label: 'Cancel sync',
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  AppHaptics.selectionClick();
-                  SmsService.cancelSync();
-                },
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                  child: Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(AppLayout.radiusMAX),
-                      ),
-                      child: Text(
-                        'Cancel',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onPrimaryContainer,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
       ),
     );
   }
@@ -552,15 +295,14 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           icon: const Icon(Icons.arrow_back),
           tooltip: 'Exit search',
           padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           visualDensity: VisualDensity.compact,
           onPressed: () {
             setState(() {
               _isSearching = false;
               _searchController.clear();
-              _searchQuery = '';
-              _applyFilters();
             });
+            context.read<FinancialManagerProvider>().setSearchQuery('');
           },
         ),
         Expanded(
@@ -584,36 +326,30 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
               contentPadding: const EdgeInsets.symmetric(horizontal: 4),
             ),
             onChanged: (val) {
-              setState(() {
-                _searchQuery = val.trim().toLowerCase();
-                _applyFilters();
-              });
+              context.read<FinancialManagerProvider>().setSearchQuery(val.trim().toLowerCase());
             },
             onSubmitted: (_) {
               FocusScope.of(context).unfocus();
             },
           ),
         ),
-        if (_searchQuery.isNotEmpty)
+        if (context.watch<FinancialManagerProvider>().searchQuery.isNotEmpty)
           IconButton(
             icon: const Icon(Icons.close_rounded, size: 20),
             tooltip: 'Clear query',
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             visualDensity: VisualDensity.compact,
             onPressed: () {
               _searchController.clear();
-              setState(() {
-                _searchQuery = '';
-                _applyFilters();
-              });
+              context.read<FinancialManagerProvider>().setSearchQuery('');
             },
           ),
         IconButton(
           icon: const Icon(Icons.search),
           tooltip: 'Search',
           padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           visualDensity: VisualDensity.compact,
           onPressed: () {
             FocusScope.of(context).unfocus();
@@ -647,7 +383,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
               Semantics(
                 button: true,
                 label:
-                    'Selected date range: ${_selectedRange.duration.inDays == 0 ? DateFormat.MMMd().format(_selectedRange.start) : '${DateFormat.MMMd().format(_selectedRange.start)} to ${DateFormat.MMMd().format(_selectedRange.end)}'}. Tap to change filter',
+                    'Selected date range: ${context.watch<FinancialManagerProvider>().selectedRange.duration.inDays == 0 ? DateFormat.MMMd().format(context.watch<FinancialManagerProvider>().selectedRange.start) : '${DateFormat.MMMd().format(context.watch<FinancialManagerProvider>().selectedRange.start)} to ${DateFormat.MMMd().format(context.watch<FinancialManagerProvider>().selectedRange.end)}'}. Tap to change filter',
                 child: InkWell(
                   borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
                   onTap: () {
@@ -674,9 +410,9 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                         const SizedBox(width: 4),
                         Flexible(
                           child: Text(
-                            _selectedRange.duration.inDays == 0
-                                ? DateFormat.MMMd().format(_selectedRange.start)
-                                : '${DateFormat.MMMd().format(_selectedRange.start)} – ${DateFormat.MMMd().format(_selectedRange.end)}',
+                            context.watch<FinancialManagerProvider>().selectedRange.duration.inDays == 0
+                                ? DateFormat.MMMd().format(context.watch<FinancialManagerProvider>().selectedRange.start)
+                                : '${DateFormat.MMMd().format(context.watch<FinancialManagerProvider>().selectedRange.start)} – ${DateFormat.MMMd().format(context.watch<FinancialManagerProvider>().selectedRange.end)}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: textTheme.bodySmall?.copyWith(
@@ -704,7 +440,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           icon: const Icon(Icons.search),
           tooltip: AppLocalizations.of(context)?.searchFinances ?? 'Search transactions',
           padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           visualDensity: VisualDensity.compact,
           onPressed: () {
             setState(() {
@@ -723,7 +459,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
             child: Tooltip(
               message: 'Quick Sync (Tap) | Advanced Import (Hold)',
               child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                 child: BouncingWidget(
                   onTap: () {
                     _quickImportRecentSms();
@@ -735,7 +471,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                   child: Center(
                     child: Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: _isSmsSyncing
+                      child: context.watch<FinancialManagerProvider>().isSmsSyncing
                           ? SizedBox(
                               width: 20,
                               height: 20,
@@ -757,7 +493,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           icon: const Icon(Icons.more_vert_rounded),
           tooltip: 'Finances Tools',
           padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           elevation: 3,
           shadowColor: colorScheme.shadow.withValues(alpha: 0.15),
           shape: RoundedRectangleBorder(
@@ -785,7 +521,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
             } else if (value == 'export') {
               FinancialExportService.showExportSheet(
                 context,
-                _transactions,
+                context.read<FinancialManagerProvider>().transactions,
                 currency: currency,
               );
             } else if (value == 'transfer') {
@@ -800,6 +536,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           },
           itemBuilder: (ctx) {
             final menuSettings = ctx.read<SettingsProvider>();
+            final fin = ctx.read<FinancialManagerProvider>();
             return [
               if (menuSettings.enableSmsImport)
                 PopupMenuItem(
@@ -870,9 +607,9 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                     Expanded(
                       child: Text('Trash Bin', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
                     ),
-                    if (_trashedCount > 0)
+                    if (fin.trashedCount > 0)
                       Badge(
-                        label: Text('$_trashedCount'),
+                        label: Text('${fin.trashedCount}'),
                         backgroundColor: colorScheme.error,
                       ),
                   ],
@@ -885,7 +622,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           icon: const Icon(Icons.settings_outlined),
           tooltip: 'Settings',
           padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           visualDensity: VisualDensity.compact,
           onPressed: () {
             AppRoute.push(context, const SettingsScreen())
@@ -896,109 +633,12 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
     );
   }
 
-  Widget _buildSmsSyncProgressBanner(
-    ColorScheme colorScheme,
-    TextTheme textTheme,
-    bool isDark,
-  ) {
-    final scanned = _lastSmsProgress?.scanned ?? 0;
-    final total = _lastSmsProgress?.total ?? 0;
-    final found = _lastSmsProgress?.found ?? 0;
-    final progressVal = total > 0 ? (scanned / total).clamp(0.0, 1.0) : null;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHigh.withValues(alpha: isDark ? 0.90 : 0.95),
-          borderRadius: BorderRadius.circular(AppLayout.radiusM),
-          border: Border.all(
-            color: colorScheme.primary.withValues(alpha: 0.30),
-            width: 1.0,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: colorScheme.shadow.withValues(alpha: 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    value: progressVal,
-                    valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    total > 0
-                        ? 'Scanning $scanned / $total messages • $found found'
-                        : 'Scanning messages from the last 24h...',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Semantics(
-                  button: true,
-                  label: 'Cancel sync',
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                    onTap: () {
-                      AppHaptics.selectionClick();
-                      SmsService.cancelSync();
-                    },
-                    child: Container(
-                      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      child: Text(
-                        'Cancel',
-                        style: textTheme.labelSmall?.copyWith(
-                          color: colorScheme.error,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ExpressiveWavyLinearProgress(
-              value: progressVal,
-              height: 4.0,
-              color: colorScheme.primary,
-              backgroundColor: colorScheme.primaryContainer.withValues(alpha: 0.4),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildSelectionModeHeader(
     ColorScheme colorScheme,
     TextTheme textTheme,
     FinancialManagerProvider finProvider,
   ) {
-    final validTxIds = _transactions.where((t) => t.id != null).map((t) => t.id!).toList();
+    final validTxIds = finProvider.transactions.where((t) => t.id != null).map((t) => t.id!).toList();
     final allSelected = validTxIds.isNotEmpty &&
         validTxIds.every((id) => finProvider.selectedTransactionIds.contains(id));
 
@@ -1008,7 +648,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           icon: const Icon(Icons.close_rounded),
           tooltip: 'Clear selection',
           padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           visualDensity: VisualDensity.compact,
           onPressed: () {
             AppHaptics.selectionClick();
@@ -1031,14 +671,14 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           icon: Icon(allSelected ? Icons.deselect_rounded : Icons.select_all_rounded),
           tooltip: allSelected ? 'Deselect all' : 'Select all',
           padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           visualDensity: VisualDensity.compact,
           onPressed: () {
             AppHaptics.selectionClick();
             if (allSelected) {
               finProvider.clearSelection();
             } else {
-              finProvider.selectAll(_transactions);
+              finProvider.selectAll(finProvider.transactions);
             }
           },
         ),
@@ -1096,9 +736,9 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
               ),
             ),
 
-            if (_isSmsSyncing && settings.enableSmsImport)
+            if (finProvider.isSmsSyncing && settings.enableSmsImport)
               SliverToBoxAdapter(
-                child: _buildSmsSyncProgressBanner(colorScheme, textTheme, isDark),
+                child: FinanceSmsSyncBanner(progress: finProvider.smsSyncProgress),
               ),
 
             // ── Hero summary card (net + income/expense breakdown) ────────
@@ -1114,7 +754,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                         child: _buildHeroSummaryCard(
-                            colorScheme, textTheme, currency),
+                            finProvider, colorScheme, textTheme, currency),
                       ),
                     ),
                   ),
@@ -1135,7 +775,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
               ),
             if (effectiveTab == 'Ledger') ...[
         // ── Minimalist Visual Chart Deck on Ledger (Tap jumps to Budgets) ──
-        if (showBudgets && (_categoryExpenses.isNotEmpty || _monthlyData.isNotEmpty)) ...[
+        if (showBudgets && (finProvider.categoryExpenses.isNotEmpty || finProvider.monthlyData.isNotEmpty)) ...[
           SliverToBoxAdapter(
             child: AnimationConfiguration.staggeredList(
               position: 3,
@@ -1149,13 +789,13 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                       builder: (context, settings, _) {
                         final forecast =
                             SpendingForecastService.calculateMonthlyForecast(
-                          transactions: _transactions,
+                          transactions: finProvider.transactions,
                           categoryBudgets: settings.categoryBudgets,
                         );
                         return MinimalChartDeck(
-                          monthlyData: _monthlyData,
-                          categoryExpenses: _categoryExpenses,
-                          totalExpense: _totalDateExpense,
+                          monthlyData: finProvider.monthlyData,
+                          categoryExpenses: finProvider.categoryExpenses,
+                          totalExpense: finProvider.totalDateExpense,
                           currency: currency,
                           forecast: forecast,
                           onTapDetailsWithPage: (page) {
@@ -1181,7 +821,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
         ],
 
         // ── Active search query badge indicator (if query set and top bar not in search mode) ──
-        if (_searchQuery.isNotEmpty && !_isSearching)
+        if (finProvider.searchQuery.isNotEmpty && !_isSearching)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
@@ -1189,15 +829,12 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                 children: [
                   Semantics(
                     button: true,
-                    label: 'Clear search filter $_searchQuery',
+                    label: 'Clear search filter ${finProvider.searchQuery}',
                     child: InkWell(
                       borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
                       onTap: () {
                         _searchController.clear();
-                        setState(() {
-                          _searchQuery = '';
-                          _applyFilters();
-                        });
+                        finProvider.setSearchQuery('');
                       },
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
@@ -1215,7 +852,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                                 Icon(Icons.search, size: 14, color: colorScheme.onPrimaryContainer),
                                 const SizedBox(width: 6),
                                 Text(
-                                  'Search: "$_searchQuery"',
+                                  'Search: "${finProvider.searchQuery}"',
                                   style: textTheme.labelMedium?.copyWith(
                                     color: colorScheme.onPrimaryContainer,
                                     fontWeight: FontWeight.bold,
@@ -1248,10 +885,9 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                       showCheckmark: false,
                       avatar: const Icon(Icons.account_tree_outlined, size: 16),
                       label: const Text('All Accounts'),
-                      selected: _selectedAccount == 'all',
+                      selected: finProvider.selectedAccount == 'all',
                       onSelected: (_) {
-                        setState(() => _selectedAccount = 'all');
-                        _applyFilters();
+                        finProvider.setSelectedAccount('all');
                       },
                     ),
                     const SizedBox(width: 8),
@@ -1259,10 +895,9 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                       showCheckmark: false,
                       avatar: const Icon(Icons.credit_card_outlined, size: 16),
                       label: Text(settings.account1Name),
-                      selected: _selectedAccount == AccountType.daily,
+                      selected: finProvider.selectedAccount == AccountType.daily,
                       onSelected: (_) {
-                        setState(() => _selectedAccount = AccountType.daily);
-                        _applyFilters();
+                        finProvider.setSelectedAccount(AccountType.daily);
                       },
                     ),
                     const SizedBox(width: 8),
@@ -1270,10 +905,9 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                       showCheckmark: false,
                       avatar: const Icon(Icons.account_balance_outlined, size: 16),
                       label: Text(settings.account2Name),
-                      selected: _selectedAccount == AccountType.savings,
+                      selected: finProvider.selectedAccount == AccountType.savings,
                       onSelected: (_) {
-                        setState(() => _selectedAccount = AccountType.savings);
-                        _applyFilters();
+                        finProvider.setSelectedAccount(AccountType.savings);
                       },
                     ),
                   ],
@@ -1283,7 +917,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
           ),
 
         // ── Category filter chips ────────────────────────────────────
-        if (_activeCategories.isNotEmpty) ...[
+        if (finProvider.activeCategories.isNotEmpty) ...[
           SliverToBoxAdapter(
             child: AnimationConfiguration.staggeredList(
               position: 5,
@@ -1301,17 +935,16 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                             showCheckmark: false,
                             avatar: const Icon(Icons.all_inclusive, size: 16),
                             label: const Text('All Categories'),
-                            selected: _selectedCategory == null,
+                            selected: finProvider.selectedCategory == null,
                             onSelected: (_) {
-                              setState(() => _selectedCategory = null);
-                              _applyFilters();
+                              finProvider.setSelectedCategory(null);
                             },
                           ),
                           const SizedBox(width: 8),
-                          ..._activeCategories.map((cat) {
+                          ...finProvider.activeCategories.map((cat) {
                             final catColor = TransactionCategory.colorFor(cat);
                             final catIcon = TransactionCategory.iconFor(cat);
-                            final selected = _selectedCategory == cat;
+                            final selected = finProvider.selectedCategory == cat;
                             return Padding(
                               padding: const EdgeInsets.only(right: 8),
                               child: FilterChip(
@@ -1324,8 +957,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                                 label: Text(cat),
                                 selected: selected,
                                 onSelected: (_) {
-                                  setState(() => _selectedCategory = selected ? null : cat);
-                                  _applyFilters();
+                                  finProvider.setSelectedCategory(selected ? null : cat);
                                 },
                                 selectedColor: catColor.withValues(alpha: 0.2),
                                 checkmarkColor: catColor,
@@ -1351,13 +983,13 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
         ],
 
         // ── Transaction list ──────────────────────────────────────────
-            if (_isLoading)
+            if (finProvider.isLoading)
               const SliverFillRemaining(
                 child: Center(child: CircularProgressIndicator()),
               )
             else
               FinancialLedgerTab(
-                groupedTransactions: _groupedTransactions,
+                groupedTransactions: _buildGroupedTransactions(finProvider.transactions, currency),
                 currency: currency,
                 onRefresh: _refreshTransactions,
                 onDuplicate: (transaction) async {
@@ -1370,8 +1002,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                     smsId: null,
                     account: transaction.account,
                   );
-                  await TransactionRepository.instance.createTransaction(duplicate);
-                  await _refreshTransactions();
+                  await finProvider.addTransaction(duplicate);
                   if (mounted) {
                     ScaffoldMessenger.of(context).clearSnackBars();
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -1383,21 +1014,8 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                   }
                 },
                 onDelete: (transaction) async {
-                  // 1. Instant optimistic local list update (0ms latency)
                   if (transaction.id != null) {
-                    _allDateFiltered.removeWhere((t) => t.id == transaction.id);
-                    _applyFilters();
-                    if (mounted) {
-                      setState(() {
-                        _trashedCount += 1;
-                      });
-                    }
-                  }
-
-                  // 2. Persist in background
-                  if (transaction.id != null) {
-                    await TransactionRepository.instance.deleteTransaction(transaction.id!);
-                    await _refreshTransactions(showLoading: false);
+                    await finProvider.deleteTransaction(transaction.id!);
                   }
 
                   if (mounted) {
@@ -1410,21 +1028,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                           label: 'UNDO',
                           onPressed: () async {
                             if (transaction.id != null) {
-                              // 1. Instant optimistic restore (0ms latency)
-                              final restored = transaction.copy(deletedAt: null);
-                              _allDateFiltered.removeWhere((t) => t.id == transaction.id);
-                              _allDateFiltered.add(restored);
-                              _allDateFiltered.sort((a, b) => b.date.compareTo(a.date));
-                              _applyFilters();
-                              if (mounted) {
-                                setState(() {
-                                  _trashedCount = (_trashedCount - 1).clamp(0, 999999);
-                                });
-                              }
-
-                              // 2. Persist in background
-                              await TransactionRepository.instance.restoreTransaction(transaction.id!);
-                              await _refreshTransactions(showLoading: false);
+                              await finProvider.restoreTransaction(transaction.id!);
                             }
                           },
                         ),
@@ -1434,19 +1038,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                 },
                 onUndoDelete: (transaction) async {
                   if (transaction.id != null) {
-                    // Instant optimistic restore
-                    final restored = transaction.copy(deletedAt: null);
-                    _allDateFiltered.removeWhere((t) => t.id == transaction.id);
-                    _allDateFiltered.add(restored);
-                    _allDateFiltered.sort((a, b) => b.date.compareTo(a.date));
-                    _applyFilters();
-                    if (mounted) {
-                      setState(() {
-                        _trashedCount = (_trashedCount - 1).clamp(0, 999999);
-                      });
-                    }
-                    await TransactionRepository.instance.restoreTransaction(transaction.id!);
-                    await _refreshTransactions(showLoading: false);
+                    await finProvider.restoreTransaction(transaction.id!);
                   }
                 },
                 onAddFirstTransaction: () async {
@@ -1465,8 +1057,8 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
         Consumer<SettingsProvider>(
           builder: (context, settings, child) {
             return FinancialAnalyticsTab(
-              transactions: _transactions,
-              monthlyData: _monthlyData,
+              transactions: finProvider.transactions,
+              monthlyData: finProvider.monthlyData,
               currency: currency,
               settings: settings,
               onRefresh: _refreshTransactions,

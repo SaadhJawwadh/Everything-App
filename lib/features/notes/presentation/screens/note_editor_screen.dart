@@ -7,7 +7,6 @@ import 'dart:convert';
 import '../../../../screens/app_lock_screen.dart';
 import 'package:flutter_quill_extensions/flutter_quill_extensions.dart';
 import 'dart:math';
-import 'package:path/path.dart' as p;
 import 'dart:async';
 import '../../data/note_repository.dart';
 import '../../../../data/note_model.dart';
@@ -17,20 +16,14 @@ import 'package:note_taking_app/features/settings/providers/settings_provider.da
 import '../../../../core/theme/app_layout.dart';
 import '../../../../utils/rich_text_utils.dart';
 import '../../../../utils/quill_checklist_helper.dart';
-import 'dart:io';
 import 'package:any_link_preview/any_link_preview.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:intl/intl.dart';
-import '../../../../l10n/app_localizations.dart';
 import '../../../../services/local_ai_service.dart';
 import '../../../../services/notification_service.dart';
 import 'package:note_taking_app/features/notes/providers/note_provider.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:path_provider/path_provider.dart';
 import '../../../../utils/app_globals.dart';
 import '../../../../utils/widget_helper.dart';
 import 'package:flutter/services.dart';
-import '../../../../widgets/bouncing_widget.dart';
 import '../widgets/note_tag_picker_sheet.dart';
 import '../widgets/note_slash_command_overlay.dart';
 import '../widgets/note_ai_options_sheet.dart';
@@ -40,10 +33,18 @@ import '../../../../widgets/editor/editor_table_dialog.dart';
 import '../../../../widgets/editor/editor_note_details_sheet.dart';
 import '../widgets/story_card_creator_sheet.dart';
 import '../../../story_cards/story_cards.dart';
-import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../core/ui/app_dialog.dart';
-import '../../../../core/ui/app_snack_bar.dart';
+import '../widgets/note_locked_gate.dart';
+import '../widgets/note_editor_top_bar.dart';
+import '../widgets/note_completed_checklist_card.dart';
+import '../widgets/note_share_export_sheet.dart';
+import '../widgets/note_folder_dialog.dart';
+import '../widgets/note_ai_summary_panel.dart';
+import '../widgets/note_metadata_chips_bar.dart';
+import '../widgets/note_editor_styles.dart';
 import '../widgets/note_editor_bottom_bar.dart';
+import '../../../../utils/quill_cursor_helper.dart';
+import '../widgets/note_media_coordinator.dart';
 import '../widgets/note_embed_builders.dart';
 
 
@@ -363,109 +364,14 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     });
   }
 
-  RenderBox? _findRenderEditor(RenderObject? object) {
-    if (object == null) return null;
-    if (object.runtimeType.toString().contains('RenderEditor')) {
-      return object as RenderBox;
-    }
-    RenderBox? result;
-    object.visitChildren((child) {
-      if (result != null) return;
-      result = _findRenderEditor(child);
-    });
-    return result;
-  }
-
   void _scrollToCursorIfNeeded() {
-    if (!_focusNode.hasFocus || !_scrollController.hasClients) return;
-    final selection = _quillController.selection;
-    if (selection.baseOffset < 0) return;
-
-    final docLength = _quillController.document.length;
-    if (docLength <= 1) return;
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scrollController.hasClients || !_focusNode.hasFocus) return;
-
-      try {
-        final focusContext = _focusNode.context;
-        if (focusContext == null) return;
-
-        final rootRenderObject = focusContext.findRenderObject();
-        final editorRenderObject = _findRenderEditor(rootRenderObject);
-        if (editorRenderObject == null || !editorRenderObject.attached) return;
-
-        final scrollableState = Scrollable.of(focusContext);
-        final scrollRenderObject = scrollableState.context.findRenderObject();
-        if (scrollRenderObject is! RenderBox || !scrollRenderObject.attached) return;
-
-        // Obtain caret rectangle relative to RenderEditor top-left
-        final dynamic dynamicRender = editorRenderObject;
-        final TextPosition pos = TextPosition(offset: selection.baseOffset);
-        Rect? caretRect;
-        try {
-          caretRect = dynamicRender.getLocalRectForCaret(pos);
-        } catch (_) {
-          try {
-            final endpoints = dynamicRender.getEndpointsForSelection(selection);
-            if (endpoints.isNotEmpty) {
-              final ep = endpoints.first;
-              caretRect = Rect.fromLTWH(ep.point.dx, ep.point.dy, 2.0, ep.handleHeight);
-            }
-          } catch (_) {}
-        }
-
-        final double caretTop = caretRect?.top ??
-            (editorRenderObject.size.height * (selection.baseOffset / docLength));
-        final double caretHeight = (caretRect != null && caretRect.height > 0)
-            ? caretRect.height
-            : 24.0;
-
-        // Convert editor top-left to scrollable coordinate space
-        final Offset editorOffsetInScrollable = editorRenderObject.localToGlobal(
-          Offset.zero,
-          ancestor: scrollRenderObject,
-        );
-
-        // Calculate absolute Y position of cursor inside scrollable content
-        final double cursorYInContent =
-            _scrollController.offset + editorOffsetInScrollable.dy + caretTop;
-
-        final double currentScroll = _scrollController.offset;
-        final double viewportHeight = _scrollController.position.viewportDimension;
-
-        // Safety margins so typing line is not covered by top bar or bottom toolbar/keyboard
-        const double topPadding = 60.0;
-        const double bottomPadding = 160.0; // Keeps active typing line well above soft keyboard + formatting pill
-
-        final double visibleTop = currentScroll + topPadding;
-        final double visibleBottom = currentScroll + viewportHeight - bottomPadding;
-
-        double? targetScroll;
-
-        if (cursorYInContent + caretHeight > visibleBottom) {
-          // Cursor is below visible area or covered by keyboard -> scroll down
-          targetScroll = (cursorYInContent + caretHeight) - (viewportHeight - bottomPadding);
-        } else if (cursorYInContent < visibleTop) {
-          // Cursor is above visible area -> scroll up
-          targetScroll = cursorYInContent - topPadding;
-        }
-
-        if (targetScroll != null) {
-          final maxScroll = _scrollController.position.maxScrollExtent;
-          final clampedTarget = targetScroll.clamp(0.0, maxScroll);
-
-          if ((clampedTarget - currentScroll).abs() > 2.0) {
-            _scrollController.animateTo(
-              clampedTarget,
-              duration: AppLayout.animFast,
-              curve: Curves.easeOutCubic,
-            );
-          }
-        }
-      } catch (e) {
-        debugPrint('Error scrolling to cursor: $e');
-      }
+      if (!mounted) return;
+      QuillCursorHelper.scrollToCursorIfNeeded(
+        focusNode: _focusNode,
+        scrollController: _scrollController,
+        quillController: _quillController,
+      );
     });
   }
 
@@ -473,7 +379,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     final index = _quillController.selection.baseOffset;
     if (index < 0 || index >= _quillController.document.length) return false;
 
-    // This is valid for many versions of Quill where images are embeds
     final leaf = _quillController.document.querySegmentLeafNode(index).leaf;
     if (leaf != null && leaf.value is BlockEmbed) {
       return (leaf.value as BlockEmbed).type == 'image';
@@ -490,145 +395,38 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     return (start, end - start);
   }
 
-  void _nudgeSelectionLeft({bool byWord = false}) {
-    if (_isEditingTableCell) return;
-    final selection = _quillController.selection;
-    final docLen = _quillController.document.length;
-    if (!selection.isValid || docLen <= 0) return;
-
-    AppHaptics.selectionClick();
-    _focusNode.requestFocus();
-
-    final currentExtent = selection.extentOffset;
-    final int newExtent;
-    if (byWord) {
-      final text = _quillController.document.toPlainText();
-      int idx = currentExtent.clamp(0, text.length) - 1;
-      while (idx > 0 && text[idx].trim().isEmpty) {
-        idx--;
-      }
-      while (idx > 0 && text[idx - 1].trim().isNotEmpty) {
-        idx--;
-      }
-      newExtent = idx.clamp(0, docLen - 1);
-    } else {
-      newExtent = (currentExtent - 1).clamp(0, docLen - 1);
-    }
-
-    _quillController.updateSelection(
-      selection.isCollapsed
-          ? TextSelection.collapsed(offset: newExtent)
-          : TextSelection(baseOffset: selection.baseOffset, extentOffset: newExtent),
-      ChangeSource.local,
-    );
-  }
-
-  void _nudgeSelectionRight({bool byWord = false}) {
-    if (_isEditingTableCell) return;
-    final selection = _quillController.selection;
-    final docLen = _quillController.document.length;
-    if (!selection.isValid || docLen <= 0) return;
-
-    AppHaptics.selectionClick();
-    _focusNode.requestFocus();
-
-    final currentExtent = selection.extentOffset;
-    final int newExtent;
-    if (byWord) {
-      final text = _quillController.document.toPlainText();
-      int idx = currentExtent.clamp(0, text.length);
-      while (idx < text.length && text[idx].trim().isNotEmpty) {
-        idx++;
-      }
-      while (idx < text.length && text[idx].trim().isEmpty && text[idx] != '\n') {
-        idx++;
-      }
-      newExtent = idx.clamp(0, docLen - 1);
-    } else {
-      newExtent = (currentExtent + 1).clamp(0, docLen - 1);
-    }
-
-    _quillController.updateSelection(
-      selection.isCollapsed
-          ? TextSelection.collapsed(offset: newExtent)
-          : TextSelection(baseOffset: selection.baseOffset, extentOffset: newExtent),
-      ChangeSource.local,
-    );
-  }
-
-  void _nudgeSelectionUp() {
-    if (_isEditingTableCell) return;
-    final selection = _quillController.selection;
-    final text = _quillController.document.toPlainText();
-    if (!selection.isValid || text.isEmpty) return;
-
-    AppHaptics.selectionClick();
-    _focusNode.requestFocus();
-
-    final currentOffset = selection.extentOffset.clamp(0, text.length - 1);
-    final prevLineEnd = text.lastIndexOf('\n', currentOffset > 0 ? currentOffset - 1 : 0);
-    if (prevLineEnd >= 0) {
-      final prevLineStart = text.lastIndexOf('\n', prevLineEnd > 0 ? prevLineEnd - 1 : 0) + 1;
-      final currentLineStart = text.lastIndexOf('\n', currentOffset > 0 ? currentOffset - 1 : 0) + 1;
-      final column = currentOffset - currentLineStart;
-      final newOffset = (prevLineStart + column).clamp(0, prevLineEnd);
-      _quillController.updateSelection(
-        selection.isCollapsed
-            ? TextSelection.collapsed(offset: newOffset)
-            : TextSelection(baseOffset: selection.baseOffset, extentOffset: newOffset),
-        ChangeSource.local,
+  void _nudgeSelectionLeft({bool byWord = false}) =>
+      QuillCursorHelper.nudgeLeft(
+        controller: _quillController,
+        focusNode: _focusNode,
+        byWord: byWord,
+        isEditingTableCell: _isEditingTableCell,
       );
-    } else {
-      _quillController.updateSelection(
-        selection.isCollapsed
-            ? const TextSelection.collapsed(offset: 0)
-            : TextSelection(baseOffset: selection.baseOffset, extentOffset: 0),
-        ChangeSource.local,
+
+  void _nudgeSelectionRight({bool byWord = false}) =>
+      QuillCursorHelper.nudgeRight(
+        controller: _quillController,
+        focusNode: _focusNode,
+        byWord: byWord,
+        isEditingTableCell: _isEditingTableCell,
       );
-    }
-  }
 
-  void _nudgeSelectionDown() {
-    if (_isEditingTableCell) return;
-    final selection = _quillController.selection;
-    final text = _quillController.document.toPlainText();
-    if (!selection.isValid || text.isEmpty) return;
-
-    AppHaptics.selectionClick();
-    _focusNode.requestFocus();
-
-    final currentOffset = selection.extentOffset.clamp(0, text.length - 1);
-    final currentLineStart = text.lastIndexOf('\n', currentOffset > 0 ? currentOffset - 1 : 0) + 1;
-    final column = currentOffset - currentLineStart;
-    final nextLineStart = text.indexOf('\n', currentOffset);
-    if (nextLineStart >= 0 && nextLineStart + 1 < text.length) {
-      final nextLineEnd = text.indexOf('\n', nextLineStart + 1);
-      final lineEnd = nextLineEnd >= 0 ? nextLineEnd : text.length - 1;
-      final newOffset = (nextLineStart + 1 + column).clamp(0, lineEnd);
-      _quillController.updateSelection(
-        selection.isCollapsed
-            ? TextSelection.collapsed(offset: newOffset)
-            : TextSelection(baseOffset: selection.baseOffset, extentOffset: newOffset),
-        ChangeSource.local,
+  void _nudgeSelectionUp() =>
+      QuillCursorHelper.nudgeUp(
+        controller: _quillController,
+        focusNode: _focusNode,
+        isEditingTableCell: _isEditingTableCell,
       );
-    } else {
-      _quillController.updateSelection(
-        selection.isCollapsed
-            ? TextSelection.collapsed(offset: text.length - 1)
-            : TextSelection(baseOffset: selection.baseOffset, extentOffset: text.length - 1),
-        ChangeSource.local,
-      );
-    }
-  }
 
-  void _selectAllText() {
-    final docLen = _quillController.document.length;
-    if (docLen <= 1) return;
-    _quillController.updateSelection(
-      TextSelection(baseOffset: 0, extentOffset: docLen - 1),
-      ChangeSource.local,
-    );
-  }
+  void _nudgeSelectionDown() =>
+      QuillCursorHelper.nudgeDown(
+        controller: _quillController,
+        focusNode: _focusNode,
+        isEditingTableCell: _isEditingTableCell,
+      );
+
+  void _selectAllText() =>
+      QuillCursorHelper.selectAll(_quillController);
 
   Future<void> _loadTags() async {
     final t = await NoteRepository.instance.getAllTags();
@@ -843,60 +641,20 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    final picker = ImagePicker();
-    try {
-      AppLockScreen.ignoreNextResumeLock();
-      final pickedFile = await picker.pickImage(source: source);
-      if (pickedFile != null) {
-        final appDir = await getApplicationDocumentsDirectory();
-        final imagesDir = Directory(p.join(appDir.path, 'note_images'));
-        if (!await imagesDir.exists()) {
-          await imagesDir.create(recursive: true);
-        }
-        final ext = p.extension(pickedFile.path);
-        final uniqueName = '${const Uuid().v4()}$ext';
-        final savedFile = await File(pickedFile.path).copy(p.join(imagesDir.path, uniqueName));
-
-        final (index, length) = _getNormalizedSelectionRange();
-        _quillController.replaceText(
-            index, length, BlockEmbed.image(savedFile.path), null);
-        if (mounted) {
-          Navigator.pop(context); // Close the modal
-        }
-      }
-    } catch (e) {
-      debugPrint('Error picking image: $e');
-      if (mounted) Navigator.pop(context); // Ensure modal closes on error
+    final imagePath = await NoteMediaCoordinator.pickAndSaveImage(source);
+    if (imagePath != null && mounted) {
+      final (index, length) = _getNormalizedSelectionRange();
+      _quillController.replaceText(
+          index, length, BlockEmbed.image(imagePath), null);
+      Navigator.pop(context);
     }
   }
 
-  void _showImageOptions() {
-    AppBottomSheet.show(
-      context: context,
-      title: 'Insert Image',
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.photo_library_outlined),
-            title: const Text('Gallery'),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppLayout.radiusM),
-            ),
-            onTap: () => _pickImage(ImageSource.gallery),
-          ),
-          ListTile(
-            leading: const Icon(Icons.camera_alt_outlined),
-            title: const Text('Camera'),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppLayout.radiusM),
-            ),
-            onTap: () => _pickImage(ImageSource.camera),
-          ),
-        ],
-      ),
-    );
-  }
+  void _showImageOptions() =>
+      NoteMediaCoordinator.showImageOptions(
+        context: context,
+        onPickImage: _pickImage,
+      );
 
   Future saveNote() async {
     if (_isNoteInTrash) return;
@@ -1236,99 +994,14 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   void _showShareExportSheet() {
     final title = _titleController.text.trim();
     final delta = _quillController.document.toDelta();
-    final markdown = RichTextUtils.deltaToMarkdown(delta);
     final plainText = _quillController.document.toPlainText().trim();
-    final shareContent = title.isEmpty ? plainText : '$title\n\n$plainText';
 
-    final colorScheme = Theme.of(context).colorScheme;
-
-    AppBottomSheet.show(
+    NoteShareExportSheet.show(
       context: context,
-      title: 'Share & Export Note',
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.photo_camera_back_rounded, color: colorScheme.primary),
-              title: const Text('Create Story Card'),
-              subtitle: const Text('Export quote as a stylish image for social stories'),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppLayout.radiusM),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                _openStoryCardStudio(selectedOnly: false);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.text_snippet_outlined),
-              title: const Text('Share as Plain Text'),
-              subtitle: const Text('Send text to other apps or messaging'),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppLayout.radiusM),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                if (shareContent.isNotEmpty) {
-                  AppLockScreen.ignoreNextResumeLock();
-                  Share.share(shareContent, subject: title.isEmpty ? 'Note' : title);
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.code_outlined),
-              title: const Text('Share as Markdown'),
-              subtitle: const Text('Preserve bold, lists, and headers formatting'),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppLayout.radiusM),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                final mdContent = title.isEmpty ? markdown : '# $title\n\n$markdown';
-                if (mdContent.isNotEmpty) {
-                  AppLockScreen.ignoreNextResumeLock();
-                  Share.share(mdContent, subject: title.isEmpty ? 'Note' : title);
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.picture_as_pdf_outlined),
-              title: const Text('Export as Text File'),
-              subtitle: const Text('Save note as a .txt document'),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppLayout.radiusM),
-              ),
-              onTap: () async {
-                Navigator.pop(context);
-                final tempDir = await getTemporaryDirectory();
-                final safeTitle = (title.isEmpty ? 'Note' : title).replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
-                final file = File('${tempDir.path}/$safeTitle.txt');
-                await file.writeAsString(shareContent);
-                AppLockScreen.ignoreNextResumeLock();
-                await Share.shareXFiles([XFile(file.path)], text: title.isEmpty ? 'Note Export' : title);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.copy_outlined),
-              title: const Text('Copy to Clipboard'),
-              subtitle: const Text('Copy note content to clipboard'),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppLayout.radiusM),
-              ),
-              onTap: () async {
-                Navigator.pop(context);
-                if (shareContent.isNotEmpty) {
-                  await Clipboard.setData(ClipboardData(text: shareContent));
-                  if (mounted) {
-                    AppSnackBar.show(context, message: 'Note copied to clipboard');
-                  }
-                }
-              },
-            ),
-          ],
-        ),
-      ),
+      title: title,
+      delta: delta,
+      plainText: plainText,
+      onOpenStoryCard: () => _openStoryCardStudio(selectedOnly: false),
     );
   }
 
@@ -1374,61 +1047,10 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     final folders = await NoteRepository.instance.getAllFolders();
     if (!mounted) return;
 
-    final controller = TextEditingController();
-    final chosen = await showDialog<String>(
+    final chosen = await NoteFolderDialog.show(
       context: context,
-      builder: (ctx) => AppDialog(
-        title: 'Move to folder',
-        content: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 220),
-                child: ListView(
-                  shrinkWrap: true,
-                  physics: const BouncingScrollPhysics(),
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.notes_outlined),
-                      title: const Text('All Notes'),
-                      selected: _folder == 'All Notes',
-                      onTap: () => Navigator.pop(ctx, 'All Notes'),
-                    ),
-                    ...folders.map(
-                      (f) => ListTile(
-                        leading: const Icon(Icons.folder_outlined),
-                        title: Text(f),
-                        selected: _folder == f,
-                        onTap: () => Navigator.pop(ctx, f),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: controller,
-                decoration: const InputDecoration(
-                  hintText: 'New folder name',
-                  prefixIcon: Icon(Icons.create_new_folder_outlined),
-                ),
-                onSubmitted: (v) {
-                  if (v.trim().isNotEmpty) Navigator.pop(ctx, v.trim());
-                },
-              ),
-            ],
-          ),
-        ),
-        cancelLabel: 'Cancel',
-        confirmLabel: 'Create & Move',
-        onCancel: () => Navigator.pop(ctx),
-        onConfirm: () {
-          final v = controller.text.trim();
-          if (v.isNotEmpty) Navigator.pop(ctx, v);
-        },
-      ),
+      currentFolder: _folder,
+      folders: folders,
     );
 
     if (chosen == null || chosen == _folder || !mounted) return;
@@ -1612,127 +1234,11 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   @override
   Widget build(BuildContext context) {
     if (!_lockAuthPassed) {
-      final cs = Theme.of(context).colorScheme;
-      return Scaffold(
-        backgroundColor: cs.surface,
-        body: Stack(
-            children: [
-              Positioned(
-                top: -100,
-                right: -100,
-                child: Container(
-                  width: 300,
-                  height: 300,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: cs.primary.withValues(alpha: 0.15),
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: -150,
-                left: -150,
-                child: Container(
-                  width: 400,
-                  height: 400,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: cs.tertiary.withValues(alpha: 0.1),
-                  ),
-                ),
-              ),
-              SafeArea(
-                child: Column(
-                  children: [
-                    Align(
-                      alignment: Alignment.topLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: IconButton(
-                          icon: const Icon(Icons.arrow_back),
-                          onPressed: () => Navigator.maybePop(context),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Center(
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 24),
-                          padding: const EdgeInsets.all(32),
-                          decoration: BoxDecoration(
-                            color: cs.surfaceContainerHigh,
-                            borderRadius: BorderRadius.circular(AppLayout.radiusL),
-                            border: Border.all(
-                              color: cs.outlineVariant.withValues(alpha: 0.35),
-                              width: 1.0,
-                            ),
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              TweenAnimationBuilder<double>(
-                                // Ease-out entrance from 0.92 + fade — never from scale(0).
-                                duration: AppLayout.shouldReduceMotion(context)
-                                    ? Duration.zero
-                                    : AppLayout.animShort,
-                                curve: AppLayout.curveStrongEaseOut,
-                                tween: Tween(begin: 0.0, end: 1.0),
-                                builder: (context, value, child) {
-                                  return Transform.scale(
-                                    scale: 0.92 + (0.08 * value),
-                                    child: Opacity(
-                                      opacity: value,
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: cs.primaryContainer.withValues(alpha: 0.2),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(Icons.lock_outline, size: 48, color: cs.primary),
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              Text(
-                                AppLocalizations.of(context)?.lockedNote ?? 'Locked note',
-                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                AppLocalizations.of(context)?.lockedNoteDescription ??
-                                    'This note is protected with a password or biometrics.',
-                                textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: cs.onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(height: 32),
-                              FilledButton.icon(
-                                onPressed: _authenticateForLockedNote,
-                                icon: const Icon(Icons.fingerprint),
-                                label: Text(AppLocalizations.of(context)?.unlockNote ?? 'Unlock Note'),
-                                style: FilledButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                  shape: const StadiumBorder(),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      }
+      return NoteLockedGate(
+        onUnlockPressed: _authenticateForLockedNote,
+        onBackPressed: () => Navigator.maybePop(context),
+      );
+    }
 
     return Consumer<SettingsProvider>(builder: (context, settings, child) {
       final theme = Theme.of(context);
@@ -1802,343 +1308,61 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                   Column(
                     children: [
                       // Top Bar
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: const BoxDecoration(
-                            color: Colors.transparent,
-                          ),
-                          child: _isSearching
-                              ? CallbackShortcuts(
-                                  bindings: <ShortcutActivator, VoidCallback>{
-                                    const SingleActivator(LogicalKeyboardKey.escape): _closeSearch,
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                                    child: Row(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.arrow_back),
-                                          color: theme.colorScheme.onSurfaceVariant,
-                                          tooltip: 'Close search',
-                                          onPressed: _closeSearch,
-                                        ),
-                                        Expanded(
-                                          child: TextField(
-                                            controller: _searchController,
-                                            focusNode: _searchFocusNode,
-                                            style: TextStyle(color: theme.colorScheme.onSurface),
-                                            decoration: InputDecoration(
-                                              hintText: 'Search in note...',
-                                              hintStyle: TextStyle(
-                                                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                                              ),
-                                              filled: false,
-                                              fillColor: Colors.transparent,
-                                              border: InputBorder.none,
-                                              enabledBorder: InputBorder.none,
-                                              focusedBorder: InputBorder.none,
-                                              contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                                              isDense: true,
-                                            ),
-                                            onChanged: _performSearch,
-                                            onSubmitted: (_) => _nextSearchMatch(),
-                                          ),
-                                        ),
-                                        Tooltip(
-                                          message: 'Match case',
-                                          child: InkWell(
-                                            onTap: _toggleCaseSensitive,
-                                            borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                                            child: AnimatedContainer(
-                                              duration: AppLayout.animMicro,
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: _isCaseSensitive
-                                                    ? theme.colorScheme.primaryContainer
-                                                    : Colors.transparent,
-                                                borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                                                border: Border.all(
-                                                  color: _isCaseSensitive
-                                                      ? theme.colorScheme.primary
-                                                      : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-                                                ),
-                                              ),
-                                              child: Text(
-                                                'Aa',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: _isCaseSensitive ? FontWeight.bold : FontWeight.normal,
-                                                  color: _isCaseSensitive
-                                                      ? theme.colorScheme.onPrimaryContainer
-                                                      : theme.colorScheme.onSurfaceVariant,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        if (_searchController.text.isNotEmpty)
-                                          AnimatedContainer(
-                                            duration: AppLayout.animMicro,
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                            margin: const EdgeInsets.symmetric(horizontal: 2),
-                                            decoration: BoxDecoration(
-                                              color: _searchOffsets.isNotEmpty
-                                                  ? theme.colorScheme.secondaryContainer
-                                                  : theme.colorScheme.surfaceContainerHighest,
-                                              borderRadius: BorderRadius.circular(AppLayout.radiusM),
-                                            ),
-                                            child: Text(
-                                              _searchOffsets.isNotEmpty
-                                                  ? '${_currentSearchIndex + 1}/${_searchOffsets.length}'
-                                                  : '0/0',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold,
-                                                color: _searchOffsets.isNotEmpty
-                                                    ? theme.colorScheme.onSecondaryContainer
-                                                    : theme.colorScheme.onSurfaceVariant,
-                                              ),
-                                            ),
-                                          ),
-                                        if (_searchOffsets.isNotEmpty) ...[
-                                          IconButton(
-                                            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                                            visualDensity: VisualDensity.compact,
-                                            padding: EdgeInsets.zero,
-                                            icon: const Icon(Icons.keyboard_arrow_up_rounded, size: 20),
-                                            color: theme.colorScheme.onSurfaceVariant,
-                                            tooltip: 'Previous match',
-                                            onPressed: _previousSearchMatch,
-                                          ),
-                                          IconButton(
-                                            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                                            visualDensity: VisualDensity.compact,
-                                            padding: EdgeInsets.zero,
-                                            icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
-                                            color: theme.colorScheme.onSurfaceVariant,
-                                            tooltip: 'Next match',
-                                            onPressed: _nextSearchMatch,
-                                          ),
-                                        ],
-                                        if (_searchController.text.isNotEmpty)
-                                          IconButton(
-                                            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                                            visualDensity: VisualDensity.compact,
-                                            padding: EdgeInsets.zero,
-                                            icon: const Icon(Icons.close_rounded, size: 20),
-                                            color: theme.colorScheme.onSurfaceVariant,
-                                            tooltip: 'Clear search text',
-                                            onPressed: () {
-                                              _searchController.clear();
-                                              _performSearch('');
-                                            },
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                )
-                              : Row(
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.arrow_back),
-                                      tooltip: 'Back',
-                                      color: textColor,
-                                      onPressed: () => Navigator.maybePop(context),
-                                    ),
-                                    const SizedBox(width: AppLayout.spaceS),
-                                    QuillToolbarHistoryButton(
-                                      isUndo: true,
-                                      controller: _quillController,
-                                      options: QuillToolbarHistoryButtonOptions(
-                                          iconTheme: QuillIconTheme(
-                                              iconButtonUnselectedData:
-                                                  IconButtonData(
-                                                      style: IconButton.styleFrom(
-                                                          foregroundColor:
-                                                              textColor)))),
-                                    ),
-                                    QuillToolbarHistoryButton(
-                                      isUndo: false,
-                                      controller: _quillController,
-                                      options: QuillToolbarHistoryButtonOptions(
-                                          iconTheme: QuillIconTheme(
-                                              iconButtonUnselectedData:
-                                                  IconButtonData(
-                                                      style: IconButton.styleFrom(
-                                                          foregroundColor:
-                                                              textColor)))),
-                                    ),
-                                    const Spacer(),
-                                    BouncingWidget(
-                                      onTap: _showTagPicker,
-                                      child: IconButton(
-                                        icon: const Icon(Icons.label_outline),
-                                        tooltip: 'Tags',
-                                        color: textColor,
-                                        onPressed: _showTagPicker,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4.0),
-                                    PopupMenuButton<String>(
-                                      icon: Icon(Icons.more_vert_rounded, color: textColor),
-                                      tooltip: 'More',
-                                      elevation: 3,
-                                      shadowColor: theme.colorScheme.shadow.withValues(alpha: 0.15),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(AppLayout.radiusXL),
-                                        side: BorderSide(
-                                          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
-                                          width: 1,
-                                        ),
-                                      ),
-                                      color: theme.colorScheme.surfaceContainerHigh,
-                                      onSelected: (value) async {
-                                        switch (value) {
-                                          case 'reminder':
-                                            await _pickReminder();
-                                            break;
-                                          case 'clear_reminder':
-                                            _clearReminder();
-                                            break;
-                                          case 'folder':
-                                            await _pickFolder();
-                                            break;
-                                          case 'details':
-                                            _showNoteDetailsSheet();
-                                            break;
-                                          case 'share':
-                                            _showShareExportSheet();
-                                            break;
-                                          case 'lock':
-                                            await _toggleNoteLock();
-                                            break;
-                                          case 'table':
-                                            await _showTableInsertionDialog();
-                                            break;
-                                          case 'delete':
-                                            await _deleteNote();
-                                            break;
-                                          case 'search':
-                                            setState(() {
-                                              _isSearching = true;
-                                            });
-                                            _searchFocusNode.requestFocus();
-                                            break;
-                                        }
-                                      },
-                                      itemBuilder: (context) {
-                                        final colorScheme = theme.colorScheme;
-                                        return [
-                                          PopupMenuItem(
-                                            value: 'search',
-                                            height: 48,
-                                            child: Row(
-                                              children: [
-                                                Icon(Icons.search_rounded, size: 20, color: colorScheme.onSurfaceVariant),
-                                                const SizedBox(width: 12),
-                                                Text('Find in Note', style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
-                                              ],
-                                            ),
-                                          ),
-                                          if (settings.minimalEditorMode)
-                                            PopupMenuItem(
-                                              value: 'table',
-                                              height: 48,
-                                              child: Row(
-                                                children: [
-                                                  Icon(Icons.table_chart_outlined, size: 20, color: colorScheme.onSurfaceVariant),
-                                                  const SizedBox(width: 12),
-                                                  Text('Insert Table', style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
-                                                ],
-                                              ),
-                                            ),
-                                          PopupMenuItem(
-                                            value: 'reminder',
-                                            height: 48,
-                                            child: Row(
-                                              children: [
-                                                Icon(_reminderAt != null ? Icons.alarm_on_rounded : Icons.alarm_add_rounded, size: 20, color: colorScheme.onSurfaceVariant),
-                                                const SizedBox(width: 12),
-                                                Text(_reminderAt != null ? 'Change reminder' : 'Set reminder', style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
-                                              ],
-                                            ),
-                                          ),
-                                          if (_reminderAt != null)
-                                            PopupMenuItem(
-                                              value: 'clear_reminder',
-                                              height: 48,
-                                              child: Row(
-                                                children: [
-                                                  Icon(Icons.alarm_off_rounded, size: 20, color: colorScheme.onSurfaceVariant),
-                                                  const SizedBox(width: 12),
-                                                  Text('Remove reminder', style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
-                                                ],
-                                              ),
-                                            ),
-                                          PopupMenuItem(
-                                            value: 'folder',
-                                            height: 48,
-                                            child: Row(
-                                              children: [
-                                                Icon(Icons.folder_rounded, size: 20, color: colorScheme.onSurfaceVariant),
-                                                const SizedBox(width: 12),
-                                                Text('Move to folder', style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
-                                              ],
-                                            ),
-                                          ),
-                                          PopupMenuItem(
-                                            value: 'details',
-                                            height: 48,
-                                            child: Row(
-                                              children: [
-                                                Icon(Icons.info_outline_rounded, size: 20, color: colorScheme.onSurfaceVariant),
-                                                const SizedBox(width: 12),
-                                                Text('Note Details & Stats', style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
-                                              ],
-                                            ),
-                                          ),
-                                          PopupMenuItem(
-                                            value: 'share',
-                                            height: 48,
-                                            child: Row(
-                                              children: [
-                                                Icon(Icons.share_rounded, size: 20, color: colorScheme.onSurfaceVariant),
-                                                const SizedBox(width: 12),
-                                                Text('Share & Export', style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
-                                              ],
-                                            ),
-                                          ),
-                                          PopupMenuItem(
-                                            value: 'lock',
-                                            height: 48,
-                                            child: Row(
-                                              children: [
-                                                Icon(_isNoteLocked ? Icons.lock_open_rounded : Icons.lock_outline_rounded, size: 20, color: colorScheme.onSurfaceVariant),
-                                                const SizedBox(width: 12),
-                                                Text(_isNoteLocked ? 'Unlock note' : 'Lock note', style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
-                                              ],
-                                            ),
-                                          ),
-                                          PopupMenuItem(
-                                            value: 'delete',
-                                            height: 48,
-                                            child: Row(
-                                              children: [
-                                                Icon(Icons.delete_outline_rounded, size: 20, color: colorScheme.error),
-                                                const SizedBox(width: 12),
-                                                Text(_isNoteInTrash ? 'Delete Permanently' : 'Move to Trash', style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.error, fontWeight: FontWeight.w500)),
-                                              ],
-                                            ),
-                                          ),
-                                        ];
-                                      },
-                                    ),
-                                  ],
-                                ),
-                        ),
+                      NoteEditorTopBar(
+                        isSearching: _isSearching,
+                        searchController: _searchController,
+                        searchFocusNode: _searchFocusNode,
+                        isCaseSensitive: _isCaseSensitive,
+                        searchOffsets: _searchOffsets,
+                        currentSearchIndex: _currentSearchIndex,
+                        onCloseSearch: _closeSearch,
+                        onSearchChanged: _performSearch,
+                        onSearchSubmitted: (_) => _nextSearchMatch(),
+                        onToggleCaseSensitive: _toggleCaseSensitive,
+                        onPreviousSearchMatch: _previousSearchMatch,
+                        onNextSearchMatch: _nextSearchMatch,
+                        onBackPressed: () => Navigator.maybePop(context),
+                        textColor: textColor,
+                        quillController: _quillController,
+                        onTagPicker: _showTagPicker,
+                        reminderAt: _reminderAt,
+                        isNoteLocked: _isNoteLocked,
+                        isNoteInTrash: _isNoteInTrash,
+                        minimalEditorMode: settings.minimalEditorMode,
+                        onMenuSelected: (value) async {
+                          switch (value) {
+                            case 'reminder':
+                              await _pickReminder();
+                              break;
+                            case 'clear_reminder':
+                              _clearReminder();
+                              break;
+                            case 'folder':
+                              await _pickFolder();
+                              break;
+                            case 'details':
+                              _showNoteDetailsSheet();
+                              break;
+                            case 'share':
+                              _showShareExportSheet();
+                              break;
+                            case 'lock':
+                              await _toggleNoteLock();
+                              break;
+                            case 'table':
+                              await _showTableInsertionDialog();
+                              break;
+                            case 'delete':
+                              await _deleteNote();
+                              break;
+                            case 'search':
+                              setState(() {
+                                _isSearching = true;
+                              });
+                              _searchFocusNode.requestFocus();
+                              break;
+                          }
+                        },
                       ),
                       // Trash Warning Banner
                       if (_isNoteInTrash)
@@ -2244,266 +1468,94 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                       autocorrect: true,
                                       maxLines: null,
                                     ),
-                                    if (_reminderAt != null || _isNoteLocked || _isCustomFolder || tags.isNotEmpty)
-                                      Padding(
-                                        padding: const EdgeInsets.only(bottom: 8),
-                                        child: Wrap(
-                                          spacing: 8,
-                                          runSpacing: 6,
-                                          children: [
-                                            if (_reminderAt != null)
-                                              InputChip(
-                                                avatar: Icon(Icons.alarm,
-                                                    size: 16, color: textColor),
-                                                label: Text(
-                                                  DateFormat('EEE, d MMM • h:mm a')
-                                                      .format(_reminderAt!),
-                                                  style: TextStyle(
-                                                      color: textColor, fontSize: 12),
-                                                ),
-                                                onPressed: _pickReminder,
-                                                onDeleted: _clearReminder,
-                                                deleteIconColor: textColor,
-                                              ),
-                                            if (_isNoteLocked)
-                                              Chip(
-                                                avatar: Icon(Icons.lock,
-                                                    size: 16, color: textColor),
-                                                label: Text(
-                                                  'Locked',
-                                                  style: TextStyle(
-                                                      color: textColor, fontSize: 12),
-                                                ),
-                                              ),
-                                            if (_isCustomFolder)
-                                              InputChip(
-                                                avatar: Icon(Icons.folder_outlined,
-                                                    size: 16, color: textColor),
-                                                label: Text(
-                                                  _folder,
-                                                  style: TextStyle(
-                                                      color: textColor, fontSize: 12),
-                                                ),
-                                                onPressed: _pickFolder,
-                                              ),
-                                            ...tags.map((tag) {
-                                              final tagColorValue = _tagColors[tag];
-                                              final tagColor = tagColorValue != null &&
-                                                      tagColorValue != 0
-                                                  ? Color(tagColorValue)
-                                                  : null;
-                                              Color? chipBgColor;
-                                              Color? chipLabelColor;
-                                              if (tagColor != null) {
-                                                final scheme = ColorScheme.fromSeed(
-                                                  seedColor: tagColor,
-                                                  brightness:
-                                                      Theme.of(context).brightness,
-                                                );
-                                                chipBgColor = scheme.primaryContainer;
-                                                chipLabelColor =
-                                                    scheme.onPrimaryContainer;
-                                              }
-                                              return Chip(
-                                                label: Text(tag,
-                                                    style: TextStyle(
-                                                        color: chipLabelColor)),
-                                                backgroundColor: chipBgColor,
-                                                shape: const StadiumBorder(),
-                                                side: BorderSide.none,
-                                                onDeleted: () {
-                                                  setState(() {
-                                                    tags.remove(tag);
-                                                    _updateColorFromTags();
-                                                  });
-                                                  saveNote();
-                                                },
-                                                deleteIconColor: chipLabelColor,
-                                              );
-                                            }),
-                                          ],
-                                        ),
-                                      ),
-                                    Builder(
-                                      builder: (context) {
-                                        if (_completedItems.isEmpty) return const SizedBox.shrink();
-
-                                        return Padding(
-                                          padding: const EdgeInsets.only(top: 8, bottom: 12),
-                                          child: AnimatedContainer(
-                                            duration: AppLayout.animDefault,
-                                            curve: AppLayout.curveExpressiveSpatial,
-                                            decoration: BoxDecoration(
-                                              color: noteScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                                              borderRadius: BorderRadius.circular(AppLayout.radiusXL),
-                                              border: Border.all(
-                                                color: noteScheme.outlineVariant.withValues(alpha: 0.3),
-                                                width: 1.0,
-                                              ),
-                                            ),
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                InkWell(
-                                                  onTap: () {
-                                                    setState(() {
-                                                      _isCompletedCollapsed = !_isCompletedCollapsed;
-                                                    });
-                                                  },
-                                                  borderRadius: BorderRadius.circular(AppLayout.radiusXL),
-                                                  child: Padding(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                                    child: Row(
-                                                      children: [
-                                                        Icon(
-                                                          _isCompletedCollapsed
-                                                              ? Icons.keyboard_arrow_right_rounded
-                                                              : Icons.keyboard_arrow_down_rounded,
-                                                          size: 22,
-                                                          color: noteScheme.onSurfaceVariant,
-                                                        ),
-                                                        const SizedBox(width: 6),
-                                                        Text(
-                                                          '${_completedItems.length} completed ${_completedItems.length == 1 ? 'item' : 'items'}',
-                                                          style: theme.textTheme.titleSmall?.copyWith(
-                                                            color: noteScheme.onSurfaceVariant,
-                                                            fontWeight: FontWeight.bold,
-                                                          ),
-                                                        ),
-                                                        const Spacer(),
-                                                        Tooltip(
-                                                          message: 'Uncheck All',
-                                                          child: IconButton(
-                                                            icon: const Icon(Icons.restart_alt_rounded, size: 18),
-                                                            padding: EdgeInsets.zero,
-                                                            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                                                            visualDensity: VisualDensity.compact,
-                                                            color: noteScheme.onSurfaceVariant,
-                                                            onPressed: () async {
-                                                              AppHaptics.mediumImpact();
-                                                              if (!context.mounted) return;
-                                                              final itemsToRestore = List<String>.from(_completedItems);
-                                                              setState(() {
-                                                                _completedItems.clear();
-                                                              });
-                                                              WidgetsBinding.instance.addPostFrameCallback((_) async {
-                                                                if (!mounted) return;
-                                                                _isUpdatingProgrammatically = true;
-                                                                try {
-                                                                  for (final text in itemsToRestore) {
-                                                                    QuillChecklistHelper.restoreUncheckedItem(_quillController, text);
-                                                                  }
-                                                                  await saveNote();
-                                                                  if (mounted) setState(() {});
-                                                                } finally {
-                                                                  _isUpdatingProgrammatically = false;
-                                                                }
-                                                              });
-                                                            },
-                                                          ),
-                                                        ),
-                                                        Tooltip(
-                                                          message: 'Delete Completed',
-                                                          child: IconButton(
-                                                            icon: const Icon(Icons.delete_sweep_outlined, size: 18),
-                                                            padding: EdgeInsets.zero,
-                                                            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                                                            visualDensity: VisualDensity.compact,
-                                                            color: theme.colorScheme.error,
-                                                            onPressed: () async {
-                                                              AppHaptics.mediumImpact();
-                                                              if (!context.mounted) return;
-                                                              final confirm = await AppDialog.showConfirm(
-                                                                context: context,
-                                                                title: 'Delete Completed Items?',
-                                                                message:
-                                                                    'This will permanently remove ${_completedItems.length} finished items from this note.',
-                                                                confirmLabel: 'Delete',
-                                                                isDestructive: true,
-                                                              );
-                                                              if (confirm == true) {
-                                                                _completedItems.clear();
-                                                                await saveNote();
-                                                                if (context.mounted) setState(() {});
-                                                              }
-                                                            },
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                                AnimatedSize(
-                                                  duration: AppLayout.animDefault,
-                                                  curve: AppLayout.curveExpressiveSpatial,
-                                                  child: !_isCompletedCollapsed
-                                                      ? Column(
-                                                          children: [
-                                                             const SizedBox(height: 6.0),
-                                                            ..._completedItems.map((item) {
-                                                              return Padding(
-                                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                                                child: Row(
-                                                                  children: [
-                                                                    Checkbox(
-                                                                      value: true,
-                                                                      onChanged: (val) async {
-                                                                        AppHaptics.selectionClick();
-                                                                        final itemToRestore = item;
-                                                                        setState(() {
-                                                                          _completedItems.remove(itemToRestore);
-                                                                        });
-                                                                        WidgetsBinding.instance.addPostFrameCallback((_) async {
-                                                                          if (!mounted) return;
-                                                                          _isUpdatingProgrammatically = true;
-                                                                          try {
-                                                                            QuillChecklistHelper.restoreUncheckedItem(
-                                                                                _quillController, itemToRestore);
-                                                                            await saveNote();
-                                                                            if (mounted) setState(() {});
-                                                                          } finally {
-                                                                            _isUpdatingProgrammatically = false;
-                                                                          }
-                                                                        });
-                                                                      },
-                                                                      activeColor: theme.colorScheme.primary,
-                                                                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                                                    ),
-                                                                    Expanded(
-                                                                      child: Text(
-                                                                        item,
-                                                                        style: theme.textTheme.bodyMedium?.copyWith(
-                                                                          color: textColor.withValues(alpha: 0.6),
-                                                                          decoration: TextDecoration.lineThrough,
-                                                                        ),
-                                                                      ),
-                                                                    ),
-                                                                    IconButton(
-                                                                      icon: Icon(Icons.close_rounded,
-                                                                          size: 16, color: noteScheme.onSurfaceVariant.withValues(alpha: 0.7)),
-                                                                      tooltip: 'Remove item',
-                                                                      padding: EdgeInsets.zero,
-                                                                      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                                                                      onPressed: () async {
-                                                                        AppHaptics.selectionClick();
-                                                                        _completedItems.remove(item);
-                                                                        await saveNote();
-                                                                        if (context.mounted) setState(() {});
-                                                                      },
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              );
-                                                            }),
-                                                          ],
-                                                        )
-                                                      : const SizedBox.shrink(),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        );
+                                    NoteMetadataChipsBar(
+                                      reminderAt: _reminderAt,
+                                      isNoteLocked: _isNoteLocked,
+                                      isCustomFolder: _isCustomFolder,
+                                      folder: _folder,
+                                      tags: tags,
+                                      tagColors: _tagColors,
+                                      textColor: textColor,
+                                      onPickReminder: _pickReminder,
+                                      onClearReminder: _clearReminder,
+                                      onPickFolder: _pickFolder,
+                                      onDeleteTag: (tag) {
+                                        setState(() {
+                                          tags.remove(tag);
+                                          _updateColorFromTags();
+                                        });
+                                        saveNote();
                                       },
+                                    ),
+                                    NoteCompletedChecklistCard(
+                                      completedItems: _completedItems,
+                                      isCollapsed: _isCompletedCollapsed,
+                                      onToggleCollapse: () {
+                                        setState(() {
+                                          _isCompletedCollapsed = !_isCompletedCollapsed;
+                                        });
+                                      },
+                                      onUncheckAll: () async {
+                                        if (!context.mounted) return;
+                                        final itemsToRestore = List<String>.from(_completedItems);
+                                        setState(() {
+                                          _completedItems.clear();
+                                        });
+                                        WidgetsBinding.instance.addPostFrameCallback((_) async {
+                                          if (!mounted) return;
+                                          _isUpdatingProgrammatically = true;
+                                          try {
+                                            for (final text in itemsToRestore) {
+                                              QuillChecklistHelper.restoreUncheckedItem(_quillController, text);
+                                            }
+                                            await saveNote();
+                                            if (mounted) setState(() {});
+                                          } finally {
+                                            _isUpdatingProgrammatically = false;
+                                          }
+                                        });
+                                      },
+                                      onDeleteAll: () async {
+                                        if (!context.mounted) return;
+                                        final confirm = await AppDialog.showConfirm(
+                                          context: context,
+                                          title: 'Delete Completed Items?',
+                                          message:
+                                              'This will permanently remove ${_completedItems.length} finished items from this note.',
+                                          confirmLabel: 'Delete',
+                                          isDestructive: true,
+                                        );
+                                        if (confirm == true) {
+                                          _completedItems.clear();
+                                          await saveNote();
+                                          if (context.mounted) setState(() {});
+                                        }
+                                      },
+                                      onRestoreItem: (item) async {
+                                        final itemToRestore = item;
+                                        setState(() {
+                                          _completedItems.remove(itemToRestore);
+                                        });
+                                        WidgetsBinding.instance.addPostFrameCallback((_) async {
+                                          if (!mounted) return;
+                                          _isUpdatingProgrammatically = true;
+                                          try {
+                                            QuillChecklistHelper.restoreUncheckedItem(
+                                                _quillController, itemToRestore);
+                                            await saveNote();
+                                            if (mounted) setState(() {});
+                                          } finally {
+                                            _isUpdatingProgrammatically = false;
+                                          }
+                                        });
+                                      },
+                                      onDeleteItem: (item) async {
+                                        _completedItems.remove(item);
+                                        await saveNote();
+                                        if (context.mounted) setState(() {});
+                                      },
+                                      noteScheme: noteScheme,
+                                      textColor: textColor,
                                     ),
                                     NotificationListener<TableCellFocusNotification>(
                                       onNotification: (notification) {
@@ -2573,81 +1625,9 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                                               const TableEmbedBuilder(),
                                               ...FlutterQuillEmbeds.editorBuilders(),
                                             ],
-                                            customStyles: DefaultStyles(
-                                              inlineCode: InlineCodeStyle(
-                                                style: TextStyle(
-                                                  color: noteScheme.onSurface,
-                                                  backgroundColor: noteScheme.onSurface.withValues(alpha: 0.15),
-                                                  fontFamily: 'monospace',
-                                                ),
-                                              ),
-                                              h1: DefaultTextBlockStyle(
-                                                theme.textTheme.displaySmall!.copyWith(
-                                                  color: noteScheme.onSurface,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                                const HorizontalSpacing(0, 0),
-                                                const VerticalSpacing(16, 0),
-                                                const VerticalSpacing(0, 0),
-                                                null,
-                                              ),
-                                              h2: DefaultTextBlockStyle(
-                                                theme.textTheme.headlineMedium!.copyWith(
-                                                  color: noteScheme.onSurface,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                                const HorizontalSpacing(0, 0),
-                                                const VerticalSpacing(14, 0),
-                                                const VerticalSpacing(0, 0),
-                                                null,
-                                              ),
-                                              h3: DefaultTextBlockStyle(
-                                                theme.textTheme.headlineSmall!.copyWith(
-                                                  color: noteScheme.onSurface,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                                const HorizontalSpacing(0, 0),
-                                                const VerticalSpacing(12, 0),
-                                                const VerticalSpacing(0, 0),
-                                                null,
-                                              ),
-                                              quote: DefaultTextBlockStyle(
-                                                TextStyle(
-                                                  color: noteScheme.onSurface.withValues(alpha: 0.7),
-                                                  fontStyle: FontStyle.italic,
-                                                  fontSize: 16,
-                                                ),
-                                                const HorizontalSpacing(16, 0),
-                                                const VerticalSpacing(8, 8),
-                                                const VerticalSpacing(0, 0),
-                                                BoxDecoration(
-                                                  border: Border(
-                                                    left: BorderSide(
-                                                      width: 4,
-                                                      color: noteScheme.primary,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                              code: DefaultTextBlockStyle(
-                                                TextStyle(
-                                                  color: noteScheme.onSurface,
-                                                  fontFamily: 'monospace',
-                                                  fontSize: 13.5,
-                                                  height: 1.4,
-                                                ),
-                                                const HorizontalSpacing(12, 12),
-                                                const VerticalSpacing(8, 8),
-                                                const VerticalSpacing(0, 0),
-                                                BoxDecoration(
-                                                  color: noteScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                                                  borderRadius: BorderRadius.circular(AppLayout.radiusM),
-                                                  border: Border.all(
-                                                    color: noteScheme.outlineVariant.withValues(alpha: 0.4),
-                                                    width: 1.0,
-                                                  ),
-                                                ),
-                                              ),
+                                            customStyles: NoteEditorStyles.build(
+                                              theme: theme,
+                                              noteScheme: noteScheme,
                                             ),
                                           ),
                                         ),
@@ -2754,108 +1734,33 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                   ),
                   // AI Summary Panel Overlay
                   if (_aiSummary != null)
-                    Positioned(
-                      left: 16,
-                      right: 16,
-                      bottom: 80, // Elevated above bottom formatting bar
-                      child: Card(
-                        color: noteScheme.surfaceContainerHigh,
-                        elevation: 8,
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(AppLayout.radiusL),
-                          side: BorderSide(
-                            color: noteScheme.outlineVariant
-                                .withValues(alpha: 0.3),
-                            width: 1,
+                    NoteAiSummaryPanel(
+                      summary: _aiSummary!,
+                      noteScheme: noteScheme,
+                      onClose: () => setState(() => _aiSummary = null),
+                      onCopy: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        AppHaptics.selectionClick();
+                        await Clipboard.setData(ClipboardData(text: _aiSummary!));
+                        messenger.showSnackBar(
+                          const SnackBar(
+                            content: Text('Summary copied to clipboard'),
+                            behavior: SnackBarBehavior.floating,
                           ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(Icons.auto_awesome,
-                                      color: noteScheme.primary, size: 18),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'AI Summary',
-                                    style:
-                                        theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  IconButton(
-                                    icon: const Icon(Icons.close, size: 18),
-                                    onPressed: () =>
-                                        setState(() => _aiSummary = null),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              ConstrainedBox(
-                                constraints:
-                                    const BoxConstraints(maxHeight: 120),
-                                child: SingleChildScrollView(
-                                  child: Text(
-                                    _aiSummary!,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      height: 1.4,
-                                      color: noteScheme.onSurface,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  TextButton.icon(
-                                    icon: const Icon(Icons.copy, size: 16),
-                                    label: const Text('Copy'),
-                                    onPressed: () async {
-                                      final messenger =
-                                          ScaffoldMessenger.of(context);
-                                      AppHaptics.selectionClick();
-                                      await Clipboard.setData(
-                                          ClipboardData(text: _aiSummary!));
-                                      messenger.showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                              'Summary copied to clipboard'),
-                                          behavior: SnackBarBehavior.floating,
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                  const SizedBox(width: 8),
-                                  FilledButton.icon(
-                                    icon: const Icon(Icons.add, size: 16),
-                                    label: const Text('Append'),
-                                    onPressed: () async {
-                                      AppHaptics.mediumImpact();
-                                      final currentLength =
-                                          _quillController.document.length;
-                                      _quillController.replaceText(
-                                        currentLength - 1,
-                                        0,
-                                        '\n\n=== AI SUMMARY ===\n${_aiSummary!.trim()}\n',
-                                        null,
-                                      );
-                                      _onContentChanged();
-                                      setState(() => _aiSummary = null);
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                        );
+                      },
+                      onAppend: () async {
+                        AppHaptics.mediumImpact();
+                        final currentLength = _quillController.document.length;
+                        _quillController.replaceText(
+                          currentLength - 1,
+                          0,
+                          '\n\n=== AI SUMMARY ===\n${_aiSummary!.trim()}\n',
+                          null,
+                        );
+                        _onContentChanged();
+                        setState(() => _aiSummary = null);
+                      },
                     ),
                 ],
               ),

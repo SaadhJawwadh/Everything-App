@@ -18,6 +18,7 @@ class AppLockScreen extends StatefulWidget {
 
   static final ValueNotifier<bool> sessionAuthenticated = ValueNotifier<bool>(false);
   static bool _ignoreNextResumeLock = false;
+  static DateTime? _ignoreNextResumeLockTimestamp;
   static int _ignoreLockCount = 0;
 
   /// Media shared into the app that hasn't been turned into a note yet —
@@ -34,19 +35,37 @@ class AppLockScreen extends StatefulWidget {
     sessionAuthenticated.value = true;
   }
 
+  /// Whether the single-resume bypass is still valid (expires after 60 seconds)
+  static bool get isIgnoreNextResumeLockValid {
+    if (!_ignoreNextResumeLock) return false;
+    if (_ignoreNextResumeLockTimestamp != null &&
+        DateTime.now().difference(_ignoreNextResumeLockTimestamp!) > const Duration(seconds: 60)) {
+      _ignoreNextResumeLock = false;
+      _ignoreNextResumeLockTimestamp = null;
+      return false;
+    }
+    return true;
+  }
+
   // Static helper to ignore the next lock check when resuming
   static void ignoreNextResumeLock() {
     _ignoreNextResumeLock = true;
+    _ignoreNextResumeLockTimestamp = DateTime.now();
+  }
+
+  static void clearIgnoreNextResumeLock() {
+    _ignoreNextResumeLock = false;
+    _ignoreNextResumeLockTimestamp = null;
   }
 
   /// Whether external activities or operations are currently active and app lock should be ignored
-  static bool get isLockIgnored => _ignoreLockCount > 0 || _ignoreNextResumeLock;
+  static bool get isLockIgnored => _ignoreLockCount > 0 || isIgnoreNextResumeLockValid;
 
   /// Run an asynchronous action (such as camera capture, file picker, or system share)
   /// while completely ignoring app lock lifecycle checks until completion.
   static Future<T> withLockIgnored<T>(Future<T> Function() action) async {
     _ignoreLockCount++;
-    _ignoreNextResumeLock = true;
+    ignoreNextResumeLock();
     try {
       return await action();
     } finally {
@@ -54,7 +73,7 @@ class AppLockScreen extends StatefulWidget {
       await Future.delayed(const Duration(milliseconds: 300));
       _ignoreLockCount = (_ignoreLockCount - 1).clamp(0, 999);
       if (_ignoreLockCount == 0) {
-        _ignoreNextResumeLock = false;
+        clearIgnoreNextResumeLock();
       }
     }
   }
@@ -157,7 +176,7 @@ class AppLockScreenState extends State<AppLockScreen>
     }
 
     final settings = Provider.of<SettingsProvider>(context, listen: false);
-    final shouldIgnoreLock = AppLockScreen._ignoreNextResumeLock || AppLockScreen._ignoreLockCount > 0;
+    final shouldIgnoreLock = AppLockScreen.isLockIgnored;
 
     if (isBackground) {
       _wasAuthenticatedBeforePause = _isSessionAuthenticated;
@@ -178,7 +197,7 @@ class AppLockScreenState extends State<AppLockScreen>
           _isSessionAuthenticated = true;
         }
         if (AppLockScreen._ignoreLockCount == 0) {
-          AppLockScreen._ignoreNextResumeLock = false;
+          AppLockScreen.clearIgnoreNextResumeLock();
         }
       } else if (_backgroundStopwatch != null) {
         final elapsed = _backgroundStopwatch!.elapsed.inSeconds;
@@ -210,7 +229,7 @@ class AppLockScreenState extends State<AppLockScreen>
       _backgroundStopwatch = null;
       // Screen-off or keyguard lock invalidates any bypass/grace period
       AppLockScreen._ignoreLockCount = 0;
-      AppLockScreen._ignoreNextResumeLock = false;
+      AppLockScreen.clearIgnoreNextResumeLock();
       _isSessionAuthenticated = false;
     } catch (e) {
       debugPrint('Error checking screen-off state: $e');
@@ -238,7 +257,7 @@ class AppLockScreenState extends State<AppLockScreen>
     // 2. Wait 150ms to allow incoming sharing intents to fire and call unlockSession()
     await Future.delayed(const Duration(milliseconds: 150));
 
-    final shouldIgnoreLock = AppLockScreen._ignoreNextResumeLock || AppLockScreen._ignoreLockCount > 0;
+    final shouldIgnoreLock = AppLockScreen.isLockIgnored;
     if (!_isSessionAuthenticated && !shouldIgnoreLock) {
       if (mounted) {
         await _checkAuth(context);
@@ -460,9 +479,18 @@ class AppLockScreenState extends State<AppLockScreen>
                                     );
                                     if (!didAuth) return;
                                   }
-                                } catch (_) {}
-                                await s.setAppLockEnabled(false);
-                                AppLockScreen.unlockSession();
+                                  await s.setAppLockEnabled(false);
+                                  AppLockScreen.unlockSession();
+                                } catch (e) {
+                                  debugPrint('Failed to disable app lock: $e');
+                                  if (mounted) {
+                                    setState(() {
+                                      _authErrorMessage = e is PlatformException
+                                          ? (e.message ?? 'Authentication error')
+                                          : 'Failed to verify identity to disable App Lock';
+                                    });
+                                  }
+                                }
                               },
                               icon: const Icon(Icons.lock_open_rounded, size: 18),
                               label: Text(AppLocalizations.of(context)?.disableAppLock ?? 'Disable App Lock'),

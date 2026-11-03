@@ -1,3 +1,4 @@
+import 'package:uuid/uuid.dart';
 import 'transaction_category.dart';
 
 class AccountType {
@@ -16,6 +17,8 @@ class TransactionModel {
   final DateTime? deletedAt;
   final String account;
   final bool isAiRefined;
+  final DateTime? dateModified;
+  final String? uuid;
 
   TransactionModel({
     this.id,
@@ -28,7 +31,9 @@ class TransactionModel {
     this.deletedAt,
     this.account = AccountType.daily,
     this.isAiRefined = false,
-  });
+    this.dateModified,
+    String? uuid,
+  }) : uuid = uuid ?? (smsId == null ? const Uuid().v4() : null);
 
   TransactionModel copy({
     int? id,
@@ -41,6 +46,8 @@ class TransactionModel {
     DateTime? deletedAt,
     String? account,
     bool? isAiRefined,
+    DateTime? dateModified,
+    String? uuid,
   }) =>
       TransactionModel(
         id: id ?? this.id,
@@ -53,6 +60,8 @@ class TransactionModel {
         deletedAt: deletedAt ?? this.deletedAt,
         account: account ?? this.account,
         isAiRefined: isAiRefined ?? this.isAiRefined,
+        dateModified: dateModified ?? this.dateModified,
+        uuid: uuid ?? this.uuid,
       );
 
   static TransactionModel fromJson(Map<String, Object?> json) =>
@@ -72,6 +81,10 @@ class TransactionModel {
             : null,
         account: (json[TransactionFields.account] as String?) ?? AccountType.daily,
         isAiRefined: ((json[TransactionFields.isAiRefined] as int?) ?? 0) == 1,
+        dateModified: json[TransactionFields.dateModified] != null
+            ? DateTime.tryParse(json[TransactionFields.dateModified] as String)
+            : null,
+        uuid: json[TransactionFields.uuid] as String?,
       );
 
   Map<String, Object?> toJson() => {
@@ -85,6 +98,8 @@ class TransactionModel {
         TransactionFields.deletedAt: deletedAt?.toIso8601String(),
         TransactionFields.account: account,
         TransactionFields.isAiRefined: isAiRefined ? 1 : 0,
+        TransactionFields.dateModified: (dateModified ?? date).toIso8601String(),
+        TransactionFields.uuid: uuid,
       };
 }
 
@@ -100,6 +115,8 @@ class TransactionFields {
     deletedAt,
     account,
     isAiRefined,
+    dateModified,
+    uuid,
   ];
 
   static const String id = '_id';
@@ -112,4 +129,6 @@ class TransactionFields {
   static const String deletedAt = 'deletedAt';
   static const String account = 'account';
   static const String isAiRefined = 'isAiRefined';
+  static const String dateModified = 'dateModified';
+  static const String uuid = 'uuid';
 }

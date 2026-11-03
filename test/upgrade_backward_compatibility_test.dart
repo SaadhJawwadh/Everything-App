@@ -61,10 +61,10 @@ void main() {
       expect(v1Notes.first['title'], 'My Old Note');
       await db.close();
 
-      // 2. Open the same database at version 25 with _upgradeDB
+      // 2. Open the same database at version 26 with _upgradeDB
       final upgradedDb = await openDatabase(
         dbPath,
-        version: 25,
+        version: 26,
         onUpgrade: (db, oldVersion, newVersion) async {
           await DatabaseHelper.instance.upgradeTestDatabase(db, oldVersion, newVersion);
         },
@@ -199,6 +199,73 @@ void main() {
       }
     });
 
+    test('Simulate upgrading an old database from v25 directly to v26 for transaction uuid and dateModified tracking', () async {
+      const dbPath = 'upgrade_v25_to_v26_test.db';
+      if (await databaseFactory.databaseExists(dbPath)) {
+        await databaseFactory.deleteDatabase(dbPath);
+      }
+
+      // 1. Create a database at version 25 lacking dateModified and uuid columns
+      final db = await openDatabase(
+        dbPath,
+        version: 25,
+        onCreate: (db, version) async {
+          await db.execute('''
+            CREATE TABLE ${TableNames.transactions} (
+              _id INTEGER PRIMARY KEY AUTOINCREMENT,
+              amount REAL NOT NULL,
+              description TEXT NOT NULL,
+              date TEXT NOT NULL,
+              isExpense INTEGER NOT NULL,
+              category TEXT NOT NULL DEFAULT 'Other',
+              smsId TEXT,
+              deletedAt TEXT,
+              account TEXT NOT NULL DEFAULT 'daily',
+              isAiRefined INTEGER NOT NULL DEFAULT 0
+            )
+          ''');
+
+          // Insert legacy manual transaction
+          await db.insert(TableNames.transactions, {
+            'amount': 45.0,
+            'description': 'Legacy Grocery',
+            'date': '2026-09-01T10:00:00.000',
+            'isExpense': 1,
+            'category': 'Groceries',
+            'account': 'daily',
+            'isAiRefined': 0,
+          });
+        },
+      );
+      await db.close();
+
+      // 2. Open at version 26 and trigger onUpgrade
+      final upgradedDb = await openDatabase(
+        dbPath,
+        version: 26,
+        onUpgrade: (db, oldVersion, newVersion) async {
+          await DatabaseHelper.instance.upgradeTestDatabase(db, oldVersion, newVersion);
+        },
+      );
+
+      // Verify dateModified and uuid columns exist
+      final tableInfo = await upgradedDb.rawQuery('PRAGMA table_info(${TableNames.transactions})');
+      final colNames = tableInfo.map((row) => row['name'] as String).toList();
+      expect(colNames, contains('dateModified'));
+      expect(colNames, contains('uuid'));
+
+      // Verify existing transactions had dateModified populated from date
+      final txRows = await upgradedDb.query(TableNames.transactions);
+      expect(txRows.length, 1);
+      expect(txRows.first['description'], 'Legacy Grocery');
+      expect(txRows.first['dateModified'], '2026-09-01T10:00:00.000');
+
+      await upgradedDb.close();
+      if (await databaseFactory.databaseExists(dbPath)) {
+        await databaseFactory.deleteDatabase(dbPath);
+      }
+    });
+
     test('SettingsProvider loads gracefully with empty or legacy SharedPreferences', () async {
       SharedPreferences.setMockInitialValues({
         'hasSeenOnboarding_v1': true,
@@ -221,7 +288,7 @@ void main() {
       expect(settings.trashAutoPurgeDays, 30);
     });
 
-    testWidgets('WhatsNewSheet renders v3.2.0 cards and records version on dismiss', (tester) async {
+    testWidgets('WhatsNewSheet renders v3.2.1 cards and records version on dismiss', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -238,7 +305,7 @@ void main() {
           value: settings,
           child: const MaterialApp(
             home: Scaffold(
-              body: WhatsNewSheet(currentVersion: '3.2.0'),
+              body: WhatsNewSheet(currentVersion: '3.2.1'),
             ),
           ),
         ),
@@ -268,7 +335,7 @@ void main() {
       });
       await tester.pumpAndSettle();
 
-      expect(settings.lastSeenVersion, '3.2.0');
+      expect(settings.lastSeenVersion, '3.2.1');
     });
   });
 }

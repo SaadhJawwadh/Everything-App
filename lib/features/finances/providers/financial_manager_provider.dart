@@ -15,10 +15,19 @@ class FinancialManagerProvider extends ChangeNotifier {
 
   List<TransactionModel> _allTransactions = [];
   List<TransactionModel> _filteredTransactions = [];
+  List<TransactionModel> _allDateFiltered = [];
   List<TransactionModel> _trashedTransactions = [];
+  List<Map<String, dynamic>> _monthlyData = [];
   bool _isLoading = false;
   bool _isSmsSyncing = false;
   SmsSyncProgress? _smsSyncProgress;
+
+  DateTimeRange _selectedRange = DateTimeRange(
+    start: DateTime(DateTime.now().year, DateTime.now().month, 1),
+    end: DateTime.now(),
+  );
+  String? _selectedCategory;
+  String _selectedAccount = 'all'; // 'all', 'daily', 'savings'
 
   FinancialManagerProvider() {
     _syncSubscription = P2pSyncService.instance.syncEvents.listen((result) {
@@ -34,17 +43,22 @@ class FinancialManagerProvider extends ChangeNotifier {
       }
       notifyListeners();
     });
+    FinancialManagerScreen.refreshNotifier.addListener(_onExternalRefreshNotifier);
+  }
+
+  void _onExternalRefreshNotifier() {
+    loadTransactions();
   }
 
   @override
   void dispose() {
     _syncSubscription?.cancel();
     _smsSyncSubscription?.cancel();
+    FinancialManagerScreen.refreshNotifier.removeListener(_onExternalRefreshNotifier);
     super.dispose();
   }
 
   String _searchQuery = '';
-  String _selectedCategory = 'All';
   DateTime _selectedMonth = DateTime.now();
 
   double _totalIncome = 0;
@@ -54,12 +68,17 @@ class FinancialManagerProvider extends ChangeNotifier {
   double _savingsVaultCashFlow = 0;
 
   List<TransactionModel> get transactions => List.unmodifiable(_filteredTransactions);
+  List<TransactionModel> get allDateFiltered => List.unmodifiable(_allDateFiltered);
   List<TransactionModel> get trashedTransactions => List.unmodifiable(_trashedTransactions);
+  List<Map<String, dynamic>> get monthlyData => List.unmodifiable(_monthlyData);
+  int get trashedCount => _trashedTransactions.length;
+  DateTimeRange get selectedRange => _selectedRange;
+  String? get selectedCategory => _selectedCategory;
+  String get selectedAccount => _selectedAccount;
   bool get isLoading => _isLoading;
   bool get isSmsSyncing => _isSmsSyncing;
   SmsSyncProgress? get smsSyncProgress => _smsSyncProgress;
   String get searchQuery => _searchQuery;
-  String get selectedCategory => _selectedCategory;
   DateTime get selectedMonth => _selectedMonth;
 
   double get totalIncome => _totalIncome;
@@ -67,6 +86,23 @@ class FinancialManagerProvider extends ChangeNotifier {
   double get balance => _balance;
   double get dailyCashFlow => _dailyCashFlow;
   double get savingsVaultCashFlow => _savingsVaultCashFlow;
+
+  List<String> get activeCategories =>
+      _allDateFiltered.map((t) => t.category).toSet().toList()..sort();
+
+  Map<String, double> get categoryExpenses {
+    final Map<String, double> totals = {};
+    for (final t in _allDateFiltered) {
+      if (t.isExpense && t.category.toLowerCase() != 'transfer') {
+        totals[t.category] = (totals[t.category] ?? 0.0) + t.amount;
+      }
+    }
+    return totals;
+  }
+
+  double get totalDateExpense => _allDateFiltered
+      .where((t) => t.isExpense && t.category.toLowerCase() != 'transfer')
+      .fold(0.0, (sum, t) => sum + t.amount);
 
   Future<void> loadTransactions() async {
     _isLoading = true;
@@ -79,6 +115,10 @@ class FinancialManagerProvider extends ChangeNotifier {
 
     _allTransactions = await _repository.readAllTransactions();
     _trashedTransactions = await _repository.readTrashedTransactions();
+    try {
+      _monthlyData = await _repository.getMonthlyTransactionSummary(6);
+    } catch (_) {}
+
     _applyFilters();
 
     _isLoading = false;
@@ -86,15 +126,34 @@ class FinancialManagerProvider extends ChangeNotifier {
   }
 
   Future<void> refresh() => loadTransactions();
+  Future<void> refreshTransactions({bool showLoading = false}) async {
+    if (showLoading && _filteredTransactions.isEmpty) {
+      _isLoading = true;
+      notifyListeners();
+    }
+    await loadTransactions();
+  }
 
-  void setSearchQuery(String query) {
-    _searchQuery = query;
+  void setSelectedRange(DateTimeRange range) {
+    _selectedRange = range;
     _applyFilters();
     notifyListeners();
   }
 
-  void setSelectedCategory(String category) {
-    _selectedCategory = category;
+  void setSelectedAccount(String account) {
+    _selectedAccount = account;
+    _applyFilters();
+    notifyListeners();
+  }
+
+  void setSelectedCategory(String? category) {
+    _selectedCategory = (category == null || category == 'All') ? null : category;
+    _applyFilters();
+    notifyListeners();
+  }
+
+  void setSearchQuery(String query) {
+    _searchQuery = query;
     _applyFilters();
     notifyListeners();
   }
@@ -106,18 +165,29 @@ class FinancialManagerProvider extends ChangeNotifier {
   }
 
   void _applyFilters() {
-    _filteredTransactions = _allTransactions.where((tx) {
-      if (tx.category == '__reversal__') return false;
+    final start = DateTime(_selectedRange.start.year, _selectedRange.start.month, _selectedRange.start.day);
+    final end = DateTime(_selectedRange.end.year, _selectedRange.end.month, _selectedRange.end.day);
 
+    _allDateFiltered = _allTransactions.where((t) {
+      if (t.category == '__reversal__') return false;
+      final tDate = DateTime(t.date.year, t.date.month, t.date.day);
+      return tDate.isAfter(start.subtract(const Duration(days: 1))) &&
+          tDate.isBefore(end.add(const Duration(days: 1)));
+    }).toList();
+
+    _filteredTransactions = _allDateFiltered.where((tx) {
       final matchesQuery = _searchQuery.isEmpty ||
           tx.description.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           tx.category.toLowerCase().contains(_searchQuery.toLowerCase());
 
-      final matchesCategory = _selectedCategory == 'All' || tx.category == _selectedCategory;
+      final matchesCategory = _selectedCategory == null ||
+          _selectedCategory == 'All' ||
+          tx.category == _selectedCategory;
 
-      final matchesMonth = tx.date.year == _selectedMonth.year && tx.date.month == _selectedMonth.month;
+      final matchesAccount = _selectedAccount == 'all' ||
+          tx.account == _selectedAccount;
 
-      return matchesQuery && matchesCategory && matchesMonth;
+      return matchesQuery && matchesCategory && matchesAccount;
     }).toList();
 
     _calculateTotals();

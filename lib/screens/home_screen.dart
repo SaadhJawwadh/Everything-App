@@ -334,18 +334,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     if (chosen == null || !mounted) return;
     final ids = noteProvider.selectedNoteIds.toList();
-    final now = DateTime.now();
-    for (final id in ids) {
-      final note = await NoteRepository.instance.readNote(id);
-      if (note != null) {
-        await NoteRepository.instance.updateNote(
-          note.copyWith(
-            category: chosen == 'All Notes' ? '' : chosen,
-            dateModified: now,
-          ),
-        );
-      }
-    }
+    await NoteRepository.instance.bulkMoveNotesToFolder(ids, chosen);
     noteProvider.clearSelection();
     await refreshNotes();
     if (mounted) {
@@ -590,16 +579,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         });
       }
 
-      final noteProvider = context.watch<NoteProvider>();
-      final finProvider = context.watch<FinancialManagerProvider>();
-
-      final isNotesSelection = _currentIndex == 0 && noteProvider.isSelectionMode;
-      final isFinancesSelection = settings.showFinancialManager && _currentIndex == 1 && finProvider.isSelectionMode;
+      final isNotesSelection = _currentIndex == 0 &&
+          context.select<NoteProvider, bool>((p) => p.isSelectionMode);
+      final isFinancesSelection = settings.showFinancialManager &&
+          _currentIndex == 1 &&
+          context.select<FinancialManagerProvider, bool>((p) => p.isSelectionMode);
       final isSelectionMode = isNotesSelection || isFinancesSelection;
 
       Widget? activeToolbar;
       if (isNotesSelection) {
-        activeToolbar = _buildSelectionToolbar(context, noteProvider);
+        activeToolbar = _buildSelectionToolbar(context, context.read<NoteProvider>());
       } else if (isFinancesSelection) {
         activeToolbar = LedgerFloatingToolbar(
           onActionCompleted: () => FinancialManagerScreen.refreshNotifier.value++,
@@ -612,8 +601,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         return _wrapWithKeyboardShortcuts(
           context: context,
           settings: settings,
-          noteProvider: noteProvider,
-          finProvider: finProvider,
           destinationsCount: 1,
           child: Scaffold(
             extendBody: true,
@@ -635,8 +622,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         return _wrapWithKeyboardShortcuts(
           context: context,
           settings: settings,
-          noteProvider: noteProvider,
-          finProvider: finProvider,
           destinationsCount: destinations.length,
           child: Scaffold(
             extendBody: true,
@@ -646,8 +631,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   selectedIndex: _currentIndex,
                   onDestinationSelected: (index) {
                     AppHaptics.selectionClick();
-                    if (noteProvider.isSelectionMode) noteProvider.clearSelection();
-                    if (finProvider.isSelectionMode) finProvider.clearSelection();
+                    final nProvider = context.read<NoteProvider>();
+                    if (nProvider.isSelectionMode) nProvider.clearSelection();
+                    final fProvider = context.read<FinancialManagerProvider>();
+                    if (fProvider.isSelectionMode) fProvider.clearSelection();
                     setState(() => _currentIndex = index);
                   },
                   labelType: NavigationRailLabelType.all,
@@ -690,8 +677,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       return _wrapWithKeyboardShortcuts(
         context: context,
         settings: settings,
-        noteProvider: noteProvider,
-        finProvider: finProvider,
         destinationsCount: destinations.length,
         child: Scaffold(
           extendBody: true,
@@ -730,8 +715,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       selectedIndex: _currentIndex,
                       onDestinationSelected: (index) {
                         AppHaptics.selectionClick();
-                        if (noteProvider.isSelectionMode) noteProvider.clearSelection();
-                        if (finProvider.isSelectionMode) finProvider.clearSelection();
+                        final nProvider = context.read<NoteProvider>();
+                        if (nProvider.isSelectionMode) nProvider.clearSelection();
+                        final fProvider = context.read<FinancialManagerProvider>();
+                        if (fProvider.isSelectionMode) fProvider.clearSelection();
                         setState(() => _currentIndex = index);
                       },
                       destinations: _buildNavDestinations(settings),
@@ -746,17 +733,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _wrapWithKeyboardShortcuts({
     required BuildContext context,
     required SettingsProvider settings,
-    required NoteProvider noteProvider,
-    required FinancialManagerProvider finProvider,
     required int destinationsCount,
     required Widget child,
   }) {
     void openNewNote() async {
       AppHaptics.lightImpact();
+      final nProvider = context.read<NoteProvider>();
       final returned = await Navigator.of(context).push<bool>(
         MaterialPageRoute(
           builder: (_) =>
-              NoteEditorScreen(initialFolder: noteProvider.selectedFolder),
+              NoteEditorScreen(initialFolder: nProvider.selectedFolder),
         ),
       );
       if (returned == true) await refreshNotes(scrollOnModified: true);
@@ -769,7 +755,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         MaterialPageRoute(builder: (_) => const TransactionEditorScreen()),
       );
       if (context.mounted) {
-        await finProvider.loadTransactions();
+        await context.read<FinancialManagerProvider>().loadTransactions();
         FinancialManagerScreen.refreshNotifier.value++;
       }
     }
@@ -785,8 +771,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     void switchTab(int target) {
       if (target >= 0 && target < destinationsCount && _currentIndex != target) {
         AppHaptics.selectionClick();
-        if (noteProvider.isSelectionMode) noteProvider.clearSelection();
-        if (finProvider.isSelectionMode) finProvider.clearSelection();
+        final nProvider = context.read<NoteProvider>();
+        if (nProvider.isSelectionMode) nProvider.clearSelection();
+        final fProvider = context.read<FinancialManagerProvider>();
+        if (fProvider.isSelectionMode) fProvider.clearSelection();
         setState(() => _currentIndex = target);
       }
     }
@@ -810,6 +798,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         const SingleActivator(LogicalKeyboardKey.slash, meta: true): () =>
             KeyboardShortcutsDialog.show(context),
         const SingleActivator(LogicalKeyboardKey.escape): () {
+          final noteProvider = context.read<NoteProvider>();
+          final finProvider = context.read<FinancialManagerProvider>();
           if (noteProvider.isSelectionMode) {
             noteProvider.clearSelection();
           } else if (finProvider.isSelectionMode) {

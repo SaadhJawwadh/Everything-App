@@ -203,7 +203,7 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                       setState(() => _currentPage = index);
                     },
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(minWidth: 32, minHeight: 48),
+                      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                       child: Center(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),

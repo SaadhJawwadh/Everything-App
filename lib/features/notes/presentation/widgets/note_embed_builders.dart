@@ -153,7 +153,12 @@ class _FullScreenImageViewer extends StatelessWidget {
       ),
       body: InteractiveViewer(
         child: Center(
-          child: Image(image: imageProvider),
+          child: Image(
+            image: ResizeImage(imageProvider, width: 1920),
+            errorBuilder: (context, error, stackTrace) => const Center(
+              child: Icon(Icons.broken_image_outlined, color: Colors.white54, size: 48),
+            ),
+          ),
         ),
       ),
     );

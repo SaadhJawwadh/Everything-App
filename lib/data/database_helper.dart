@@ -10,7 +10,7 @@ import 'database_constants.dart';
 import 'database_seed.dart';
 
 class DatabaseHelper {
-  static const int _databaseVersion = 25;
+  static const int _databaseVersion = 26;
   static const String _dbName = 'notes.db';
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
@@ -54,11 +54,21 @@ class DatabaseHelper {
     return _databaseFuture!;
   }
 
-  static Future<String> _getOrCreateEncryptionKey() async {
+  static Future<String> _getOrCreateEncryptionKey({bool databaseFileExists = false}) async {
     String? key;
-    try {
-      key = await _secureStorage.read(key: _keyStorageKey);
-    } catch (_) {}
+    int readAttempts = 0;
+    while (readAttempts < 3) {
+      readAttempts++;
+      try {
+        key = await _secureStorage.read(key: _keyStorageKey);
+        if (key != null && key.isNotEmpty) break;
+      } catch (e) {
+        debugPrint('[DatabaseHelper] Keystore read attempt $readAttempts failed: $e');
+      }
+      if (readAttempts < 3) {
+        await Future.delayed(Duration(milliseconds: 100 * (1 << (readAttempts - 1))));
+      }
+    }
 
     final prefs = await SharedPreferences.getInstance();
     
@@ -75,6 +85,11 @@ class DatabaseHelper {
     }
 
     if (key == null || key.isEmpty) {
+      if (databaseFileExists) {
+        debugPrint('[DatabaseHelper] ERROR: Database file exists on disk, but Keystore key could not be retrieved. Halting key generation to prevent data loss.');
+        throw const SecureStorageKeyMissingException();
+      }
+
       final random = Random.secure();
       final bytes = List<int>.generate(32, (_) => random.nextInt(256));
       key = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
@@ -95,10 +110,12 @@ class DatabaseHelper {
   Future<Database> _initDB(String filePath) async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
-    final password = await _getOrCreateEncryptionKey();
-
     final dbFile = File(path);
-    if (await dbFile.exists()) {
+    final dbExists = await dbFile.exists();
+
+    final password = await _getOrCreateEncryptionKey(databaseFileExists: dbExists);
+
+    if (dbExists) {
       if (await _isUnencryptedDb(path)) {
         await _migrateToEncrypted(path, password);
       }
@@ -136,7 +153,33 @@ class DatabaseHelper {
             e.toString().contains('file is not a database');
 
         if (isCorrupt) {
-          debugPrint('[DatabaseHelper] Corrupt database detected ($e), backing up and attempting snapshot recovery...');
+          debugPrint('[DatabaseHelper] Corrupt or unreadable database detected ($e), checking snapshot recovery...');
+          
+          final hasData = await dbFile.exists() && (await dbFile.length()) > 0;
+
+          // Attempt recovery from rolling snapshot first without destroying the current file
+          final recovered = await _tryRecoverFromLatestSnapshot(path);
+          if (recovered) {
+            debugPrint('[DatabaseHelper] Recovered database from latest rolling snapshot');
+            return await openDatabase(
+              path,
+              password: password,
+              version: _databaseVersion,
+              onCreate: _createDB,
+              onUpgrade: _upgradeDB,
+              onOpen: _onOpenDB,
+            );
+          }
+
+          // If recovery was not possible and the file contains data, DO NOT wipe or create an empty DB!
+          if (hasData) {
+            debugPrint('[DatabaseHelper] Refusing to overwrite non-empty database ($path). Halting without destructive action to protect user data.');
+            throw DatabaseAuthException(
+              'Database file exists with valid data but could not be decrypted or opened: $e. Preserving file to prevent data loss.',
+            );
+          }
+
+          // Only if the file is empty or missing do we rename and create fresh DB
           try {
             final timestamp = DateTime.now().millisecondsSinceEpoch;
             if (await dbFile.exists()) await dbFile.rename('${path}_corrupt_backup_$timestamp');
@@ -146,11 +189,6 @@ class DatabaseHelper {
             if (await shmFile.exists()) await shmFile.rename('$path-shm_corrupt_backup_$timestamp');
           } catch (backupError) {
             debugPrint('[DatabaseHelper] Could not backup corrupt file: $backupError');
-          }
-
-          final recovered = await _tryRecoverFromLatestSnapshot(path);
-          if (recovered) {
-            debugPrint('[DatabaseHelper] Recovered database from latest rolling snapshot');
           }
 
           return await openDatabase(
@@ -270,16 +308,22 @@ class DatabaseHelper {
       await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_deleted ON notes(deletedAt);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_modified ON notes(dateModified);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_modified_deleted ON notes(dateModified, deletedAt);');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_category_deleted ON notes(category, deletedAt, isArchived);');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_note_tags_tag ON note_tags(tag_name);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_transactions_smsid ON transactions(smsId);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_transactions_deleted ON transactions(deletedAt);');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_transactions_active_date ON transactions(deletedAt, date DESC);');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_transactions_cat_deleted ON transactions(category, deletedAt);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_transactions_date_account ON transactions(date, account);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_tombstones_smsid ON deleted_transaction_sms_ids(smsId);');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_recurring_rules_nextdue ON recurring_rules(nextDue);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_split_bills_deleted ON ${TableNames.splitBills}(${SplitBillFields.deletedAt});');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_split_bills_txid ON ${TableNames.splitBills}(${SplitBillFields.transactionId});');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_split_bills_active ON ${TableNames.splitBills}(${SplitBillFields.deletedAt}, ${SplitBillFields.status});');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_split_participants_bill ON ${TableNames.splitParticipants}(${SplitParticipantFields.billId});');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_split_participants_contact ON ${TableNames.splitParticipants}(${SplitParticipantFields.contactName});');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_split_participants_settletx ON ${TableNames.splitParticipants}(${SplitParticipantFields.settlementTransactionId});');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_period_logs_start ON ${TableNames.periodLogs}(${PeriodLogFields.startDate});');
 
       final cols = await db.rawQuery('PRAGMA table_info(${TableNames.transactions})');
@@ -396,7 +440,9 @@ class DatabaseHelper {
         smsId TEXT,
         deletedAt TEXT,
         account TEXT NOT NULL DEFAULT 'daily',
-        isAiRefined INTEGER NOT NULL DEFAULT 0
+        isAiRefined INTEGER NOT NULL DEFAULT 0,
+        dateModified TEXT,
+        uuid TEXT
       )
     ''');
     await db.execute(
@@ -702,6 +748,20 @@ class DatabaseHelper {
         await db.execute('ALTER TABLE ${TableNames.splitParticipants} ADD COLUMN ${SplitParticipantFields.settlementTransactionId} INTEGER');
       }
     }
+    if (oldVersion < 26) {
+      final cols = await db.rawQuery('PRAGMA table_info(${TableNames.transactions})');
+      if (cols.isNotEmpty) {
+        final hasDateModified = cols.any((col) => col['name'] == 'dateModified');
+        if (!hasDateModified) {
+          await db.execute('ALTER TABLE ${TableNames.transactions} ADD COLUMN dateModified TEXT');
+          await db.execute('UPDATE ${TableNames.transactions} SET dateModified = date WHERE dateModified IS NULL');
+        }
+        final hasUuid = cols.any((col) => col['name'] == 'uuid');
+        if (!hasUuid) {
+          await db.execute('ALTER TABLE ${TableNames.transactions} ADD COLUMN uuid TEXT');
+        }
+      }
+    }
     await ensureRecurringRulesColumns(db);
   }
 
@@ -740,7 +800,7 @@ class DatabaseHelper {
       }
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final snapshotPath = join(snapshotsDir.path, 'snapshot_pre_sync_$timestamp.db');
-      final password = await _getOrCreateEncryptionKey();
+      final password = await _getOrCreateEncryptionKey(databaseFileExists: true);
 
       try {
         await db.rawQuery('PRAGMA wal_checkpoint(PASSIVE);');
@@ -773,7 +833,7 @@ class DatabaseHelper {
       }
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final snapshotPath = join(snapshotsDir.path, 'snapshot_manual_$timestamp.db');
-      final password = await _getOrCreateEncryptionKey();
+      final password = await _getOrCreateEncryptionKey(databaseFileExists: true);
 
       try {
         await db.rawQuery('PRAGMA wal_checkpoint(PASSIVE);');
@@ -921,5 +981,29 @@ class DatabaseSnapshotInfo {
     required this.timestamp,
     required this.sizeBytes,
   });
+}
+
+/// Thrown when the database file exists on disk, but the encryption key
+/// cannot be retrieved from secure storage (e.g., Keystore is locked or unavailable).
+class SecureStorageKeyMissingException implements Exception {
+  final String message;
+  const SecureStorageKeyMissingException([
+    this.message = 'Database file exists on disk but encryption key cannot be retrieved from secure storage. Device Keystore may be locked or temporarily unavailable.',
+  ]);
+
+  @override
+  String toString() => 'SecureStorageKeyMissingException: $message';
+}
+
+/// Thrown when a database exists with data but cannot be decrypted or opened.
+/// Halts execution to prevent destructive overwriting or wiping of user data.
+class DatabaseAuthException implements Exception {
+  final String message;
+  const DatabaseAuthException([
+    this.message = 'Database authentication failed or database could not be opened.',
+  ]);
+
+  @override
+  String toString() => 'DatabaseAuthException: $message';
 }
 

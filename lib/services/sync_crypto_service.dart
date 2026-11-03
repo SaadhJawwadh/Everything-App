@@ -8,8 +8,44 @@ class SyncCryptoService {
   SyncCryptoService._init();
   factory SyncCryptoService() => instance;
 
-  /// Derives a 32-byte (256-bit) AES key from a pair secret string or 6-digit code.
+  static const String _p2pDomainSalt = 'EverythingApp_P2P_Sync_Salt_v2';
+  static const int _pbkdf2Iterations = 10000;
+
+  static final Map<String, enc.Key> _derivedKeyCache = {};
+
+  /// Derives a 32-byte (256-bit) AES key using PBKDF2-HMAC-SHA256 with domain salt.
   enc.Key deriveKey(String secret) {
+    final trimmed = secret.trim();
+    final cached = _derivedKeyCache[trimmed];
+    if (cached != null) return cached;
+
+    final keyBytes = utf8.encode(trimmed);
+    final saltBytes = utf8.encode(_p2pDomainSalt);
+    final hmac = Hmac(sha256, keyBytes);
+
+    // PBKDF2 for 1 block (32 bytes)
+    // U_1 = HMAC(secret, salt || 0x00000001)
+    final saltPlusBlockIndex = Uint8List(saltBytes.length + 4)
+      ..setRange(0, saltBytes.length, saltBytes)
+      ..setRange(saltBytes.length, saltBytes.length + 4, [0, 0, 0, 1]);
+
+    List<int> u = hmac.convert(saltPlusBlockIndex).bytes;
+    final t = Uint8List.fromList(u);
+
+    for (int i = 1; i < _pbkdf2Iterations; i++) {
+      u = hmac.convert(u).bytes;
+      for (int j = 0; j < 32; j++) {
+        t[j] ^= u[j];
+      }
+    }
+
+    final derived = enc.Key(t);
+    _derivedKeyCache[trimmed] = derived;
+    return derived;
+  }
+
+  /// Legacy single-round SHA-256 derivation for backward compatibility with v1 endpoints.
+  enc.Key deriveLegacyKey(String secret) {
     final bytes = utf8.encode(secret.trim());
     final digest = sha256.convert(bytes);
     return enc.Key(Uint8List.fromList(digest.bytes));
@@ -24,6 +60,7 @@ class SyncCryptoService {
       final encrypted = encrypter.encrypt(rawText, iv: iv);
       
       final payloadMap = {
+        'v': 2,
         'iv': iv.base64,
         'data': encrypted.base64,
       };
@@ -34,6 +71,7 @@ class SyncCryptoService {
   }
 
   /// Decrypts a base64 ciphertext string back to raw text payload.
+  /// Seamlessly tries PBKDF2 key first, falling back to legacy key if payload was from older versions.
   String? decryptPayload(String encryptedBase64Payload, String secretKey) {
     try {
       final decodedJson = utf8.decode(base64.decode(encryptedBase64Payload));
@@ -42,17 +80,29 @@ class SyncCryptoService {
       final iv = enc.IV.fromBase64(map['iv'] as String);
       final encryptedData = enc.Encrypted.fromBase64(map['data'] as String);
       
-      final key = deriveKey(secretKey);
-      final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
-      final decrypted = encrypter.decrypt(encryptedData, iv: iv);
-      if (decrypted.trim().isEmpty) return null;
+      // Attempt 1: Standard PBKDF2 key
       try {
-        json.decode(decrypted);
-      } catch (_) {
-        // Return null if wrong key produced unparseable garbage text
-        return null;
-      }
-      return decrypted;
+        final key = deriveKey(secretKey);
+        final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
+        final decrypted = encrypter.decrypt(encryptedData, iv: iv);
+        if (decrypted.trim().isNotEmpty) {
+          json.decode(decrypted);
+          return decrypted;
+        }
+      } catch (_) {}
+
+      // Attempt 2: Legacy single-SHA256 fallback (v1 compatibility)
+      try {
+        final legacyKey = deriveLegacyKey(secretKey);
+        final encrypter = enc.Encrypter(enc.AES(legacyKey, mode: enc.AESMode.cbc));
+        final decrypted = encrypter.decrypt(encryptedData, iv: iv);
+        if (decrypted.trim().isNotEmpty) {
+          json.decode(decrypted);
+          return decrypted;
+        }
+      } catch (_) {}
+
+      return null;
     } catch (_) {
       return null;
     }

@@ -152,7 +152,8 @@ class TransactionRepository {
 
   Future<int> updateTransaction(TransactionModel transaction) async {
     final db = await _db;
-    final count = await db.update(TableNames.transactions, transaction.toJson(), where: '${TransactionFields.id} = ?', whereArgs: [transaction.id]);
+    final updatedTx = transaction.copy(dateModified: DateTime.now());
+    final count = await db.update(TableNames.transactions, updatedTx.toJson(), where: '${TransactionFields.id} = ?', whereArgs: [transaction.id]);
     if (count > 0) {
       await WidgetHelper.updateWidgetData();
     }
@@ -164,7 +165,10 @@ class TransactionRepository {
     final now = DateTime.now().toIso8601String();
     final count = await db.update(
       TableNames.transactions,
-      {TransactionFields.deletedAt: now},
+      {
+        TransactionFields.deletedAt: now,
+        TransactionFields.dateModified: now,
+      },
       where: '${TransactionFields.id} = ?',
       whereArgs: [id],
     );
@@ -182,9 +186,10 @@ class TransactionRepository {
 
   Future<int> restoreTransaction(int id) async {
     final db = await _db;
+    final now = DateTime.now().toIso8601String();
     final count = await db.rawUpdate(
-      'UPDATE ${TableNames.transactions} SET ${TransactionFields.deletedAt} = NULL WHERE ${TransactionFields.id} = ?',
-      [id],
+      'UPDATE ${TableNames.transactions} SET ${TransactionFields.deletedAt} = NULL, ${TransactionFields.dateModified} = ? WHERE ${TransactionFields.id} = ?',
+      [now, id],
     );
     if (count > 0) {
       await db.rawUpdate(

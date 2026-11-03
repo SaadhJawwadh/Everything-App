@@ -273,7 +273,7 @@ class FinanceHeroSummaryCard extends StatelessWidget {
                       },
                       borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
                       child: Container(
-                        constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
+                        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                         margin: const EdgeInsets.symmetric(horizontal: 6),
                         decoration: BoxDecoration(
                           color: onColor.withValues(alpha: 0.15),

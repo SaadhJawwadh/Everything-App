@@ -337,14 +337,28 @@ class NoteRepository {
   }
 
   Future<void> bulkTag(List<String> ids, List<String> tags) async {
+    if (ids.isEmpty || tags.isEmpty) return;
     final db = await _db;
     final now = DateTime.now().toIso8601String();
     await db.transaction((txn) async {
+      final placeholders = List.filled(ids.length, '?').join(',');
+      final currentTagsResult = await txn.query(
+        'note_tags',
+        columns: ['note_id', 'tag_name'],
+        where: 'note_id IN ($placeholders)',
+        whereArgs: ids,
+      );
+
+      final Map<String, Set<String>> tagsByNote = {};
+      for (final r in currentTagsResult) {
+        final noteId = r['note_id'] as String;
+        final tagName = r['tag_name'] as String;
+        tagsByNote.putIfAbsent(noteId, () => {}).add(tagName);
+      }
+
       final batch = txn.batch();
       for (final id in ids) {
-        final currentTagsResult = await txn.query('note_tags', columns: ['tag_name'], where: 'note_id = ?', whereArgs: [id]);
-        final currentTags = currentTagsResult.map((r) => r['tag_name'] as String).toSet();
-        
+        final currentTags = tagsByNote[id] ?? const {};
         bool addedAny = false;
         for (final tag in tags) {
           if (!currentTags.contains(tag)) {
@@ -363,6 +377,19 @@ class NoteRepository {
       }
       await batch.commit(noResult: true);
     });
+  }
+
+  Future<void> bulkMoveNotesToFolder(List<String> ids, String folder) async {
+    if (ids.isEmpty) return;
+    final db = await _db;
+    final now = DateTime.now().toIso8601String();
+    final effectiveFolder = (folder == 'All Notes' || folder == 'Notes') ? '' : folder;
+    final placeholders = List.filled(ids.length, '?').join(',');
+    await db.rawUpdate(
+      'UPDATE ${TableNames.notes} SET ${NoteFields.category} = ?, ${NoteFields.dateModified} = ? WHERE ${NoteFields.id} IN ($placeholders)',
+      [effectiveFolder, now, ...ids],
+    );
+    unawaited(WidgetHelper.updateTodoWidgetData());
   }
 
   Future<List<Note>> readTrashedNotes() async {

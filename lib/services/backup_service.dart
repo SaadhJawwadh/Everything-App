@@ -2,6 +2,9 @@ import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
+import 'dart:math' as math;
+import 'package:crypto/crypto.dart';
+import 'package:encrypt/encrypt.dart' as enc;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -270,6 +273,107 @@ Future<void> syncAutoBackupSchedule({
 }
 
 class BackupService {
+  /// Derives a 32-byte key using PBKDF2-HMAC-SHA256 (10,000 iterations).
+  static enc.Key _deriveKey(String passphrase, Uint8List salt) {
+    final keyBytes = utf8.encode(passphrase.trim());
+    final hmac = Hmac(sha256, keyBytes);
+    final saltPlusBlock = Uint8List(salt.length + 4)
+      ..setRange(0, salt.length, salt)
+      ..setRange(salt.length, salt.length + 4, [0, 0, 0, 1]);
+    List<int> u = hmac.convert(saltPlusBlock).bytes;
+    final t = Uint8List.fromList(u);
+    for (int i = 1; i < 10000; i++) {
+      u = hmac.convert(u).bytes;
+      for (int j = 0; j < 32; j++) {
+        t[j] ^= u[j];
+      }
+    }
+    return enc.Key(t);
+  }
+
+  /// Encrypts raw JSON string with AES-256-CBC and PBKDF2 key derivation into an encrypted container JSON.
+  static String encryptBackupJson(String rawJson, String passphrase) {
+    final rng = math.Random.secure();
+    final salt = Uint8List.fromList(List<int>.generate(16, (_) => rng.nextInt(256)));
+    final key = _deriveKey(passphrase, salt);
+    final iv = enc.IV.fromSecureRandom(16);
+    final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
+    final encrypted = encrypter.encrypt(rawJson, iv: iv);
+
+    final container = {
+      'version': 2,
+      'encrypted': true,
+      'salt': base64.encode(salt),
+      'iv': iv.base64,
+      'ciphertext': encrypted.base64,
+      'exportedAt': DateTime.now().toIso8601String(),
+    };
+    return const JsonEncoder.withIndent('  ').convert(container);
+  }
+
+  /// Decrypts an encrypted container JSON using the provided passphrase back to the raw JSON string.
+  static String decryptBackupJson(Map<String, dynamic> container, String passphrase) {
+    if (container['salt'] == null || container['iv'] == null || container['ciphertext'] == null) {
+      throw const FormatException('Invalid encrypted backup container format.');
+    }
+    final salt = base64.decode(container['salt'] as String);
+    final iv = enc.IV.fromBase64(container['iv'] as String);
+    final ciphertext = enc.Encrypted.fromBase64(container['ciphertext'] as String);
+    final key = _deriveKey(passphrase, Uint8List.fromList(salt));
+    final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
+    return encrypter.decrypt(ciphertext, iv: iv);
+  }
+
+  static Future<String?> _promptPassphrase(BuildContext context, {required bool isExport}) async {
+    final controller = TextEditingController();
+    bool obscure = true;
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(isExport ? 'Encrypt Backup (Optional)' : 'Encrypted Backup'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isExport
+                    ? 'Enter a password to encrypt your backup with AES-256. Leave blank to save without encryption.'
+                    : 'This backup is encrypted with AES-256. Enter the password to restore it.',
+                style: Theme.of(ctx).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                obscureText: obscure,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                    onPressed: () => setDialogState(() => obscure = !obscure),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, isExport ? '' : null),
+              child: Text(isExport ? 'Skip' : 'Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, controller.text),
+              child: Text(isExport ? 'Encrypt' : 'Decrypt'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   static Future<void> exportBackup(BuildContext context) async {
     try {
       // Pass the full settings map from SettingsProvider to ensure all fields
@@ -278,6 +382,18 @@ class BackupService {
           ? Provider.of<SettingsProvider>(context, listen: false).toBackupMap()
           : null;
       final json = await generateBackupJson(settingsOverride: settingsMap);
+
+      String? passphrase;
+      if (context.mounted) {
+        passphrase = await _promptPassphrase(context, isExport: true);
+        if (passphrase == null) return; // User cancelled
+      }
+
+      String exportPayload = json;
+      if (passphrase != null && passphrase.trim().isNotEmpty) {
+        exportPayload = encryptBackupJson(json, passphrase);
+      }
+
       AppLockScreen.ignoreNextResumeLock();
       
       String? dir;
@@ -295,7 +411,7 @@ class BackupService {
           await targetDir.create(recursive: true);
         }
         final file = File('${targetDir.path}/notebook_backup_$dateStr.json');
-        await file.writeAsString(json);
+        await file.writeAsString(exportPayload);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Backup saved to ${file.path}'), behavior: SnackBarBehavior.floating),
@@ -305,7 +421,7 @@ class BackupService {
         // Fallback to temp file + Share sheet if directory picker is unavailable or cancelled
         final tempDir = await getTemporaryDirectory();
         final file = File('${tempDir.path}/notebook_backup_$dateStr.json');
-        await file.writeAsString(json);
+        await file.writeAsString(exportPayload);
         await Share.shareXFiles([XFile(file.path)], text: 'Everything App Backup ($dateStr)');
       }
     } catch (e) {
@@ -337,7 +453,29 @@ class BackupService {
       final file = File(result.files.single.path!);
       if (!await file.exists()) return;
       final content = await file.readAsString();
-      final data = Map<String, dynamic>.from(await compute(_decodeJsonIsolate, content));
+      Map<String, dynamic> data = Map<String, dynamic>.from(await compute(_decodeJsonIsolate, content));
+
+      // Handle encrypted backup container
+      if (data['encrypted'] == true) {
+        if (!context.mounted) return;
+        final passphrase = await _promptPassphrase(context, isExport: false);
+        if (passphrase == null || passphrase.isEmpty) return;
+        try {
+          final decryptedJson = decryptBackupJson(data, passphrase);
+          data = Map<String, dynamic>.from(await compute(_decodeJsonIsolate, decryptedJson));
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Failed to decrypt backup: Incorrect password or corrupted file'),
+                backgroundColor: Theme.of(context).colorScheme.error,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+          return;
+        }
+      }
 
       if (context.mounted) {
         final confirmed = await showDialog<bool>(
@@ -385,6 +523,13 @@ class BackupService {
   }
 
   static Future<void> restoreFromBackupData(Map<String, dynamic> data, {BuildContext? context}) async {
+    // Invariant 5: Take automated pre-restore rolling snapshot before wipe
+    try {
+      await DatabaseHelper.instance.createPreSyncSnapshot();
+    } catch (e) {
+      debugPrint('[BackupService] Pre-restore snapshot failed: $e');
+    }
+
     final db = await DatabaseHelper.instance.database;
     
     await db.transaction((txn) async {

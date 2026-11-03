@@ -276,15 +276,15 @@ class P2pSyncService {
       final presenceData = utf8.encode(json.encode(presenceMap));
       _sendUdpBroadcast(presenceData, ip);
 
-      // 2. Broadcast encrypted beacon for pre-paired devices
+      // 2. Broadcast encrypted beacon for pre-paired devices (without pairCode reflection)
       final beaconMap = {
         'action': 'beacon',
         'role': 'PRIMARY',
         'deviceId': myDeviceId,
         'deviceName': userName,
-        'pairCode': pairCode,
         'ip': ip ?? '',
         'port': httpSyncPort,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
       };
       final encrypted = _crypto.encryptPayload(json.encode(beaconMap), pairCode);
       if (encrypted != null) {
@@ -369,10 +369,34 @@ class P2pSyncService {
     } catch (_) {}
   }
 
+  static final Map<String, List<int>> _failedAuthAttemptsByIp = {};
+
+  static bool _isIpRateLimited(String ip) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final attempts = _failedAuthAttemptsByIp[ip];
+    if (attempts == null) return false;
+    attempts.removeWhere((ts) => now - ts > 60000);
+    return attempts.length >= 5;
+  }
+
+  static void _recordFailedAuth(String ip) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final attempts = _failedAuthAttemptsByIp.putIfAbsent(ip, () => []);
+    attempts.add(now);
+  }
+
   /// Handles HTTP Requests on Primary Host Server.
   Future<void> _handlePrimaryHttpRequest(HttpRequest request, String pairCode, String userName) async {
     final response = request.response;
     response.headers.contentType = ContentType.json;
+
+    final clientIp = request.connectionInfo?.remoteAddress.address ?? 'unknown';
+    if (_isIpRateLimited(clientIp)) {
+      response.statusCode = HttpStatus.tooManyRequests;
+      response.write(json.encode({'error': 'Rate limited due to repeated failed authentication attempts.'}));
+      await response.close();
+      return;
+    }
 
     // Guard against memory exhaustion from oversized payloads (25MB limit)
     const int maxPayloadBytes = 25 * 1024 * 1024;
@@ -421,6 +445,7 @@ class P2pSyncService {
           response.statusCode = HttpStatus.ok;
           response.write(reply);
         } else {
+          _recordFailedAuth(clientIp);
           response.statusCode = HttpStatus.unauthorized;
         }
       } 
@@ -464,6 +489,7 @@ class P2pSyncService {
           response.statusCode = HttpStatus.ok;
           response.write(ackReply);
         } else {
+          _recordFailedAuth(clientIp);
           response.statusCode = HttpStatus.unauthorized;
         }
       } 
@@ -491,6 +517,7 @@ class P2pSyncService {
             isServerInbound: true,
           ));
         } else {
+          _recordFailedAuth(clientIp);
           response.statusCode = HttpStatus.unauthorized;
         }
       } 
@@ -535,6 +562,7 @@ class P2pSyncService {
               isServerInbound: true,
             ));
           } else {
+            _recordFailedAuth(clientIp);
             response.statusCode = HttpStatus.unauthorized;
           }
         } finally {

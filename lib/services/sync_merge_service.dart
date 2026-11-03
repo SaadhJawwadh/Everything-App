@@ -252,17 +252,22 @@ class SyncMergeService {
         final List remoteTxList = remoteData['transactions'] as List;
         final localTxRows = await txn.query('transactions');
         final Map<String, Map<String, dynamic>> localSmsMap = {};
-        final Set<String> localTxFingerprints = {};
+        final Map<String, Map<String, dynamic>> localUuidMap = {};
+        final Map<String, Map<String, dynamic>> localFingerprintMap = {};
 
         for (final row in localTxRows) {
           final smsId = row['smsId'] as String?;
           if (smsId != null && smsId.isNotEmpty) {
             localSmsMap[smsId] = Map<String, dynamic>.from(row);
           }
+          final uuid = row['uuid'] as String?;
+          if (uuid != null && uuid.isNotEmpty) {
+            localUuidMap[uuid] = Map<String, dynamic>.from(row);
+          }
           final date = row['date'] as String? ?? '';
           final amt = row['amount']?.toString() ?? '';
           final desc = row['description'] as String? ?? '';
-          localTxFingerprints.add('$date|$amt|$desc');
+          localFingerprintMap['$date|$amt|$desc'] = Map<String, dynamic>.from(row);
         }
 
         final batch = txn.batch();
@@ -281,48 +286,108 @@ class SyncMergeService {
           }
 
           final smsId = remoteMap['smsId'] as String?;
+          final uuid = remoteMap['uuid'] as String?;
+
+          // Check if transaction matches an existing local record
+          Map<String, dynamic>? localTx;
           if (smsId != null && smsId.isNotEmpty) {
-            // Guard: If this transaction was permanently purged, do not resurrect and delete if present locally
-            if (tombstoneSmsIds.contains(smsId)) {
-              if (localSmsMap.containsKey(smsId)) {
-                batch.delete('transactions', where: 'smsId = ?', whereArgs: [smsId]);
-              }
-              continue;
-            }
-
-            if (!localSmsMap.containsKey(smsId)) {
-              batch.insert('transactions', remoteMap, conflictAlgorithm: ConflictAlgorithm.ignore);
-              transactionsMerged++;
-            } else {
-              // Existing local transaction: propagate remote soft-delete and categorization/account updates
-              final localTx = localSmsMap[smsId]!;
-              final remoteDeletedAt = remoteMap['deletedAt'] as String?;
-              final localDeletedAt = localTx['deletedAt'] as String?;
-
-              if (remoteDeletedAt != null && localDeletedAt == null) {
-                batch.update('transactions', {'deletedAt': remoteDeletedAt}, where: 'smsId = ?', whereArgs: [smsId]);
-                transactionsMerged++;
-              } else if (remoteMap['account'] != localTx['account'] ||
-                  remoteMap['category'] != localTx['category'] ||
-                  remoteMap['isAiRefined'] != localTx['isAiRefined'] ||
-                  remoteMap['description'] != localTx['description']) {
-                batch.update('transactions', {
-                  'category': remoteMap['category'],
-                  'account': remoteMap['account'],
-                  'isAiRefined': remoteMap['isAiRefined'],
-                  'description': remoteMap['description'],
-                }, where: 'smsId = ?', whereArgs: [smsId]);
-                transactionsMerged++;
-              }
-            }
+            localTx = localSmsMap[smsId];
+          } else if (uuid != null && uuid.isNotEmpty) {
+            localTx = localUuidMap[uuid];
           } else {
             final date = remoteMap['date'] as String? ?? '';
             final amt = remoteMap['amount']?.toString() ?? '';
             final desc = remoteMap['description'] as String? ?? '';
-            final fingerprint = '$date|$amt|$desc';
-            if (!localTxFingerprints.contains(fingerprint)) {
-              batch.insert('transactions', remoteMap, conflictAlgorithm: ConflictAlgorithm.ignore);
-              localTxFingerprints.add(fingerprint);
+            localTx = localFingerprintMap['$date|$amt|$desc'];
+          }
+
+          // Case A: SMS transaction tombstone guard
+          if (smsId != null && smsId.isNotEmpty && tombstoneSmsIds.contains(smsId)) {
+            if (localTx != null) {
+              batch.delete('transactions', where: 'smsId = ?', whereArgs: [smsId]);
+            }
+            continue;
+          }
+
+          if (localTx == null) {
+            // New transaction: insert locally
+            batch.insert('transactions', remoteMap, conflictAlgorithm: ConflictAlgorithm.ignore);
+            transactionsMerged++;
+            if (smsId != null && smsId.isNotEmpty) {
+              localSmsMap[smsId] = remoteMap;
+            }
+            if (uuid != null && uuid.isNotEmpty) {
+              localUuidMap[uuid] = remoteMap;
+            }
+            final date = remoteMap['date'] as String? ?? '';
+            final amt = remoteMap['amount']?.toString() ?? '';
+            final desc = remoteMap['description'] as String? ?? '';
+            localFingerprintMap['$date|$amt|$desc'] = remoteMap;
+          } else {
+            // Existing transaction: Apply Last-Write-Wins (LWW) comparison
+            final localId = localTx['_id'];
+            final localModStr = localTx['dateModified'] as String? ?? localTx['date'] as String? ?? '';
+            final remoteModStr = remoteMap['dateModified'] as String? ?? remoteMap['date'] as String? ?? '';
+            final localMod = DateTime.tryParse(localModStr) ?? DateTime.fromMillisecondsSinceEpoch(0);
+            final remoteMod = DateTime.tryParse(remoteModStr) ?? DateTime.fromMillisecondsSinceEpoch(0);
+
+            final localDeletedAt = localTx['deletedAt'] as String?;
+            final remoteDeletedAt = remoteMap['deletedAt'] as String?;
+
+            // 1. Soft-delete LWW handling
+            if (remoteDeletedAt != null && localDeletedAt == null) {
+              final remoteDelDate = DateTime.tryParse(remoteDeletedAt) ?? remoteMod;
+              if (remoteDelDate.isAfter(localMod) ||
+                  remoteDelDate.isAtSameMomentAs(localMod) ||
+                  remoteMod.isAfter(localMod) ||
+                  remoteMod.difference(localMod).inSeconds.abs() <= 5) {
+                batch.update(
+                  'transactions',
+                  {'deletedAt': remoteDeletedAt, 'dateModified': remoteModStr},
+                  where: '_id = ?',
+                  whereArgs: [localId],
+                );
+                transactionsMerged++;
+                continue;
+              }
+            }
+
+            // If locally soft-deleted, only restore if remote edit is strictly AFTER local deletion
+            if (localDeletedAt != null && remoteDeletedAt == null) {
+              final localDelDate = DateTime.tryParse(localDeletedAt) ?? localMod;
+              if (!remoteMod.isAfter(localDelDate)) {
+                // Keep local transaction deleted
+                continue;
+              }
+            }
+
+            // 2. Data field LWW update: remote wins if remoteMod >= localMod (with 5s skew tolerance)
+            final shouldUpdate = remoteMod.isAfter(localMod) ||
+                (remoteMod.difference(localMod).inSeconds.abs() <= 5 &&
+                    (remoteMap['category'] != localTx['category'] ||
+                        remoteMap['account'] != localTx['account'] ||
+                        remoteMap['isAiRefined'] != localTx['isAiRefined'] ||
+                        remoteMap['description'] != localTx['description'] ||
+                        remoteMap['amount'] != localTx['amount']));
+
+            if (shouldUpdate) {
+              batch.update(
+                'transactions',
+                {
+                  'amount': remoteMap['amount'],
+                  'description': remoteMap['description'],
+                  'date': remoteMap['date'],
+                  'isExpense': remoteMap['isExpense'],
+                  'category': remoteMap['category'],
+                  'account': remoteMap['account'],
+                  'isAiRefined': remoteMap['isAiRefined'],
+                  'deletedAt': remoteMap['deletedAt'],
+                  'dateModified': remoteModStr,
+                  if (uuid != null && uuid.isNotEmpty) 'uuid': uuid,
+                },
+                where: '_id = ?',
+                whereArgs: [localId],
+              );
               transactionsMerged++;
             }
           }

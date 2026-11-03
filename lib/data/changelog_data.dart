@@ -1,0 +1,1696 @@
+/// Canonical dataset of all Everything App releases and changelogs.
+class ChangelogCategory {
+  final String title;
+  final List<String> items;
+
+  ChangelogCategory({
+    required this.title,
+    required this.items,
+  });
+}
+
+class ChangelogRelease {
+  final String version;
+  final String date;
+  final bool isLatest;
+  final List<ChangelogCategory> categories;
+
+  ChangelogRelease({
+    required this.version,
+    required this.date,
+    this.isLatest = false,
+    required this.categories,
+  });
+}
+
+final List<ChangelogRelease> kChangelogHistory = [
+  ChangelogRelease(
+    version: 'v3.2.1',
+    date: 'November 3, 2026',
+    isLatest: true,
+    categories: [
+      ChangelogCategory(
+        title: "What's New",
+        items: [
+          'SQLite Database Schema v26: Automatic migration with persistent UUID and millisecond modified timestamp tracking for frictionless multi-device synchronization.',
+          'Resilient Version 2 Encrypted Backups: AES-256-CBC authenticated backups with automated rolling pre-restore safety snapshots.',
+          'Hardware-Hardened KeyStore Encryption: Exponential backoff and retry guardrails preventing transient startup cryptographic lockouts.',
+        ],
+      ),
+      ChangelogCategory(
+        title: 'Improvements',
+        items: [
+          'Modular Note Editor Architecture: Decomposed note editing pipeline into focused sub-widgets, delivering responsive editing with zero main-thread lag.',
+          'Centralized Financial State: Unified financial state management and chunked background SMS syncing under FinancialManagerProvider.',
+          'Instant Unified Settings Search: 0ms index-based search across all preferences, security tools, and configurations.',
+          'Memory-Efficient Note Images: Proactive 1080p memory downsampling protecting low-memory devices against OOM during intensive editing.',
+          'R8 Full-Mode Tree-Shaking: Clean ProGuard hygiene enabling advanced Android release optimizations.',
+        ],
+      ),
+      ChangelogCategory(
+        title: 'Fixes',
+        items: [
+          'Micro Touch Target Accessibility: Enforced ≥48x48dp touch bounds across financial metric cards and split bill controls.',
+          'App Lock Timeout Protection: 60-second authentication timeout preventing infinite biometric lock loops.',
+        ],
+      ),
+    ],
+  ),
+  ChangelogRelease(
+    version: 'v3.2.0',
+    date: 'November 2, 2026',
+    isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Zero-Cloud P2P Device Sync Engine Hardening: Ultra-resilient local Wi-Fi pairing and synchronization with multi-network endpoint resolution, non-destructive Last-Write-Wins (LWW) delta merge, soft-delete preservation, and dynamic port fallbacks.',
+                        'Hardened App Lock & Local-First Security: Back-navigation protection with PopScope(canPop: false), native biometric and device PIN/pattern fallback, authentication-protected App Lock toggling, and emergency lockout protection.',
+                        'Atomic Vault Transfers & Cash-Flow Isolation: Added double-entry atomic account transfers between Daily Operating and Savings Vault accounts, properly excluding internal transfers from monthly and all-time income and expense totals.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Calm Technology Metric Charts (Invariant 1): Removed intrusive auto-cycling timers from the Financial Ledger chart deck; metrics remain calm, static, and predictable with smooth user swipe and indicator dot navigation.',
+                        'Precision Plain-Text Note Search: Note searches strictly target rendered text and plain-text snippets, preventing false-positive matches on raw Quill Delta JSON syntax.',
+                        'Interactive P2P Host & Client UI Reactivity: Inbound Wi-Fi sync immediately signals and refreshes active ledger streams, savings goals, and notes on host and client devices without restarting the app.',
+                        'Full-Scope P2P Accounting: SyncMergeResult now tracks and reports merged split bills and savings goals alongside notes, transactions, and period logs.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Relational Backup & Restore Integrity: Ensured savings_goals and deleted_period_logs are cleanly wiped before restore with child-first foreign key deletion ordering.',
+                        'SMS Sync Cancellation Banner: Cancelling an in-progress SMS scan immediately updates UI banners and prevents advancing lastSmsSyncTime so unimported message ranges are preserved.',
+                        'Note Editor Selection Range Clamping: Search jump offsets are clamped to document bounds to eliminate RangeError exceptions during active editing.',
+                        'Reactive Financial Trash Bin: Restoring or permanently deleting trashed transactions instantly notifies all financial charts, metrics, and ledger views.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v3.1.1',
+                  date: 'October 29, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Android 16+ AppFunctions API Integration: Everything App now serves as an official on-device MCP tool provider for Google Gemini and Android system AI agents.',
+                        'Ambient AI Tool Execution: Gemini can log expenses, add tasks, create notes, and summarize cash flow on-device with zero-friction low-priority notification receipts and 1-tap Undo.',
+                        'Reactive Inbox Draining: Pending AI actions automatically apply to encrypted SQLite storage on launch or resume with floating Undo feedback.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Kotlin Symbol Processing (KSP): Upgraded native toolchain to KSP 2.2.20 for compile-time AppFunction XML schema generation.',
+                        'Instant Widget State Synchronization: AppFunctions immediately notify and refresh all Android Finance, Notes, Todo, and Unified home screen widgets.',
+                        'CI/CD Build Environment Hardening: Decoupled machine-local JVM properties to ensure seamless GitHub Actions release compilation.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Native Metadata Task Compatibility: Resolved AGP and compileSdk check tasks across Android 16 target environments.',
+                        'Safe-Queue Deserialization: Built-in corruption catching and atomic JSON queue flushing prevent stalled background intents.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v3.0.0',
+                  date: 'October 29, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Smart Action Cards in Search: Type natural phrases like "spent 1200 on coffee", "received 5000 salary", "todo buy milk", or "split 3000 dinner" in Universal Search to preview and save transactions, tasks, or split bills in one tap.',
+                        'Hands-Free Assistant Quick Capture: Log expenses, tasks, or notes directly from Android Assistant and system shortcuts with instant Undo feedback.',
+                        'Hardware Keyboard Shortcuts: Full keyboard navigation for tablets, foldables, and laptops (Ctrl/Cmd + K Search, Ctrl/Cmd + N New Note, Ctrl/Cmd + E New Expense, Ctrl/Cmd + 1–4 Switch Tabs, and Ctrl/Cmd + / Shortcut Cheat-Sheet).',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Account Toggle & Editor Handoff in Search: Switch between Daily and Savings accounts directly on Smart Action Cards, or tap Edit to customize splits, tags, and dates before saving.',
+                        'On-Device AI Natural Language Refinement: Refine ambiguous search phrases with local Gemini Nano AI when hardware acceleration is active.',
+                        'Live Home Screen Widget Previews: Automatically publishes rich, themed previews of your Todo, Finance, and Unified widgets to the Android 15+ widget picker.',
+                        'Future-Proof Local Wi-Fi Sync & Multi-Window: Added Android 16/17 local network discovery support and freeform desktop window resizing.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Pinned Checklist Task Routing: Quick-added tasks now automatically append to your active pinned widget checklist before creating a fallback list.',
+                        'Instant Action Undo Rollback: Undoing a quick-saved transaction or task cleanly restores your ledger balance or removes the newly added checklist line.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.49.0',
+                  date: 'October 28, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Checklists & Tasks Virtual Folder: View and manage all active checklists across every folder from a single unified view in the Folder Picker.',
+                        'Interactive Settings Control Center: Jump directly to Finances, Health Tracker, Gemini AI, Security, or Sync & Backups from the top status pills.',
+                        'Primary Currency Onboarding Selector: Choose your preferred authentic currency symbol directly during onboarding setup.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Unified Currency Symbols: Consistent currency symbols (Rs., ₹, \$, €, £, ₽) across balance cards, ledgers, split bills, search, and settings.',
+                        'Smarter Split Bills Filtering: Filter both People and Bills views by "I am owed" and "I owe" with one tap on summary cards or filter chips.',
+                        'Transfer Balance Advisory: Live account balance preview and friendly over-balance notice when transferring between Daily and Savings accounts.',
+                        'Categorized Settings Search: Instant grouped search results with exact match counts and smooth section dividers.',
+                        'Synced Recurring Rules & Tag Management: Editing a recurring payment updates future cycles automatically, and tag renames/deletes synchronize immediately across notes.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Accurate Checklist Counts: Fixed note card checklist badges counting blank lines and prevented completion text truncation on grid cards.',
+                        'Neutral Savings Goal Deposits: Recording a savings goal deposit from your Daily account now uses a neutral transfer so monthly income totals are not inflated.',
+                        'Keyboard-Safe Modal Sheets: Eliminated layout overflows across all bottom sheets and pickers when the on-screen keyboard is open or display zoom is high.',
+                        'Share Sheet Lock Protection: Sharing notes, checklists, or split reminders no longer triggers an unintended app lock screen upon returning.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.48.4',
+                  date: 'October 22, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Per-App Language Settings: Select your preferred language for Everything App directly inside Android System Settings (Android 13+).',
+                        'Full Russian Localization: Complete, natural Russian translation across notes, finances, period tracker, and settings with authentic Ruble (₽) currency.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Scrollable Pickers: Browse all 9 languages and 15 currencies comfortably on any display size or zoom level.',
+                        'Locale-Aware Formatting: Precise, localized formatting for numbers, currencies, dates, and times throughout every screen.',
+                        'Fluid Screen Transitions: Seamless note opening animations with zero background flashes.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'TalkBack Privacy Protection: Screen readers can no longer inspect private notes or financial balances when app lock is active.',
+                        'Checklist Contrast: Enhanced task completion badge contrast for optimal light-theme readability (WCAG AA).',
+                        'Smarter AI Controls: On-device AI shortcuts automatically hide on devices without hardware acceleration.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.48.3',
+                  date: 'October 21, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Russian Language Support: Full translation for Russian speakers alongside English, Tamil, German, Spanish, French, Portuguese, and Chinese.',
+                        'Russian Ruble Currency: Added authentic Ruble (₽) currency badge and formatting across all financial ledgers and budgets.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Reclaimed Notes Space: Clean, distraction-free notes feed displaying your thoughts and checklists right below the top bar.',
+                        'Calm Financial Dashboard: Focused, non-distracting cash flow overview without flashing or unexpected auto-flipping numbers.',
+                        'Pro Tips in Settings: Browse pro gestures, shortcuts, and features anytime on demand inside About & Guides.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Menu Polish: Removed redundant folder menu items for a cleaner, unified navigation experience.',
+                        'Checklist Previews: Polished note card previews to focus on remaining actionable tasks.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.48.2',
+                  date: 'October 19, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Bill-Based Settlement History: View complete shared bill records with friends, exact settlement dates, and per-bill status in a clean interactive sheet.',
+                        'Instant Settlement Undo: Reopen settled bills or participant shares in one tap with automatic ledger transaction reversal.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Split Bill Ledger Parity: Linked settlements to ledger transactions for exact cash flow tracking.',
+                        'Smart Contact Matching: Automatic deduplication and case-insensitive grouping for friends across split bills.',
+                        'Precise Decimal Splits: Clear two-decimal currency formatting across all participant chips and summaries.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Friend-Paid Bill Reopening: Restored 1-tap undo on bills paid by friends without affecting older settlements.',
+                        'Database Migration v25: Seamless schema upgrade preserving all legacy split records safely.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.48.1',
+                  date: 'October 18, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Vertical Widget Expansion: Enabled vertical resizing on all Android home screen widgets without horizontal squashing.',
+                        'Ledger Transfer Parity: Excluded neutral double-entry transfers from widget balance calculations for exact ledger alignment.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Home Screen Widget Task Checkboxes: Fixed checklist items reverting by ensuring in-memory cache synchronizes with disk updates.',
+                        'Finance Widget Analytics & Sparkline: Restored monthly expense estimate and sparkline preview on standard-height widgets.',
+                        'Note Card Layout Polish: Eliminated horizontal text overflow in compact note card completion badges.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.48.0',
+                  date: 'October 18, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Fluid UI Motion: Expressive spring physics, seamless container transitions, and origin-safe scale-fade effects across all screens.',
+                        'Tactile Touch Feedback: Asymmetric press-and-release tactile feedback with natural physics on cards and buttons.',
+                        'Instant Shortcut Search: Zero-lag 0ms opening when launching search via shortcuts, with fluid animations for manual taps.',
+                        'Accessible Reduced Motion: Comprehensive support for system reduced-motion accessibility across all lists, dialogs, and sheets.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Financial Trust Beats: Calm, trust-centric completion feedback on bill settlements and savings deposits.',
+                        'Sub-300ms List Staggering: Snappy, capped staggered list reveals across tags, rules, categories, and notes.',
+                        'Smart Chart Deck: Chart deck carousel pauses auto-cycling when reduced motion is enabled.',
+                        'Fluid Dialogs & Sheets: Standardized sheet and dialog entrances with responsive spring curves.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Scale Transition Origin: Eliminated visual distortion by anchoring scale transitions to a subtle 0.92 floor.',
+                        'Note Editor Bar Slide: Smoothed toolbar entrance transitions with zero layout popping.',
+                        'Accordion Animation Curves: Replaced linear expansion with decelerating curves for symptoms and categories.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.47.0',
+                  date: 'October 17, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Material 3 Expressive Motion: Centralized spring physics, connected squircle corner morphing, and variable font typography choreography across notes, navigation, and finances.',
+                        'Next-Gen Android Widgets: Upgraded to support Android 12–15+ dynamic wallpaper colors, responsive size scaling from 2x2 to 4x4, and an in-app widget pinning helper.',
+                        'Resilient Storage & Snapshots: Automated rolling pre-migration database snapshots with instant 1-tap recovery in Settings, and seamless empty folder backup creation.',
+                        'Clean Checklist Previews: Completed checklist items are automatically excluded from note cards and home screen widgets, focusing your attention on pending tasks.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Widget Checklist Selector: Streamlined list picker with direct touch binding for instant, zero-lag switching between notes directly from your home screen.',
+                        'Fluid Typography: Google Sans Flex variable font weights and optical scaling dynamically respond across tabs and balance cards.',
+                        'Empty Directory Storage Access: Resolving Android Storage Access Framework folders now creates clean, uncorrupted backup files on the fly.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Database Migration Safety: Prevented database busy/locked collisions during background sync and app startup with rolling snapshots.',
+                        'Widget Title Synchronization: Fixed widget title updating immediately upon selecting a checklist from the floating launcher picker.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.46.1',
+                  date: 'October 15, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Material 3 Expressive Widgets: Modernized all Android home screen widgets with tactile stadium pills, squircle subcards, and Google Sans Flex typography.',
+                        'Google Tasks-Style Checklist Selector: Tap the checklist pill on your home screen to switch between lists via a clean floating dialog directly over your launcher.',
+                        'Unified Dual-Domain Widget: Track your monthly cash flow, budgets, and actionable to-do items together with a 1-tap quick note entry point.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Foldable & Large-Screen Responsive Polish: Enhanced layout bounds, dialog widths, and modal sheets across foldables and tablets.',
+                        'Note Card Checklist Previews: Synchronized checklist preview styling on note cards to match the rich text note editor.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Split Bills Direct Conversion: Fixed split payments so friends and participants pre-fill properly when converting directly from fetched transactions.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.46.0',
+                  date: 'October 11, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        '120Hz Ultra-Smooth Display Mode: Unlocked high-refresh-rate rendering on Android flagships and smooth-display devices for silky 120 fps list scrolling and gestures.',
+                        'Predictive Back Navigation: Enabled Android 14+ system predictive back gestures with interactive scale previews when edge-swiping out of notes and editors.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'True Borderless Edge-to-Edge: Removed the translucent grey navigation bar scrim on Android 10-15+ for seamless wallpaper integration.',
+                        'Material 3 Touch & Ripple Polish: Replaced card shrink gestures with authentic M3 InkSparkle ripple animations radiating from touch points.',
+                        'Universal Tactile Micro-Haptics: Added subtle mechanical click feedback when switching navigation tabs, selecting filter chips, and confirming dialog actions.',
+                        'Variable Typography Optical Sizing: Dynamic optical size scaling for Google Sans Flex across titles and headlines with robust font fallbacks.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Cold-Start Flash: Fixed a color mismatch in light mode splash screens to eliminate window flashes during app launch.',
+                        'Monochrome Status Bar Icons: Replaced colored launcher icons with clean white silhouette icons for notifications on modern Android trays.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.45.4',
+                  date: 'October 9, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Direct Checklist Tap Navigation: Tapping an uncompleted task on any note card now navigates directly into the note editor, focusing right on that checklist item.',
+                        'Instant Search Edit Refresh: Editing notes opened from the universal search overlay now immediately syncs and refreshes your home screen list.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Viewport Scroll Preservation: Returning to the notes home screen preserves your exact scroll position smoothly with zero layout jumps.',
+                        'Unified Modern Dialogs: Migrated folder and tagging prompts to standardized Material 3 rounded dialogs with clear action buttons.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Checklist Tap Hit Testing: Fixed checklist touch targets inside note preview cards so sub-item taps do not inadvertently trigger whole-note navigation.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.45.3',
+                  date: 'October 8, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Multi-Tag Notes Filtering: Select and combine multiple tags simultaneously (#work + #project) for fast, deep note retrieval.',
+                        '1-Tap Home Widget Quick Capture: Instantly scan physical receipts or create new checklist items directly from the Android home screen widgets.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Ergonomic Widget Hit Targets: Expanded button touch targets to 48x48dp across all home screen widgets for effortless tapping.',
+                        'Smart Home Screen Task Sync: Background task checkmarks automatically match lines by text if note edits shifted positions.',
+                        'Live P2P Sync Widget Refresh: Incoming Wi-Fi sync updates refresh your home screen finance balances instantly.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Home Widget Zero-Lag Theme Contrast: Fixed text contrast when switching between Light and Dark mode on home screen widgets.',
+                        'Biometric & Lock Privacy Protection: Password and biometric-locked notes are strictly excluded from home screen widgets.',
+                        'Split Bills Existing Friends Retention: Preserved all friends and participant details when re-editing existing split bills.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.45.2',
+                  date: 'October 4, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Connected Account Transfers: Redesigned transfer sheet with a vertical connected M3 flow card, interactive tactile rotation swap, live projected balance calculation, and quick preset chips.',
+                        'Collapsible Completed Tasks: Restored automatic grouping of completed checklist items into an expandable bottom card (> completed items), keeping your writing space uncluttered.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Zero In-App Drag Clutter: Removed intrusive drag-and-drop handles from the in-app editor, maintaining pure and natural text typing while keeping drag reordering native to the Android home screen widget.',
+                        'Focused Note Editor Menu: Kept the note overflow dropdown uncluttered by centralizing checklist display options strictly in Settings.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Checklist Sync & Storage Fidelity: Completed items append cleanly to Delta documents upon save, ensuring lossless persistence in SQLite and instant sync with the Android home widget.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.45.1',
+                  date: 'October 4, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Publication Quotes in Story Card Studio: Share memorable quotes and excerpts with magazine-grade typography, subtle watermark quotation glyphs, and elegant note attribution.',
+                        'Android Checklist Widget Multi-Note Cycling: Seamlessly switch between All Action Items and individual note checklists right from your home screen with live progress feedback.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'In-Place Checklist Completion: Checking off tasks strikes them through in-place without removing them from view, maintaining perfect sync across editor, note list, and home widget.',
+                        'Streamlined Writing Canvas: Decluttered note cards and editor interface by removing redundant chips and unused link shortcuts.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Checklist Persistence: Resolved task retention issues so completed items remain visible upon saving.',
+                        'Widget Gesture Accuracy: Improved touch bounds and title chip responsiveness when switching checklists on the home screen.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.45.0',
+                  date: 'October 4, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Story Card Studio Article & Reader Mode: Share long notes, checklists, and articles as high-resolution story cards with dedicated Reader Mode, clean divider layout, and dynamic font scaling.',
+                        'Inter-Vault Account Transfers: Transfer funds smoothly between Daily Cash Flow and Savings Vault with instant dual-entry tracking and real-time balance calculations.',
+                        'Android Home Screen Checklist Widget: Cycle directly between All Action Items and individual checklists with live titles, progress counters, and 0ms task completion.',
+                        'Period Tracker Discreet Privacy Mode: Keep health tracking private with an ambient moon indicator, toggleable cycle details, and discreet notification alerts.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Story Card Studio Publication Quotes: Upgraded Quote mode with theme-matched ambient quotation glyphs, note attribution, and streamlined controls.',
+                        'P2P Wi-Fi Sync Audit Activity: Transparent sync logs detailing synced notes, ledger transactions, and connected peer devices.',
+                        'Financial Ledger CSV & AI Export: Export complete transaction records to CSV or generate clean prompts for external financial analysis.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Checklist Multi-Level Task Integrity: Preserved sub-items and checklist status across note edits and widget sync.',
+                        'Visual Contrast & Theming: Refined dark mode card accents and surface container opacities across all modules.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.44.0',
+                  date: 'September 27, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Interactive Home Screen To-Do Widget: Glanceable Android home screen widget to review your daily checklists, tick off tasks directly from your home screen with instant progress feedback, and launch quick-add with one tap.',
+                        'Days of Clarity Strip: Calm 14-day mindfulness progression strip displayed at the top of your Notes workspace, celebrating everyday focus without stressful streak countdowns.',
+                        'Tactile Haptics Preferences: Unified physical vibration system with an explicit on/off switch under Settings > Appearance & UI, delivering subtle, satisfying tactile feedback.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Smart Completed Task Collapsing: Optional automatic collapsing of checked items in note checklists, keeping your active thoughts clear and uncluttered.',
+                        'Bi-Directional Widget & Database Synchronization: Ticking items on your home screen or within the app immediately updates both your notes and widgets in real time.',
+                        'Synchronous Haptic Responsiveness: Zero frame drops or lag when performing quick interactions, gestures, and note formatting.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Checklist Formatting Fidelity: Enhanced checklist parsing and bullet list consistency across notes, preventing accidental indentation or spacing shifts.',
+                        'Settings State Persistence: Resolved toggle state responsiveness so haptic and display preferences apply instantaneously without requiring an app reload.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.43.0',
+                  date: 'September 26, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Expanded Global Multilingual Support: Full in-app language picker supporting English, Tamil, Chinese, Portuguese, Spanish, French, and German with instant reactive switching.',
+                        'Dedicated Savings Goals Tab: Clean sub-tab inside Budgets featuring 24 Material 3 colors, aggregate vault analytics, and zero nested whitespace.',
+                        'Dual-State Editor Keyboard Controls: Cleanly disambiguated formatting dismissal arrow from the keyboard hide button, with streamlined menus.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Contextual Selection & Toolbar AI Refine: Select transaction text or use the ledger toolbar to directly refine entries from storage with instant UI refresh.',
+                        'Streamlined App Footprint: Removed obsolete audio recording dependencies and permissions for a smaller, faster app.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'MaterialApp Locale Resolution: Corrected supportedLocales registration so all app modules respond immediately to language selection.',
+                        'Savings Goal Database & Schema: Complete SQLite table and menu integration for effortless goal creation and deposits.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.42.0',
+                  date: 'September 23, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'App Launcher Shortcuts: Long-press the app icon to jump directly into New Note, Add Expense, Scan Receipt, or Sync Devices.',
+                        'Dedicated Note Sorting: Convenient one-tap sort button on the Notes header to quickly sort by modified date, created date, title, or color.',
+                        'Itemized Split Bills & Undo: Share itemized statements of all pending bills via WhatsApp and undo settlements with automatic ledger sync.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Streamlined Tools Menus: Refined Notes and Finance action menus, reducing visual clutter while keeping essential utilities easily accessible.',
+                        'Auto-Purge & Diagnostic Notifications: Helpful notification summaries when old trash notes are cleared, plus a one-tap notification test in Settings.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Split Settlement Balance Parity: Undoing a settlement automatically reverses the ledger transaction to maintain exact cash flow accuracy.',
+                        'Background SMS Stability: Smoother background SMS parsing with improved duplicate prevention.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.41.0',
+                  date: 'September 21, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Long-Press Multi-Selection: Select multiple items across Notes, Financial Ledger, Trash, and Split Bills for quick batch operations.',
+                        'Contextual Floating Action Toolbars: Smooth floating action toolbar for one-tap batch categories, archiving, and deletion.',
+                        'Material 3 Expressive Surfaces: Complete dividerless surface redesign with solid tonal container layering and improved contrast.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Tactile Haptic Feedback: Micro-vibration responses on item selections and bulk action triggers.',
+                        'Polished Dialogs & Sheets: Consistent edge-to-edge layouts across Calculator, SMS Import, and Details dialogs.',
+                        'Sub-Pixel Layout Alignment: Flawless vertical headroom and symmetry across all module sliver headers.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Multi-Selection State Consistency: Smooth transitions entering and exiting selection modes without flickering.',
+                        'Table Dialog & Action Layout: Resolved divider lines and improved button padding in editor dialogs.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.40.0',
+                  date: 'September 17, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Modular Sub-Features Architecture: Toggle individual sub-features within Notes and Finances to make the workspace ultra-minimal or fully featured.',
+                        'Minimal Note Editor Mode: Focus cleanly on writing with an uncluttered bottom dock; advanced formatting stays tucked in the top action menu.',
+                        'Dynamic Single-View Financial Ledger: Automatically merges multi-tab finances into a focused single-view ledger when secondary tabs are disabled.',
+                        'Independent Notes Customization: Easily toggle the tag filter carousel on or off to match your workflow.',
+                        'Expanded Modular Onboarding: Customize your modular layout directly during initial setup or replay anytime in Settings.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Interactive Home Widget: Rich cash flow summaries and one-tap quick action deep links directly from your home screen.',
+                        'Context-Aware Transaction Editor: Dynamically adapts recurring, receipt OCR, and split bill controls based on active sub-features.',
+                        'Zero-Friction Reconfigurability: Live reactivity across all screens when toggling sub-features without needing to restart the app.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Split Bill Action Gating: Seamlessly hides split bill triggers across transaction forms when split bills are disabled.',
+                        'Non-Destructive Sub-Feature Toggling: Safely preserves existing budgets, recurring rules, and custom categories during sub-feature toggles.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.31.1',
+                  date: 'September 16, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Material 3 Expressive Design System: Complete visual elevation with 5-tier solid surfaces, tactile stadium pills, and variable typography.',
+                        'Tactile Sinusoidal Wavy Slider: Interactive typography scaling in Settings with live text preview and real-time font size adjustment.',
+                        'Shape-Morphing Indicators: Fluid loading animations transitioning across 35+ expressive geometric shapes during receipt OCR scanning and module loading.',
+                        'Expressive Split Buttons: Multi-action note migration button offering one-tap file browsing alongside instant Google Takeout access.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Zero Frosted Glass Blur: Purged all legacy backdrop blurs in favor of high-performance, battery-friendly solid surface containers.',
+                        'Connected Corner Morphing: Grouped list cards and paired P2P devices now feature unified morphing rounded corners.',
+                        'Resilient Backup Serialization: Expanded backup coverage to guarantee 100% preservation of split bills, savings vault, and custom account routing.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Dialog & Sheet Standardization: Unified all prompt guides and cycle phase sheets into responsive Material 3 bottom sheets.',
+                        'P2P Sync & Camera Resume: Camera QR scanning and sync operations reliably preserve session state without unwanted lock triggers.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.31.0',
+                  date: 'September 16, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "What's New",
+                      items: [
+                        'Goal-Oriented Savings Pockets: Set target goals with auto-pacing and milestone badges for college, travel, or emergencies.',
+                        'Authentic Dual-Account Transfers: Real double-entry transfer transactions between Daily Operating and Savings Vault accounts.',
+                        'Smart Split Bill Calculator: Itemized breakdown with proportional tax, tip, and service fee distribution across subtotals.',
+                        'Interactive Mini Calculator: Embedded arithmetic keypad directly inside exact share fields for instant portioning.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Improvements',
+                      items: [
+                        'Real-Time Savings Pacing & Milestones: Progress tracking with milestone badges and dynamic monthly pace recalculations.',
+                        'Penny Remainder Reconciliation: Easily balance one-cent or residual round-off differences on custom splits.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: 'Fixes',
+                      items: [
+                        'Resilient Full-Form Scrolling: Fluid scrolling across savings goals and split bill calculator modals on all screen sizes.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.30.3',
+                  date: 'September 12, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "🌟 What's New",
+                      items: [
+                        'Instant Auto-Backup Trigger: Run and verify scheduled encrypted backups on-demand with real-time feedback directly in Settings.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Reliable Auto-Backup Scheduling: Fixed the background timer reset bug on app startup, ensuring daily automatic backups run consistently.',
+                        'Helpful P2P Offline Guidance: Clear, friendly instructions appear when attempting Wi-Fi sync if the app is closed on the paired device.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Tag Manager & Card Scrollability: Completely eliminated layout overflow crashes in the tag manager modal, note import preview, and category pickers on compact or older screens.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.30.2',
+                  date: 'September 10, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "🌟 What's New",
+                      items: [
+                        'Contextual Split Bill Action: Tapping the Add button on the Split Bills tab now seamlessly opens the Split Bill creator with full splitting options.',
+                        'Rich Category Icons: Expanded transaction categories with 54 expressive Material 3 icons covering subscriptions, utilities, hobbies, pet care, transit, and medical needs.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Dual-Mode Split Bill Ledger Contract: Group bills you pay record directly to your master expense ledger, while friend-paid bills stay organized in the split tracker without cluttering your personal accounts.',
+                        'Smart App Review Reminders: Pleasant, milestone-based rating prompts (at 5, 15, and 30 items) with a 7-day cooldown to ensure an uninterrupted experience.',
+                        'Instant Backup Refresh: Restoring an encrypted backup now immediately updates all finance, split bill, and note views in real time.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Note Indentation Preservation: Multi-level list indents and formatting are now accurately saved and restored without disappearing.',
+                        'Swipe-to-Delete Split Bills: Added smooth swipe dismissal for group bills with a confirmation dialog and instant Undo option.',
+                        'Friend-Paid Custom Amounts: Easily enter and adjust your exact personal share when friends cover a group bill.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.30.1',
+                  date: 'September 5, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "🌟 What's New",
+                      items: [
+                        'Story Card Studio: Transform notes or selected text into high-resolution social media cards formatted for 9:16 Stories, 1:1 Squares, and 4:5 Portraits with direct 1-tap sharing.',
+                        'Packaged Offline Fonts: Fully offline Noto Sans and Noto Serif Tamil variable typography with automatic language detection, line-height balancing, and font style switcher.',
+                        'Word Limits & Safe Heatmap: 25, 50, and 80-word selection limits with live word count stats and Instagram/WhatsApp story safe margins.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Centered App Logo Watermark: Replaced generic text watermark with an authentic, centered micro-pill badge featuring the monochrome app emblem.',
+                        'Seamless Theme Presets: Editorial Serif warm paper theme, OLED Pitch Black, Note Tint, and Material You Dynamic themes.',
+                        'Tactile Chart & Calendar Scrubbing: Haptic clicks when scrubbing spend trend points, category donut slices, and selecting cycle calendar days.',
+                        'Universal Selection Controls: Cleaned up checkmark glyphs across Theme Mode, Transaction Type, and Account Buckets to preserve authentic icons.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Resilient Sheet Layout: Wrapped bottom sheet and control groups in fluid scrolling to completely eliminate layout overflows during text editing or word limits.',
+                        'Split Bills View Clutter: Unified hero cards on the Split Bills tab, removing redundant personal cash flow card stacking.',
+                        'Touch Target Bounds: Upgraded P2P sync and note editor navigation micro-buttons to standard 48x48dp hit targets.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.29.0',
+                  date: 'September 3, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "🌟 What's New",
+                      items: [
+                        'Friend-Paid Split Bills: Track group bills paid by friends with clear personal liability. Settle your own share with one tap into your daily ledger, while keeping friends\' mutual debts cleanly separated in the split tracker.',
+                        'Archived Notes Dropdown Access: Quickly access all your archived notes with note counts directly from the folder picker sheet and the Notes tools menu.',
+                        'Vibrant Settings Dashboard: An upgraded hero dashboard with rich multi-tone gradients, luminous ambient glow, a pulsing Local Vault security badge, and bold module indicators.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Streamlined SMS Sync: Eliminated unsolicited background resume polling, focusing SMS imports on scheduled daily sync, one-tap manual refresh, and real-time live message detection.',
+                        'Interactive Settlement Feedback: Clear visual badges and instant status updates when settling bills or recording participant repayments.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Personal Ledger Isolation: Third-party debt repayments between friends are strictly isolated within the split tracker and never create unwanted entries in your personal account ledger.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.28.0',
+                  date: 'September 2, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "🌟 What's New",
+                      items: [
+                        'Google Keep & Markdown Import: Batch import notes, checklists, folders, and tags from Google Keep Takeout JSON and Markdown archives in one tap.',
+                        'Redesigned Settings Control Center: An interactive console featuring a subtle security indicator, quick one-tap shortcuts for App Lock and JSON backups, and domain-themed cards (Notes, Finances, Health, Privacy).',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Smarter Checklist Engine: Smoother item completion without trailing empty lines, plus one-tap unchecking to restore items directly to your note body.',
+                        'Resilient App Lock: Automatic safety fallback detects devices without screen locks or enrolled biometrics, preventing accidental lockouts with a safe disable button.',
+                        'Touch Accessibility: Standardized screen reader semantics across all interactive tag and filter chips.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Checklist Restore Ordering: Accurately restores completed items back into the editor with line-ending formatting and correct cursor positioning.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.27.0',
+                  date: 'August 30, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "🌟 What's New",
+                      items: [
+                        'Split Bills Cloudless Backup & Sync: Group expenses, debt balances, and friend contacts now automatically back up in encrypted JSON files and sync bi-directionally across your paired devices over local Wi-Fi.',
+                        'Intelligent Rich Text Formatting: Upgraded note formatting engine keeps your bold, italic, and underline styling intact when converting headers, bullet points, and checklists.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Faster Database Queries: Added performance indexing across transactions, notes, split bills, and health logs for instant screen loads.',
+                        'Memory & Storage Optimization: High-resolution camera photos are safely downsampled and isolated in protected storage to save device battery and memory.',
+                        'Seamless Screen Navigation: Smoother transition between system dialogs, file pickers, and WhatsApp sharing without accidental lock screen triggers.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Precision Text Selection: Fixed cursor navigation when tapping near note boundaries and tables.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.26.0',
+                  date: 'August 30, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "🌟 What's New",
+                      items: [
+                        'Top Bar Transaction Search: Integrated instant search directly into the Finances top action bar, maximizing screen space for transactions.',
+                        'SMS 24-Hour Default Lookback: Quick sync and app launch catch-up now scan the last 24 hours by default, eliminating missed transaction cutoffs.',
+                        'Persistent Real-Time Sync Banner: Live progress indicator beneath the top bar across all financial tabs with scanning counts and an instant Cancel button.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Top Action Bar Symmetry & Ordering: Standardized button sequence (Search → Sync → Tools → Settings) and uniform spacing across Notes, Finances, and Health Tracker.',
+                        'Dynamic Theming Scope Pills: High-contrast tonal container styling with subtle accent borders for folder, date range, and cycle phase pills.',
+                        'Post-Sync Feedback: Floating SnackBar notifications showing exact transaction counts imported from the last 24 hours.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Tombstone Safety & Deduplication: Stamped genuine SMS receipt timestamps to prevent duplicate imports and protect restored transactions.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.25.2',
+                  date: 'August 28, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "🌟 What's New",
+                      items: [
+                        'Unified Top App Bar & Scope Pills: Modernized frosted glass headers across Notes, Finances, and Period Tracker with interactive tonal scope pills.',
+                        'Universal Module Tools (3-Dot Menu): Dedicated overflow action menus consolidating view modes, sorting, tag management, SMS automation, and educational guides.',
+                        'Cycle Phase Guide: Built-in interactive educational guide explaining cycle phases, symptoms, and self-care recommendations.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Universal Settings Anchor: Consistent quick-access Settings shortcut button across all primary module headers.',
+                        'Material 3 Dropdown Modernization: Refreshed all dropdown icons with rounded Material 3 chevrons.',
+                        'Layout Precision & Polish: Cleaned sub-pixel bounds across financial metrics, hero cards, and health dialogs.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.25.1',
+                  date: 'August 28, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Settings Control Center Polish: Ensured subtitle text in the hero card scales down smoothly without truncation across all display text sizes.',
+                        'Home Header Alignment: Fine-tuned folder dropdown vertical spacing and expanded toolbar constraints for clean layout across compact viewports.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Release Pipeline Synchronization: Updated release build code and Play Store deployment artifacts for seamless in-app updates.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.25.0',
+                  date: 'August 27, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "🌟 What's New",
+                      items: [
+                        'Interactive Custom SMS Training: Teach the app how to recognize unique bank SMS and transfer approval formats directly from the test sandbox or training sheet.',
+                        'Personalized Transaction Titles: Set clean custom descriptions that automatically replace noisy bank SMS text.',
+                        'Transfer Authorization & OTP Bypass: Built-in override for banks that send transfer approval codes without a follow-up confirmation SMS.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        '5-Pillar Settings Control Center: Unified settings hub with live module status badges, 1-tap theme switcher, and consolidated SMS background automation.',
+                        'Adaptive Minimalist Workspace: Automatically collapses navigation bars when optional modules are off for an immersive full-screen note canvas.',
+                        'Rule Management Hub: Material 3 custom rule cards with active toggle switches, tap-to-edit, and swipe-to-delete with instant Undo.',
+                        'Top Dropdown Entry Point: Quick access to SMS Rules & Training from the Financial Manager 3-dot overflow menu.',
+                        'Onboarding Powerup Integration: Added custom SMS training setup card to the onboarding wizard.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Promotional Filter Precision: Distinguishes promo codes from transfer authorization and OTP approval codes.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.24.0',
+                  date: 'August 26, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "🌟 What's New",
+                      items: [
+                        'Split Bills & Shared Debts: Group bill splitting with equal or custom exact splits, friend balances, and 1-tap WhatsApp breakdown reminders.',
+                        '100% Offline Receipt Scanner: Instant OCR totals and merchant extraction directly on-device with zero cloud dependency.',
+                        'Modular Dual-Account Toggle: Flexible switch to enable or disable the Savings Vault & Daily Operating two-bucket view anytime.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Unified Category Pickers: Color-coded category chips cloud seamlessly shared across Transactions, Split Bills, and Recurring Rules.',
+                        'Accessibility & Touch Hit Targets: Enhanced TalkBack / VoiceOver semantics and enlarged interactive touch targets across all sheets.',
+                        'Optimized Custom Amount Inputs: Spacious, unclipped multi-currency number entry fields.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.23.0',
+                  date: 'August 25, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "🌟 What's New",
+                      items: [
+                        'Two-Bank Account Management: Manage separate Daily Operating and Savings Vault accounts with instant balance hero badges and ledger account filtering.',
+                        'AI-Powered Spending Analysis Export: Export your financial ledger with an integrated, intelligent analysis prompt crafted for Claude, ChatGPT, Gemini, and NotebookLM.',
+                        'Resilient Auto-Backup Storage: Sandboxed app storage ensures automatic daily/weekly backups remain active without permission revocations across OS updates.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Live Recurring Rule Sync: Editing a recurring transaction seamlessly synchronizes and updates the master recurring rule for all future billing cycles.',
+                        'Widget Launch SMS Catch-Up Sync: Automatically checks and imports new bank SMS transactions when opening the app directly or through home screen widgets.',
+                        'Account Ledger Tagging: Clear account bucket chips and icons across transaction rows and CSV exports.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.22.0',
+                  date: 'August 24, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: "🌟 What's New",
+                      items: [
+                        'SMS & Bank Automation Hub: Real-time SMS test sandbox, custom keyword rules, and verified offline bank parsing for instant ledger tracking.',
+                        'Smart Recurring Subscriptions: Automated repeating bills and salaries with live keyword category detection and duplicate prevention.',
+                        'Sender Controls & Diagnostics: Block unwanted senders and inspect diagnostic feedback for promotional broadcasts.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Spending Trend Analytics: Refined chart header density and projection styling for smooth 120 FPS navigation.',
+                        'Hardware-Aware AI Controls: Dynamic feature gating ensures settings and menus cleanly adapt to device capabilities.',
+                        'Clean Merchant Extraction: Automatic filtering of phone numbers, country codes, and payment gateway noise from transaction titles.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'CEFTS Self-Transfer Categorization: Accurate zero-expense detection for bank transfers between owned accounts.',
+                        'SMS Ingestion & Date Precision: Historical message timestamps strictly preserved with tombstone re-import safeguards.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.21.5',
+                  date: 'August 24, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Play Store Release Pipeline Resiliency: Synchronized bilingual release notes with strict character limits and automated version code pacing for Google Play releases.',
+                        'Android 15 Edge-to-Edge & Performance: Native system bar edge-to-edge rendering and optimized R8 bytecode shrinking for faster cold launch.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.21.4',
+                  date: 'August 24, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Android 15 Native Edge-to-Edge: Integrated native enableEdgeToEdge() activity orchestration and transparent system insets for fluid display across Android 15 & 16 devices.',
+                        'R8 Code Shrinking & Inlining: Hardened ProGuard keep rules and release build optimizations for reduced memory and zero-delay startup.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.21.3',
+                  date: 'August 21, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Instant 0ms UI Updates: Added optimistic instant state rendering across the Financial Ledger, Notes feed, Trash Sheet, and Health Tracker—deleting, restoring, and toggling items updates the UI in 0ms with zero loading flickers or list re-animations.',
+                        'Accurate SMS Message Timestamps: Past bank SMS transactions and inbox imports accurately preserve the exact date and time the message arrived instead of defaulting to the import date.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Financial Ledger Undo Restoration: Fixed transaction undo button by executing direct database restoration, preventing primary key collisions and soft-delete tombstone blocks.',
+                        'Silent Background Sync: Background data refreshes and note tagging updates execute quietly without interrupting ongoing user reading or unmounting active lists.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.21.2',
+                  date: 'August 21, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🐛 Fixes & Improvements',
+                      items: [
+                        'SMS Permission & Sync Detection: Fixed SMS permission evaluation by removing undeclared phone permission requirements, restoring instant 1-tap quick sync and real-time bank SMS interception.',
+                        'Tombstone Re-Import Safeguards: Enhanced transaction ingestion to check the tombstone table, preventing permanently deleted transactions from being re-imported during historical scans unless explicitly enabled.',
+                        'Sync Cancellation & Progress Controls: Added an instant "Cancel" button to the SMS sync banner and batch processing chunks for seamless navigation across large inboxes.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.21.1',
+                  date: 'August 21, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Bitmap Memory Downsampling: Added image downsampling and fallback error handling to note previews, cutting image memory usage by up to 85% and preventing Out-Of-Memory pauses on large camera photos.',
+                        'R8 Full-Mode Optimization: Enabled aggressive dead-code elimination, method inlining, and bytecode optimization for faster app launch and reduced download size.',
+                        'Backward-Compatible Schema Upgrades: Enhanced SQLite database migration routines with rigorous single-quote SQL syntax and multi-version upgrade validation.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.21.0',
+                  date: 'August 21, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🌟 What\'s New',
+                      items: [
+                        'Universal Morphing Action Buttons: Standardized fluid floating action buttons that dynamically morph into compact circular buttons while scrolling for distraction-free reading.',
+                        'Recurring Payment Conversion: Seamlessly convert any manual or imported SMS transaction into a recurring schedule directly from the transaction editor.',
+                        'Rotating Pro-Tips System: Helpful dismissible contextual tips on the Home feed and optional 3-day notifications to discover power features.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Real-Time Home Widget Budget Updates: Editing budget limits or adding transactions instantly synchronizes to the Android home screen widget.',
+                        'Donut Chart Precision & Text Scaling: Dynamic downscaling for large currency totals inside donut chart center holes with guaranteed visibility for small slices.',
+                        'Forecast Chart Tooltip Visibility: Tooltips now render above touch targets for crystal-clear finger navigation.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Bottom Content Overlap Safeguards: Standardized bottom clearance padding across all lists, forms, and segmented buttons to eliminate floating button overlap.',
+                        'Smart Recurring Deduplication: Intelligent time and amount tolerance window avoids duplicate transactions when bank clearance schedules shift.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.20.0',
+                  date: 'August 19, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🌟 What\'s New',
+                      items: [
+                        'Interactive Expense Breakdown Donut: Centered donut chart with dynamic center total and bi-directional touch linking with ranked categories.',
+                        '3-Slide Swipable Visual Intelligence Deck: Trajectory forecast spline, category breakdown donut, and budget pacing with circular gauge.',
+                        'Dynamic Home Screen Widget Sparkline: Native anti-aliased canvas sparkline curve plot, gradient underfill, and glowing forecast dot.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Adaptive Month-End Run-Rate Forecast: Extrapolates current month finish with days 1–3 early-month smoothing to prevent artificial spikes.',
+                        'Context-Aware Deep Linking: Tapping "Details >" on any slide routes directly to the exact corresponding sub-tab with zero guesswork.',
+                        'Zero-Dead-Code Cleanup: Purged deprecated legacy widgets and unified all forecasting logic into SpendingForecastService.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Resolved Title Clipping & Whitespace: Fixed text truncation on small screens and balanced budget pacing cards with dual-column layout.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.19.0',
+                  date: 'August 18, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🌟 What\'s New',
+                      items: [
+                        'Symmetrical Precision Text Toolbar: Directional horizontal nudges, double-tap word jumping, and vertical line traversal in a frosted floating bar.',
+                        'Health Cycle Regularity Insights: Real-time regularity scoring (0–100%), average flow duration analytics, moon phase guidance, and symptom tracking.',
+                        'Category Spending Budgets & CSV Export: Category spending progress bars with threshold alerts, recurring subscription rules, and RFC-compliant CSV ledger export.',
+                        'Tombstone Sync & Backup Protection: Permanent deletion retention prevents purged transactions from ever resurrecting across backups or P2P sync.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Fluid Spring Animations & Tactile Haptics: Smooth slide transitions and tactile click responses across formatting tools and cycle insights.',
+                        'Ultra-Modular Screen Architecture: Cleaner, faster performance with decoupled state providers across Notes, Finances, and Health.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'SMS Re-import & Duplication Resilience: Rock-solid P2P two-way merge resolution and deletion tombstone propagation.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.18.0',
+                  date: 'August 15, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🌟 What\'s New',
+                      items: [
+                        'Interactive SMS Test Sandbox: Test bank SMS messages live with instant amount, transaction direction, and category feedback before importing.',
+                        'Global Currencies & Custom Currency: Choose from curated world currencies with authentic symbol badges or add your own custom currency code.',
+                        'One-Tap Category Learning: Automatically train merchant rules into your category definitions with a single tap in the transaction editor.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Hardware-Aware AI Smart Gating: Cleanly hides AI controls on devices without on-device AI hardware for a distraction-free experience.',
+                        'Precision Text Selection Toolbar: Refined text selection entry with directional arrow controls for fine-grained editing.',
+                        'Silent Auto-Backup Channel: Background auto-backups now run in a quiet notification channel without disturbing your workflow.',
+                        'Note Editor Heading & Indentation Tools: Visual heading level indicator badges and indentation buttons in the rich-text note editor.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Enhanced SMS Parsing & Long Merchant Support: Extended merchant recognition up to 60 characters and refined PII reference number cleaning.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.17.2',
+                  date: 'August 12, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🌟 What\'s New',
+                      items: [
+                        'Background Bank SMS Auto-Import: Automatically scan bank transactions in the background with a floating M3 progress indicator while using the app.',
+                        'AI Transaction Title Refinement: Clean up cryptic bank SMS transaction descriptions into clean merchant names with single-tap or 48-hour bulk AI title refinement.',
+                        'Unified Dual-Gesture Sync: Tap sync icons for fast 24-hour sync, or long-press to open advanced historical import sheets across Notes and Finances.',
+                        'Friendly Device Naming & Multi-Network P2P: Automatically generate memorable paired device names and keep P2P sync connected across home and work Wi-Fi networks.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        '60–120 FPS Performance & WAL Mode: RepaintBoundary GPU chart isolation and SQLite Write-Ahead Logging (WAL) mode for silky smooth fling-scrolling and non-blocking background syncs.',
+                        'Human-Readable P2P Diagnostics: Clear, actionable troubleshooting guidance for P2P connection failures with dynamic red error cards and instant retry options.',
+                        'Interactive Wi-Fi Refresh: Instant SnackBar feedback when re-scanning Wi-Fi network interfaces and binding P2P host ports.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Android Telephony Stability: Resolved native Android channel exception crashes when SMS permissions are revoked, and handled pairing timeouts gracefully.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.17.1',
+                  date: 'August 12, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🌟 What\'s New',
+                      items: [
+                        'AI Transaction Title Refinement: Clean up cryptic bank SMS transaction descriptions into clean merchant names with single-tap or 48-hour bulk AI title refinement.',
+                        'Unified Dual-Gesture Sync: Tap sync icons for fast 24-hour sync, or long-press to open advanced historical import sheets across Notes and Finances.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Human-Readable P2P Diagnostics: Clear, actionable troubleshooting guidance for P2P connection failures with dynamic red error cards and instant retry options.',
+                        'Interactive Wi-Fi Refresh: Instant SnackBar feedback when re-scanning Wi-Fi network interfaces and binding P2P host ports.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Android Telephony Stability: Resolved native Android channel exception crashes when SMS permissions are revoked, and handled pairing timeouts gracefully.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.17.0',
+                  date: 'August 12, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🌟 What\'s New',
+                      items: [
+                        'Non-Blocking Background SMS Import: Automatically scan bank transactions in the background with a floating live progress indicator while you continue using the app.',
+                        'Advanced SMS Range & Tombstones: Import recent or full historical bank SMS with 30-day auto-purge retention and tombstone protection to prevent re-importing deleted items.',
+                        'Smart Toolbar & Precision Text Selection: Fine-tune cursor placement character-by-character or word-by-word, and enjoy intelligent toolbar layouts that adapt to your device\'s hardware AI capabilities.',
+                        'Friendly Device Naming & Multi-Network P2P: Automatically generate memorable paired device names and keep P2P sync connected across home, work, and mobile Wi-Fi networks.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Hardware-Aware Onboarding: Clear status indicators differentiate Android AI Core NPU hardware from offline rule-based NLP engines during setup.',
+                        'Material 3 Depth & Ink Polish: Seamless borderless top app bar, frosted glass navigation depth, and material ripple splash protections across search overlays and finance cards.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Finance Provider & Exception Guard: Resolved root provider scoping for finance screens and fixed ListTile container material assertions.',
+                        'Pairing & Scanner Reliability: Reinforced QR code pairing handshakes, camera permission declarations, and multi-endpoint network fallbacks.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.16.0',
+                  date: 'August 11, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🌟 What\'s New',
+                      items: [
+                        'Smarter Device Sync: Give each paired device a name and keep it connected across home, work, and other Wi-Fi networks.',
+                        'Precision Text Selection: Use the new cursor tool in the note editor to adjust selected text one character or word at a time.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Clearer Editor Tools: AI Assist and Precision Selection now have their own toolbar buttons, keeping writing tools easier to find.',
+                        'Faster Navigation: Search now surfaces P2P Sync and more settings shortcuts, while long-pressing a note makes moving it to a folder quicker.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Reliable Pairing & Scanning: Pairing is confirmed before it is saved, remembers alternate Wi-Fi connections, and QR scanning now requests camera access correctly.',
+                        'Editor & Data Stability: Improved selection-toolbar layout, table editing behavior, and fresh-install database setup.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.14.0',
+                  date: 'August 5, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🌟 What\'s New',
+                      items: [
+                        'Bi-Directional P2P Wi-Fi Sync: Seamlessly merge notes, financial ledgers, and settings between devices over Wi-Fi non-destructively without losing local edits.',
+                        'Reliable SMS Auto-Sync Engine: Background bank transaction sync now runs reliably with 48-hour catch-up sync for offline devices, live status badges, and a 1-tap "Sync SMS Now" test action.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Ultra-Smooth Text Selection: Fixed keyboard D-Pad arrow key navigation and text selection lag in the editor for instant, stutter-free typing.',
+                        'Dynamic Light & Dark Hero Cards: Hero cards dynamically adjust pastel opacities in Light Mode and deep translucent fills in Dark Mode for crisp visual contrast.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Database Subtype Options Safety: Resolved database option type casting issues for encrypted local storage.',
+                        'Onboarding P2P Entry Point: Verified seamless navigation from initial onboarding tips to the P2P device sync hub.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.13.0',
+                  date: 'August 5, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🌟 What\'s New',
+                      items: [
+                        'Bi-Directional Delta Merge P2P Sync: Seamlessly merge notes, financial ledgers, and settings between devices over Wi-Fi without losing local edits or moving soft-deleted items back to the inbox.',
+                        'Interactive Onboarding & What\'s New Entry Points: Pair and sync devices directly during app setup or explore new features with 1-tap action buttons in the What\'s New sheet.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Material 3 Expressive Sync Hub: Redesigned P2P control center with dynamic status cards, 1-tap IP & pair code copying, and individual device sync actions.',
+                        'Robust Network & VPN Handling: Smart socket binding and local IP discovery support DHCP changes and VPN split-tunneling cleanly.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Dual-Device Pairing Detection: Fixed issue where paired devices were not displayed symmetrically on both host and scanner devices.',
+                        'Trash-Moving Sync Guardrail: Soft-deleted notes remain cleanly in the Trash across devices without reappearing in active note lists.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.12.0',
+                  date: 'August 5, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🌟 What\'s New',
+                      items: [
+                        'Fast Local Master Device Sync: Transfer your complete notebook between devices instantly over your local network using direct REST connections.',
+                        'Onboarding Setup Mode Choices: Choose to set up a new primary notebook or pair and import from an existing phone during initial app setup.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Permission-Lean Privacy: Removed unnecessary Bluetooth and location permission requests for a cleaner experience.',
+                        'Clear Master Overwrite Warnings: Helpful warning dialogs explain Primary and Secondary device roles before replacing secondary device data.',
+                        'Landscape & Tablet FAB Access: Access the "New Note" button seamlessly in portrait, landscape, and tablet modes.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Single-Device Deduplication: Prevents duplicate device entries when pairing devices.',
+                        'Ultra-Fast Network Sockets: Replaced legacy Bluetooth connections with fast local REST sockets for zero-freeze syncing.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.11.1',
+                  date: 'August 1, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🌟 What\'s New',
+                      items: [
+                        'Keyboard-Aware Note Editor: Formatting tools now stay accessible directly above the soft keyboard, and the note editor auto-scrolls to keep your active typing line visible as you type long notes.',
+                        'Full-Screen Setup Wizard: Customise your app theme, preferences, and local AI options right from the start.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Refreshed Material 3 Design: Enjoy modern rounded cards, fluid animations, dynamic typography scaling, and a cleaner control center.',
+                        'Quick Keyboard Dismiss: Tap the new Hide Keyboard button on the note editor toolbar anytime to instantly dismiss the keyboard.',
+                        'Smarter Search & Folders: Easily search across settings and notes, and organize your ideas into folders.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Note Editor Keyboard & Text Visibility: Resolved an issue where the software keyboard obscured long note text and hid formatting action bars during typing.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.11.0',
+                  date: 'August 1, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🌟 What\'s New',
+                      items: [
+                        'Full-Screen Setup Wizard: Customise your app theme, preferences, and local AI options right from the start.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Refreshed Material 3 Design: Enjoy modern rounded cards, fluid animations, and a cleaner control center.',
+                        'Smarter Search & Folders: Easily search across settings and notes, and organize your ideas into folders.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Interactive Checklist Polish: Toggling checklist items in notes is now smoother and more reliable.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.10.0',
+                  date: 'July 30, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🌟 What\'s New',
+                      items: [
+                        'Full-Screen Setup Wizard: Customise your app theme, preferences, and local AI options right from the start.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Refreshed Material 3 Design: Enjoy modern rounded cards, fluid animations, and a cleaner control center.',
+                        'Smarter Search & Folders: Easily search across settings and notes, and organize your ideas into folders.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Interactive Checklist Polish: Toggling checklist items in notes is now smoother and more reliable.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.9.1',
+                  date: 'July 29, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Unified Frosted Glass Headers: Clean, symmetric top navigation bar across all app screens.',
+                        'Single Action Button: Centralized action button floats comfortably above the bottom navigation bar.',
+                        'Default Folder Memory: Automatically opens your preferred folder when starting the app.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Light Mode Visual Fixes: Removed double border lines and shadow artifacts for cleaner light mode viewing.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.9.0',
+                  date: 'July 29, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🌟 What\'s New',
+                      items: [
+                        'Material 3 Expressive Look: Dynamic color themes, rounded card hierarchy, and fluid spring animations.',
+                        'Glassmorphic Navigation: Symmetric top and bottom frosted glass bars for immersive reading.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Tactile Button Feedback: Improved touch response and haptics across all buttons and menus.',
+                        'Health Tracker Readability: High-contrast cards and illuminated cycle phase rings in dark mode.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.8.1',
+                  date: 'July 25, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🌟 What\'s New',
+                      items: [
+                        'Universal Spotlight Search: Search Notes, Settings, Tools, Finances, and Health in one single search bar.',
+                        'Instant Filter Chips: Quickly filter search results by Notes, Finances, or Health with one tap.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🐛 Fixes',
+                      items: [
+                        'Backup & Export Stability: Fixed file sharing fallbacks and prevented note title clipping on cards.',
+                        'Handwriting Support: Smooth typing support for S-Pen and Apple Scribble.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.7.0',
+                  date: 'July 24, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Instant Settings Search: Search options directly inside the Settings header bar.',
+                        'Smarter Expense Analytics: Intelligent spending trend forecasting dampens one-off purchase spikes automatically.',
+                      ],
+                    ),
+                  ],
+                ),
+                ChangelogRelease(
+                  version: 'v2.6.0',
+                  date: 'July 23, 2026',
+                  isLatest: false,
+                  categories: [
+                    ChangelogCategory(
+                      title: '🌟 What\'s New',
+                      items: [
+                        'Scheduled Auto-Sync: Schedule daily automatic bank SMS transaction imports at your chosen time.',
+                      ],
+                    ),
+                    ChangelogCategory(
+                      title: '🚀 Improvements',
+                      items: [
+                        'Note Editor Enhancements: Auto-keyboard focus on new note creation and auto-dismiss on scroll.',
+                      ],
+                    ),
+                  ],
+                ),
+];
