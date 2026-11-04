@@ -430,7 +430,7 @@ class P2pSyncService {
           response.statusCode = HttpStatus.requestEntityTooLarge;
           return;
         }
-        final decrypted = _crypto.decryptPayload(body, pairCode);
+        final (decrypted, isLegacy) = _crypto.decryptPayloadDetailed(body, pairCode);
         if (decrypted != null) {
           final reqMap = json.decode(decrypted);
           final reply = _crypto.encryptPayload(
@@ -441,6 +441,7 @@ class P2pSyncService {
               'hostName': userName,
             }),
             pairCode,
+            legacyMode: isLegacy,
           );
           response.statusCode = HttpStatus.ok;
           response.write(reply);
@@ -456,7 +457,7 @@ class P2pSyncService {
           response.statusCode = HttpStatus.requestEntityTooLarge;
           return;
         }
-        final decrypted = _crypto.decryptPayload(body, pairCode);
+        final (decrypted, isLegacy) = _crypto.decryptPayloadDetailed(body, pairCode);
         if (decrypted != null) {
           final Map<String, dynamic> map = json.decode(decrypted);
           final remoteDevice = PairedDevice(
@@ -485,6 +486,7 @@ class P2pSyncService {
               'port': httpSyncPort,
             }),
             pairCode,
+            legacyMode: isLegacy,
           );
           response.statusCode = HttpStatus.ok;
           response.write(ackReply);
@@ -500,10 +502,10 @@ class P2pSyncService {
           response.statusCode = HttpStatus.requestEntityTooLarge;
           return;
         }
-        final decrypted = _crypto.decryptPayload(body, pairCode);
+        final (decrypted, isLegacy) = _crypto.decryptPayloadDetailed(body, pairCode);
         if (decrypted != null) {
           final backupJson = await generateBackupJson();
-          final encryptedReply = _crypto.encryptPayload(backupJson, pairCode);
+          final encryptedReply = _crypto.encryptPayload(backupJson, pairCode, legacyMode: isLegacy);
 
           response.statusCode = HttpStatus.ok;
           response.write(encryptedReply);
@@ -536,7 +538,7 @@ class P2pSyncService {
             response.statusCode = HttpStatus.requestEntityTooLarge;
             return;
           }
-          final decrypted = _crypto.decryptPayload(body, pairCode);
+          final (decrypted, isLegacy) = _crypto.decryptPayloadDetailed(body, pairCode);
           if (decrypted != null) {
             final Map<String, dynamic> clientData = json.decode(decrypted);
 
@@ -548,7 +550,7 @@ class P2pSyncService {
 
             // 2. Generate updated host payload for client
             final updatedBackupJson = await generateBackupJson();
-            final encryptedReply = _crypto.encryptPayload(updatedBackupJson, pairCode);
+            final encryptedReply = _crypto.encryptPayload(updatedBackupJson, pairCode, legacyMode: isLegacy);
 
             response.statusCode = HttpStatus.ok;
             response.write(encryptedReply);
@@ -618,6 +620,14 @@ class P2pSyncService {
   /// Sanitizes IP string by removing scheme, trailing path, or port.
   static String sanitizeTargetIp(String input) => parseTargetAddress(input).$1;
 
+  /// Safely constructs a HTTP URI for local P2P sync, wrapping IPv6 addresses in brackets.
+  static Uri buildSyncUri(String ip, int port, String path) {
+    final clean = ip.trim();
+    final host = clean.contains(':') && !clean.startsWith('[') ? '[$clean]' : clean;
+    final normalizedPath = path.startsWith('/') ? path : '/$path';
+    return Uri.parse('http://$host:$port$normalizedPath');
+  }
+
   /// Sends pair handshake to Primary Device IP.
   Future<PairedDevice?> sendPairHandshake(
     String pairCode,
@@ -629,7 +639,7 @@ class P2pSyncService {
     final cleanIp = parsed.$1;
     final cleanPort = parsed.$2;
 
-    final client = HttpClient()..connectionTimeout = const Duration(seconds: 4);
+    final client = HttpClient()..connectionTimeout = const Duration(seconds: 10);
     try {
       final myDeviceId = await getDeviceId();
       final handshakeMap = {
@@ -641,15 +651,31 @@ class P2pSyncService {
         'port': httpSyncPort,
       };
 
-      final encrypted = _crypto.encryptPayload(json.encode(handshakeMap), pairCode);
-      if (encrypted == null) return null;
+      // 1. Try standard PBKDF2 payload encryption
+      var encrypted = _crypto.encryptPayload(json.encode(handshakeMap), pairCode);
+      if (encrypted == null) {
+        throw StateError('Failed to encrypt pair handshake payload. Check pair code.');
+      }
 
-      final req = await client.postUrl(Uri.parse('http://$cleanIp:$cleanPort/api/sync/pair_handshake'));
+      var req = await client.postUrl(buildSyncUri(cleanIp, cleanPort, '/api/sync/pair_handshake'));
       req.write(encrypted);
-      final res = await req.close();
+      var res = await req.close().timeout(const Duration(seconds: 15));
+
+      // If server returned 401 Unauthorized, retry once with legacy v1 key in case peer is on older version
+      if (res.statusCode == 401) {
+        final legacyEncrypted = _crypto.encryptPayload(json.encode(handshakeMap), pairCode, legacyMode: true);
+        if (legacyEncrypted != null) {
+          final retryReq = await client.postUrl(buildSyncUri(cleanIp, cleanPort, '/api/sync/pair_handshake'));
+          retryReq.write(legacyEncrypted);
+          final retryRes = await retryReq.close().timeout(const Duration(seconds: 10));
+          if (retryRes.statusCode == 200) {
+            res = retryRes;
+          }
+        }
+      }
 
       if (res.statusCode == 200) {
-        final body = await utf8.decoder.bind(res).join();
+        final body = await utf8.decoder.bind(res).join().timeout(const Duration(seconds: 10));
         final decrypted = _crypto.decryptPayload(body, pairCode);
         if (decrypted != null) {
           final Map<String, dynamic> map = json.decode(decrypted);
@@ -664,12 +690,19 @@ class P2pSyncService {
           );
           _remoteDevicePairedController.add(remoteDevice);
           return remoteDevice;
+        } else {
+          throw StateError('Handshake decryption failed. Ensure both devices share the exact same 6-digit pair code.');
         }
+      } else if (res.statusCode == 401) {
+        throw StateError('Pair code mismatch. Check the 6-digit code on the target device.');
+      } else if (res.statusCode == 429) {
+        throw StateError('Rate limited due to repeated attempts. Please wait 60 seconds and retry.');
+      } else {
+        throw StateError('Pairing failed (HTTP ${res.statusCode}) with $cleanIp.');
       }
-      return null;
     } catch (e) {
       debugPrint('[P2pSyncService] Pair handshake error: $e');
-      return null;
+      rethrow;
     } finally {
       client.close(force: true);
     }
@@ -710,9 +743,9 @@ class P2pSyncService {
         return SyncResult(success: false, errorMessage: 'Encryption failed. Check pair code.');
       }
 
-      final client = HttpClient()..connectionTimeout = const Duration(seconds: 4);
+      final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
       try {
-        final req = await client.postUrl(Uri.parse('http://$cleanIp:$cleanPort/api/sync/ping'));
+        final req = await client.postUrl(buildSyncUri(cleanIp, cleanPort, '/api/sync/ping'));
         req.write(encrypted);
         final res = await req.close();
 
@@ -770,7 +803,7 @@ class P2pSyncService {
 
       final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
       try {
-        final req = await client.postUrl(Uri.parse('http://$cleanIp:$cleanPort/api/sync/pull_master'));
+        final req = await client.postUrl(buildSyncUri(cleanIp, cleanPort, '/api/sync/pull_master'));
         req.write(encrypted);
         final res = await req.close();
 
@@ -827,7 +860,7 @@ class P2pSyncService {
 
       final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
       try {
-        final req = await client.postUrl(Uri.parse('http://$cleanIp:$cleanPort/api/sync/bidirectional_sync'));
+        final req = await client.postUrl(buildSyncUri(cleanIp, cleanPort, '/api/sync/bidirectional_sync'));
         req.write(encrypted);
         final res = await req.close();
 

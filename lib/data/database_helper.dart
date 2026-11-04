@@ -331,6 +331,12 @@ class DatabaseHelper {
       if (!hasAiRefinedCol) {
         await db.execute("ALTER TABLE ${TableNames.transactions} ADD COLUMN isAiRefined INTEGER NOT NULL DEFAULT 0");
       }
+      final hasUuid = cols.any((col) => col['name'] == 'uuid');
+      if (!hasUuid) {
+        await db.execute('ALTER TABLE ${TableNames.transactions} ADD COLUMN uuid TEXT');
+      }
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_transactions_uuid ON ${TableNames.transactions}(uuid);');
+      await db.execute("UPDATE ${TableNames.transactions} SET uuid = lower(hex(randomblob(16))) WHERE uuid IS NULL OR uuid = '';");
 
       final participantCols = await db.rawQuery('PRAGMA table_info(${TableNames.splitParticipants})');
       final hasSettlementTxCol = participantCols.any((col) => col['name'] == SplitParticipantFields.settlementTransactionId);

@@ -51,16 +51,17 @@ class SyncCryptoService {
     return enc.Key(Uint8List.fromList(digest.bytes));
   }
 
-  /// Encrypts a raw text string (e.g. JSON note manifest/payload) into a base64 ciphertext with IV.
-  String? encryptPayload(String rawText, String secretKey) {
+  /// Encrypts a raw text string into a base64 ciphertext with IV.
+  /// Set [legacyMode] to true when responding to older legacy clients.
+  String? encryptPayload(String rawText, String secretKey, {bool legacyMode = false}) {
     try {
-      final key = deriveKey(secretKey);
+      final key = legacyMode ? deriveLegacyKey(secretKey) : deriveKey(secretKey);
       final iv = enc.IV.fromLength(16);
       final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
       final encrypted = encrypter.encrypt(rawText, iv: iv);
       
       final payloadMap = {
-        'v': 2,
+        'v': legacyMode ? 1 : 2,
         'iv': iv.base64,
         'data': encrypted.base64,
       };
@@ -70,15 +71,28 @@ class SyncCryptoService {
     }
   }
 
-  /// Decrypts a base64 ciphertext string back to raw text payload.
-  /// Seamlessly tries PBKDF2 key first, falling back to legacy key if payload was from older versions.
-  String? decryptPayload(String encryptedBase64Payload, String secretKey) {
+  /// Decrypts payload and returns both raw text and whether legacy key derivation was used.
+  (String?, bool) decryptPayloadDetailed(String encryptedBase64Payload, String secretKey) {
     try {
       final decodedJson = utf8.decode(base64.decode(encryptedBase64Payload));
       final map = json.decode(decodedJson) as Map<String, dynamic>;
       
       final iv = enc.IV.fromBase64(map['iv'] as String);
       final encryptedData = enc.Encrypted.fromBase64(map['data'] as String);
+      final version = map['v'] as int? ?? 1;
+
+      // If version is explicitly 1 (legacy), try legacy first
+      if (version == 1) {
+        try {
+          final legacyKey = deriveLegacyKey(secretKey);
+          final encrypter = enc.Encrypter(enc.AES(legacyKey, mode: enc.AESMode.cbc));
+          final decrypted = encrypter.decrypt(encryptedData, iv: iv);
+          if (decrypted.trim().isNotEmpty) {
+            json.decode(decrypted);
+            return (decrypted, true);
+          }
+        } catch (_) {}
+      }
       
       // Attempt 1: Standard PBKDF2 key
       try {
@@ -87,7 +101,7 @@ class SyncCryptoService {
         final decrypted = encrypter.decrypt(encryptedData, iv: iv);
         if (decrypted.trim().isNotEmpty) {
           json.decode(decrypted);
-          return decrypted;
+          return (decrypted, false);
         }
       } catch (_) {}
 
@@ -98,13 +112,19 @@ class SyncCryptoService {
         final decrypted = encrypter.decrypt(encryptedData, iv: iv);
         if (decrypted.trim().isNotEmpty) {
           json.decode(decrypted);
-          return decrypted;
+          return (decrypted, true);
         }
       } catch (_) {}
 
-      return null;
+      return (null, false);
     } catch (_) {
-      return null;
+      return (null, false);
     }
+  }
+
+  /// Decrypts a base64 ciphertext string back to raw text payload.
+  /// Seamlessly tries PBKDF2 key first, falling back to legacy key if payload was from older versions.
+  String? decryptPayload(String encryptedBase64Payload, String secretKey) {
+    return decryptPayloadDetailed(encryptedBase64Payload, secretKey).$1;
   }
 }

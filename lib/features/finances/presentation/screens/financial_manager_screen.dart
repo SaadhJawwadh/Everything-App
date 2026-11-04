@@ -267,22 +267,11 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
       },
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: Stack(
-          children: [
-            AnimationLimiter(
-              child: CustomScrollView(
-                controller: _scrollController,
-                slivers: _buildSlivers(colorScheme, textTheme, currency, settings, finProvider),
-              ),
-            ),
-            if (finProvider.isSmsSyncing && finProvider.smsSyncProgress != null)
-              Positioned(
-                top: MediaQuery.of(context).padding.top + 70,
-                left: 16,
-                right: 16,
-                child: FinanceSmsSyncBanner(progress: finProvider.smsSyncProgress),
-              ),
-          ],
+        body: AnimationLimiter(
+          child: CustomScrollView(
+            controller: _scrollController,
+            slivers: _buildSlivers(colorScheme, textTheme, currency, settings, finProvider),
+          ),
         ),
       ),
     );
@@ -736,7 +725,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
               ),
             ),
 
-            if (finProvider.isSmsSyncing && settings.enableSmsImport)
+            if (finProvider.isSmsSyncing && settings.enableSmsImport && finProvider.smsSyncProgress != null)
               SliverToBoxAdapter(
                 child: FinanceSmsSyncBanner(progress: finProvider.smsSyncProgress),
               ),

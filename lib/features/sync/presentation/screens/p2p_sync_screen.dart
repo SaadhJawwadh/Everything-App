@@ -474,16 +474,21 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                         AppChip(
                                           label: isSyncing
                                               ? 'Syncing...'
-                                              : (syncProvider.status == SyncStatus.error ? 'Error' : 'Ready'),
+                                              : (syncProvider.status == SyncStatus.error
+                                                  ? 'Error'
+                                                  : (syncProvider.pairedDevices.isEmpty ? 'Unlinked' : 'Ready')),
                                           isSelected: true,
                                         ),
                                       ],
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      syncProvider.lastMessage ?? 'Merge notes, ledgers & settings non-destructively',
+                                      syncProvider.lastMessage ??
+                                          (syncProvider.pairedDevices.isEmpty
+                                              ? 'Link a nearby phone or tablet to merge notes, ledgers & settings offline'
+                                              : 'Merge notes, ledgers & settings non-destructively'),
                                       style: theme.textTheme.bodySmall?.copyWith(
-                                        color: colorScheme.onSurfaceVariant,
+                                        color: isError ? colorScheme.error : colorScheme.onSurfaceVariant,
                                         height: 1.3,
                                       ),
                                     ),
@@ -503,100 +508,136 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                             ],
                           ),
                           const SizedBox(height: AppLayout.spaceL),
-                          Row(
-                            children: [
-                              Expanded(
-                                flex: 3,
-                                child: SizedBox(
-                                  height: 48,
-                                  child: BouncingWidget(
-                                    child: FilledButton.icon(
-                                      onPressed: isSyncing
-                                          ? null
-                                          : () async {
-                                              final noteProvider = Provider.of<NoteProvider>(context, listen: false);
-                                              final finProvider = Provider.of<FinancialManagerProvider>(context, listen: false);
-                                              final healthProvider = Provider.of<PeriodTrackerProvider>(context, listen: false);
-                                              final result = await syncProvider.syncBiDirectional(onCompleted: () {
-                                                noteProvider.refreshNotes();
-                                                finProvider.refresh();
-                                                healthProvider.loadData();
-                                              });
-                                              if (context.mounted) {
-                                                ScaffoldMessenger.of(context).clearSnackBars();
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                      result.success
-                                                          ? 'Sync completed successfully'
-                                                          : (result.errorMessage ?? 'Sync failed'),
-                                                    ),
-                                                    backgroundColor: result.success
-                                                        ? colorScheme.primary
-                                                        : colorScheme.error,
-                                                    behavior: SnackBarBehavior.floating,
-                                                    action: result.success
-                                                        ? null
-                                                        : SnackBarAction(
-                                                            label: 'Retry',
-                                                            textColor: colorScheme.onError,
-                                                            onPressed: () => syncProvider.syncBiDirectional(onCompleted: () {
-                                                              noteProvider.refreshNotes();
-                                                              finProvider.refresh();
-                                                              healthProvider.loadData();
-                                                            }),
-                                                          ),
-                                                  ),
-                                                );
-                                              }
-                                            },
-                                      icon: isSyncing
-                                          ? const SizedBox.shrink()
-                                          : const Icon(Icons.sync_rounded),
-                                      label: Text(
-                                        isSyncing ? 'Syncing...' : 'Sync & Merge Now',
-                                        style: const TextStyle(fontWeight: FontWeight.bold),
+                          if (syncProvider.pairedDevices.isEmpty)
+                            Row(
+                              children: [
+                                Expanded(
+                                  flex: 3,
+                                  child: SizedBox(
+                                    height: 48,
+                                    child: BouncingWidget(
+                                      child: FilledButton.icon(
+                                        onPressed: isSyncing
+                                            ? null
+                                            : () => _showPairDeviceDialog(context, syncProvider),
+                                        icon: Icon(isError ? Icons.refresh_rounded : Icons.phonelink_ring_rounded),
+                                        label: Text(
+                                          isError ? 'Pair Again' : 'Pair Device',
+                                          style: const TextStyle(fontWeight: FontWeight.bold),
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: AppLayout.spaceS),
-                              Expanded(
-                                flex: 2,
-                                child: SizedBox(
-                                  height: 48,
-                                  child: OutlinedButton.icon(
-                                    onPressed: () async {
-                                      final success = await syncProvider.sendTestPing();
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).clearSnackBars();
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              syncProvider.lastMessage ??
-                                                  (success ? 'Test Ping Succeeded' : 'Test Ping Failed'),
-                                            ),
-                                            backgroundColor: success ? colorScheme.primary : colorScheme.error,
-                                            behavior: SnackBarBehavior.floating,
-                                            action: success
-                                                ? null
-                                                : SnackBarAction(
-                                                    label: 'Retry',
-                                                    textColor: colorScheme.onError,
-                                                    onPressed: () => syncProvider.sendTestPing(),
-                                                  ),
-                                          ),
-                                        );
-                                      }
-                                    },
-                                    icon: const Icon(Icons.network_ping_rounded, size: 18),
-                                    label: const Text('Test Ping'),
+                                const SizedBox(width: AppLayout.spaceS),
+                                Expanded(
+                                  flex: 2,
+                                  child: SizedBox(
+                                    height: 48,
+                                    child: OutlinedButton.icon(
+                                      onPressed: () => _showQrCodeModal(context, syncProvider),
+                                      icon: const Icon(Icons.qr_code_2_rounded, size: 18),
+                                      label: const Text('My QR Code'),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            )
+                          else
+                            Row(
+                              children: [
+                                Expanded(
+                                  flex: 3,
+                                  child: SizedBox(
+                                    height: 48,
+                                    child: BouncingWidget(
+                                      child: FilledButton.icon(
+                                        onPressed: isSyncing
+                                            ? null
+                                            : () async {
+                                                final noteProvider = Provider.of<NoteProvider>(context, listen: false);
+                                                final finProvider = Provider.of<FinancialManagerProvider>(context, listen: false);
+                                                final healthProvider = Provider.of<PeriodTrackerProvider>(context, listen: false);
+                                                final result = await syncProvider.syncBiDirectional(onCompleted: () {
+                                                  noteProvider.refreshNotes();
+                                                  finProvider.refresh();
+                                                  healthProvider.loadData();
+                                                });
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(context).clearSnackBars();
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        result.success
+                                                            ? 'Sync completed successfully'
+                                                            : (result.errorMessage ?? 'Sync failed'),
+                                                      ),
+                                                      backgroundColor: result.success
+                                                          ? colorScheme.primary
+                                                          : colorScheme.error,
+                                                      behavior: SnackBarBehavior.floating,
+                                                      action: result.success
+                                                          ? null
+                                                          : SnackBarAction(
+                                                              label: 'Retry',
+                                                              textColor: colorScheme.onError,
+                                                              onPressed: () => syncProvider.syncBiDirectional(onCompleted: () {
+                                                                noteProvider.refreshNotes();
+                                                                finProvider.refresh();
+                                                                healthProvider.loadData();
+                                                              }),
+                                                            ),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                        icon: isSyncing
+                                            ? const SizedBox.shrink()
+                                            : const Icon(Icons.sync_rounded),
+                                        label: Text(
+                                          isSyncing ? 'Syncing...' : 'Sync & Merge Now',
+                                          style: const TextStyle(fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: AppLayout.spaceS),
+                                Expanded(
+                                  flex: 2,
+                                  child: SizedBox(
+                                    height: 48,
+                                    child: OutlinedButton.icon(
+                                      onPressed: () async {
+                                        final success = await syncProvider.sendTestPing();
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).clearSnackBars();
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                syncProvider.lastMessage ??
+                                                    (success ? 'Test Ping Succeeded' : 'Test Ping Failed'),
+                                              ),
+                                              backgroundColor: success ? colorScheme.primary : colorScheme.error,
+                                              behavior: SnackBarBehavior.floating,
+                                              action: success
+                                                  ? null
+                                                  : SnackBarAction(
+                                                      label: 'Retry',
+                                                      textColor: colorScheme.onError,
+                                                      onPressed: () => syncProvider.sendTestPing(),
+                                                    ),
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      icon: const Icon(Icons.network_ping_rounded, size: 18),
+                                      label: const Text('Test Ping'),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                         ],
                       ),
                     ),

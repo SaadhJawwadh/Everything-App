@@ -303,38 +303,45 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
     _lastMessage = 'Verifying ${deviceName.trim().isEmpty ? 'device' : deviceName}…';
     notifyListeners();
 
-    // Verify candidate handshake FIRST without corrupting local host server pair code on failure
-    final verifiedRemoteDevice = await _service.sendPairHandshake(
-      candidateCode,
-      _localDeviceName,
-      verifiedTargetIp,
-      targetPort: targetPort,
-    );
-    if (verifiedRemoteDevice == null) {
-      _status = SyncStatus.error;
-      _lastMessage = 'Could not verify the device. Confirm both devices are on the same Wi-Fi and retry.';
+    try {
+      // Verify candidate handshake FIRST without corrupting local host server pair code on failure
+      final verifiedRemoteDevice = await _service.sendPairHandshake(
+        candidateCode,
+        _localDeviceName,
+        verifiedTargetIp,
+        targetPort: targetPort,
+      );
+      if (verifiedRemoteDevice == null) {
+        _status = SyncStatus.error;
+        _lastMessage = 'Could not verify device at $verifiedTargetIp. Confirm both devices are on the same Wi-Fi and retry.';
+        notifyListeners();
+        throw StateError(_lastMessage!);
+      }
+
+      _currentPairCode = candidateCode;
+      await _persistPairCodeAndRestart();
+      final verifiedRemoteDeviceId = remoteDeviceId?.trim();
+
+      final device = PairedDevice(
+        deviceId: verifiedRemoteDeviceId?.isNotEmpty == true ? verifiedRemoteDeviceId! : verifiedRemoteDevice.deviceId,
+        deviceName: deviceName.trim().isEmpty ? verifiedRemoteDevice.deviceName : deviceName.trim(),
+        pairCode: _currentPairCode,
+        lastSyncedAt: DateTime.now(),
+        transportMode: 'Primary Direct Sync',
+        endpoints: [DeviceEndpoint(ipAddress: verifiedTargetIp, port: targetPort, lastSeenAt: DateTime.now())],
+        role: role,
+      );
+      await _upsertDevice(device);
+      _status = SyncStatus.completed;
+      _lastMessage = 'Paired with ${device.deviceName}';
       notifyListeners();
-      throw StateError(_lastMessage!);
+      return device;
+    } catch (e) {
+      _status = SyncStatus.error;
+      _lastMessage = e is StateError ? e.message : P2pSyncService.formatUserFriendlyErrorMessage(e, verifiedTargetIp);
+      notifyListeners();
+      rethrow;
     }
-
-    _currentPairCode = candidateCode;
-    await _persistPairCodeAndRestart();
-    final verifiedRemoteDeviceId = remoteDeviceId?.trim();
-
-    final device = PairedDevice(
-      deviceId: verifiedRemoteDeviceId?.isNotEmpty == true ? verifiedRemoteDeviceId! : verifiedRemoteDevice.deviceId,
-      deviceName: deviceName.trim().isEmpty ? verifiedRemoteDevice.deviceName : deviceName.trim(),
-      pairCode: _currentPairCode,
-      lastSyncedAt: DateTime.now(),
-      transportMode: 'Primary Direct Sync',
-      endpoints: [DeviceEndpoint(ipAddress: verifiedTargetIp, port: targetPort, lastSeenAt: DateTime.now())],
-      role: role,
-    );
-    await _upsertDevice(device);
-    _status = SyncStatus.completed;
-    _lastMessage = 'Paired with ${device.deviceName}';
-    notifyListeners();
-    return device;
   }
 
   Future<void> _upsertDevice(PairedDevice incoming) async {

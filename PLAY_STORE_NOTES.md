@@ -1,14 +1,14 @@
 <en-US>
-🌟 Everything App 3.2.1 — Performance & Architecture Upgrade!
-• Ultra-Fast Note Editing: Modularized editor and memory-efficient image rendering.
-• Unified Settings Search: Instant 0ms search across preferences and tools.
-• Resilient Backups: Upgraded AES-256 encrypted backups with automated snapshots.
-• Smoother Touch Controls: Refined touch targets and R8-optimized app startup.
+🌟 Everything App 3.3.0 — P2P Sync & Performance Update!
+• Seamless Device Sync: Smarter QR pairing, cross-version key support, and IPv6 compatibility.
+• Clear Diagnostics: Instant, descriptive feedback for pairing and Wi-Fi sync.
+• Polished Finances: Smoother SMS sync progress and instant transaction lookups.
+• Rock-Solid Security: Automated database UUID deduplication for collision-free merges.
 </en-US>
 <ta-IN>
-🌟 Everything App 3.2.1 — வேகமான செயல்பாடு & பாதுகாப்பு மேம்பாடு!
-• அதிவேக குறிப்பு திருத்தம்: எளிமைப்படுத்தப்பட்ட எடிட்டர் மற்றும் குறைந்த நினைவக பயன்பாடு.
-• உடனடி அமைப்புகள் தேடல்: அமைப்புகளை விரைவாகக் கண்டறியும் வசதி.
-• பாதுகாப்பான காப்புப்பிரதி: மேம்பட்ட AES-256 என்க்ரிப்ஷன் மற்றும் தானியங்கி ஸ்னாப்ஷாட்.
-• துல்லியமான தொடுதிரை பொத்தான்கள் & வேகமான துவக்கம்.
+🌟 Everything App 3.3.0 — சாதன இணைப்பு & செயல்பாடு மேம்பாடு!
+• எளிய சாதன இணைப்பு: மேம்பட்ட QR இணைத்தல் & IPv6 ஆதரவு.
+• துல்லியமான விழிப்பூட்டல்கள்: சாதன இணைப்பு மற்றும் ஒத்திசைவுக்கான தெளிவான வழிகாட்டல்.
+• நிதி மேலாண்மை சீரமைப்பு: மென்மையான SMS ஸ்கேன் & உடனடி பரிவர்த்தனை தேடல்.
+• பாதுகாப்பான தரவு பகிர்வு: பாதுகாப்பான மற்றும் பிழையற்ற ஆஃப்லைன் ஒத்திசைவு.
 </ta-IN>
