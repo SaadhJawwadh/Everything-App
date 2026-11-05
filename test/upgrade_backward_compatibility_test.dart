@@ -305,7 +305,7 @@ void main() {
           value: settings,
           child: const MaterialApp(
             home: Scaffold(
-              body: WhatsNewSheet(currentVersion: '3.3.1'),
+              body: WhatsNewSheet(currentVersion: '3.3.2'),
             ),
           ),
         ),
@@ -318,6 +318,7 @@ void main() {
       expect(find.text("Fixes"), findsOneWidget);
 
       // Check marquee items and interactive action buttons
+      expect(find.text("Universal P2P & Cross-Network Sync"), findsOneWidget);
       expect(find.text("Android 16+ AppFunctions & Gemini"), findsOneWidget);
       expect(find.text("Smart Action Search Cards"), findsOneWidget);
       expect(find.text("Hands-Free Quick Capture"), findsOneWidget);
@@ -335,7 +336,7 @@ void main() {
       });
       await tester.pumpAndSettle();
 
-      expect(settings.lastSeenVersion, '3.3.1');
+      expect(settings.lastSeenVersion, '3.3.2');
     });
   });
 }

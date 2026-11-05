@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:note_taking_app/data/note_model.dart';
 import 'package:note_taking_app/features/sync/data/p2p_pairing_model.dart';
+import 'package:note_taking_app/services/p2p_relay_sync_service.dart';
 import 'package:note_taking_app/services/p2p_sync_service.dart';
 import 'package:note_taking_app/services/sync_crypto_service.dart';
 
@@ -159,6 +160,10 @@ void main() {
     test('formatUserFriendlyErrorMessage transforms exceptions into actionable messages', () {
       expect(
         P2pSyncService.formatUserFriendlyErrorMessage('SocketException: OS Error: Connection refused', '192.168.1.5'),
+        contains('(192.168.1.5)'),
+      );
+      expect(
+        P2pSyncService.formatUserFriendlyErrorMessage('SocketException: Failed', '192.168.1.5'),
         contains('Peer device unreachable (192.168.1.5)'),
       );
       expect(
@@ -274,6 +279,127 @@ void main() {
         P2pSyncService.clearRateLimits();
         await syncService.stopPrimaryHostServer();
       }
+    });
+
+    test('network interface scoring and CGNAT/464XLAT filtering accept Wi-Fi/Hotspot/Wi-Fi Direct and reject Mobile Data/VPN', () {
+      // Wi-Fi & Hotspot interfaces get top priority (100)
+      expect(P2pSyncService.scoreNetworkInterface('wlan0'), equals(100));
+      expect(P2pSyncService.scoreNetworkInterface('swlan0'), equals(100));
+      expect(P2pSyncService.scoreNetworkInterface('ap0'), equals(100));
+      expect(P2pSyncService.scoreNetworkInterface('softap0'), equals(100));
+
+      // Wi-Fi Direct, USB tethering, and iOS/Android hotspot bridges get high priority (90)
+      expect(P2pSyncService.scoreNetworkInterface('p2p-wlan0-0'), equals(90));
+      expect(P2pSyncService.scoreNetworkInterface('rndis0'), equals(90));
+      expect(P2pSyncService.scoreNetworkInterface('bridge100'), equals(90));
+
+      // Cellular / Mobile Data interfaces are strictly negative (-50)
+      expect(P2pSyncService.scoreNetworkInterface('rmnet_data0'), lessThan(0));
+      expect(P2pSyncService.scoreNetworkInterface('v4-rmnet_data0'), lessThan(0));
+      expect(P2pSyncService.scoreNetworkInterface('ccmni0'), lessThan(0));
+      expect(P2pSyncService.scoreNetworkInterface('v4-ccmni0'), lessThan(0));
+      expect(P2pSyncService.scoreNetworkInterface('pdp_ip0'), lessThan(0));
+
+      // VPN and virtual container interfaces are strictly negative (-100)
+      expect(P2pSyncService.scoreNetworkInterface('tun0'), lessThan(0));
+      expect(P2pSyncService.scoreNetworkInterface('wg0'), lessThan(0));
+      expect(P2pSyncService.scoreNetworkInterface('utun2'), lessThan(0));
+      expect(P2pSyncService.scoreNetworkInterface('docker0'), lessThan(0));
+
+      // Usable local P2P address validation
+      expect(P2pSyncService.isUsableLocalP2pAddress('192.168.1.42', interfaceName: 'wlan0'), isTrue);
+      expect(P2pSyncService.isUsableLocalP2pAddress('192.168.43.1', interfaceName: 'ap0'), isTrue);
+      expect(P2pSyncService.isUsableLocalP2pAddress('192.168.49.1', interfaceName: 'p2p-wlan0-0'), isTrue);
+      expect(P2pSyncService.isUsableLocalP2pAddress('172.20.10.1', interfaceName: 'bridge100'), isTrue);
+
+      // Reject 464XLAT clatd dummy range (192.0.0.0/24)
+      expect(P2pSyncService.isUsableLocalP2pAddress('192.0.0.4', interfaceName: 'v4-rmnet_data0'), isFalse);
+      expect(P2pSyncService.isUsableLocalP2pAddress('192.0.0.4', interfaceName: 'wlan0'), isFalse);
+
+      // Reject RFC 6598 Carrier-Grade NAT (100.64.0.0/10 -> 100.64.x.x to 100.127.x.x)
+      expect(P2pSyncService.isUsableLocalP2pAddress('100.64.0.1', interfaceName: 'wlan0'), isFalse);
+      expect(P2pSyncService.isUsableLocalP2pAddress('100.95.12.34', interfaceName: 'rmnet_data0'), isFalse);
+      expect(P2pSyncService.isUsableLocalP2pAddress('100.127.255.254', interfaceName: 'wlan0'), isFalse);
+
+      // Reject RFC 1918 private IPs if bound to a cellular or VPN interface (e.g., 10.x.x.x on rmnet_data0 or tun0)
+      expect(P2pSyncService.isUsableLocalP2pAddress('10.24.56.78', interfaceName: 'rmnet_data0'), isFalse);
+      expect(P2pSyncService.isUsableLocalP2pAddress('10.8.0.2', interfaceName: 'tun0'), isFalse);
+      expect(P2pSyncService.isUsableLocalP2pAddress('10.0.0.15', interfaceName: 'wlan0'), isTrue);
+    });
+
+    test('resolvePeerEffectiveIp prefers OS kernel socket senderIp over stale or wrong self-reported payload IP', () {
+      // Kernel socket IP wins when valid non-loopback
+      expect(
+        P2pSyncService.resolvePeerEffectiveIp(
+          senderIp: '192.168.43.1',
+          reportedIp: '10.120.44.19', // e.g., peer accidentally reported cellular/secondary IP
+        ),
+        equals('192.168.43.1'),
+      );
+
+      // Falls back to payload IP when socket IP is loopback (unit test / local loopback)
+      expect(
+        P2pSyncService.resolvePeerEffectiveIp(
+          senderIp: '127.0.0.1',
+          reportedIp: '192.168.1.88',
+        ),
+        equals('192.168.1.88'),
+      );
+    });
+
+    test('HTTP /api/sync/discover endpoint and probeHttpDiscovery discover peer when UDP is blocked', () async {
+      const hostCode = '445566';
+      syncService.updateTrustedPairCodes([hostCode]);
+      await syncService.startPrimaryHostServer('HotspotGatewayHost', hostCode);
+      try {
+        final client = HttpClient();
+        final req = await client.postUrl(
+          Uri.parse('http://127.0.0.1:${P2pSyncService.httpSyncPort}/api/sync/discover'),
+        );
+        req.headers.contentType = ContentType.json;
+        req.write(json.encode({
+          'app': 'everything_app_p2p',
+          'deviceId': 'remote-hotspot-client-id',
+          'name': 'HotspotClientPhone',
+          'port': P2pSyncService.httpSyncPort,
+        }));
+        final resp = await req.close();
+        expect(resp.statusCode, HttpStatus.ok);
+        final body = await resp.transform(utf8.decoder).join();
+        final decoded = json.decode(body) as Map<String, dynamic>;
+        expect(decoded['action'], equals('presence'));
+        expect(decoded['deviceName'], equals('HotspotGatewayHost'));
+        expect(decoded['port'], equals(P2pSyncService.httpSyncPort));
+        client.close(force: true);
+      } finally {
+        await syncService.stopPrimaryHostServer();
+      }
+    });
+
+    test('P2pRelaySyncService derives deterministic zero-knowledge room hash and reassembles multi-chunk ciphertexts', () {
+      final hash1 = P2pRelaySyncService.deriveRoomHash('650826');
+      final hash2 = P2pRelaySyncService.deriveRoomHash('  650826 ');
+      final hashOther = P2pRelaySyncService.deriveRoomHash('123456');
+
+      expect(hash1, hasLength(64));
+      expect(hash1, equals(hash2));
+      expect(hash1, isNot(equals(hashOther)));
+      expect(hash1, isNot(contains('650826')));
+
+      // Verify chunk splitting & out-of-order reassembly
+      final largePayload = List.generate(5000, (i) => 'chunk_segment_$i').join('|');
+      final chunks = P2pRelaySyncService.splitCiphertextChunks(largePayload, maxChunkSize: 12000);
+      expect(chunks.length, greaterThan(3));
+
+      final buffer = <int, String>{};
+      for (int i = chunks.length - 1; i >= 0; i--) {
+        buffer[i] = chunks[i];
+        if (i > 0) {
+          expect(P2pRelaySyncService.tryReassembleChunks(buffer, chunks.length), isNull);
+        }
+      }
+      final reassembled = P2pRelaySyncService.tryReassembleChunks(buffer, chunks.length);
+      expect(reassembled, equals(largePayload));
     });
   });
 }

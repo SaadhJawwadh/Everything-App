@@ -54,6 +54,8 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
   String get localDeviceName => _localDeviceName;
   String? _localIpAddress;
   String? get localIpAddress => _localIpAddress;
+  List<String> _localIpAddresses = const [];
+  List<String> get localIpAddresses => List.unmodifiable(_localIpAddresses);
   SystemDiagnostics? _diagnostics;
   SystemDiagnostics? get diagnostics => _diagnostics;
 
@@ -266,6 +268,17 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
   Future<void> refreshDiagnostics() async {
     _diagnostics = await _service.runDiagnostics();
     _localIpAddress = _diagnostics?.localIp;
+    _localIpAddresses = _diagnostics?.allLocalIps ?? const [];
+    if (autoStartServer && !_service.isHosting && _localDeviceName.isNotEmpty && _currentPairCode.isNotEmpty) {
+      await startPrimaryHostServer();
+    } else if (_service.isHosting && _localDeviceName.isNotEmpty) {
+      unawaited(
+        _service.probeHttpDiscovery(
+          _localDeviceName,
+          extraTargetIps: _pairedDevices.expand((d) => d.endpoints.map((e) => e.ipAddress)),
+        ),
+      );
+    }
     notifyListeners();
   }
 
@@ -325,32 +338,63 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
     required String deviceName,
     required String pairCode,
     String? targetIp,
+    List<String>? candidateIps,
     int targetPort = P2pSyncService.httpSyncPort,
     String? remoteDeviceId,
     String role = 'PRIMARY',
   }) async {
-    if (targetIp == null || targetIp.trim().isEmpty || pairCode.trim().length != 6) {
-      throw ArgumentError('A valid local IP address and six-digit pair code are required.');
+    if (pairCode.trim().length != 6) {
+      throw ArgumentError('A six-digit pair code is required.');
     }
-    final parsedTarget = P2pSyncService.parseTargetAddress(targetIp, targetPort);
-    final verifiedTargetIp = parsedTarget.$1;
-    final verifiedTargetPort = parsedTarget.$2;
+    final rawTargetIp = (targetIp == null || targetIp.trim().isEmpty) ? 'relay' : targetIp.trim();
+    final parsedTarget = P2pSyncService.parseTargetAddress(rawTargetIp, targetPort);
+    var verifiedTargetIp = parsedTarget.$1;
+    var verifiedTargetPort = parsedTarget.$2;
     final candidateCode = pairCode.trim();
     _status = SyncStatus.connecting;
     _lastMessage = 'Verifying ${deviceName.trim().isEmpty ? 'device' : deviceName}…';
     notifyListeners();
 
+    final orderedTargetIps = <String>{
+      verifiedTargetIp,
+      if (candidateIps != null)
+        ...candidateIps
+            .map((ip) => P2pSyncService.sanitizeTargetIp(ip))
+            .where((ip) => ip.isNotEmpty),
+    }.toList();
+
     try {
-      // Verify candidate handshake FIRST without corrupting local host server pair code on failure
-      final verifiedRemoteDevice = await _service.sendPairHandshake(
-        candidateCode,
-        _localDeviceName,
-        verifiedTargetIp,
-        targetPort: verifiedTargetPort,
-      );
+      PairedDevice? verifiedRemoteDevice;
+      Object? lastHandshakeError;
+      for (int i = 0; i < orderedTargetIps.length; i++) {
+        final candidateIp = orderedTargetIps[i];
+        final isLastCandidate = i == orderedTargetIps.length - 1;
+        try {
+          verifiedRemoteDevice = await _service.sendPairHandshake(
+            candidateCode,
+            _localDeviceName,
+            candidateIp,
+            targetPort: verifiedTargetPort,
+            allowRelayFallback: isLastCandidate,
+          );
+          if (verifiedRemoteDevice != null) {
+            verifiedTargetIp = candidateIp;
+            break;
+          }
+        } catch (e) {
+          lastHandshakeError = e;
+          final msg = e.toString().toLowerCase();
+          // Stop immediately on wrong pair code or rate limit; only try alternate IPs on network reachability errors
+          if (msg.contains('invalid pair code') || msg.contains('pair code mismatch') || msg.contains('rate limited')) {
+            rethrow;
+          }
+        }
+      }
+
       if (verifiedRemoteDevice == null) {
+        if (lastHandshakeError != null) throw lastHandshakeError;
         _status = SyncStatus.error;
-        _lastMessage = 'Could not verify device at $verifiedTargetIp. Confirm both devices are on the same Wi-Fi and retry.';
+        _lastMessage = 'Could not verify device at $verifiedTargetIp. Confirm both devices are on the same Wi-Fi, Hotspot, or have internet for Relay sync.';
         notifyListeners();
         throw StateError(_lastMessage!);
       }
@@ -362,13 +406,32 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
           ? verifiedRemoteDevice.deviceId.trim()
           : (verifiedRemoteDeviceId?.isNotEmpty == true ? verifiedRemoteDeviceId! : const Uuid().v4());
 
+      final now = DateTime.now();
+      final endpoints = <DeviceEndpoint>[
+        ...verifiedRemoteDevice.endpoints,
+        for (final extraIp in orderedTargetIps)
+          if (extraIp != 'relay' && !verifiedRemoteDevice.endpoints.any((e) => e.ipAddress == extraIp))
+            DeviceEndpoint(
+              ipAddress: extraIp,
+              port: verifiedTargetPort,
+              lastSeenAt: now.subtract(const Duration(seconds: 5)),
+            ),
+        if (!verifiedRemoteDevice.endpoints.any((e) => e.ipAddress.startsWith('relay://')))
+          DeviceEndpoint(
+            ipAddress: 'relay://$resolvedDeviceId',
+            port: P2pSyncService.httpSyncPort,
+            networkLabel: 'Cross-Network Relay',
+            lastSeenAt: now.subtract(const Duration(minutes: 1)),
+          ),
+      ];
+
       final device = PairedDevice(
         deviceId: resolvedDeviceId,
         deviceName: deviceName.trim().isEmpty ? verifiedRemoteDevice.deviceName : deviceName.trim(),
         pairCode: _currentPairCode,
         lastSyncedAt: null,
-        transportMode: 'Primary Direct Sync',
-        endpoints: [DeviceEndpoint(ipAddress: verifiedTargetIp, port: verifiedTargetPort, lastSeenAt: DateTime.now())],
+        transportMode: verifiedRemoteDevice.transportMode,
+        endpoints: endpoints,
         role: role,
       );
       await _upsertDevice(device);

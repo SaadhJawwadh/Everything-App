@@ -41,8 +41,8 @@ class WhatsNewSheet extends StatelessWidget {
         items: [
           _WhatsNewItem(
             icon: Icons.sync_rounded,
-            title: "Zero-Cloud P2P Device Sync",
-            desc: "Ultra-fast local Wi-Fi pairing and synchronization with Last-Write-Wins merge, soft-delete preservation, and dynamic port fallback.",
+            title: "Universal P2P & Cross-Network Sync",
+            desc: "Sync across Wi-Fi, Personal Hotspots, isolated routers, and Mobile Data with multi-interface QR pairing and E2EE blind relay fallback.",
           ),
           _WhatsNewItem(
             icon: Icons.security_rounded,

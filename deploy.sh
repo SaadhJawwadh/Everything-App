@@ -69,7 +69,7 @@ git tag -a "$TAG" -m "Release $TAG"
 
 # 9. Push
 echo "Pushing to GitHub..."
-git push origin main
+git push origin HEAD:main
 git push origin "$TAG"
 
 echo "DONE! GitHub Action has been triggered for $TAG."

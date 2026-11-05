@@ -53,6 +53,18 @@
 		<string>The microphone is used to dictate notes with your voice.</string>
 		<key>NSSpeechRecognitionUsageDescription</key>
 		<string>Speech recognition converts your voice into note text, on device.</string>
+		<key>NSLocalNetworkUsageDescription</key>
+		<string>Everything App uses your local network to discover and sync notes and finances directly between your paired devices.</string>
+		<key>NSBonjourServices</key>
+		<array>
+			<string>_everything-sync._tcp</string>
+			<string>_http._tcp</string>
+		</array>
+		<key>NSAppTransportSecurity</key>
+		<dict>
+			<key>NSAllowsLocalNetworking</key>
+			<true/>
+		</dict>
 		<key>UIStatusBarHidden</key>
 		<false/>
 	</dict>

@@ -179,6 +179,7 @@ lib/
 │   ├── local_ai_service.dart         # AI Core interface definitions
 │   ├── notification_service.dart     # Local notifications scheduling (reminders & period predictions)
 │   ├── offline_ai_fallback_service.dart# Offline heuristic NLP categorizer
+│   ├── p2p_relay_sync_service.dart   # Cross-network E2EE blind WebSocket relay engine (Nostr NIP-01)
 │   ├── p2p_sync_service.dart         # Direct REST HTTP/UDP server & peer transport engine
 │   ├── period_prediction_service.dart# Rolling menstrual cycle & ovulation estimation
 │   ├── sms_constants.dart            # Sri Lankan bank SMS regex & sender mappings

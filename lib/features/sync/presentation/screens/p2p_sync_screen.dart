@@ -14,6 +14,8 @@ import 'package:note_taking_app/core/ui/expressive_sliver_app_bar.dart';
 import 'package:note_taking_app/widgets/bouncing_widget.dart';
 import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import 'package:note_taking_app/features/finances/providers/financial_manager_provider.dart';
+import 'package:note_taking_app/features/finances/providers/savings_goal_provider.dart';
+import 'package:note_taking_app/features/finances/providers/split_bill_provider.dart';
 import 'package:note_taking_app/features/health/providers/period_tracker_provider.dart';
 import 'package:note_taking_app/screens/app_lock_screen.dart';
 import 'package:note_taking_app/services/backup_service.dart';
@@ -36,6 +38,21 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
   final TextEditingController _targetIpController = TextEditingController();
   String? _scannedDeviceId;
   int _scannedTargetPort = 8765;
+  List<String> _scannedCandidateIps = const [];
+
+  void _refreshAllDomainProviders(
+    NoteProvider noteProvider,
+    FinancialManagerProvider finProvider,
+    SplitBillProvider splitProvider,
+    SavingsGoalProvider savingsProvider,
+    PeriodTrackerProvider healthProvider,
+  ) {
+    noteProvider.refreshNotes();
+    finProvider.refresh();
+    splitProvider.loadSplitBills(showLoading: false);
+    savingsProvider.loadGoals();
+    healthProvider.loadData();
+  }
 
   @override
   void initState() {
@@ -61,9 +78,11 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
       _targetIpController.text = initialPeer.ipAddress;
       _scannedDeviceId = initialPeer.deviceId;
       _scannedTargetPort = initialPeer.port;
+      _scannedCandidateIps = [initialPeer.ipAddress];
     } else {
       _scannedDeviceId = null;
       _scannedTargetPort = 8765;
+      _scannedCandidateIps = const [];
     }
 
     showDialog(
@@ -93,7 +112,7 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                           final code = _pairCodeController.text.trim();
                           final name = _deviceNameController.text.trim();
                           final ip = _targetIpController.text.trim();
-                          if (code.length == 6 && ip.isNotEmpty) {
+                          if (code.length == 6) {
                             setDialogState(() {
                               isPairing = true;
                               errorMessage = null;
@@ -101,34 +120,40 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
 
                             final noteProvider = Provider.of<NoteProvider>(context, listen: false);
                             final finProvider = Provider.of<FinancialManagerProvider>(context, listen: false);
+                            final splitProvider = Provider.of<SplitBillProvider>(context, listen: false);
+                            final savingsProvider = Provider.of<SavingsGoalProvider>(context, listen: false);
                             final healthProvider = Provider.of<PeriodTrackerProvider>(context, listen: false);
                             try {
-                              await syncProvider.pairNewDevice(
+                              final paired = await syncProvider.pairNewDevice(
                                 deviceName: name.isEmpty ? PairedDevice.generateRandomName() : name,
                                 pairCode: code,
-                                targetIp: ip,
+                                targetIp: ip.isEmpty ? 'relay' : ip,
+                                candidateIps: _scannedCandidateIps,
                                 targetPort: _scannedTargetPort,
                                 remoteDeviceId: _scannedDeviceId,
                                 role: 'PEER',
                               );
                               await syncProvider.syncBiDirectional(
-                                targetIp: ip,
-                                onCompleted: () {
-                                  noteProvider.refreshNotes();
-                                  finProvider.refresh();
-                                  healthProvider.loadData();
-                                },
+                                targetIp: paired.ipAddress ?? (ip.isEmpty ? 'relay' : ip),
+                                onCompleted: () => _refreshAllDomainProviders(
+                                  noteProvider,
+                                  finProvider,
+                                  splitProvider,
+                                  savingsProvider,
+                                  healthProvider,
+                                ),
                               );
                               _pairCodeController.clear();
                               _deviceNameController.clear();
                               _targetIpController.clear();
                               _scannedDeviceId = null;
                               _scannedTargetPort = 8765;
+                              _scannedCandidateIps = const [];
                               if (dialogCtx.mounted) Navigator.pop(dialogCtx);
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('Successfully paired with ${name.isEmpty ? ip : name}!'),
+                                    content: Text('Successfully paired with ${paired.deviceName}!'),
                                     behavior: SnackBarBehavior.floating,
                                   ),
                                 );
@@ -141,7 +166,7 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                             }
                           } else {
                             setDialogState(() {
-                              errorMessage = 'Please enter a valid IP address and 6-digit pair code.';
+                              errorMessage = 'Please enter a valid 6-digit pair code.';
                             });
                           }
                         },
@@ -218,6 +243,14 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                       _scannedTargetPort = map['port'] is int
                                           ? map['port'] as int
                                           : int.tryParse('${map['port']}') ?? 8765;
+                                      if (map['ips'] is List) {
+                                        _scannedCandidateIps = (map['ips'] as List)
+                                            .map((e) => e.toString())
+                                            .where((e) => e.isNotEmpty)
+                                            .toList();
+                                      } else {
+                                        _scannedCandidateIps = const [];
+                                      }
                                     });
                                   } catch (_) {
                                     setDialogState(() {
@@ -249,7 +282,8 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                       enabled: !isPairing,
                       keyboardType: TextInputType.datetime,
                       decoration: const InputDecoration(
-                        labelText: 'Primary IP Address (e.g. 192.168.1.15)',
+                        labelText: 'Primary IP Address (Optional on Relay)',
+                        helperText: 'Leave blank to pair via Cross-Network E2EE Relay',
                         prefixIcon: Icon(Icons.wifi_rounded),
                       ),
                     ),
@@ -284,6 +318,7 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
   }
 
   Future<void> _showQrCodeModal(BuildContext context, P2pSyncProvider provider) async {
+    await provider.startPrimaryHostServer();
     await provider.refreshDiagnostics();
     if (!context.mounted) return;
     final qrData = json.encode({
@@ -293,6 +328,7 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
       'deviceId': provider.localDeviceId,
       'name': provider.localDeviceName,
       'ip': provider.localIpAddress ?? '',
+      'ips': provider.localIpAddresses,
       'port': 8765,
     });
 
@@ -560,12 +596,18 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                             : () async {
                                                 final noteProvider = Provider.of<NoteProvider>(context, listen: false);
                                                 final finProvider = Provider.of<FinancialManagerProvider>(context, listen: false);
+                                                final splitProvider = Provider.of<SplitBillProvider>(context, listen: false);
+                                                final savingsProvider = Provider.of<SavingsGoalProvider>(context, listen: false);
                                                 final healthProvider = Provider.of<PeriodTrackerProvider>(context, listen: false);
-                                                final result = await syncProvider.syncBiDirectional(onCompleted: () {
-                                                  noteProvider.refreshNotes();
-                                                  finProvider.refresh();
-                                                  healthProvider.loadData();
-                                                });
+                                                final result = await syncProvider.syncBiDirectional(
+                                                  onCompleted: () => _refreshAllDomainProviders(
+                                                    noteProvider,
+                                                    finProvider,
+                                                    splitProvider,
+                                                    savingsProvider,
+                                                    healthProvider,
+                                                  ),
+                                                );
                                                 if (context.mounted) {
                                                   ScaffoldMessenger.of(context).clearSnackBars();
                                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -584,11 +626,15 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                                           : SnackBarAction(
                                                               label: 'Retry',
                                                               textColor: colorScheme.onError,
-                                                              onPressed: () => syncProvider.syncBiDirectional(onCompleted: () {
-                                                                noteProvider.refreshNotes();
-                                                                finProvider.refresh();
-                                                                healthProvider.loadData();
-                                                              }),
+                                                              onPressed: () => syncProvider.syncBiDirectional(
+                                                                onCompleted: () => _refreshAllDomainProviders(
+                                                                  noteProvider,
+                                                                  finProvider,
+                                                                  splitProvider,
+                                                                  savingsProvider,
+                                                                  healthProvider,
+                                                                ),
+                                                              ),
                                                             ),
                                                     ),
                                                   );
@@ -1043,14 +1089,18 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                         : () async {
                                             final noteProvider = Provider.of<NoteProvider>(context, listen: false);
                                             final finProvider = Provider.of<FinancialManagerProvider>(context, listen: false);
+                                            final splitProvider = Provider.of<SplitBillProvider>(context, listen: false);
+                                            final savingsProvider = Provider.of<SavingsGoalProvider>(context, listen: false);
                                             final healthProvider = Provider.of<PeriodTrackerProvider>(context, listen: false);
                                             final res = await syncProvider.syncBiDirectional(
                                               targetIp: targetIp,
-                                              onCompleted: () {
-                                                noteProvider.refreshNotes();
-                                                finProvider.refresh();
-                                                healthProvider.loadData();
-                                              },
+                                              onCompleted: () => _refreshAllDomainProviders(
+                                                noteProvider,
+                                                finProvider,
+                                                splitProvider,
+                                                savingsProvider,
+                                                healthProvider,
+                                              ),
                                             );
                                             if (context.mounted) {
                                               ScaffoldMessenger.of(context).showSnackBar(

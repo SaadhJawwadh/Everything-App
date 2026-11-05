@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../../../core/theme/app_layout.dart';
+import '../../../../core/ui/app_card.dart';
 import '../../../../core/ui/expressive_sliver_app_bar.dart';
 import '../../../../screens/app_lock_screen.dart';
 
@@ -34,6 +35,45 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         children: [
           MobileScanner(
             controller: _controller,
+            errorBuilder: (context, error, child) {
+              final theme = Theme.of(context);
+              final colorScheme = theme.colorScheme;
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppLayout.spaceL),
+                  child: AppCard(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.no_photography_rounded,
+                          size: 48,
+                          color: colorScheme.error,
+                        ),
+                        const SizedBox(height: AppLayout.spaceM),
+                        Text(
+                          'Camera Unavailable',
+                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: AppLayout.spaceXS),
+                        Text(
+                          error.errorDetails?.message ??
+                              'Grant camera permission in Settings or enter the 6-digit pair code and IP address manually.',
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                        ),
+                        const SizedBox(height: AppLayout.spaceM),
+                        FilledButton.tonalIcon(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.keyboard_rounded),
+                          label: const Text('Enter IP & Code Manually'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
             onDetect: (capture) {
               if (_hasScanned) return;
               final List<Barcode> barcodes = capture.barcodes;

@@ -1,15 +1,16 @@
 
 ### 🌟 What's New
-- **Robust P2P Network Synchronization**: Resolved Android UDP socket discovery exceptions, enabling instant background discovery between phones and tablets on the same Wi-Fi.
-- **Multi-Code Trusted Key Ring**: Host servers seamlessly authenticate and decrypt incoming requests using both primary host codes and previously paired device keys.
-- **Simultaneous Sync Collision Recovery**: Automatic randomized jitter backoff and retries when both peer devices trigger synchronization at the exact same moment.
+- **Cross-Network E2EE Blind Relay Sync**: Pair, ping, and bi-directionally synchronize devices even when your Wi-Fi router has AP Client Isolation enabled or when devices are on separate Wi-Fi and Mobile Data networks.
+- **Hotspot & Multi-Subnet Discovery**: Automatic link-local multicast (`224.0.0.167`), gateway unicast beacons, and HTTP discovery probing let phones and tablets discover each other instantly over Personal Hotspots and Wi-Fi Direct.
+- **Multi-Interface QR Pairing**: Host QR codes now embed all active local network interfaces and automatically negotiate the fastest working path or fall back to encrypted relay transport.
 
 ### 🚀 Improvements
-- **Multi-Network Endpoint Priority**: Intelligently prioritizes actively broadcasting Wi-Fi interfaces over stale network IPs from previous locations.
-- **Inbound Sync UI Reactivity**: Live inbound delta merges immediately trigger real-time UI refreshes across Notes, Finances, Split Bills, Savings Goals, and Period Tracker.
-- **Cryptographically Secure IV Generation**: Upgraded P2P AES-CBC encryption with unique cryptographically random initialization vectors.
+- **Smart Mobile Data & VPN Filtering**: Automatically filters out cellular Carrier-Grade NAT (`100.64.0.0/10`), 464XLAT (`192.0.0.0/24`), and VPN virtual adapters so local P2P always binds to genuine Wi-Fi or Hotspot interfaces.
+- **Full Domain Sync Refresh**: Manual and outbound P2P syncs now immediately refresh Split Bills and Savings Goals alongside Notes, Finances, and Period Tracker.
+- **Dual-Stack Host Server Resilience**: Host server automatically re-verifies and binds dual-stack IPv4/IPv6 sockets whenever opening the P2P Sync hub or displaying your QR code.
 
 ### 🐛 Fixes
-- **LAN Rate-Limit Tolerance**: Raised the temporary IP lockout threshold to accommodate multi-endpoint discovery and dual-version encryption fallbacks.
-- **Samsung & Hotspot Interface Recognition**: Enhanced network interface scoring to recognize `swlan` and `ap` hotspot adapters.
+- **Same-Wi-Fi Unreachable Peer Fix**: Resolved socket binding and router isolation failures (`Peer device unreachable`) between phones and tablets on the same Wi-Fi network.
+- **QR Scanner Camera Fallback**: Added an interactive fallback card to enter the 6-digit pair code manually if camera permissions are denied or unavailable.
+- **Deterministic Note Merge Tie-Breaking**: Resolved edge cases where notes with identical millisecond modification timestamps were skipped during merge.
 

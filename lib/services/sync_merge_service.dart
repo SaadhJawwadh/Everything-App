@@ -204,7 +204,10 @@ class SyncMergeService {
 
             final shouldUpdate = remoteMod.isAfter(localMod) ||
                 (remoteMod.difference(localMod).inSeconds.abs() <= 5 &&
-                    remoteRow['isArchived'] != localRow['isArchived']);
+                    remoteRow['isArchived'] != localRow['isArchived']) ||
+                (remoteMod.isAtSameMomentAs(localMod) &&
+                    remoteRow['content'] != localRow['content'] &&
+                    remoteRow['content'].toString().compareTo(localRow['content'].toString()) > 0);
 
             if (shouldUpdate) {
               batch.update(

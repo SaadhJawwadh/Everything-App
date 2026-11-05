@@ -1457,7 +1457,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             theme,
             icon: Icons.sync_lock_rounded,
             title: 'P2P Device Sync & Backups',
-            desc: 'Bi-directional P2P Wi-Fi sync, non-blocking background SMS auto-parsing, and encrypted AES-256 backups.',
+            desc: 'Bi-directional P2P sync across Wi-Fi, Personal Hotspots, and Cross-Network E2EE Relay, plus background SMS auto-parsing and AES-256 backups.',
             actionLabel: 'Configure P2P Sync ➔',
             onAction: () {
               Navigator.push(

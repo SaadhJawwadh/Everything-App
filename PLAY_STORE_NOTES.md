@@ -1,12 +1,12 @@
 <en-US>
-🌟 Everything App 3.3.1 — Resilient P2P Sync & Network Reliability!
-• Rock-Solid P2P Wi-Fi Sync: Fixed Android UDP discovery crashes and resolved multi-device pair code authentications.
-• Cross-Version & Multi-Network Resilience: Automatic cryptographic key fallback, priority Wi-Fi interface detection, and simultaneous sync backoff.
-• Instant Inbound Refresh: Inbound sync merges now instantly update all domain screens in real time.
+🌟 Everything App 3.3.2 — Universal Wi-Fi, Hotspot & Mobile Data P2P Sync!
+• Cross-Network E2EE Relay: Sync phones and tablets even on isolated Wi-Fi routers or across Mobile Data networks.
+• Instant Hotspot & Multicast Discovery: Automatic multi-interface QR pairing, gateway discovery, and cellular CGNAT filtering.
+• Live Full-App Refresh: Syncs immediately update Notes, Finances, Split Bills, Savings, and Health.
 </en-US>
 <ta-IN>
-🌟 Everything App 3.3.1 — சாதன இணைப்பு மற்றும் நம்பகத்தன்மை மேம்பாடு!
-• வலுவான சாதன இணைப்பு: Android UDP இணைப்பு பிழைகள் சரி செய்யப்பட்டு மேம்படுத்தப்பட்டுள்ளது.
-• சாதனங்களுக்கிடையேயான ஒத்திசைவு: பல சாதனங்கள் மற்றும் நெட்வொர்க்குகளுக்கு இடையேயான பாதுகாப்பான தரவு பகிர்வு.
-• உடனடி புதுப்பிப்பு: சாதனங்களுக்கிடையேயான தரவு பகிர்வு உடனுக்குடன் திரையில் காட்டப்படும்.
+🌟 Everything App 3.3.2 — வைஃபை, ஹாட்ஸ்பாட் & மொபைல் டேட்டா சாதன இணைப்பு!
+• எங்கும் சாதன ஒத்திசைவு: வைஃபை, ஹாட்ஸ்பாட் மற்றும் மொபைல் டேட்டா வழியாக பாதுகாப்பான தரவு பகிர்வு.
+• உடனடி இணைப்பு: QR குறியீடு மூலம் பல நெட்வொர்க்குகளில் எளிதாக சாதனங்களை இணைக்கும் வசதி.
+• உடனடி புதுப்பிப்பு: குறிப்புகள், நிதி மற்றும் அனைத்து தகவல்களும் உடனுக்குடன் திரையில் புதுப்பிக்கப்படும்.
 </ta-IN>
