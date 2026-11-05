@@ -1,7 +1,7 @@
 name: note_taking_app
 description: "Everything App: A fully local offline-first note-taking, financial manager, and health tracker app with offline AI and SMS auto-import."
 publish_to: "none"
-version: 3.3.2+30302
+version: 3.3.3+30303
 
 
 environment:
@@ -39,6 +39,7 @@ dependencies:
   http: ^1.3.0
   crypto: ^3.0.6
   encrypt: ^5.0.3
+  pointycastle: ^3.9.1
   qr_flutter: ^4.1.0
   mobile_scanner: ^6.0.2
   package_info_plus: ^8.3.0

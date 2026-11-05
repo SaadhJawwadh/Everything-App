@@ -59,7 +59,7 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<P2pSyncProvider>().refreshDiagnostics();
+        context.read<P2pSyncProvider>().refreshDiagnostics(fullSubnetScan: true);
       }
     });
   }
@@ -418,6 +418,43 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
     ).whenComplete(controller.dispose);
   }
 
+  void _showCustomRelayDialog(BuildContext context, P2pSyncProvider syncProvider) {
+    final controller = TextEditingController(text: syncProvider.customRelayUrl ?? '');
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AppDialog(
+        title: 'Cross-Network E2EE Relay',
+        confirmLabel: 'Save Relay',
+        onConfirm: () async {
+          await syncProvider.setCustomRelayUrl(controller.text);
+          if (dialogContext.mounted) Navigator.pop(dialogContext);
+        },
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Active Relays: ${syncProvider.connectedRelayCount} connected (BIP-340 Schnorr + AES-256 E2EE). '
+              'Used automatically when devices are on Mobile Data (4G/5G) or Wi-Fi routers with AP Client Isolation.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: AppLayout.spaceM),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'Custom Relay URL (Optional)',
+                hintText: 'wss://relay.example.com',
+                prefixIcon: Icon(Icons.hub_rounded),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).whenComplete(controller.dispose);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -444,6 +481,14 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                 titleText: 'Master P2P Device Sync',
                 showBackButton: true,
                 actions: [
+                  IconButton(
+                    icon: const Icon(Icons.hub_rounded),
+                    tooltip: 'Cross-Network Relay Settings',
+                    onPressed: () {
+                      AppHaptics.selectionClick();
+                      _showCustomRelayDialog(context, syncProvider);
+                    },
+                  ),
                   IconButton(
                     icon: const Icon(Icons.receipt_long_rounded),
                     tooltip: 'Sync Audit & Activity',

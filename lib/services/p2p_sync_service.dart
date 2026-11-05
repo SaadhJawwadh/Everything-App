@@ -89,6 +89,7 @@ class P2pSyncService {
 
   String? _deviceId;
   HttpServer? _httpServer;
+  HttpServer? _httpServerV6;
   RawDatagramSocket? _udpSocket;
   Timer? _beaconTimer;
 
@@ -358,6 +359,10 @@ class P2pSyncService {
   }
 
   /// Starts the Primary Host HTTP Server & UDP Radio Beacon.
+  ///
+  /// Explicitly binds `InternetAddress.anyIPv4` (`0.0.0.0:8765`) as the primary socket so
+  /// Android kernels with `net.ipv6.bindv6only=1` never reject IPv4 LAN connections (`192.168.x.x`),
+  /// and optionally binds a separate `v6Only: true` IPv6 listener alongside it.
   Future<void> startPrimaryHostServer(String userName, String pairCode) async {
     while (_serverTransitionFuture != null) {
       await _serverTransitionFuture;
@@ -369,10 +374,8 @@ class P2pSyncService {
       try {
         try {
           _httpServer = await HttpServer.bind(
-            InternetAddress.anyIPv6,
+            InternetAddress.anyIPv4,
             httpSyncPort,
-            v6Only: false,
-            shared: true,
           );
         } catch (_) {
           _httpServer = await HttpServer.bind(
@@ -393,8 +396,25 @@ class P2pSyncService {
           },
           cancelOnError: false,
         );
+
+        // Optional independent IPv6 listener (v6Only: true so it never conflicts with IPv4 0.0.0.0)
+        try {
+          _httpServerV6 = await HttpServer.bind(
+            InternetAddress.anyIPv6,
+            httpSyncPort,
+            v6Only: true,
+          );
+          _httpServerV6!.listen(
+            (HttpRequest request) async {
+              await _handlePrimaryHttpRequest(request, pairCode, userName);
+            },
+            onError: (_) {},
+            cancelOnError: false,
+          );
+        } catch (_) {}
+
         _isHosting = true;
-        debugPrint('[P2pSyncService] Primary Host Server listening on port $httpSyncPort');
+        debugPrint('[P2pSyncService] Primary Host Server listening on 0.0.0.0:$httpSyncPort');
 
         await startUdpBeacon(userName, pairCode);
         unawaited(
@@ -411,6 +431,41 @@ class P2pSyncService {
     } finally {
       _serverTransitionFuture = null;
       completer.complete();
+    }
+  }
+
+  /// Verifies that the local HTTP host server on port 8765 is genuinely alive and accepting TCP
+  /// connections (detecting zombie sockets frozen or closed by OS background suspension).
+  Future<bool> verifyLocalServerAlive() async {
+    if (!_isHosting || _httpServer == null) return false;
+    try {
+      final socket = await Socket.connect(
+        '127.0.0.1',
+        httpSyncPort,
+        timeout: const Duration(milliseconds: 400),
+      );
+      socket.destroy();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Ensures the Primary Host Server is actively accepting connections, re-binding if the OS
+  /// suspended the socket while the device was asleep or in the background.
+  Future<void> ensureHostServerRunning(String userName, String pairCode) async {
+    final alive = await verifyLocalServerAlive();
+    if (!alive) {
+      await startPrimaryHostServer(userName, pairCode);
+    } else {
+      await startUdpBeacon(userName, pairCode);
+      unawaited(
+        P2pRelaySyncService.instance.startRelayHostListener(
+          deviceName: userName,
+          primaryPairCode: pairCode,
+          trustedPairCodes: _candidateCodes(pairCode),
+        ),
+      );
     }
   }
 
@@ -437,6 +492,8 @@ class P2pSyncService {
       _udpSocket = null;
       await _httpServer?.close(force: true);
       _httpServer = null;
+      await _httpServerV6?.close(force: true);
+      _httpServerV6 = null;
       _isHosting = false;
       await P2pRelaySyncService.instance.stopRelayHostListener();
     } catch (_) {}
@@ -604,9 +661,49 @@ class P2pSyncService {
     } catch (_) {}
   }
 
-  /// Probes subnet gateways (e.g. Hotspot host `.1` IPs) and optional known peer IPs over TCP HTTP
-  /// (`/api/sync/discover`) so devices discover each other even when 100% of UDP traffic is blocked.
-  Future<void> probeHttpDiscovery(String userName, {Iterable<String> extraTargetIps = const []}) async {
+  /// Races multiple candidate LAN IPs in parallel ("Happy Eyeballs" RFC 8305 pattern) and returns
+  /// the first IP address that completes a TCP handshake on [port] within [timeout].
+  Future<String?> probeFastestReachableIp(
+    List<String> candidateIps, {
+    int port = httpSyncPort,
+    Duration timeout = const Duration(milliseconds: 2200),
+  }) async {
+    final validIps = candidateIps
+        .map(sanitizeTargetIp)
+        .where((ip) => ip.isNotEmpty && ip.toLowerCase() != 'relay' && !ip.startsWith('relay://'))
+        .toSet()
+        .toList();
+    if (validIps.isEmpty) return null;
+    if (validIps.length == 1) return validIps.first;
+
+    final completer = Completer<String?>();
+    int remaining = validIps.length;
+    for (final ip in validIps) {
+      unawaited(
+        Socket.connect(ip, port, timeout: timeout).then((socket) {
+          socket.destroy();
+          if (!completer.isCompleted) {
+            completer.complete(ip);
+          }
+        }).catchError((_) {
+          remaining--;
+          if (remaining <= 0 && !completer.isCompleted) {
+            completer.complete(null);
+          }
+        }),
+      );
+    }
+    return completer.future.timeout(timeout + const Duration(milliseconds: 200), onTimeout: () => null);
+  }
+
+  /// Probes subnet gateways (e.g. Hotspot host `.1` IPs), optional known peer IPs, and optionally
+  /// performs a LocalSend-style fast parallel `/24` TCP subnet sweep (`fullSubnetScan: true`) over
+  /// `/api/sync/discover` so devices discover each other even when 100% of UDP traffic is blocked.
+  Future<void> probeHttpDiscovery(
+    String userName, {
+    Iterable<String> extraTargetIps = const [],
+    bool fullSubnetScan = false,
+  }) async {
     try {
       final localIps = await getAllLocalIpAddresses();
       final myDeviceId = await getDeviceId();
@@ -625,6 +722,31 @@ class P2pSyncService {
         final clean = sanitizeTargetIp(extra);
         if (isUsableLocalP2pAddress(clean) && !localIps.contains(clean)) {
           candidateIps.add(clean);
+        }
+      }
+
+      if (fullSubnetScan && localIps.isNotEmpty) {
+        final primaryParts = localIps.first.split('.');
+        if (primaryParts.length == 4) {
+          final prefix = '${primaryParts[0]}.${primaryParts[1]}.${primaryParts[2]}';
+          final openSubnetIps = <String>[];
+          const batchSize = 50;
+          for (int start = 1; start <= 254; start += batchSize) {
+            final end = (start + batchSize - 1 <= 254) ? start + batchSize - 1 : 254;
+            final batchFutures = <Future<void>>[];
+            for (int host = start; host <= end; host++) {
+              final ip = '$prefix.$host';
+              if (localIps.contains(ip) || candidateIps.contains(ip)) continue;
+              batchFutures.add(
+                Socket.connect(ip, httpSyncPort, timeout: const Duration(milliseconds: 280)).then((s) {
+                  s.destroy();
+                  openSubnetIps.add(ip);
+                }).catchError((_) {}),
+              );
+            }
+            await Future.wait(batchFutures);
+          }
+          candidateIps.addAll(openSubnetIps);
         }
       }
 
@@ -1150,7 +1272,10 @@ class P2pSyncService {
     final cleanIp = parsed.$1;
     final cleanPort = parsed.$2;
 
-    final client = HttpClient()..connectionTimeout = const Duration(seconds: 6);
+    final connectTimeout = allowRelayFallback
+        ? const Duration(milliseconds: 2800)
+        : const Duration(seconds: 6);
+    final client = HttpClient()..connectionTimeout = connectTimeout;
     try {
       // 1. Try standard PBKDF2 payload encryption
       var encrypted = _crypto.encryptPayload(json.encode(handshakeMap), pairCode);
@@ -1305,7 +1430,10 @@ class P2pSyncService {
         return SyncResult(success: false, errorMessage: 'Encryption failed. Check pair code.');
       }
 
-      final client = HttpClient()..connectionTimeout = const Duration(seconds: 6);
+      final connectTimeout = allowRelayFallback
+        ? const Duration(milliseconds: 2800)
+        : const Duration(seconds: 6);
+    final client = HttpClient()..connectionTimeout = connectTimeout;
       try {
         var req = await client.postUrl(buildSyncUri(cleanIp, cleanPort, '/api/sync/ping'));
         req.write(encrypted);
@@ -1383,7 +1511,9 @@ class P2pSyncService {
         return SyncResult(success: false, errorMessage: 'Encryption error');
       }
 
+      final regex = rawJson; // keep local scope distinct
       final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
+      if (regex.isEmpty) return SyncResult(success: false, errorMessage: 'Empty request');
       try {
         var req = await client.postUrl(buildSyncUri(cleanIp, cleanPort, '/api/sync/pull_master'));
         req.write(encrypted);
@@ -1519,7 +1649,10 @@ class P2pSyncService {
       }
       _isSyncing = true;
 
-      final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
+      final connectTimeout = allowRelayFallback
+          ? const Duration(milliseconds: 2800)
+          : const Duration(seconds: 8);
+      final client = HttpClient()..connectionTimeout = connectTimeout;
       try {
         var req = await client.postUrl(buildSyncUri(cleanIp, cleanPort, '/api/sync/bidirectional_sync'));
         req.write(encrypted);

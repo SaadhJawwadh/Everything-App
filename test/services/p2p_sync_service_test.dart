@@ -18,6 +18,15 @@ void main() {
     final cryptoService = SyncCryptoService.instance;
     const testPairCode = '123456';
 
+    setUp(() {
+      P2pRelaySyncService.instance.overrideRelayUrlsForTesting = const ['ws://127.0.0.1:9'];
+    });
+
+    tearDownAll(() async {
+      P2pRelaySyncService.instance.overrideRelayUrlsForTesting = null;
+      await syncService.stopPrimaryHostServer();
+    });
+
     test('device ID is generated as valid UUID', () async {
       final deviceId = await syncService.getDeviceId();
       expect(deviceId, isNotEmpty);
@@ -400,6 +409,155 @@ void main() {
       }
       final reassembled = P2pRelaySyncService.tryReassembleChunks(buffer, chunks.length);
       expect(reassembled, equals(largePayload));
+    });
+
+    test('Bip340Schnorr signs and verifies valid Nostr NIP-01 events and rejects tampering', () {
+      const pairCode = '650826';
+      final kp = Bip340Schnorr.deriveRoomKeyPair(pairCode);
+      expect(kp.privHex, hasLength(64));
+      expect(kp.pubHex, hasLength(64));
+      expect(Bip340Schnorr.getPublicKeyHex(kp.privHex), equals(kp.pubHex));
+
+      final frame = P2pRelaySyncService.buildSignedNostrEventFrame(
+        pairCode: pairCode,
+        kind: 30078,
+        content: '{"action":"ping","timestamp":1700000000}',
+        tags: [
+          ['d', 'msg_1'],
+          ['p', kp.pubHex],
+        ],
+      );
+      final decoded = json.decode(frame) as List<dynamic>;
+      expect(decoded[0], equals('EVENT'));
+      final event = decoded[1] as Map<String, dynamic>;
+      final id = event['id'] as String;
+      final pubkey = event['pubkey'] as String;
+      final sig = event['sig'] as String;
+
+      expect(Bip340Schnorr.verify(id, pubkey, sig), isTrue);
+
+      // Tampered message ID must fail verification
+      final tamperedId = id.startsWith('0') ? '1${id.substring(1)}' : '0${id.substring(1)}';
+      expect(Bip340Schnorr.verify(tamperedId, pubkey, sig), isFalse);
+
+      // Tampered signature must fail verification
+      final tamperedSig = sig.startsWith('0') ? '1${sig.substring(1)}' : '0${sig.substring(1)}';
+      expect(Bip340Schnorr.verify(id, pubkey, tamperedSig), isFalse);
+    });
+
+    test('verifyLocalServerAlive, ensureHostServerRunning, and probeFastestReachableIp work accurately', () async {
+      await syncService.stopPrimaryHostServer();
+      expect(await syncService.verifyLocalServerAlive(), isFalse);
+
+      await syncService.ensureHostServerRunning('SelfHealHost', '650826');
+      try {
+        expect(await syncService.verifyLocalServerAlive(), isTrue);
+
+        final fastest = await syncService.probeFastestReachableIp(
+          ['192.0.2.250', '127.0.0.1'],
+          timeout: const Duration(milliseconds: 500),
+        );
+        expect(fastest, equals('127.0.0.1'));
+      } finally {
+        await syncService.stopPrimaryHostServer();
+      }
+    });
+
+    test('P2pRelaySyncService completes E2EE RPC over BIP-340 validating WebSocket relay', () async {
+      // Spin up a local Nostr NIP-01 relay server that strictly verifies BIP-340 Schnorr signatures
+      final relayHttp = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      final connectedClients = <WebSocket>[];
+      int validEventsAccepted = 0;
+
+      relayHttp.transform(WebSocketTransformer()).listen((WebSocket ws) {
+        connectedClients.add(ws);
+        ws.listen(
+          (dynamic raw) {
+            if (raw is! String) return;
+            final frame = json.decode(raw) as List<dynamic>;
+            final cmd = frame[0] as String;
+            if (cmd == 'REQ') {
+              final subId = frame[1] as String;
+              ws.add(json.encode(['EOSE', subId]));
+            } else if (cmd == 'EVENT') {
+              final event = frame[1] as Map<String, dynamic>;
+              final id = event['id'] as String;
+              final pubkey = event['pubkey'] as String;
+              final sig = event['sig'] as String;
+              final isValid = Bip340Schnorr.verify(id, pubkey, sig);
+              ws.add(json.encode(['OK', id, isValid, isValid ? '' : 'invalid: bad signature']));
+              if (!isValid) return;
+              validEventsAccepted++;
+
+              // Simulate a remote peer responding to 'req' with an E2EE 'ack'
+              final content = json.decode(event['content'] as String) as Map<String, dynamic>;
+              if (content['type'] == 'req') {
+                final corrId = content['corrId'] as String;
+                final senderId = content['senderId'] as String;
+                final replyPlain = json.encode({
+                  'status': 'pong',
+                  'hostName': 'RelayPeerTablet',
+                  'deviceId': 'remote-peer-uuid-999',
+                  'deviceName': 'RelayPeerTablet',
+                  'role': 'PRIMARY',
+                });
+                final replyCipher = cryptoService.encryptPayload(replyPlain, '650826')!;
+                final ackEnvelope = json.encode({
+                  'app': 'everything_p2p_relay_v2',
+                  'type': 'ack',
+                  'msgId': 'ack-$corrId',
+                  'corrId': corrId,
+                  'senderId': 'remote-peer-uuid-999',
+                  'targetDeviceId': senderId,
+                  'chunkIndex': 0,
+                  'totalChunks': 1,
+                  'cipher': replyCipher,
+                  'ts': DateTime.now().millisecondsSinceEpoch,
+                });
+                final ackFrame = json.decode(
+                  P2pRelaySyncService.buildSignedNostrEventFrame(
+                    pairCode: '650826',
+                    kind: 24242,
+                    content: ackEnvelope,
+                    tags: [
+                      ['d', pubkey],
+                    ],
+                  ),
+                ) as List<dynamic>;
+                for (final client in connectedClients) {
+                  if (client.readyState == WebSocket.open) {
+                    client.add(json.encode(['EVENT', 'everything_p2p_sub', ackFrame[1]]));
+                  }
+                }
+              }
+            }
+          },
+          onDone: () => connectedClients.remove(ws),
+        );
+      });
+
+      try {
+        await P2pRelaySyncService.instance.stopRelayHostListener();
+        P2pRelaySyncService.instance.overrideRelayUrlsForTesting = [
+          'ws://127.0.0.1:${relayHttp.port}',
+        ];
+
+        final pingRes = await syncService.sendTestPing('relay', '650826');
+        expect(pingRes.success, isTrue);
+        expect(pingRes.transportUsed, contains('Relay'));
+        expect(validEventsAccepted, greaterThanOrEqualTo(1));
+
+        final paired = await syncService.sendPairHandshake('650826', 'MyPhone', 'relay');
+        expect(paired, isNotNull);
+        expect(paired!.deviceName, equals('RelayPeerTablet'));
+        expect(paired.endpoints.any((e) => e.ipAddress.startsWith('relay://')), isTrue);
+      } finally {
+        await P2pRelaySyncService.instance.stopRelayHostListener();
+        for (final c in connectedClients) {
+          await c.close().catchError((_) {});
+        }
+        await relayHttp.close(force: true);
+      }
     });
   });
 }

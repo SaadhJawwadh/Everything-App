@@ -1,16 +1,14 @@
 
 ### 🌟 What's New
-- **Cross-Network E2EE Blind Relay Sync**: Pair, ping, and bi-directionally synchronize devices even when your Wi-Fi router has AP Client Isolation enabled or when devices are on separate Wi-Fi and Mobile Data networks.
-- **Hotspot & Multi-Subnet Discovery**: Automatic link-local multicast (`224.0.0.167`), gateway unicast beacons, and HTTP discovery probing let phones and tablets discover each other instantly over Personal Hotspots and Wi-Fi Direct.
-- **Multi-Interface QR Pairing**: Host QR codes now embed all active local network interfaces and automatically negotiate the fastest working path or fall back to encrypted relay transport.
+- **BIP-340 Schnorr Cross-Network E2EE Relay**: Genuine `secp256k1` BIP-340 Schnorr cryptographic signing and verification for Nostr NIP-01/NIP-78 envelopes, enabling 100% reliable pairing and sync across 4G/5G Mobile Data CGNAT and AP-isolated Wi-Fi routers.
+- **Fast `/24` HTTP Subnet Peer Scanner**: LocalSend-style parallel TCP/HTTP `/24` subnet discovery sweep (`scanLocalSubnetByHttp`) finds devices on the same Wi-Fi or Hotspot in under 2 seconds even when routers block all UDP broadcast and multicast traffic.
+- **Custom E2EE Relay Settings**: View active connected relay status and configure an optional self-hosted WebSocket relay (`wss://...`) directly from the Master P2P Sync hub.
 
 ### 🚀 Improvements
-- **Smart Mobile Data & VPN Filtering**: Automatically filters out cellular Carrier-Grade NAT (`100.64.0.0/10`), 464XLAT (`192.0.0.0/24`), and VPN virtual adapters so local P2P always binds to genuine Wi-Fi or Hotspot interfaces.
-- **Full Domain Sync Refresh**: Manual and outbound P2P syncs now immediately refresh Split Bills and Savings Goals alongside Notes, Finances, and Period Tracker.
-- **Dual-Stack Host Server Resilience**: Host server automatically re-verifies and binds dual-stack IPv4/IPv6 sockets whenever opening the P2P Sync hub or displaying your QR code.
+- **Happy Eyeballs Parallel IP Racing**: Simultaneously races all candidate LAN and Hotspot IP addresses with a fast 2.2-second handshake check so stale endpoints never delay pairing or sync.
+- **Self-Healing Host Server Watchdog**: Performs a 400ms loopback socket health check (`verifyLocalServerAlive`) on app resume and diagnostics refresh, automatically re-binding port `8765` if the OS suspended the socket in the background.
 
 ### 🐛 Fixes
-- **Same-Wi-Fi Unreachable Peer Fix**: Resolved socket binding and router isolation failures (`Peer device unreachable`) between phones and tablets on the same Wi-Fi network.
-- **QR Scanner Camera Fallback**: Added an interactive fallback card to enter the 6-digit pair code manually if camera permissions are denied or unavailable.
-- **Deterministic Note Merge Tie-Breaking**: Resolved edge cases where notes with identical millisecond modification timestamps were skipped during merge.
+- **Dedicated Android IPv4 Socket Binding**: Explicitly binds `InternetAddress.anyIPv4` (`0.0.0.0:8765`) as the primary host socket alongside an independent `v6Only: true` IPv6 listener, resolving `Connection refused` (`192.168.1.70`) on Android kernels with `bindv6only=1`.
+- **Relay Subscription Race Elimination**: Added buffered NIP-78 replaceable envelopes with 120s expiration and automatic 2.5s request re-publish retry so peers connect reliably regardless of timing.
 

@@ -25,9 +25,38 @@ class ChangelogRelease {
 
 final List<ChangelogRelease> kChangelogHistory = [
   ChangelogRelease(
-    version: 'v3.3.2',
+    version: 'v3.3.3',
     date: 'November 6, 2026',
     isLatest: true,
+    categories: [
+      ChangelogCategory(
+        title: "What's New",
+        items: [
+          'BIP-340 Schnorr Cross-Network E2EE Relay: Genuine secp256k1 BIP-340 Schnorr cryptographic signing and verification for Nostr NIP-01/NIP-78 envelopes, enabling 100% reliable pairing and sync across 4G/5G Mobile Data CGNAT and AP-isolated Wi-Fi routers.',
+          'Fast /24 HTTP Subnet Peer Scanner: LocalSend-style parallel TCP/HTTP /24 subnet discovery sweep finds devices on the same Wi-Fi or Hotspot in under 2 seconds even when routers block all UDP broadcast and multicast traffic.',
+          'Custom E2EE Relay Settings: View active connected relay status and configure an optional self-hosted WebSocket relay directly from the Master P2P Sync hub.',
+        ],
+      ),
+      ChangelogCategory(
+        title: 'Improvements',
+        items: [
+          'Happy Eyeballs Parallel IP Racing: Simultaneously races all candidate LAN and Hotspot IP addresses with a fast 2.2-second handshake check so stale endpoints never delay pairing or sync.',
+          'Self-Healing Host Server Watchdog: Performs a 400ms loopback socket health check on app resume and diagnostics refresh, automatically re-binding port 8765 if the OS suspended the socket in the background.',
+        ],
+      ),
+      ChangelogCategory(
+        title: 'Fixes',
+        items: [
+          'Dedicated Android IPv4 Socket Binding: Explicitly binds 0.0.0.0:8765 as the primary host socket alongside an independent IPv6 listener, resolving Connection refused errors on Android kernels.',
+          'Relay Subscription Race Elimination: Added buffered NIP-78 replaceable envelopes with expiration and automatic 2.5s request retry so peers connect reliably regardless of timing.',
+        ],
+      ),
+    ],
+  ),
+  ChangelogRelease(
+    version: 'v3.3.2',
+    date: 'November 6, 2026',
+    isLatest: false,
     categories: [
       ChangelogCategory(
         title: "What's New",

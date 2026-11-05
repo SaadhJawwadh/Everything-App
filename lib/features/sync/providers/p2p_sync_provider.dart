@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../services/p2p_relay_sync_service.dart';
 import '../../../services/p2p_sync_service.dart';
 import '../data/p2p_pairing_model.dart';
 
@@ -58,6 +59,15 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
   List<String> get localIpAddresses => List.unmodifiable(_localIpAddresses);
   SystemDiagnostics? _diagnostics;
   SystemDiagnostics? get diagnostics => _diagnostics;
+  int get connectedRelayCount => P2pRelaySyncService.instance.connectedRelayCount;
+  String? _customRelayUrl;
+  String? get customRelayUrl => _customRelayUrl;
+
+  Future<void> setCustomRelayUrl(String? url) async {
+    await P2pRelaySyncService.instance.setCustomRelayUrl(url);
+    _customRelayUrl = await P2pRelaySyncService.instance.getCustomRelayUrl();
+    notifyListeners();
+  }
 
   StreamSubscription<SyncResult>? _syncResultSubscription;
   StreamSubscription<PairedDevice>? _remotePairSubscription;
@@ -107,12 +117,11 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
     if (!autoStartServer) return;
     final prevIp = _localIpAddress;
     await refreshDiagnostics();
-    // Always re-bind on resume if the server stopped or the local Wi-Fi IP changed,
-    // and ensure the HTTP + UDP sockets are fresh after OS background suspension.
-    if (!_service.isHosting || _localIpAddress != prevIp) {
+    final alive = await _service.verifyLocalServerAlive();
+    if (!alive || _localIpAddress != prevIp) {
       await startPrimaryHostServer();
     } else {
-      await _service.startUdpBeacon(_localDeviceName, _currentPairCode);
+      await _service.ensureHostServerRunning(_localDeviceName, _currentPairCode);
     }
   }
 
@@ -124,6 +133,7 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
     await prefs.setString(_deviceNameKey, _localDeviceName);
     _currentPairCode = prefs.getString(_pairCodeKey) ?? _newPairCode();
     await prefs.setString(_pairCodeKey, _currentPairCode);
+    _customRelayUrl = await P2pRelaySyncService.instance.getCustomRelayUrl();
 
     final rawJson = prefs.getString(_storageKey) ?? prefs.getString(_legacyStorageKey);
     if (rawJson != null && rawJson.isNotEmpty) {
@@ -265,17 +275,22 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
     return PairedDevice.generateRandomName();
   }
 
-  Future<void> refreshDiagnostics() async {
+  Future<void> refreshDiagnostics({bool fullSubnetScan = false}) async {
     _diagnostics = await _service.runDiagnostics();
     _localIpAddress = _diagnostics?.localIp;
     _localIpAddresses = _diagnostics?.allLocalIps ?? const [];
-    if (autoStartServer && !_service.isHosting && _localDeviceName.isNotEmpty && _currentPairCode.isNotEmpty) {
-      await startPrimaryHostServer();
-    } else if (_service.isHosting && _localDeviceName.isNotEmpty) {
+    if (autoStartServer && _localDeviceName.isNotEmpty && _currentPairCode.isNotEmpty) {
+      final alive = await _service.verifyLocalServerAlive();
+      if (!alive) {
+        await startPrimaryHostServer();
+      }
+    }
+    if (_service.isHosting && _localDeviceName.isNotEmpty) {
       unawaited(
         _service.probeHttpDiscovery(
           _localDeviceName,
           extraTargetIps: _pairedDevices.expand((d) => d.endpoints.map((e) => e.ipAddress)),
+          fullSubnetScan: fullSubnetScan,
         ),
       );
     }
@@ -355,13 +370,26 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
     _lastMessage = 'Verifying ${deviceName.trim().isEmpty ? 'device' : deviceName}…';
     notifyListeners();
 
-    final orderedTargetIps = <String>{
+    var orderedTargetIps = <String>{
       verifiedTargetIp,
       if (candidateIps != null)
         ...candidateIps
             .map((ip) => P2pSyncService.sanitizeTargetIp(ip))
             .where((ip) => ip.isNotEmpty),
     }.toList();
+
+    if (orderedTargetIps.length > 1) {
+      final fastest = await _service.probeFastestReachableIp(
+        orderedTargetIps,
+        port: verifiedTargetPort,
+      );
+      if (fastest != null) {
+        orderedTargetIps = [
+          fastest,
+          ...orderedTargetIps.where((ip) => ip != fastest),
+        ];
+      }
+    }
 
     try {
       PairedDevice? verifiedRemoteDevice;
@@ -583,10 +611,36 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
     }.toList();
 
     try {
-      final endpoints = device.sortedEndpoints;
-      for (final endpoint in endpoints) {
+      var endpoints = device.sortedEndpoints;
+      final lanEndpoints = endpoints
+          .where((e) => !e.ipAddress.startsWith('relay') && e.ipAddress.toLowerCase() != 'relay')
+          .toList();
+      if (lanEndpoints.length > 1) {
+        final fastestIp = await _service.probeFastestReachableIp(
+          lanEndpoints.map((e) => e.ipAddress).toList(),
+        );
+        if (fastestIp != null) {
+          endpoints = [
+            ...endpoints.where((e) => e.ipAddress == fastestIp),
+            ...endpoints.where((e) => e.ipAddress != fastestIp),
+          ];
+        }
+      }
+
+      final hasExplicitRelayEndpoint = endpoints.any(
+        (e) => e.ipAddress.startsWith('relay://') || e.ipAddress.toLowerCase() == 'relay',
+      );
+      for (int i = 0; i < endpoints.length; i++) {
+        final endpoint = endpoints[i];
+        final isLastEndpoint = i == endpoints.length - 1;
+        final shouldAllowRelayFallback = !hasExplicitRelayEndpoint && isLastEndpoint;
         for (final code in candidateCodes) {
-          final result = await _service.syncBiDirectional(endpoint.ipAddress, code, targetPort: endpoint.port);
+          final result = await _service.syncBiDirectional(
+            endpoint.ipAddress,
+            code,
+            targetPort: endpoint.port,
+            allowRelayFallback: shouldAllowRelayFallback,
+          );
           if (result.success) {
             final index = _pairedDevices.indexWhere((item) => item.deviceId == device.deviceId);
             if (index != -1) {
