@@ -123,11 +123,21 @@ Future<void> main() async {
           },
         ),
         ChangeNotifierProvider(create: (_) => NoteProvider()),
-        ChangeNotifierProvider(create: (_) => P2pSyncProvider()),
         ChangeNotifierProvider(create: (_) => FinancialManagerProvider()),
         ChangeNotifierProvider(create: (_) => SplitBillProvider()..loadSplitBills()),
         ChangeNotifierProvider(create: (_) => SavingsGoalProvider()..loadGoals()),
         ChangeNotifierProvider(create: (_) => PeriodTrackerProvider()),
+        ChangeNotifierProvider(
+          create: (context) => P2pSyncProvider(
+            onInboundSyncMerged: () {
+              context.read<NoteProvider>().refreshNotes();
+              context.read<FinancialManagerProvider>().refresh();
+              context.read<SplitBillProvider>().loadSplitBills();
+              context.read<SavingsGoalProvider>().loadGoals();
+              context.read<PeriodTrackerProvider>().loadData();
+            },
+          ),
+        ),
       ],
       child: const NoteApp(),
     ),

@@ -305,7 +305,7 @@ void main() {
           value: settings,
           child: const MaterialApp(
             home: Scaffold(
-              body: WhatsNewSheet(currentVersion: '3.3.0'),
+              body: WhatsNewSheet(currentVersion: '3.3.1'),
             ),
           ),
         ),
@@ -335,7 +335,7 @@ void main() {
       });
       await tester.pumpAndSettle();
 
-      expect(settings.lastSeenVersion, '3.3.0');
+      expect(settings.lastSeenVersion, '3.3.1');
     });
   });
 }

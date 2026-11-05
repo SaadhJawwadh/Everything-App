@@ -104,7 +104,15 @@ lib/
 
 ### 🔄 Invariant 6: Zero-Cloud P2P Sync & Bi-Directional Merge
 * **LWW 2-Way Delta Merges**: Execute non-destructive merges over local Wi-Fi. Soft-deletes check `deletedAt` with 5-second clock skew tolerance.
-* **Stable Identity & Multi-Network Endpoints**: Each peer retains an immutable `deviceId` UUID with multiple saved `DeviceEndpoint`s (e.g., home and office Wi-Fi). Never deduplicate peers by IP or pair code.
+* **Stable Identity & Multi-Network Endpoints**: Each peer retains an immutable `deviceId` UUID with multiple saved `DeviceEndpoint`s (e.g., home and office Wi-Fi). Never deduplicate peers by IP or pair code. Sort endpoints by `max(lastSeenAt, lastSyncedAt)` so newly discovered active Wi-Fi endpoints always take priority over stale endpoints from previous networks.
+* **Android UDP Socket Bind Contract**: NEVER pass `reusePort: true` to `RawDatagramSocket.bind` on Android (`dart:io` throws `SocketException`, silently killing UDP discovery beacons). Always bind with `reuseAddress: true` and fallback to plain `RawDatagramSocket.bind(InternetAddress.anyIPv4, udpBeaconPort)`.
+* **Multi-Code Authentication & Legacy Crypto Fallback**:
+  - `P2pSyncService` must maintain all trusted pair codes (`[currentPairCode, ...pairedDevices.map((d) => d.pairCode)]`) and attempt decryption against all trusted codes on both HTTP and UDP endpoints.
+  - All outbound HTTP sync operations (`sendPairHandshake`, `sendTestPing`, `pullMasterFromPrimary`, `syncBiDirectional`) must automatically retry once with `legacyMode: true` (`v1` SHA-256 key) if the initial `v2` PBKDF2 request returns `HTTP 401`, ensuring seamless interoperability across app versions.
+  - AES-CBC encryption (`SyncCryptoService.encryptPayload`) MUST use cryptographically secure random IVs (`enc.IV.fromSecureRandom(16)`), never zero-filled `IV.fromLength(16)`.
+* **Simultaneous Sync 503 Jitter & Inbound UI Refresh**:
+  - If both peer devices trigger `syncBiDirectional` simultaneously and receive `HTTP 503 Service Unavailable`, the client must release `_isSyncing`, wait a randomized backoff jitter (`450–1100ms`), and retry automatically.
+  - Inbound server merges (`isServerInbound && receivedCount > 0`) must invoke `onInboundSyncMerged` to immediately refresh `NoteProvider`, `FinancialManagerProvider`, `SplitBillProvider`, `SavingsGoalProvider`, and `PeriodTrackerProvider`.
 
 ### 🛡️ Invariant 7: Absolute Permission Rule & Major/Minor Release Gates
 * **No Unprompted Git Actions**: NEVER run `git commit`, `git tag`, or `git push` without explicit, real-time user confirmation.
@@ -214,6 +222,9 @@ lib/
 1. **Consult Developer Map First**: Read [.agent/map.md](file:///Users/saadhjawwadh/Documents/Code/Note%20taking/.agent/map.md) to locate exact files, providers, and schemas before querying or editing.
 2. **Targeted Reading**: Use `grep_search` and bounded line slices (`view_file` with `StartLine`/`EndLine`). Never mass-scan the workspace, `build/`, `.dart_tool/`, or lockfiles.
 3. **Reactive Wakeup**: Do not poll or loop while waiting for asynchronous commands or background tasks. The system will automatically wake up upon task completion.
+4. **Subagent Model Routing Policy**:
+   - Reserve **Argon / Pro (`Model: "pro"` / `"inherit"`)** strictly for complex architectural tasks, deep multi-file debugging, and strategic planning.
+   - Use **Gemini Flash (`Model: "flash"`)** for standard execution tasks, running emulator smoke tests, test suites, routine verifications, and mechanical operations.
 
 ---
 

@@ -1,14 +1,15 @@
 
 ### 🌟 What's New
-- **Adaptive P2P Device Pairing**: Context-aware Master Sync hub automatically detects unpaired states, providing direct QR code generation and 1-tap device pairing with descriptive connection feedback.
-- **Cross-Version Sync Cryptography**: Backward and forward compatibility negotiation between PBKDF2 and legacy key derivations for seamless multi-device merges across app versions.
-- **Resilient IPv6 Local Discovery**: Full bracketed IPv6 socket routing across all local sync, ping, and master snapshot protocols.
+- **Robust P2P Network Synchronization**: Resolved Android UDP socket discovery exceptions, enabling instant background discovery between phones and tablets on the same Wi-Fi.
+- **Multi-Code Trusted Key Ring**: Host servers seamlessly authenticate and decrypt incoming requests using both primary host codes and previously paired device keys.
+- **Simultaneous Sync Collision Recovery**: Automatic randomized jitter backoff and retries when both peer devices trigger synchronization at the exact same moment.
 
 ### 🚀 Improvements
-- **Non-Blocking SMS Ingestion**: Clean sliver-docked sync progress with real-time counters and instant cancellation.
-- **Database UUID Deduplication**: Instant O(1) transaction lookups with automated UUID backfills and covering index `idx_transactions_uuid`.
+- **Multi-Network Endpoint Priority**: Intelligently prioritizes actively broadcasting Wi-Fi interfaces over stale network IPs from previous locations.
+- **Inbound Sync UI Reactivity**: Live inbound delta merges immediately trigger real-time UI refreshes across Notes, Finances, Split Bills, Savings Goals, and Period Tracker.
+- **Cryptographically Secure IV Generation**: Upgraded P2P AES-CBC encryption with unique cryptographically random initialization vectors.
 
 ### 🐛 Fixes
-- **Finances Banner Ghosting**: Eliminated duplicate render artifacts between scrollable slivers and layout overlays.
-- **P2P Verification Clarity**: Replaced generic fallback errors with actionable status diagnostics (code mismatches, network timeouts, rate limiting).
+- **LAN Rate-Limit Tolerance**: Raised the temporary IP lockout threshold to accommodate multi-endpoint discovery and dual-version encryption fallbacks.
+- **Samsung & Hotspot Interface Recognition**: Enhanced network interface scoring to recognize `swlan` and `ap` hotspot adapters.
 

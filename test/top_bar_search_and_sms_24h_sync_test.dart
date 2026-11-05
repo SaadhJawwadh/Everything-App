@@ -32,7 +32,7 @@ void main() {
           providers: [
             ChangeNotifierProvider(create: (_) => SettingsProvider()),
             ChangeNotifierProvider(create: (_) => NoteProvider()),
-            ChangeNotifierProvider(create: (_) => P2pSyncProvider()),
+            ChangeNotifierProvider(create: (_) => P2pSyncProvider(autoStartServer: false)),
           ],
           child: MaterialApp(
             theme: AppTheme.createTheme(null, Brightness.light),
@@ -95,7 +95,7 @@ void main() {
           providers: [
             ChangeNotifierProvider(create: (_) => SettingsProvider()),
             ChangeNotifierProvider(create: (_) => NoteProvider()),
-            ChangeNotifierProvider(create: (_) => P2pSyncProvider()),
+            ChangeNotifierProvider(create: (_) => P2pSyncProvider(autoStartServer: false)),
           ],
           child: MaterialApp(
             theme: AppTheme.createTheme(null, Brightness.light),
@@ -159,7 +159,7 @@ void main() {
             ChangeNotifierProvider(create: (_) => SettingsProvider()),
             ChangeNotifierProvider(create: (_) => NoteProvider()),
             ChangeNotifierProvider(create: (_) => FinancialManagerProvider()),
-            ChangeNotifierProvider(create: (_) => P2pSyncProvider()),
+            ChangeNotifierProvider(create: (_) => P2pSyncProvider(autoStartServer: false)),
           ],
           child: MaterialApp(
             theme: AppTheme.createTheme(null, Brightness.light),

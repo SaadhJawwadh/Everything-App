@@ -404,6 +404,28 @@ Specialist skill governing domain modules, feature-driven architecture (`lib/fea
 - **Runtime Notification Permission Gate**:
   - Android 13+ (API 33+) requires runtime permission `android.permission.POST_NOTIFICATIONS` before any alert can appear in the status bar or notification shade.
 
+---
+
+## 15. Zero-Cloud P2P Device Sync & Network Resilience Invariants (`lib/features/sync/` & `lib/services/p2p_sync_service.dart`)
+
+- **Android UDP Beacon Socket Contract**:
+  - Never pass `reusePort: true` to `RawDatagramSocket.bind` on Android, as `dart:io` throws a `SocketException` that disables UDP discovery on port 8766. Bind with `reuseAddress: true` and fallback to plain `RawDatagramSocket.bind(InternetAddress.anyIPv4, udpBeaconPort)`.
+- **Wi-Fi Interface Priority Scoring**:
+  - `_scoreNetworkInterface` must prioritize `wlan*`, Samsung `swlan*`, hotspot `ap*`, and `wl*` interfaces (`100`) above cellular (`rmnet*`, `ccmni*`) and virtual/VPN (`tun*`, `p2p*`) interfaces.
+- **Multi-Code Trusted Key Ring & v1/v2 Crypto Interoperability**:
+  - `P2pSyncProvider` synchronizes all active pair codes (`_currentPairCode` + every `pairedDevice.pairCode`) into `P2pSyncService.updateTrustedPairCodes()`.
+  - Server endpoints (`/api/sync/ping`, `/api/sync/pair_handshake`, `/api/sync/pull_master`, `/api/sync/bidirectional_sync`) decrypt against all trusted codes and encrypt the response using the matched code and key version (`legacyMode: isLegacy`).
+  - Client methods (`sendPairHandshake`, `sendTestPing`, `pullMasterFromPrimary`, `syncBiDirectional`) drain `HTTP 401` responses and retry once with `legacyMode: true` so devices on different app versions sync without failure.
+  - Always generate random IVs via `enc.IV.fromSecureRandom(16)` in `SyncCryptoService.encryptPayload`.
+- **Beacon vs. Handshake Separation & Endpoint Ordering**:
+  - Periodic UDP `beacon` packets must only update `DiscoveredPeer` / `DeviceEndpoint.lastSeenAt`—never fabricate a fake `lastSyncedAt` timestamp or overwrite `PairedDevice.role`.
+  - `PairedDevice.sortedEndpoints` and `preferredEndpoint` must sort by `max(lastSeenAt, lastSyncedAt)` so an active endpoint just seen on the current Wi-Fi is tried before a stale endpoint from another network.
+  - `PairedDevice.withEndpoint` must preserve existing `lastSyncedAt` and `networkLabel` metadata when refreshing `lastSeenAt`.
+- **Simultaneous Sync Collision Recovery & Inbound Refresh**:
+  - When both devices initiate `syncBiDirectional` at the same time (`HTTP 503`), release `_isSyncing`, back off with randomized jitter, and retry automatically.
+  - When the host HTTP server completes an inbound merge (`isServerInbound && receivedCount > 0`), trigger `onInboundSyncMerged` so all in-memory UI providers (`NoteProvider`, `FinancialManagerProvider`, `SplitBillProvider`, `SavingsGoalProvider`, `PeriodTrackerProvider`) refresh immediately.
+
+
 
 
 

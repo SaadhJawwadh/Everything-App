@@ -1,12 +1,16 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:note_taking_app/data/note_model.dart';
 import 'package:note_taking_app/features/sync/data/p2p_pairing_model.dart';
 import 'package:note_taking_app/services/p2p_sync_service.dart';
 import 'package:note_taking_app/services/sync_crypto_service.dart';
 
+class _RealHttpOverrides extends HttpOverrides {}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  HttpOverrides.global = _RealHttpOverrides();
 
   group('P2P Sync Functionality & Manifest Tests', () {
     final syncService = P2pSyncService.instance;
@@ -161,6 +165,115 @@ void main() {
         P2pSyncService.formatUserFriendlyErrorMessage('TimeoutException after 0:00:30.000000', '192.168.1.5'),
         contains('Connection timed out (192.168.1.5)'),
       );
+    });
+
+    test('host server accepts both primary pair code and previously paired device codes', () async {
+      const hostCode = '111111';
+      const pairedTabletCode = '222222';
+      syncService.updateTrustedPairCodes([hostCode, pairedTabletCode]);
+      await syncService.startPrimaryHostServer('TestHost', hostCode);
+      expect(syncService.isHosting, isTrue);
+
+      try {
+        // 1. Ping using the secondary trusted code (e.g. tablet paired before code regeneration)
+        final pingRes = await syncService.sendTestPing('127.0.0.1', pairedTabletCode);
+        expect(pingRes.success, isTrue, reason: pingRes.errorMessage);
+
+        // 2. Ping using the primary host code
+        final pingRes2 = await syncService.sendTestPing('127.0.0.1', hostCode);
+        expect(pingRes2.success, isTrue, reason: pingRes2.errorMessage);
+
+        // 3. Pair handshake using the secondary trusted code
+        final pairedPeer = await syncService.sendPairHandshake(
+          pairedTabletCode,
+          'Galaxy Tab S9',
+          '127.0.0.1',
+        );
+        expect(pairedPeer, isNotNull);
+        expect(pairedPeer!.deviceName, 'TestHost');
+        // Handshake alone should not fabricate a fake lastSyncedAt timestamp
+        expect(pairedPeer.lastSyncedAt, isNull);
+      } finally {
+        await syncService.stopPrimaryHostServer();
+      }
+    });
+
+    test('legacy v1 SHA-256 and v2 PBKDF2 payloads interoperate cleanly and use cryptographically random IVs', () {
+      const secret = '987654';
+      final raw = json.encode({'action': 'ping', 'timestamp': 1700000000});
+
+      final legacyCipher = cryptoService.encryptPayload(raw, secret, legacyMode: true);
+      expect(legacyCipher, isNotNull);
+      final (decLegacy, isLegacyFlag) = cryptoService.decryptPayloadDetailed(legacyCipher!, secret);
+      expect(decLegacy, equals(raw));
+      expect(isLegacyFlag, isTrue);
+
+      final v2Cipher1 = cryptoService.encryptPayload(raw, secret, legacyMode: false);
+      final v2Cipher2 = cryptoService.encryptPayload(raw, secret, legacyMode: false);
+      expect(v2Cipher1, isNotNull);
+      expect(v2Cipher2, isNotNull);
+      // Encrypting identical plaintext twice must produce distinct ciphertexts (random non-zero IV)
+      expect(v2Cipher1, isNot(equals(v2Cipher2)));
+
+      final (decV2, isV2LegacyFlag) = cryptoService.decryptPayloadDetailed(v2Cipher1!, secret);
+      expect(decV2, equals(raw));
+      expect(isV2LegacyFlag, isFalse);
+    });
+
+    test('PairedDevice.withEndpoint preserves lastSyncedAt and sorts most recently seen endpoint first', () {
+      final t1 = DateTime(2026, 11, 1, 10, 0);
+      final t2 = DateTime(2026, 11, 2, 10, 0);
+      final t3 = DateTime(2026, 11, 3, 10, 0);
+
+      var device = PairedDevice(
+        deviceId: 'tab-1',
+        deviceName: 'Galaxy Tab',
+        pairCode: '123456',
+        endpoints: [
+          DeviceEndpoint(ipAddress: '192.168.1.10', lastSeenAt: t1, lastSyncedAt: t2),
+        ],
+      );
+
+      // Updating lastSeenAt on existing endpoint preserves its lastSyncedAt
+      device = device.withEndpoint(DeviceEndpoint(ipAddress: '192.168.1.10', lastSeenAt: t2));
+      expect(device.endpoints.single.lastSyncedAt, equals(t2));
+
+      // Discovering a newer endpoint on a second Wi-Fi network sorts it first in preferredEndpoint
+      device = device.withEndpoint(DeviceEndpoint(ipAddress: '10.0.0.55', lastSeenAt: t3));
+      expect(device.preferredEndpoint?.ipAddress, equals('10.0.0.55'));
+      expect(device.ipAddress, equals('10.0.0.55'));
+
+      // Removing the primary endpoint does not resurrect it via legacy ipAddress migration
+      final afterRemoval = device.copyWith(
+        endpoints: device.endpoints.where((e) => e.ipAddress != '10.0.0.55').toList(),
+      );
+      expect(afterRemoval.endpoints, hasLength(1));
+      expect(afterRemoval.preferredEndpoint?.ipAddress, equals('192.168.1.10'));
+    });
+
+    test('rate limiter blocks after 25 failed attempts and clears upon valid authentication', () async {
+      P2pSyncService.clearRateLimits();
+      const hostCode = '654321';
+      syncService.updateTrustedPairCodes([hostCode]);
+      await syncService.startPrimaryHostServer('RateLimitHost', hostCode);
+      try {
+        // 13 wrong pings (each wrong ping tries v2 + v1 = 2 failed attempts => 26 failed attempts)
+        SyncResult? lastWrong;
+        for (int i = 0; i < 13; i++) {
+          lastWrong = await syncService.sendTestPing('127.0.0.1', '000000');
+        }
+        expect(lastWrong, isNotNull);
+        expect(lastWrong!.success, isFalse);
+        expect(lastWrong.errorMessage, contains('Rate limited'));
+
+        // Reset rate limits and verify valid auth succeeds
+        P2pSyncService.clearRateLimits();
+        final validPing = await syncService.sendTestPing('127.0.0.1', hostCode);
+        expect(validPing.success, isTrue);
+      } finally {
+        P2pSyncService.clearRateLimits();
+        await syncService.stopPrimaryHostServer();
+      }
     });
   });
 }

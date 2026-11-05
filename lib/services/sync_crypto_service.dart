@@ -56,7 +56,7 @@ class SyncCryptoService {
   String? encryptPayload(String rawText, String secretKey, {bool legacyMode = false}) {
     try {
       final key = legacyMode ? deriveLegacyKey(secretKey) : deriveKey(secretKey);
-      final iv = enc.IV.fromLength(16);
+      final iv = enc.IV.fromSecureRandom(16);
       final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
       final encrypted = encrypter.encrypt(rawText, iv: iv);
       

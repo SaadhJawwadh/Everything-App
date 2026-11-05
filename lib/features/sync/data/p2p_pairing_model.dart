@@ -84,15 +84,29 @@ class PairedDevice {
     return allEndpoints.where((endpoint) => endpoint.ipAddress.isNotEmpty).toList();
   }
 
-  /// The most recently discovered endpoint, retained for legacy call sites.
-  String? get ipAddress => endpoints.isEmpty ? null : endpoints.last.ipAddress;
+  /// The highest-priority endpoint IP, retained for legacy call sites.
+  String? get ipAddress => preferredEndpoint?.ipAddress;
+
+  static DateTime _endpointSortTime(DeviceEndpoint e) {
+    final seen = e.lastSeenAt;
+    final synced = e.lastSyncedAt;
+    if (seen != null && synced != null) {
+      return seen.isAfter(synced) ? seen : synced;
+    }
+    return seen ?? synced ?? DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  /// Returns endpoints ordered from most recently active (seen or synced) to oldest.
+  List<DeviceEndpoint> get sortedEndpoints {
+    if (endpoints.isEmpty) return const [];
+    final sorted = [...endpoints]
+      ..sort((a, b) => _endpointSortTime(b).compareTo(_endpointSortTime(a)));
+    return sorted;
+  }
 
   DeviceEndpoint? get preferredEndpoint {
-    if (endpoints.isEmpty) return null;
-    final sorted = [...endpoints]
-      ..sort((a, b) => (b.lastSyncedAt ?? b.lastSeenAt ?? DateTime.fromMillisecondsSinceEpoch(0))
-          .compareTo(a.lastSyncedAt ?? a.lastSeenAt ?? DateTime.fromMillisecondsSinceEpoch(0)));
-    return sorted.first;
+    final sorted = sortedEndpoints;
+    return sorted.isEmpty ? null : sorted.first;
   }
 
   static String generateRandomName() {
@@ -163,6 +177,7 @@ class PairedDevice {
     List<DeviceEndpoint>? endpoints,
     bool? isNameCustom,
   }) {
+    final effectiveEndpoints = endpoints ?? this.endpoints;
     return PairedDevice(
       deviceId: deviceId,
       deviceName: deviceName ?? this.deviceName,
@@ -170,17 +185,31 @@ class PairedDevice {
       lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
       transportMode: transportMode ?? this.transportMode,
       isPaired: isPaired ?? this.isPaired,
-      ipAddress: ipAddress ?? this.ipAddress,
+      ipAddress: endpoints != null ? ipAddress : (ipAddress ?? this.ipAddress),
       role: role ?? this.role,
-      endpointId: endpointId ?? this.endpointId,
-      endpoints: endpoints ?? this.endpoints,
+      endpointId: endpoints != null ? endpointId : (endpointId ?? this.endpointId),
+      endpoints: effectiveEndpoints,
       isNameCustom: isNameCustom ?? this.isNameCustom,
     );
   }
 
   PairedDevice withEndpoint(DeviceEndpoint endpoint) {
-    final updatedEndpoints = endpoints.where((item) => item.ipAddress != endpoint.ipAddress || item.port != endpoint.port).toList()
-      ..add(endpoint);
+    final existingIndex = endpoints.indexWhere(
+      (item) => item.ipAddress == endpoint.ipAddress && item.port == endpoint.port,
+    );
+    final mergedEndpoint = existingIndex == -1
+        ? endpoint
+        : DeviceEndpoint(
+            ipAddress: endpoint.ipAddress,
+            port: endpoint.port,
+            networkLabel: endpoint.networkLabel ?? endpoints[existingIndex].networkLabel,
+            lastSeenAt: endpoint.lastSeenAt ?? endpoints[existingIndex].lastSeenAt,
+            lastSyncedAt: endpoint.lastSyncedAt ?? endpoints[existingIndex].lastSyncedAt,
+          );
+    final updatedEndpoints = endpoints
+        .where((item) => item.ipAddress != endpoint.ipAddress || item.port != endpoint.port)
+        .toList()
+      ..add(mergedEndpoint);
     return copyWith(endpoints: updatedEndpoints);
   }
 }

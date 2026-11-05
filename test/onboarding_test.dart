@@ -41,8 +41,12 @@ void main() {
     setUp(() async {
       SharedPreferences.setMockInitialValues({});
       settings = SettingsProvider();
-      p2pProvider = P2pSyncProvider();
+      p2pProvider = P2pSyncProvider(autoStartServer: false);
       await Future.delayed(const Duration(milliseconds: 50));
+    });
+
+    tearDown(() {
+      p2pProvider.dispose();
     });
 
     Widget buildTestWidget() {

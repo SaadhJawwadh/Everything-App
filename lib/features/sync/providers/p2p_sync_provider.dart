@@ -65,7 +65,12 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
   static P2pSyncProvider? _activeInstance;
   static P2pSyncProvider? get activeInstance => _activeInstance;
 
-  P2pSyncProvider() {
+  /// Optional callback invoked when an inbound P2P sync merges remote data into the local database,
+  /// allowing domain providers (Notes, Finances, Health) to refresh their in-memory state immediately.
+  VoidCallback? onInboundSyncMerged;
+  final bool autoStartServer;
+
+  P2pSyncProvider({this.onInboundSyncMerged, this.autoStartServer = true}) {
     _activeInstance = this;
     WidgetsBinding.instance.addObserver(this);
     unawaited(loadSettings());
@@ -97,9 +102,15 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
   }
 
   Future<void> _handleAppResumed() async {
+    if (!autoStartServer) return;
+    final prevIp = _localIpAddress;
     await refreshDiagnostics();
-    if (!_service.isHosting) {
+    // Always re-bind on resume if the server stopped or the local Wi-Fi IP changed,
+    // and ensure the HTTP + UDP sockets are fresh after OS background suspension.
+    if (!_service.isHosting || _localIpAddress != prevIp) {
       await startPrimaryHostServer();
+    } else {
+      await _service.startUdpBeacon(_localDeviceName, _currentPairCode);
     }
   }
 
@@ -146,7 +157,9 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
     _discoveredPeersSubscription ??= _service.discoveredPeers.listen(_handleDiscoveredPeer);
     _peerPruneTimer ??= Timer.periodic(const Duration(seconds: 4), (_) => _pruneStaleDiscoveredPeers());
     await refreshDiagnostics();
-    await startPrimaryHostServer();
+    if (autoStartServer) {
+      await startPrimaryHostServer();
+    }
     notifyListeners();
   }
 
@@ -157,15 +170,24 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
     final pairedIndex = _pairedDevices.indexWhere((p) => p.deviceId == peer.deviceId);
     if (pairedIndex != -1) {
       final existing = _pairedDevices[pairedIndex];
+      final existingEndpoint = existing.endpoints.cast<DeviceEndpoint?>().firstWhere(
+            (e) => e?.ipAddress == peer.ipAddress && e?.port == peer.port,
+            orElse: () => null,
+          );
       final newEndpoint = DeviceEndpoint(
         ipAddress: peer.ipAddress,
         port: peer.port,
         lastSeenAt: DateTime.now(),
+        lastSyncedAt: existingEndpoint?.lastSyncedAt,
+        networkLabel: existingEndpoint?.networkLabel,
       );
       final updated = existing.withEndpoint(newEndpoint).copyWith(lastSyncedAt: existing.lastSyncedAt);
       _pairedDevices[pairedIndex] = updated;
-      unawaited(_saveDevicesToStorage());
-      notifyListeners();
+      // Only persist and notify UI if the IP/port was newly added or changed priority
+      if (existingEndpoint == null || existing.preferredEndpoint?.ipAddress != peer.ipAddress) {
+        unawaited(_saveDevicesToStorage());
+        notifyListeners();
+      }
     }
 
     // 2. Manage nearby discovered peers list with throttled notification
@@ -210,6 +232,11 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
       _recentActivity.removeLast();
     }
 
+    // Refresh domain providers when an inbound server sync merges changes into SQLite
+    if (result.isServerInbound && result.success && result.receivedCount > 0) {
+      onInboundSyncMerged?.call();
+    }
+
     // Guard: Inbound host server merges must not overwrite an active outbound client sync session!
     if (result.isServerInbound && _status == SyncStatus.syncing) {
       _lastSyncedAt = DateTime.now();
@@ -245,7 +272,15 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
   Future<void> startPrimaryHostServer() async {
     _status = SyncStatus.hosting;
     notifyListeners();
+    _syncTrustedPairCodesWithService();
     await _service.startPrimaryHostServer(_localDeviceName, _currentPairCode);
+  }
+
+  void _syncTrustedPairCodesWithService() {
+    _service.updateTrustedPairCodes([
+      _currentPairCode,
+      ..._pairedDevices.map((d) => d.pairCode),
+    ]);
   }
 
   Future<void> renameLocalDevice(String name) async {
@@ -297,7 +332,9 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
     if (targetIp == null || targetIp.trim().isEmpty || pairCode.trim().length != 6) {
       throw ArgumentError('A valid local IP address and six-digit pair code are required.');
     }
-    final verifiedTargetIp = targetIp.trim();
+    final parsedTarget = P2pSyncService.parseTargetAddress(targetIp, targetPort);
+    final verifiedTargetIp = parsedTarget.$1;
+    final verifiedTargetPort = parsedTarget.$2;
     final candidateCode = pairCode.trim();
     _status = SyncStatus.connecting;
     _lastMessage = 'Verifying ${deviceName.trim().isEmpty ? 'device' : deviceName}…';
@@ -309,7 +346,7 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
         candidateCode,
         _localDeviceName,
         verifiedTargetIp,
-        targetPort: targetPort,
+        targetPort: verifiedTargetPort,
       );
       if (verifiedRemoteDevice == null) {
         _status = SyncStatus.error;
@@ -321,14 +358,17 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
       _currentPairCode = candidateCode;
       await _persistPairCodeAndRestart();
       final verifiedRemoteDeviceId = remoteDeviceId?.trim();
+      final resolvedDeviceId = verifiedRemoteDevice.deviceId.trim().isNotEmpty
+          ? verifiedRemoteDevice.deviceId.trim()
+          : (verifiedRemoteDeviceId?.isNotEmpty == true ? verifiedRemoteDeviceId! : const Uuid().v4());
 
       final device = PairedDevice(
-        deviceId: verifiedRemoteDeviceId?.isNotEmpty == true ? verifiedRemoteDeviceId! : verifiedRemoteDevice.deviceId,
+        deviceId: resolvedDeviceId,
         deviceName: deviceName.trim().isEmpty ? verifiedRemoteDevice.deviceName : deviceName.trim(),
         pairCode: _currentPairCode,
-        lastSyncedAt: DateTime.now(),
+        lastSyncedAt: null,
         transportMode: 'Primary Direct Sync',
-        endpoints: [DeviceEndpoint(ipAddress: verifiedTargetIp, port: targetPort, lastSeenAt: DateTime.now())],
+        endpoints: [DeviceEndpoint(ipAddress: verifiedTargetIp, port: verifiedTargetPort, lastSeenAt: DateTime.now())],
         role: role,
       );
       await _upsertDevice(device);
@@ -390,17 +430,27 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
       return false;
     }
 
+    final candidateCodes = <String>{
+      if (peer.pairCode.trim().isNotEmpty) peer.pairCode.trim(),
+      if (_currentPairCode.trim().isNotEmpty) _currentPairCode.trim(),
+    }.toList();
+
     if (targetIp != null) {
       _lastMessage = 'Pinging $targetIp…';
       notifyListeners();
-      final result = await _service.sendTestPing(targetIp, peer.pairCode);
-      _handleSyncEvent(result);
-      return result.success;
+      SyncResult? result;
+      for (final code in candidateCodes) {
+        result = await _service.sendTestPing(targetIp, code);
+        if (result.success) break;
+      }
+      if (result != null) {
+        _handleSyncEvent(result);
+        return result.success;
+      }
+      return false;
     }
 
-    final endpoints = [...peer.endpoints]
-      ..sort((a, b) => (b.lastSyncedAt ?? b.lastSeenAt ?? DateTime.fromMillisecondsSinceEpoch(0))
-          .compareTo(a.lastSyncedAt ?? a.lastSeenAt ?? DateTime.fromMillisecondsSinceEpoch(0)));
+    final endpoints = peer.sortedEndpoints;
 
     if (endpoints.isEmpty) {
       _status = SyncStatus.error;
@@ -413,11 +463,18 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
     for (final endpoint in endpoints) {
       _lastMessage = 'Pinging ${endpoint.ipAddress}…';
       notifyListeners();
-      final result = await _service.sendTestPing(endpoint.ipAddress, peer.pairCode, targetPort: endpoint.port);
-      lastResult = result;
-      if (result.success) {
-        _handleSyncEvent(result);
-        return true;
+      for (final code in candidateCodes) {
+        final result = await _service.sendTestPing(endpoint.ipAddress, code, targetPort: endpoint.port);
+        lastResult = result;
+        if (result.success) {
+          _handleSyncEvent(result);
+          return true;
+        }
+        // Only try alternate pair codes if the failure was a pair code / auth mismatch
+        final err = result.errorMessage ?? '';
+        if (!err.contains('Pair Code') && !err.contains('401')) {
+          break;
+        }
       }
     }
 
@@ -457,29 +514,42 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
     _status = SyncStatus.syncing;
     notifyListeners();
     SyncResult? lastFailure;
+    final candidateCodes = <String>{
+      if (device.pairCode.trim().isNotEmpty) device.pairCode.trim(),
+      if (_currentPairCode.trim().isNotEmpty) _currentPairCode.trim(),
+    }.toList();
+
     try {
-      final endpoints = [...device.endpoints]
-        ..sort((a, b) => (b.lastSyncedAt ?? b.lastSeenAt ?? DateTime.fromMillisecondsSinceEpoch(0))
-            .compareTo(a.lastSyncedAt ?? a.lastSeenAt ?? DateTime.fromMillisecondsSinceEpoch(0)));
+      final endpoints = device.sortedEndpoints;
       for (final endpoint in endpoints) {
-        final result = await _service.syncBiDirectional(endpoint.ipAddress, device.pairCode, targetPort: endpoint.port);
-        if (result.success) {
-          final index = _pairedDevices.indexWhere((item) => item.deviceId == device.deviceId);
-          if (index != -1) {
-            _pairedDevices[index] = _pairedDevices[index].withEndpoint(endpoint.copyWith(lastSeenAt: DateTime.now(), lastSyncedAt: DateTime.now())).copyWith(
-                  lastSyncedAt: DateTime.now(),
-                  transportMode: result.transportUsed,
-                );
-            await _saveDevicesToStorage();
+        for (final code in candidateCodes) {
+          final result = await _service.syncBiDirectional(endpoint.ipAddress, code, targetPort: endpoint.port);
+          if (result.success) {
+            final index = _pairedDevices.indexWhere((item) => item.deviceId == device.deviceId);
+            if (index != -1) {
+              _pairedDevices[index] = _pairedDevices[index]
+                  .withEndpoint(endpoint.copyWith(lastSeenAt: DateTime.now(), lastSyncedAt: DateTime.now()))
+                  .copyWith(
+                    pairCode: code,
+                    lastSyncedAt: DateTime.now(),
+                    transportMode: result.transportUsed,
+                  );
+              await _saveDevicesToStorage();
+            }
+            _status = SyncStatus.completed;
+            _lastSyncedAt = DateTime.now();
+            _lastMessage = 'Synced with ${device.deviceName}';
+            if (onCompleted != null) onCompleted();
+            notifyListeners();
+            return result;
           }
-          _status = SyncStatus.completed;
-          _lastSyncedAt = DateTime.now();
-          _lastMessage = 'Synced with ${device.deviceName}';
-          if (onCompleted != null) onCompleted();
-          notifyListeners();
-          return result;
+          lastFailure = result;
+          // Only try alternate pair codes if the failure was a pair code / auth mismatch
+          final err = result.errorMessage ?? '';
+          if (!err.contains('Pair Code') && !err.contains('401')) {
+            break;
+          }
         }
-        lastFailure = result;
       }
       _status = SyncStatus.error;
       _lastMessage = lastFailure?.errorMessage ?? 'Sync failed';
@@ -494,21 +564,32 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
   }
 
   Future<SyncResult> syncBiDirectional({String? targetIp, Function()? onCompleted}) {
-    final device = targetIp == null
-        ? (_pairedDevices.isEmpty ? null : _pairedDevices.first)
-        : _pairedDevices.cast<PairedDevice?>().firstWhere(
-              (item) => item?.endpoints.any((endpoint) => endpoint.ipAddress == targetIp) ?? false,
-              orElse: () => null,
-            );
+    if (targetIp == null) {
+      return syncAllPairedDevices(onCompleted: onCompleted);
+    }
+    final cleanTargetIp = P2pSyncService.sanitizeTargetIp(targetIp);
+    final device = _pairedDevices.cast<PairedDevice?>().firstWhere(
+          (item) =>
+              item?.endpoints.any(
+                (endpoint) => P2pSyncService.sanitizeTargetIp(endpoint.ipAddress) == cleanTargetIp,
+              ) ??
+              false,
+          orElse: () => null,
+        );
     if (device == null) return Future.value(SyncResult(success: false, errorMessage: 'No paired device endpoint is available.'));
     return syncDevice(device, onCompleted: onCompleted);
   }
 
   Future<SyncResult> pullFromPrimary({String? targetIp, Function()? onCompleted}) async {
-    final device = targetIp == null
+    final cleanTargetIp = targetIp == null ? null : P2pSyncService.sanitizeTargetIp(targetIp);
+    final device = cleanTargetIp == null
         ? (_pairedDevices.isEmpty ? null : _pairedDevices.first)
         : _pairedDevices.cast<PairedDevice?>().firstWhere(
-              (item) => item?.endpoints.any((endpoint) => endpoint.ipAddress == targetIp) ?? false,
+              (item) =>
+                  item?.endpoints.any(
+                    (endpoint) => P2pSyncService.sanitizeTargetIp(endpoint.ipAddress) == cleanTargetIp,
+                  ) ??
+                  false,
               orElse: () => null,
             );
     final endpoint = device?.preferredEndpoint;
@@ -522,6 +603,7 @@ class P2pSyncProvider with ChangeNotifier, WidgetsBindingObserver {
     final prefs = await SharedPreferences.getInstance();
     final unique = <String, PairedDevice>{for (final device in _pairedDevices) device.deviceId: device};
     _pairedDevices = unique.values.toList();
+    _syncTrustedPairCodesWithService();
     await prefs.setString(_storageKey, json.encode(_pairedDevices.map((device) => device.toMap()).toList()));
   }
 }

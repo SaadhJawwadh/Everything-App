@@ -61,6 +61,9 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
       _targetIpController.text = initialPeer.ipAddress;
       _scannedDeviceId = initialPeer.deviceId;
       _scannedTargetPort = initialPeer.port;
+    } else {
+      _scannedDeviceId = null;
+      _scannedTargetPort = 8765;
     }
 
     showDialog(
@@ -1143,7 +1146,10 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                             children: [
                               Expanded(
                                 child: OutlinedButton.icon(
-                                  onPressed: () => BackupService.exportBackup(context),
+                                  onPressed: () {
+                                    AppLockScreen.ignoreNextResumeLock();
+                                    BackupService.exportBackup(context);
+                                  },
                                   icon: const Icon(Icons.share_rounded, size: 18),
                                   label: const Text('Export & Share'),
                                 ),
@@ -1151,7 +1157,10 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                               const SizedBox(width: AppLayout.spaceS),
                               Expanded(
                                 child: FilledButton.tonalIcon(
-                                  onPressed: () => BackupService.importBackup(context),
+                                  onPressed: () {
+                                    AppLockScreen.ignoreNextResumeLock();
+                                    BackupService.importBackup(context);
+                                  },
                                   icon: const Icon(Icons.file_open_rounded, size: 18),
                                   label: const Text('Import Sync File'),
                                 ),

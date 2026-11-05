@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -100,9 +101,50 @@ class P2pSyncService {
 
   bool _isHosting = false;
   bool _isSyncing = false;
+  Future<void>? _serverTransitionFuture;
+  final Set<String> _trustedPairCodes = <String>{};
 
-  bool get isHosting => _isHosting;
+  bool get isHosting => _isHosting && _httpServer != null;
   bool get isSyncing => _isSyncing;
+
+  /// Clears IP rate-limit tracking (used for testing and clean state resets).
+  @visibleForTesting
+  static void clearRateLimits() => _failedAuthAttemptsByIp.clear();
+
+  /// Updates the set of trusted pair codes from already-paired devices so that
+  /// even if the user regenerates their host code or pairs multiple devices,
+  /// previously paired devices continue to authenticate seamlessly.
+  void updateTrustedPairCodes(Iterable<String> codes) {
+    _trustedPairCodes
+      ..clear()
+      ..addAll(codes.map((c) => c.trim()).where((c) => c.isNotEmpty));
+  }
+
+  List<String> _candidateCodes(String primaryCode) {
+    final ordered = <String>[];
+    final trimmed = primaryCode.trim();
+    if (trimmed.isNotEmpty) {
+      ordered.add(trimmed);
+    }
+    for (final code in _trustedPairCodes) {
+      if (!ordered.contains(code)) {
+        ordered.add(code);
+      }
+    }
+    return ordered;
+  }
+
+  /// Attempts to decrypt [encryptedPayload] against [primaryCode] and all [_trustedPairCodes].
+  /// Returns `(decryptedText, isLegacyKey, matchedPairCode)`.
+  (String?, bool, String) _decryptWithAnyTrustedCode(String encryptedPayload, String primaryCode) {
+    for (final candidate in _candidateCodes(primaryCode)) {
+      final (decrypted, isLegacy) = _crypto.decryptPayloadDetailed(encryptedPayload, candidate);
+      if (decrypted != null) {
+        return (decrypted, isLegacy, candidate);
+      }
+    }
+    return (null, false, primaryCode);
+  }
 
   Future<String> getDeviceId() async {
     if (_deviceId != null) return _deviceId!;
@@ -152,8 +194,13 @@ class P2pSyncService {
 
   static int _scoreNetworkInterface(String name) {
     final lower = name.toLowerCase();
-    // High priority: Wi-Fi interfaces (Android wlan*, Apple en*, Linux wl*, Windows Wi-Fi)
-    if (lower.startsWith('wlan') || lower.startsWith('wl') || lower.contains('wifi') || lower.contains('wi-fi')) {
+    // High priority: Wi-Fi interfaces (Android wlan*, Samsung swlan*, hotspot ap*, Apple en*, Linux wl*, Windows Wi-Fi)
+    if (lower.startsWith('wlan') ||
+        lower.startsWith('swlan') ||
+        lower.startsWith('ap') ||
+        lower.startsWith('wl') ||
+        lower.contains('wifi') ||
+        lower.contains('wi-fi')) {
       return 100;
     }
     // Ethernet interfaces (en0/en1, eth0)
@@ -182,34 +229,61 @@ class P2pSyncService {
 
   /// Starts the Primary Host HTTP Server & UDP Radio Beacon.
   Future<void> startPrimaryHostServer(String userName, String pairCode) async {
-    await stopPrimaryHostServer();
+    while (_serverTransitionFuture != null) {
+      await _serverTransitionFuture;
+    }
+    final completer = Completer<void>();
+    _serverTransitionFuture = completer.future;
     try {
-      _httpServer = await HttpServer.bind(
-        InternetAddress.anyIPv4,
-        httpSyncPort,
-        shared: true,
-      );
-      _httpServer!.listen(
-        (HttpRequest request) async {
-          await _handlePrimaryHttpRequest(request, pairCode, userName);
-        },
-        onError: (Object error) {
-          debugPrint('[P2pSyncService] HTTP Server stream error: $error');
-        },
-        cancelOnError: false,
-      );
-      _isHosting = true;
-      debugPrint('[P2pSyncService] Primary Host Server listening on port $httpSyncPort');
+      await _stopPrimaryHostServerInternal();
+      try {
+        _httpServer = await HttpServer.bind(
+          InternetAddress.anyIPv4,
+          httpSyncPort,
+          shared: true,
+        );
+        _httpServer!.listen(
+          (HttpRequest request) async {
+            await _handlePrimaryHttpRequest(request, pairCode, userName);
+          },
+          onError: (Object error) {
+            debugPrint('[P2pSyncService] HTTP Server stream error: $error');
+          },
+          onDone: () {
+            _isHosting = false;
+          },
+          cancelOnError: false,
+        );
+        _isHosting = true;
+        debugPrint('[P2pSyncService] Primary Host Server listening on port $httpSyncPort');
 
-      await startUdpBeacon(userName, pairCode);
-    } catch (e) {
-      _isHosting = false;
-      debugPrint('[P2pSyncService] Primary Host Server bind error: $e');
+        await startUdpBeacon(userName, pairCode);
+      } catch (e) {
+        _isHosting = false;
+        debugPrint('[P2pSyncService] Primary Host Server bind error: $e');
+      }
+    } finally {
+      _serverTransitionFuture = null;
+      completer.complete();
     }
   }
 
   /// Stops Primary Host Server & UDP Beacon.
   Future<void> stopPrimaryHostServer() async {
+    while (_serverTransitionFuture != null) {
+      await _serverTransitionFuture;
+    }
+    final completer = Completer<void>();
+    _serverTransitionFuture = completer.future;
+    try {
+      await _stopPrimaryHostServerInternal();
+    } finally {
+      _serverTransitionFuture = null;
+      completer.complete();
+    }
+  }
+
+  Future<void> _stopPrimaryHostServerInternal() async {
     try {
       _beaconTimer?.cancel();
       _beaconTimer = null;
@@ -227,12 +301,20 @@ class P2pSyncService {
     _beaconTimer = null;
     try {
       _udpSocket?.close();
-      _udpSocket = await RawDatagramSocket.bind(
-        InternetAddress.anyIPv4,
-        udpBeaconPort,
-        reuseAddress: true,
-        reusePort: true,
-      );
+      // Note: Do NOT pass reusePort: true here — Dart's RawDatagramSocket.bind throws
+      // SocketException on Android when reusePort is true, killing UDP discovery.
+      try {
+        _udpSocket = await RawDatagramSocket.bind(
+          InternetAddress.anyIPv4,
+          udpBeaconPort,
+          reuseAddress: true,
+        );
+      } catch (_) {
+        _udpSocket = await RawDatagramSocket.bind(
+          InternetAddress.anyIPv4,
+          udpBeaconPort,
+        );
+      }
       _udpSocket!.broadcastEnabled = true;
 
       _udpSocket!.listen(
@@ -250,6 +332,8 @@ class P2pSyncService {
         cancelOnError: false,
       );
 
+      // Broadcast an immediate beacon on start, then every 2 seconds
+      unawaited(broadcastUdpBeacon(userName, pairCode));
       _beaconTimer = Timer.periodic(const Duration(seconds: 2), (_) async {
         await broadcastUdpBeacon(userName, pairCode);
       });
@@ -338,8 +422,8 @@ class P2pSyncService {
         }
       } catch (_) {}
 
-      // 2. Check for encrypted beacon / handshake
-      final decrypted = _crypto.decryptPayload(message, pairCode);
+      // 2. Check for encrypted beacon / handshake against primary or any trusted paired code
+      final (decrypted, _, matchedCode) = _decryptWithAnyTrustedCode(message, pairCode);
       if (decrypted == null) return;
 
       final Map<String, dynamic> map = json.decode(decrypted);
@@ -348,17 +432,32 @@ class P2pSyncService {
 
       if (senderDeviceId == null || senderDeviceId == myDeviceId) return;
 
-      if (map['action'] == 'pair_handshake' || map['action'] == 'beacon') {
+      final effectiveIp = (map['ip'] is String && (map['ip'] as String).trim().isNotEmpty)
+          ? sanitizeTargetIp((map['ip'] as String).trim())
+          : sanitizeTargetIp(senderIp);
+      final effectivePort = map['port'] is int ? map['port'] as int : httpSyncPort;
+
+      if (map['action'] == 'beacon') {
+        // Emit as a discovered peer so already-paired devices update their endpoint IP/lastSeenAt
+        // without fabricating a fake lastSyncedAt timestamp or clobbering their paired role.
+        _discoveredPeersController.add(DiscoveredPeer(
+          deviceId: senderDeviceId,
+          deviceName: senderName,
+          ipAddress: effectiveIp,
+          port: effectivePort,
+          lastSeenAt: DateTime.now(),
+        ));
+      } else if (map['action'] == 'pair_handshake') {
         final remoteDevice = PairedDevice(
           deviceId: senderDeviceId,
           deviceName: senderName,
-          pairCode: pairCode,
-          lastSyncedAt: DateTime.now(),
+          pairCode: matchedCode,
+          lastSyncedAt: null,
           transportMode: 'Primary Direct Sync',
           endpoints: [
             DeviceEndpoint(
-              ipAddress: senderIp,
-              port: map['port'] is int ? map['port'] as int : httpSyncPort,
+              ipAddress: effectiveIp,
+              port: effectivePort,
               lastSeenAt: DateTime.now(),
             ),
           ],
@@ -376,7 +475,7 @@ class P2pSyncService {
     final attempts = _failedAuthAttemptsByIp[ip];
     if (attempts == null) return false;
     attempts.removeWhere((ts) => now - ts > 60000);
-    return attempts.length >= 5;
+    return attempts.length >= 25;
   }
 
   static void _recordFailedAuth(String ip) {
@@ -385,13 +484,27 @@ class P2pSyncService {
     attempts.add(now);
   }
 
+  static void _clearFailedAuth(String ip) {
+    _failedAuthAttemptsByIp.remove(ip);
+  }
+
+  /// Normalizes IPv4-mapped IPv6 addresses (e.g. `::ffff:192.168.1.15` -> `192.168.1.15`).
+  static String _normalizeClientIp(String rawIp) {
+    final trimmed = rawIp.trim();
+    if (trimmed.toLowerCase().startsWith('::ffff:')) {
+      return trimmed.substring(7);
+    }
+    return trimmed;
+  }
+
   /// Handles HTTP Requests on Primary Host Server.
   Future<void> _handlePrimaryHttpRequest(HttpRequest request, String pairCode, String userName) async {
     final response = request.response;
     response.headers.contentType = ContentType.json;
 
-    final clientIp = request.connectionInfo?.remoteAddress.address ?? 'unknown';
+    final clientIp = _normalizeClientIp(request.connectionInfo?.remoteAddress.address ?? 'unknown');
     if (_isIpRateLimited(clientIp)) {
+      await request.drain<void>().catchError((_) {});
       response.statusCode = HttpStatus.tooManyRequests;
       response.write(json.encode({'error': 'Rate limited due to repeated failed authentication attempts.'}));
       await response.close();
@@ -401,6 +514,7 @@ class P2pSyncService {
     // Guard against memory exhaustion from oversized payloads (25MB limit)
     const int maxPayloadBytes = 25 * 1024 * 1024;
     if (request.contentLength > maxPayloadBytes) {
+      await request.drain<void>().catchError((_) {});
       response.statusCode = HttpStatus.requestEntityTooLarge;
       response.write(json.encode({'error': 'Payload exceeds 25MB limit'}));
       await response.close();
@@ -410,7 +524,7 @@ class P2pSyncService {
     Future<String?> readBoundedBody() async {
       final chunks = <List<int>>[];
       int totalBytes = 0;
-      await for (final chunk in request) {
+      await for (final chunk in request.timeout(const Duration(seconds: 30))) {
         totalBytes += chunk.length;
         if (totalBytes > maxPayloadBytes) {
           return null;
@@ -430,8 +544,9 @@ class P2pSyncService {
           response.statusCode = HttpStatus.requestEntityTooLarge;
           return;
         }
-        final (decrypted, isLegacy) = _crypto.decryptPayloadDetailed(body, pairCode);
+        final (decrypted, isLegacy, matchedCode) = _decryptWithAnyTrustedCode(body, pairCode);
         if (decrypted != null) {
+          _clearFailedAuth(clientIp);
           final reqMap = json.decode(decrypted);
           final reply = _crypto.encryptPayload(
             json.encode({
@@ -440,7 +555,7 @@ class P2pSyncService {
               'serverTime': DateTime.now().millisecondsSinceEpoch,
               'hostName': userName,
             }),
-            pairCode,
+            matchedCode,
             legacyMode: isLegacy,
           );
           response.statusCode = HttpStatus.ok;
@@ -457,18 +572,19 @@ class P2pSyncService {
           response.statusCode = HttpStatus.requestEntityTooLarge;
           return;
         }
-        final (decrypted, isLegacy) = _crypto.decryptPayloadDetailed(body, pairCode);
+        final (decrypted, isLegacy, matchedCode) = _decryptWithAnyTrustedCode(body, pairCode);
         if (decrypted != null) {
+          _clearFailedAuth(clientIp);
           final Map<String, dynamic> map = json.decode(decrypted);
           final remoteDevice = PairedDevice(
             deviceId: map['deviceId'] ?? const Uuid().v4(),
             deviceName: map['deviceName'] ?? PairedDevice.generateRandomName(),
-            pairCode: pairCode,
-            lastSyncedAt: DateTime.now(),
+            pairCode: matchedCode,
+            lastSyncedAt: null,
             transportMode: 'Primary Direct Sync',
             endpoints: [
               DeviceEndpoint(
-                ipAddress: request.connectionInfo?.remoteAddress.address ?? '',
+                ipAddress: clientIp == 'unknown' ? '' : clientIp,
                 port: map['port'] is int ? map['port'] as int : httpSyncPort,
                 lastSeenAt: DateTime.now(),
               ),
@@ -485,7 +601,7 @@ class P2pSyncService {
               'role': 'PRIMARY',
               'port': httpSyncPort,
             }),
-            pairCode,
+            matchedCode,
             legacyMode: isLegacy,
           );
           response.statusCode = HttpStatus.ok;
@@ -502,10 +618,11 @@ class P2pSyncService {
           response.statusCode = HttpStatus.requestEntityTooLarge;
           return;
         }
-        final (decrypted, isLegacy) = _crypto.decryptPayloadDetailed(body, pairCode);
+        final (decrypted, isLegacy, matchedCode) = _decryptWithAnyTrustedCode(body, pairCode);
         if (decrypted != null) {
+          _clearFailedAuth(clientIp);
           final backupJson = await generateBackupJson();
-          final encryptedReply = _crypto.encryptPayload(backupJson, pairCode, legacyMode: isLegacy);
+          final encryptedReply = _crypto.encryptPayload(backupJson, matchedCode, legacyMode: isLegacy);
 
           response.statusCode = HttpStatus.ok;
           response.write(encryptedReply);
@@ -526,9 +643,9 @@ class P2pSyncService {
       // 4. Bi-Directional Delta Merge (Non-Destructive 2-Way Sync)
       else if (path == '/api/sync/bidirectional_sync') {
         if (_isSyncing) {
+          await request.drain<void>().catchError((_) {});
           response.statusCode = HttpStatus.serviceUnavailable;
           response.write(json.encode({'error': 'Device is currently synchronizing. Please retry shortly.'}));
-          await response.close();
           return;
         }
         _isSyncing = true;
@@ -538,8 +655,9 @@ class P2pSyncService {
             response.statusCode = HttpStatus.requestEntityTooLarge;
             return;
           }
-          final (decrypted, isLegacy) = _crypto.decryptPayloadDetailed(body, pairCode);
+          final (decrypted, isLegacy, matchedCode) = _decryptWithAnyTrustedCode(body, pairCode);
           if (decrypted != null) {
+            _clearFailedAuth(clientIp);
             final Map<String, dynamic> clientData = json.decode(decrypted);
 
             // 1. Merge client data into host database
@@ -550,7 +668,7 @@ class P2pSyncService {
 
             // 2. Generate updated host payload for client
             final updatedBackupJson = await generateBackupJson();
-            final encryptedReply = _crypto.encryptPayload(updatedBackupJson, pairCode, legacyMode: isLegacy);
+            final encryptedReply = _crypto.encryptPayload(updatedBackupJson, matchedCode, legacyMode: isLegacy);
 
             response.statusCode = HttpStatus.ok;
             response.write(encryptedReply);
@@ -663,14 +781,12 @@ class P2pSyncService {
 
       // If server returned 401 Unauthorized, retry once with legacy v1 key in case peer is on older version
       if (res.statusCode == 401) {
+        await res.drain<void>().catchError((_) {});
         final legacyEncrypted = _crypto.encryptPayload(json.encode(handshakeMap), pairCode, legacyMode: true);
         if (legacyEncrypted != null) {
           final retryReq = await client.postUrl(buildSyncUri(cleanIp, cleanPort, '/api/sync/pair_handshake'));
           retryReq.write(legacyEncrypted);
-          final retryRes = await retryReq.close().timeout(const Duration(seconds: 10));
-          if (retryRes.statusCode == 200) {
-            res = retryRes;
-          }
+          res = await retryReq.close().timeout(const Duration(seconds: 10));
         }
       }
 
@@ -683,7 +799,7 @@ class P2pSyncService {
             deviceId: map['deviceId'] ?? const Uuid().v4(),
             deviceName: map['deviceName'] ?? PairedDevice.generateRandomName(),
             pairCode: pairCode,
-            lastSyncedAt: DateTime.now(),
+            lastSyncedAt: null,
             transportMode: 'Bi-Directional Sync',
             endpoints: [DeviceEndpoint(ipAddress: cleanIp, port: cleanPort, lastSeenAt: DateTime.now())],
             role: map['role'] as String? ?? 'PEER',
@@ -693,12 +809,15 @@ class P2pSyncService {
         } else {
           throw StateError('Handshake decryption failed. Ensure both devices share the exact same 6-digit pair code.');
         }
-      } else if (res.statusCode == 401) {
-        throw StateError('Pair code mismatch. Check the 6-digit code on the target device.');
-      } else if (res.statusCode == 429) {
-        throw StateError('Rate limited due to repeated attempts. Please wait 60 seconds and retry.');
       } else {
-        throw StateError('Pairing failed (HTTP ${res.statusCode}) with $cleanIp.');
+        await res.drain<void>().catchError((_) {});
+        if (res.statusCode == 401) {
+          throw StateError('Pair code mismatch. Check the 6-digit code on the target device.');
+        } else if (res.statusCode == 429) {
+          throw StateError('Rate limited due to repeated attempts. Please wait 60 seconds and retry.');
+        } else {
+          throw StateError('Pairing failed (HTTP ${res.statusCode}) with $cleanIp.');
+        }
       }
     } catch (e) {
       debugPrint('[P2pSyncService] Pair handshake error: $e');
@@ -738,19 +857,31 @@ class P2pSyncService {
         'action': 'ping',
         'timestamp': startTime,
       };
-      final encrypted = _crypto.encryptPayload(json.encode(pingMap), pairCode);
+      final rawJson = json.encode(pingMap);
+      final encrypted = _crypto.encryptPayload(rawJson, pairCode);
       if (encrypted == null) {
         return SyncResult(success: false, errorMessage: 'Encryption failed. Check pair code.');
       }
 
       final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
       try {
-        final req = await client.postUrl(buildSyncUri(cleanIp, cleanPort, '/api/sync/ping'));
+        var req = await client.postUrl(buildSyncUri(cleanIp, cleanPort, '/api/sync/ping'));
         req.write(encrypted);
-        final res = await req.close();
+        var res = await req.close().timeout(const Duration(seconds: 10));
+
+        // Automatic fallback to legacy v1 SHA-256 key if target device is on an older build
+        if (res.statusCode == 401) {
+          await res.drain<void>().catchError((_) {});
+          final legacyEncrypted = _crypto.encryptPayload(rawJson, pairCode, legacyMode: true);
+          if (legacyEncrypted != null) {
+            final retryReq = await client.postUrl(buildSyncUri(cleanIp, cleanPort, '/api/sync/ping'));
+            retryReq.write(legacyEncrypted);
+            res = await retryReq.close().timeout(const Duration(seconds: 10));
+          }
+        }
 
         if (res.statusCode == 200) {
-          final body = await utf8.decoder.bind(res).join();
+          final body = await utf8.decoder.bind(res).join().timeout(const Duration(seconds: 10));
           final decrypted = _crypto.decryptPayload(body, pairCode);
           if (decrypted != null) {
             final endTime = DateTime.now().millisecondsSinceEpoch;
@@ -766,8 +897,12 @@ class P2pSyncService {
           } else {
             return SyncResult(success: false, errorMessage: 'Pair Code mismatch. Decryption failed for $cleanIp.');
           }
-        } else if (res.statusCode == 401) {
+        }
+        await res.drain<void>().catchError((_) {});
+        if (res.statusCode == 401) {
           return SyncResult(success: false, errorMessage: 'Pair Code mismatch. Check 6-digit code on target device.');
+        } else if (res.statusCode == 429) {
+          return SyncResult(success: false, errorMessage: 'Rate limited due to repeated attempts. Please wait 60 seconds and retry.');
         }
         return SyncResult(success: false, errorMessage: 'Ping failed (HTTP ${res.statusCode}) from $cleanIp');
       } finally {
@@ -796,19 +931,30 @@ class P2pSyncService {
         'action': 'pull_master',
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       };
-      final encrypted = _crypto.encryptPayload(json.encode(requestMap), pairCode);
+      final rawJson = json.encode(requestMap);
+      final encrypted = _crypto.encryptPayload(rawJson, pairCode);
       if (encrypted == null) {
         return SyncResult(success: false, errorMessage: 'Encryption error');
       }
 
       final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
       try {
-        final req = await client.postUrl(buildSyncUri(cleanIp, cleanPort, '/api/sync/pull_master'));
+        var req = await client.postUrl(buildSyncUri(cleanIp, cleanPort, '/api/sync/pull_master'));
         req.write(encrypted);
-        final res = await req.close();
+        var res = await req.close().timeout(const Duration(seconds: 30));
+
+        if (res.statusCode == 401) {
+          await res.drain<void>().catchError((_) {});
+          final legacyEncrypted = _crypto.encryptPayload(rawJson, pairCode, legacyMode: true);
+          if (legacyEncrypted != null) {
+            final retryReq = await client.postUrl(buildSyncUri(cleanIp, cleanPort, '/api/sync/pull_master'));
+            retryReq.write(legacyEncrypted);
+            res = await retryReq.close().timeout(const Duration(seconds: 30));
+          }
+        }
 
         if (res.statusCode == 200) {
-          final responseBody = await utf8.decoder.bind(res).join().timeout(const Duration(seconds: 30));
+          final responseBody = await utf8.decoder.bind(res).join().timeout(const Duration(seconds: 45));
           final decryptedReply = _crypto.decryptPayload(responseBody, pairCode);
           if (decryptedReply != null) {
             final Map<String, dynamic> replyMap = json.decode(decryptedReply);
@@ -826,8 +972,10 @@ class P2pSyncService {
             _syncEventsController.add(syncRes);
             return syncRes;
           }
+        } else {
+          await res.drain<void>().catchError((_) {});
         }
-        return SyncResult(success: false, errorMessage: 'Failed to fetch master snapshot from $cleanIp');
+        return SyncResult(success: false, errorMessage: 'Failed to fetch master snapshot from $cleanIp (HTTP ${res.statusCode})');
       } finally {
         client.close(force: true);
       }
@@ -849,23 +997,59 @@ class P2pSyncService {
     if (_isSyncing) {
       return SyncResult(success: false, errorMessage: 'Sync already in progress');
     }
-    _isSyncing = true;
 
+    // Generate & encrypt local payload once before acquiring _isSyncing lock so that if
+    // the remote peer is also syncing simultaneously, we can release _isSyncing during 503 backoff!
+    final String clientBackupJson;
+    final String? encrypted;
     try {
-      final clientBackupJson = await generateBackupJson();
-      final encrypted = _crypto.encryptPayload(clientBackupJson, pairCode);
+      clientBackupJson = await generateBackupJson();
+      encrypted = _crypto.encryptPayload(clientBackupJson, pairCode);
       if (encrypted == null) {
         return SyncResult(success: false, errorMessage: 'Encryption error');
       }
+    } catch (e) {
+      final res = SyncResult(success: false, errorMessage: _formatUserFriendlyError(e, cleanIp));
+      _syncEventsController.add(res);
+      return res;
+    }
 
-      final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
+    const int max503Retries = 2;
+    for (int attempt = 0; attempt <= max503Retries; attempt++) {
+      if (_isSyncing) {
+        return SyncResult(success: false, errorMessage: 'Sync already in progress');
+      }
+      _isSyncing = true;
+
+      final client = HttpClient()..connectionTimeout = const Duration(seconds: 10);
       try {
-        final req = await client.postUrl(buildSyncUri(cleanIp, cleanPort, '/api/sync/bidirectional_sync'));
+        var req = await client.postUrl(buildSyncUri(cleanIp, cleanPort, '/api/sync/bidirectional_sync'));
         req.write(encrypted);
-        final res = await req.close();
+        var res = await req.close().timeout(const Duration(seconds: 45));
+
+        // Automatic fallback to legacy v1 SHA-256 key if target device is on an older build
+        if (res.statusCode == 401) {
+          await res.drain<void>().catchError((_) {});
+          final legacyEncrypted = _crypto.encryptPayload(clientBackupJson, pairCode, legacyMode: true);
+          if (legacyEncrypted != null) {
+            final retryReq = await client.postUrl(buildSyncUri(cleanIp, cleanPort, '/api/sync/bidirectional_sync'));
+            retryReq.write(legacyEncrypted);
+            res = await retryReq.close().timeout(const Duration(seconds: 45));
+          }
+        }
+
+        // If peer is currently busy syncing (e.g., simultaneous button press on Phone & Tablet),
+        // release _isSyncing so the peer's request to us can complete, wait randomized jitter, and retry!
+        if (res.statusCode == HttpStatus.serviceUnavailable && attempt < max503Retries) {
+          await res.drain<void>().catchError((_) {});
+          _isSyncing = false;
+          final jitterMs = 450 + Random().nextInt(650) + (attempt * 400);
+          await Future<void>.delayed(Duration(milliseconds: jitterMs));
+          continue;
+        }
 
         if (res.statusCode == 200) {
-          final responseBody = await utf8.decoder.bind(res).join().timeout(const Duration(seconds: 30));
+          final responseBody = await utf8.decoder.bind(res).join().timeout(const Duration(seconds: 45));
           final decryptedReply = _crypto.decryptPayload(responseBody, pairCode);
           if (decryptedReply != null) {
             final Map<String, dynamic> replyMap = json.decode(decryptedReply);
@@ -888,25 +1072,34 @@ class P2pSyncService {
           } else {
             return SyncResult(success: false, errorMessage: 'Pair Code mismatch. Decryption failed for $cleanIp.');
           }
-        } else if (res.statusCode == 401) {
+        }
+
+        await res.drain<void>().catchError((_) {});
+        if (res.statusCode == 401) {
           return SyncResult(success: false, errorMessage: 'Pair Code mismatch. Check 6-digit code on target device.');
+        } else if (res.statusCode == 429) {
+          return SyncResult(success: false, errorMessage: 'Rate limited due to repeated attempts. Please wait 60 seconds and retry.');
+        } else if (res.statusCode == HttpStatus.serviceUnavailable) {
+          return SyncResult(success: false, errorMessage: 'Peer device is busy synchronizing ($cleanIp). Please retry in a few seconds.');
         }
         return SyncResult(success: false, errorMessage: 'Sync failed (HTTP ${res.statusCode}) with $cleanIp');
+      } catch (e) {
+        final res = SyncResult(success: false, errorMessage: _formatUserFriendlyError(e, cleanIp));
+        _syncEventsController.add(res);
+        return res;
       } finally {
+        _isSyncing = false;
         client.close(force: true);
       }
-    } catch (e) {
-      final res = SyncResult(success: false, errorMessage: _formatUserFriendlyError(e, cleanIp));
-      _syncEventsController.add(res);
-      return res;
-    } finally {
-      _isSyncing = false;
     }
+    return SyncResult(success: false, errorMessage: 'Sync failed with $cleanIp');
   }
 
   /// Background auto-sync trigger compatibility alias (uses Bi-Directional Merge).
   Future<SyncResult> performSync(PairedDevice device) async {
-    final ip = device.ipAddress ?? '127.0.0.1';
-    return syncBiDirectional(ip, device.pairCode);
+    final preferred = device.preferredEndpoint;
+    final ip = preferred?.ipAddress ?? device.ipAddress ?? '127.0.0.1';
+    final port = preferred?.port ?? httpSyncPort;
+    return syncBiDirectional(ip, device.pairCode, targetPort: port);
   }
 }
