@@ -149,7 +149,10 @@ void main() {
 
       await tester.runAsync(() async {
         await tester.tap(find.text('Drain'));
-        await Future.delayed(const Duration(milliseconds: 100));
+        for (int i = 0; i < 40; i++) {
+          await Future.delayed(const Duration(milliseconds: 50));
+          if (!AppFunctionInboxService.isDraining) break;
+        }
       });
       await tester.pump();
 
@@ -241,7 +244,10 @@ void main() {
 
       await tester.runAsync(() async {
         await tester.tap(find.text('Drain'));
-        await Future.delayed(const Duration(milliseconds: 150));
+        for (int i = 0; i < 40; i++) {
+          await Future.delayed(const Duration(milliseconds: 50));
+          if (!AppFunctionInboxService.isDraining) break;
+        }
       });
       await tester.pump();
 

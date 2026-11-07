@@ -17,6 +17,9 @@ class AppFunctionInboxService {
   static const String queueKey = 'pending_appfunctions_queue';
   static bool _isDraining = false;
 
+  @visibleForTesting
+  static bool get isDraining => _isDraining;
+
   /// Drains any actions queued by Android AppFunctions (e.g. via Gemini or Assistant)
   /// and applies them to local storage with immediate visual undo SnackBar feedback.
   static Future<void> drainPendingQueue(BuildContext context) async {

@@ -25,9 +25,34 @@ class ChangelogRelease {
 
 final List<ChangelogRelease> kChangelogHistory = [
   ChangelogRelease(
+    version: 'v3.3.4',
+    date: 'November 7, 2026',
+    isLatest: true,
+    categories: [
+      ChangelogCategory(
+        title: "What's New",
+        items: [
+          'Universal P2P & Cross-Network Sync Parity: End-to-end verified BIP-340 Schnorr WebSocket relay alongside dedicated IPv4 socket binding, enabling frictionless sync across Wi-Fi, Hotspots, and Mobile Data.',
+        ],
+      ),
+      ChangelogCategory(
+        title: 'Improvements',
+        items: [
+          'Background Queue Synchronization: Added polling-based asynchronous drain synchronization to AppFunctionInboxService, ensuring immediate, reliable execution and SnackBar feedback for queued actions.',
+        ],
+      ),
+      ChangelogCategory(
+        title: 'Fixes',
+        items: [
+          'Async Execution Race Guard: Eliminated timing races in background queue processing to ensure database writes complete before status feedback is presented.',
+        ],
+      ),
+    ],
+  ),
+  ChangelogRelease(
     version: 'v3.3.3',
     date: 'November 6, 2026',
-    isLatest: true,
+    isLatest: false,
     categories: [
       ChangelogCategory(
         title: "What's New",
