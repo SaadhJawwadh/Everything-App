@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'package:archive/archive.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -89,18 +90,30 @@ class NoteMigrationService {
   static Future<List<Note>> parseZipForTesting(File file) => _parseZipFile(file);
 
   /// Extracts and parses notes from a Google Takeout or backup ZIP file,
-  /// including any attached photos or images.
+  /// including any attached photos or images. Offloads heavy decompression and
+  /// JSON/Markdown parsing to a background isolate.
   static Future<List<Note>> _parseZipFile(File file) async {
+    Directory? targetDir;
+    try {
+      targetDir = await getApplicationDocumentsDirectory();
+    } catch (_) {
+      targetDir = Directory.systemTemp;
+    }
+    final targetDirPath = targetDir.path;
+    final filePath = file.path;
+
+    return await Isolate.run<List<Note>>(() async {
+      return _parseZipFileInternal(filePath, targetDirPath);
+    });
+  }
+
+  static Future<List<Note>> _parseZipFileInternal(String filePath, String targetDirPath) async {
     final notes = <Note>[];
     try {
+      final file = File(filePath);
       final bytes = await file.readAsBytes();
       final archive = ZipDecoder().decodeBytes(bytes);
-      Directory? targetDir;
-      try {
-        targetDir = await getApplicationDocumentsDirectory();
-      } catch (_) {
-        targetDir = Directory.systemTemp;
-      }
+      final targetDir = Directory(targetDirPath);
 
       // Index all image files in the ZIP archive
       final imageFiles = <String, ArchiveFile>{};
@@ -145,20 +158,27 @@ class NoteMigrationService {
 
   static Future<Note?> _parseJsonFile(File file) async {
     try {
-      final content = await file.readAsString();
-      final fileName = file.uri.pathSegments.last;
       Directory? targetDir;
       try {
         targetDir = await getApplicationDocumentsDirectory();
       } catch (_) {
         targetDir = Directory.systemTemp;
       }
-      return await _parseKeepJsonString(
-        content,
-        fileName,
-        sourceDir: file.parent,
-        targetDir: targetDir,
-      );
+      final targetDirPath = targetDir.path;
+      final filePath = file.path;
+      final parentDirPath = file.parent.path;
+      final fileName = file.uri.pathSegments.last;
+
+      return await Isolate.run(() async {
+        final localFile = File(filePath);
+        final content = await localFile.readAsString();
+        return await _parseKeepJsonString(
+          content,
+          fileName,
+          sourceDir: Directory(parentDirPath),
+          targetDir: Directory(targetDirPath),
+        );
+      });
     } catch (e) {
       debugPrint('[NoteMigrationService] Error parsing JSON file: $e');
       return null;

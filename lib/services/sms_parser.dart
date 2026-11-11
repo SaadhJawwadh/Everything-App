@@ -1,8 +1,10 @@
+import 'dart:isolate';
 import '../data/transaction_model.dart';
 import '../data/transaction_category.dart';
 import '../data/category_constants.dart';
 import '../data/custom_sms_rule.dart';
 import 'sms_constants.dart';
+import 'native_core_bridge.dart';
 
 class SmsParser {
   /// Safely parses a raw numerical amount string supporting both standard
@@ -43,6 +45,8 @@ class SmsParser {
     List<CustomSmsRule>? customSmsRules,
   }) {
     if (body.trim().isEmpty) return false;
+    // Fast O(N) pre-filter: financial transactions always contain numerical amounts/dates
+    if (!NativeCoreBridge.instance.containsDigits(body)) return false;
 
     // Cancellation check
     final isReversal = SmsConstants.reversalRegex.hasMatch(body);
@@ -116,6 +120,8 @@ class SmsParser {
     Map<String, String>? categoryAccountRouting,
   }) {
     if (body.trim().isEmpty) return null;
+    // Fast O(N) pre-filter: financial transactions always contain numerical amounts/dates
+    if (!NativeCoreBridge.instance.containsDigits(body)) return null;
 
     final isReversal = SmsConstants.reversalRegex.hasMatch(body);
     final senderLower = address.toLowerCase().trim();
@@ -435,5 +441,38 @@ class SmsParser {
       return DateTime.fromMillisecondsSinceEpoch(messageDate * 1000);
     }
     return DateTime.fromMillisecondsSinceEpoch(messageDate);
+  }
+
+  /// Parses an SMS batch inside a background isolate, offloading CPU-intensive regex matching.
+  static Future<List<TransactionModel?>> parseBatchInIsolate({
+    required List<({String body, String address, int? messageId, int? messageDate})> batch,
+    required Set<String> allowedSenderIds,
+    required Set<String> blockedSenderIds,
+    required List<String> customExpenseRules,
+    required List<String> customIncomeRules,
+    List<CustomSmsRule>? customSmsRules,
+    String? preferredCurrency,
+    Map<String, String>? categoryAccountRouting,
+  }) async {
+    if (batch.isEmpty) return [];
+    return Isolate.run(() {
+      final results = <TransactionModel?>[];
+      for (final item in batch) {
+        results.add(parseMessage(
+          body: item.body,
+          address: item.address,
+          messageId: item.messageId,
+          messageDate: item.messageDate,
+          allowedSenderIds: allowedSenderIds,
+          blockedSenderIds: blockedSenderIds,
+          customExpenseRules: customExpenseRules,
+          customIncomeRules: customIncomeRules,
+          customSmsRules: customSmsRules,
+          preferredCurrency: preferredCurrency,
+          categoryAccountRouting: categoryAccountRouting,
+        ));
+      }
+      return results;
+    });
   }
 }

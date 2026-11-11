@@ -289,7 +289,7 @@ void main() {
     });
 
     testWidgets('WhatsNewSheet renders v3.3.0 cards and records version on dismiss', (tester) async {
-      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.physicalSize = const Size(1080, 3200);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
@@ -305,7 +305,7 @@ void main() {
           value: settings,
           child: const MaterialApp(
             home: Scaffold(
-              body: WhatsNewSheet(currentVersion: '3.3.4'),
+              body: WhatsNewSheet(currentVersion: '3.3.5'),
             ),
           ),
         ),
@@ -317,17 +317,12 @@ void main() {
       expect(find.text("Improvements"), findsOneWidget);
       expect(find.text("Fixes"), findsOneWidget);
 
-      // Check marquee items and interactive action buttons
-      expect(find.text("Universal P2P & Cross-Network Sync"), findsOneWidget);
-      expect(find.text("Android 16+ AppFunctions & Gemini"), findsOneWidget);
-      expect(find.text("Smart Action Search Cards"), findsOneWidget);
-      expect(find.text("Hands-Free Quick Capture"), findsOneWidget);
-      expect(find.text("Hardware Keyboard Shortcuts"), findsOneWidget);
-      expect(find.text("View Shortcuts ➔"), findsOneWidget);
-      expect(find.text("Interactive Settings Hub"), findsOneWidget);
-      expect(find.text("Open Settings Hub ➔"), findsOneWidget);
-      expect(find.text("Unified Currency Symbols"), findsOneWidget);
-      expect(find.text("Customize Currency ➔"), findsOneWidget);
+      // Check marquee items for v3.3.5
+      expect(find.text("Native Core & Isolate Acceleration"), findsOneWidget);
+      expect(find.text("Background Google Takeout Import"), findsOneWidget);
+      expect(find.text("Instant SMS Ingestion Pre-Filter"), findsOneWidget);
+      expect(find.text("Optimized Memory Footprint"), findsOneWidget);
+      expect(find.text("Smooth Background Syncing"), findsOneWidget);
 
       // Tap "Awesome, Got It!" to finish
       await tester.runAsync(() async {
@@ -336,7 +331,7 @@ void main() {
       });
       await tester.pumpAndSettle();
 
-      expect(settings.lastSeenVersion, '3.3.4');
+      expect(settings.lastSeenVersion, '3.3.5');
     });
   });
 }

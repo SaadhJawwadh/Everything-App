@@ -1,7 +1,8 @@
 import 'dart:convert';
+import 'dart:isolate';
 import 'dart:typed_data';
-import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart' as enc;
+import 'native_core_bridge.dart';
 
 class SyncCryptoService {
   static final SyncCryptoService instance = SyncCryptoService._init();
@@ -14,6 +15,7 @@ class SyncCryptoService {
   static final Map<String, enc.Key> _derivedKeyCache = {};
 
   /// Derives a 32-byte (256-bit) AES key using PBKDF2-HMAC-SHA256 with domain salt.
+  /// Uses hardware-accelerated native crypto when available with pure-Dart fallback.
   enc.Key deriveKey(String secret) {
     final trimmed = secret.trim();
     final cached = _derivedKeyCache[trimmed];
@@ -21,23 +23,12 @@ class SyncCryptoService {
 
     final keyBytes = utf8.encode(trimmed);
     final saltBytes = utf8.encode(_p2pDomainSalt);
-    final hmac = Hmac(sha256, keyBytes);
 
-    // PBKDF2 for 1 block (32 bytes)
-    // U_1 = HMAC(secret, salt || 0x00000001)
-    final saltPlusBlockIndex = Uint8List(saltBytes.length + 4)
-      ..setRange(0, saltBytes.length, saltBytes)
-      ..setRange(saltBytes.length, saltBytes.length + 4, [0, 0, 0, 1]);
-
-    List<int> u = hmac.convert(saltPlusBlockIndex).bytes;
-    final t = Uint8List.fromList(u);
-
-    for (int i = 1; i < _pbkdf2Iterations; i++) {
-      u = hmac.convert(u).bytes;
-      for (int j = 0; j < 32; j++) {
-        t[j] ^= u[j];
-      }
-    }
+    final t = NativeCoreBridge.instance.derivePbkdf2Sha256(
+      secret: Uint8List.fromList(keyBytes),
+      salt: Uint8List.fromList(saltBytes),
+      iterations: _pbkdf2Iterations,
+    );
 
     final derived = enc.Key(t);
     _derivedKeyCache[trimmed] = derived;
@@ -47,8 +38,8 @@ class SyncCryptoService {
   /// Legacy single-round SHA-256 derivation for backward compatibility with v1 endpoints.
   enc.Key deriveLegacyKey(String secret) {
     final bytes = utf8.encode(secret.trim());
-    final digest = sha256.convert(bytes);
-    return enc.Key(Uint8List.fromList(digest.bytes));
+    final digest = NativeCoreBridge.instance.sha256Digest(Uint8List.fromList(bytes));
+    return enc.Key(digest);
   }
 
   /// Encrypts a raw text string into a base64 ciphertext with IV.
@@ -69,6 +60,17 @@ class SyncCryptoService {
     } catch (_) {
       return null;
     }
+  }
+
+  /// Asynchronously encrypts payload, offloading large payloads (>= 2KB) to a background isolate
+  /// so the UI thread experiences 0ms stutter.
+  Future<String?> encryptPayloadAsync(String rawText, String secretKey, {bool legacyMode = false}) async {
+    if (rawText.length < 2048) {
+      return encryptPayload(rawText, secretKey, legacyMode: legacyMode);
+    }
+    return Isolate.run(() {
+      return SyncCryptoService.instance.encryptPayload(rawText, secretKey, legacyMode: legacyMode);
+    });
   }
 
   /// Decrypts payload and returns both raw text and whether legacy key derivation was used.
@@ -122,9 +124,25 @@ class SyncCryptoService {
     }
   }
 
+  /// Asynchronously decrypts detailed payload offloading payloads >= 2KB to a background isolate.
+  Future<(String?, bool)> decryptPayloadDetailedAsync(String encryptedBase64Payload, String secretKey) async {
+    if (encryptedBase64Payload.length < 2048) {
+      return decryptPayloadDetailed(encryptedBase64Payload, secretKey);
+    }
+    return Isolate.run(() {
+      return SyncCryptoService.instance.decryptPayloadDetailed(encryptedBase64Payload, secretKey);
+    });
+  }
+
   /// Decrypts a base64 ciphertext string back to raw text payload.
   /// Seamlessly tries PBKDF2 key first, falling back to legacy key if payload was from older versions.
   String? decryptPayload(String encryptedBase64Payload, String secretKey) {
     return decryptPayloadDetailed(encryptedBase64Payload, secretKey).$1;
+  }
+
+  /// Asynchronously decrypts payload string back to raw text.
+  Future<String?> decryptPayloadAsync(String encryptedBase64Payload, String secretKey) async {
+    final (decrypted, _) = await decryptPayloadDetailedAsync(encryptedBase64Payload, secretKey);
+    return decrypted;
   }
 }

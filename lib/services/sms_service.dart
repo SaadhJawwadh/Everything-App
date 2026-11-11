@@ -17,6 +17,7 @@ import 'package:flutter/foundation.dart';
 import 'package:workmanager/workmanager.dart';
 import 'notification_service.dart';
 import 'dart:io';
+import 'native_core_bridge.dart';
 
 enum SmsSyncTrigger { manualDashboard, historicalSheet, backgroundScheduled, catchUp }
 
@@ -337,6 +338,7 @@ class SmsService {
       final address = (m.address ?? '').trim();
       final body = m.body ?? '';
       if (address.isEmpty || body.isEmpty) continue;
+      if (!NativeCoreBridge.instance.containsDigits(body)) continue;
 
       final addrLower = address.toLowerCase();
       if (_allowedSenderIds.contains(addrLower) || _blockedSenderIds.contains(addrLower)) {

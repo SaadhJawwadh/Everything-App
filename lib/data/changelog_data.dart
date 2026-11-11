@@ -25,9 +25,36 @@ class ChangelogRelease {
 
 final List<ChangelogRelease> kChangelogHistory = [
   ChangelogRelease(
+    version: 'v3.3.5',
+    date: 'November 11, 2026',
+    isLatest: true,
+    categories: [
+      ChangelogCategory(
+        title: "What's New",
+        items: [
+          'Native Acceleration & Zero-Lag Backups: Hardware-accelerated processing engine and background task isolation keep the UI silky smooth during large backup creations and device syncs.',
+          'Fast Google Takeout Import: Instant, background extraction and migration for imported Google Keep archives and large ZIP attachments without freezing the app.',
+        ],
+      ),
+      ChangelogCategory(
+        title: 'Improvements',
+        items: [
+          'Instant SMS Ingestion: High-speed message pre-filtering quickly detects bank alerts and transaction notices while ignoring non-financial messages.',
+          'Optimized Memory Footprint: Large encryption and sync payloads stream through isolated background threads, reducing peak memory usage.',
+        ],
+      ),
+      ChangelogCategory(
+        title: 'Fixes',
+        items: [
+          'Smooth Background Syncing: Resolved potential UI pauses when processing large peer-to-peer data transfers and deep encrypted backup restorations.',
+        ],
+      ),
+    ],
+  ),
+  ChangelogRelease(
     version: 'v3.3.4',
     date: 'November 7, 2026',
-    isLatest: true,
+    isLatest: false,
     categories: [
       ChangelogCategory(
         title: "What's New",

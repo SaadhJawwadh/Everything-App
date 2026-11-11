@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:provider/provider.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
-import 'package:note_taking_app/features/settings/presentation/screens/settings_screen.dart';
-import 'package:note_taking_app/features/settings/presentation/screens/sections/finances_settings_screen.dart';
-import 'package:note_taking_app/widgets/home/keyboard_shortcuts_dialog.dart';
+import 'package:note_taking_app/features/settings/presentation/screens/sections/sync_backup_settings_screen.dart';
+import 'package:note_taking_app/utils/app_route.dart';
 import '../core/services/app_haptics.dart';
 import '../core/theme/app_layout.dart';
 import '../core/ui/app_card.dart';
@@ -40,49 +39,19 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.sync_rounded,
-            title: "Universal P2P & Cross-Network Sync",
-            desc: "Sync across Wi-Fi, Personal Hotspots, isolated routers, and Mobile Data with multi-interface QR pairing and E2EE blind relay fallback.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.security_rounded,
-            title: "Hardened App Lock & Security",
-            desc: "Back-navigation protection with PopScope, native biometric + PIN/pattern fallback, and authentication-protected lock toggling.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.account_balance_wallet_rounded,
-            title: "Atomic Vault Transfers",
-            desc: "Double-entry atomic account transfers between Daily and Savings accounts with cash flow isolation.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.hub_rounded,
-            title: "Android 16+ AppFunctions & Gemini",
-            desc: "On-device tool provider for Google Gemini & Android AI. Log expenses, add tasks, or create notes hands-free with ambient Undo.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.bolt_rounded,
-            title: "Smart Action Search Cards",
-            desc: "Type natural phrases like 'spent 1200 on coffee', 'todo buy milk', or 'split 3000 dinner' in Search to log in one tap.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.mic_external_on_rounded,
-            title: "Hands-Free Quick Capture",
-            desc: "Log expenses, tasks, or notes instantly from Android Assistant and system shortcuts with 1-tap Undo safety.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.keyboard_command_key_rounded,
-            title: "Hardware Keyboard Shortcuts",
-            desc: "Full keyboard navigation for tablets, foldables, and laptops (Ctrl+K Search, Ctrl+N Note, Ctrl+E Expense, Ctrl+/).",
-            actionLabel: "View Shortcuts ➔",
+            icon: Icons.memory_rounded,
+            title: "Native Core & Isolate Acceleration",
+            desc: "Hardware-accelerated processing engine offloads deep encryption, backups, and Takeout imports to background threads with zero UI latency.",
+            actionLabel: "View Sync & Backups ➔",
             onAction: () {
               Navigator.pop(context);
-              KeyboardShortcutsDialog.show(context);
+              AppRoute.push(context, const SyncBackupSettingsScreen());
             },
           ),
           _WhatsNewItem(
-            icon: Icons.checklist_rtl_rounded,
-            title: "Checklists & Tasks View",
-            desc: "View and manage all active checklists across every folder from one unified view in the Folder Picker.",
+            icon: Icons.unarchive_rounded,
+            title: "Background Google Takeout Import",
+            desc: "Instant background extraction and migration for imported Google Keep archives and large ZIP attachments without freezing the app.",
           ),
         ],
       ),
@@ -93,45 +62,14 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.tertiaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.auto_graph_rounded,
-            title: "Calm Technology Metric Charts",
-            desc: "Predictable, static charts with smooth user-gesture swipe navigation (zero intrusive cycling timers).",
+            icon: Icons.mark_chat_read_rounded,
+            title: "Instant SMS Ingestion Pre-Filter",
+            desc: "High-speed message pre-filtering quickly detects bank alerts and transaction notices while ignoring non-financial messages.",
           ),
           _WhatsNewItem(
-            icon: Icons.search_rounded,
-            title: "Precision Plain-Text Search",
-            desc: "Note searches strictly target rendered document text, preventing false-positive matches on raw Quill Delta JSON syntax.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.dashboard_customize_rounded,
-            title: "Interactive Settings Hub",
-            desc: "Jump directly to Finances, Health Tracker, Gemini AI, Security, or Sync from the top status pills.",
-            actionLabel: "Open Settings Hub ➔",
-            onAction: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const SettingsScreen()),
-              );
-            },
-          ),
-          _WhatsNewItem(
-            icon: Icons.widgets_rounded,
-            title: "Live Widget Previews",
-            desc: "Rich, themed previews of your Todo, Finance, and Unified widgets in the Android 15+ home screen widget picker.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.currency_exchange_rounded,
-            title: "Unified Currency Symbols",
-            desc: "Authentic currency symbols (Rs., ₹, \$, €, £, ₽) displayed consistently across balance cards, ledgers, split bills, and search.",
-            actionLabel: "Customize Currency ➔",
-            onAction: () {
-              Navigator.pop(context);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const FinancesSettingsScreen()),
-              );
-            },
+            icon: Icons.speed_rounded,
+            title: "Optimized Memory Footprint",
+            desc: "Large encryption and sync payloads stream through isolated background threads, reducing peak memory usage.",
           ),
         ],
       ),
@@ -142,24 +80,9 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.secondaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.backup_rounded,
-            title: "Relational Backup & Restore",
-            desc: "Cleanly replaces savings goals and tombstone tables during full JSON restore with child-first foreign key safety.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.sync_problem_rounded,
-            title: "SMS Sync Cancellation Banner",
-            desc: "Cancelling an in-progress SMS scan immediately updates UI banners and preserves unimported message ranges.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.format_shapes_rounded,
-            title: "Note Editor Range Clamping",
-            desc: "Search jump offsets are clamped to document bounds to eliminate RangeError exceptions during live editing.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.delete_sweep_rounded,
-            title: "Reactive Financial Trash",
-            desc: "Restoring or permanently deleting trashed transactions instantly updates all financial charts, metrics, and ledger views.",
+            icon: Icons.sync_rounded,
+            title: "Smooth Background Syncing",
+            desc: "Resolved potential UI pauses when processing large peer-to-peer data transfers and deep encrypted backup restorations.",
           ),
         ],
       ),

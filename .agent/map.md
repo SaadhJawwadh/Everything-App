@@ -177,6 +177,7 @@ lib/
 │   ├── financial_regression_engine.dart# Exponentially-weighted linear regression for trends
 │   ├── gemini_nano_service.dart      # Android AI Core & Gemini Nano text refining, tagging
 │   ├── local_ai_service.dart         # AI Core interface definitions
+│   ├── native_core_bridge.dart       # Dynamic C-ABI/Rust FFI bridge with CommonCrypto & pure Dart fallback
 │   ├── notification_service.dart     # Local notifications scheduling (reminders & period predictions)
 │   ├── offline_ai_fallback_service.dart# Offline heuristic NLP categorizer
 │   ├── p2p_relay_sync_service.dart   # Cross-network E2EE blind WebSocket relay engine (Nostr NIP-01)

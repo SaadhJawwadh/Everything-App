@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' as math;
-import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart' as enc;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -32,6 +31,7 @@ import '../utils/widget_helper.dart';
 import 'package:intl/intl.dart';
 import 'notification_service.dart';
 import 'sms_service.dart';
+import 'native_core_bridge.dart';
 
 const kAutoBackupTaskName = 'com.saadhjawwadh.notebook.autoBackup';
 
@@ -274,20 +274,14 @@ Future<void> syncAutoBackupSchedule({
 
 class BackupService {
   /// Derives a 32-byte key using PBKDF2-HMAC-SHA256 (10,000 iterations).
+  /// Uses native hardware crypto if available with seamless pure-Dart fallback.
   static enc.Key _deriveKey(String passphrase, Uint8List salt) {
     final keyBytes = utf8.encode(passphrase.trim());
-    final hmac = Hmac(sha256, keyBytes);
-    final saltPlusBlock = Uint8List(salt.length + 4)
-      ..setRange(0, salt.length, salt)
-      ..setRange(salt.length, salt.length + 4, [0, 0, 0, 1]);
-    List<int> u = hmac.convert(saltPlusBlock).bytes;
-    final t = Uint8List.fromList(u);
-    for (int i = 1; i < 10000; i++) {
-      u = hmac.convert(u).bytes;
-      for (int j = 0; j < 32; j++) {
-        t[j] ^= u[j];
-      }
-    }
+    final t = NativeCoreBridge.instance.derivePbkdf2Sha256(
+      secret: Uint8List.fromList(keyBytes),
+      salt: salt,
+      iterations: 10000,
+    );
     return enc.Key(t);
   }
 
@@ -311,6 +305,11 @@ class BackupService {
     return const JsonEncoder.withIndent('  ').convert(container);
   }
 
+  /// Offloads heavy backup encryption to a background isolate, eliminating UI thread frame drops.
+  static Future<String> encryptBackupJsonAsync(String rawJson, String passphrase) {
+    return Isolate.run(() => encryptBackupJson(rawJson, passphrase));
+  }
+
   /// Decrypts an encrypted container JSON using the provided passphrase back to the raw JSON string.
   static String decryptBackupJson(Map<String, dynamic> container, String passphrase) {
     if (container['salt'] == null || container['iv'] == null || container['ciphertext'] == null) {
@@ -322,6 +321,11 @@ class BackupService {
     final key = _deriveKey(passphrase, Uint8List.fromList(salt));
     final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
     return encrypter.decrypt(ciphertext, iv: iv);
+  }
+
+  /// Offloads heavy backup decryption to a background isolate, eliminating UI thread frame drops.
+  static Future<String> decryptBackupJsonAsync(Map<String, dynamic> container, String passphrase) {
+    return Isolate.run(() => decryptBackupJson(container, passphrase));
   }
 
   static Future<String?> _promptPassphrase(BuildContext context, {required bool isExport}) async {
@@ -391,7 +395,7 @@ class BackupService {
 
       String exportPayload = json;
       if (passphrase != null && passphrase.trim().isNotEmpty) {
-        exportPayload = encryptBackupJson(json, passphrase);
+        exportPayload = await encryptBackupJsonAsync(json, passphrase);
       }
 
       AppLockScreen.ignoreNextResumeLock();
@@ -461,7 +465,7 @@ class BackupService {
         final passphrase = await _promptPassphrase(context, isExport: false);
         if (passphrase == null || passphrase.isEmpty) return;
         try {
-          final decryptedJson = decryptBackupJson(data, passphrase);
+          final decryptedJson = await decryptBackupJsonAsync(data, passphrase);
           data = Map<String, dynamic>.from(await compute(_decodeJsonIsolate, decryptedJson));
         } catch (e) {
           if (context.mounted) {

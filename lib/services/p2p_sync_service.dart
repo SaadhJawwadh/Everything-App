@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -161,6 +162,23 @@ class P2pSyncService {
       }
     }
     return (null, false, primaryCode);
+  }
+
+  /// Offloads multi-megabyte payload decryption to a background isolate when payload >= 2KB.
+  Future<(String?, bool, String)> _decryptWithAnyTrustedCodeAsync(String encryptedPayload, String primaryCode) async {
+    if (encryptedPayload.length < 2048) {
+      return _decryptWithAnyTrustedCode(encryptedPayload, primaryCode);
+    }
+    final candidateCodes = _candidateCodes(primaryCode);
+    return Isolate.run(() {
+      for (final candidate in candidateCodes) {
+        final (decrypted, isLegacy) = SyncCryptoService.instance.decryptPayloadDetailed(encryptedPayload, candidate);
+        if (decrypted != null) {
+          return (decrypted, isLegacy, candidate);
+        }
+      }
+      return (null, false, primaryCode);
+    });
   }
 
   Future<String> getDeviceId() async {
@@ -1079,11 +1097,11 @@ class P2pSyncService {
           response.statusCode = HttpStatus.requestEntityTooLarge;
           return;
         }
-        final (decrypted, isLegacy, matchedCode) = _decryptWithAnyTrustedCode(body, pairCode);
+        final (decrypted, isLegacy, matchedCode) = await _decryptWithAnyTrustedCodeAsync(body, pairCode);
         if (decrypted != null) {
           _clearFailedAuth(clientIp);
           final backupJson = await generateBackupJson();
-          final encryptedReply = _crypto.encryptPayload(backupJson, matchedCode, legacyMode: isLegacy);
+          final encryptedReply = await _crypto.encryptPayloadAsync(backupJson, matchedCode, legacyMode: isLegacy);
 
           response.statusCode = HttpStatus.ok;
           response.write(encryptedReply);
@@ -1116,7 +1134,7 @@ class P2pSyncService {
             response.statusCode = HttpStatus.requestEntityTooLarge;
             return;
           }
-          final (decrypted, isLegacy, matchedCode) = _decryptWithAnyTrustedCode(body, pairCode);
+          final (decrypted, isLegacy, matchedCode) = await _decryptWithAnyTrustedCodeAsync(body, pairCode);
           if (decrypted != null) {
             _clearFailedAuth(clientIp);
             final Map<String, dynamic> clientData = json.decode(decrypted);
@@ -1129,7 +1147,7 @@ class P2pSyncService {
 
             // 2. Generate updated host payload for client
             final updatedBackupJson = await generateBackupJson();
-            final encryptedReply = _crypto.encryptPayload(updatedBackupJson, matchedCode, legacyMode: isLegacy);
+            final encryptedReply = await _crypto.encryptPayloadAsync(updatedBackupJson, matchedCode, legacyMode: isLegacy);
 
             response.statusCode = HttpStatus.ok;
             response.write(encryptedReply);
@@ -1506,7 +1524,7 @@ class P2pSyncService {
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       };
       final rawJson = json.encode(requestMap);
-      final encrypted = _crypto.encryptPayload(rawJson, pairCode);
+      final encrypted = await _crypto.encryptPayloadAsync(rawJson, pairCode);
       if (encrypted == null) {
         return SyncResult(success: false, errorMessage: 'Encryption error');
       }
@@ -1521,7 +1539,7 @@ class P2pSyncService {
 
         if (res.statusCode == 401) {
           await res.drain<void>().catchError((_) {});
-          final legacyEncrypted = _crypto.encryptPayload(rawJson, pairCode, legacyMode: true);
+          final legacyEncrypted = await _crypto.encryptPayloadAsync(rawJson, pairCode, legacyMode: true);
           if (legacyEncrypted != null) {
             final retryReq = await client.postUrl(buildSyncUri(cleanIp, cleanPort, '/api/sync/pull_master'));
             retryReq.write(legacyEncrypted);
@@ -1531,7 +1549,7 @@ class P2pSyncService {
 
         if (res.statusCode == 200) {
           final responseBody = await utf8.decoder.bind(res).join().timeout(const Duration(seconds: 45));
-          final decryptedReply = _crypto.decryptPayload(responseBody, pairCode);
+          final decryptedReply = await _crypto.decryptPayloadAsync(responseBody, pairCode);
           if (decryptedReply != null) {
             final Map<String, dynamic> replyMap = json.decode(decryptedReply);
             
@@ -1591,7 +1609,7 @@ class P2pSyncService {
     final String? encrypted;
     try {
       clientBackupJson = await generateBackupJson();
-      encrypted = _crypto.encryptPayload(clientBackupJson, pairCode);
+      encrypted = await _crypto.encryptPayloadAsync(clientBackupJson, pairCode);
       if (encrypted == null) {
         return SyncResult(success: false, errorMessage: 'Encryption error');
       }
@@ -1661,7 +1679,7 @@ class P2pSyncService {
         // Automatic fallback to legacy v1 SHA-256 key if target device is on an older build
         if (res.statusCode == 401) {
           await res.drain<void>().catchError((_) {});
-          final legacyEncrypted = _crypto.encryptPayload(clientBackupJson, pairCode, legacyMode: true);
+          final legacyEncrypted = await _crypto.encryptPayloadAsync(clientBackupJson, pairCode, legacyMode: true);
           if (legacyEncrypted != null) {
             final retryReq = await client.postUrl(buildSyncUri(cleanIp, cleanPort, '/api/sync/bidirectional_sync'));
             retryReq.write(legacyEncrypted);
@@ -1681,7 +1699,7 @@ class P2pSyncService {
 
         if (res.statusCode == 200) {
           final responseBody = await utf8.decoder.bind(res).join().timeout(const Duration(seconds: 45));
-          final decryptedReply = _crypto.decryptPayload(responseBody, pairCode);
+          final decryptedReply = await _crypto.decryptPayloadAsync(responseBody, pairCode);
           if (decryptedReply != null) {
             final Map<String, dynamic> replyMap = json.decode(decryptedReply);
 
