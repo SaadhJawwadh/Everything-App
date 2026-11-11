@@ -1,10 +1,12 @@
 
 ### 🌟 What's New
-- **Universal P2P & Cross-Network Sync Parity**: End-to-end verified BIP-340 Schnorr WebSocket relay alongside dedicated IPv4 socket binding, enabling frictionless sync across Wi-Fi, Hotspots, and Mobile Data.
+- **Native Acceleration & Zero-Lag Backups**: Hardware-accelerated processing engine and background task isolation, keeping your screen smooth and responsive even during large backup creations and device syncs.
+- **Fast Google Takeout Import**: Instant, background extraction and migration for imported Google Keep archives and large ZIP attachments without freezing the app.
 
 ### 🚀 Improvements
-- **Background Queue Synchronization**: Added polling-based asynchronous drain synchronization to `AppFunctionInboxService`, ensuring immediate, reliable execution and SnackBar feedback for queued actions.
+- **Instant SMS Ingestion**: High-speed message pre-filtering quickly detects bank alerts and transaction notices while ignoring non-financial messages.
+- **Optimized Memory Footprint**: Large encryption and sync payloads stream through isolated background threads, reducing peak memory usage.
 
 ### 🐛 Fixes
-- **Async Execution Race Guard**: Eliminated timing races in background queue processing to ensure database writes complete before status feedback is presented.
+- **Smooth Background Syncing**: Resolved potential UI pauses when processing large peer-to-peer data transfers and deep encrypted backup restorations.
 
