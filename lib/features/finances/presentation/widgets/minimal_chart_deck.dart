@@ -445,7 +445,7 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
       label:
           'Spending trajectory line chart showing monthly spending trends and projected month-end total of ~${widget.currency} ${NumberFormat('#,##0').format(projectedSpend ?? 0)}',
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        padding: const EdgeInsets.fromLTRB(16, 8, 28, 0),
         child: LineChart(
           LineChartData(
             lineTouchData: LineTouchData(
@@ -580,6 +580,8 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                         padding: const EdgeInsets.only(top: 4.0),
                         child: Text(
                           '$currentMonthName Est',
+                          maxLines: 1,
+                          softWrap: false,
                           style: textTheme.labelSmall?.copyWith(
                             fontSize: 10,
                             color: colorScheme.tertiary,

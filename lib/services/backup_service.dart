@@ -112,21 +112,59 @@ Future<String> generateBackupJson({Map<String, dynamic>? settingsOverride}) asyn
   } else {
     // Fallback for isolate / auto-backup context (no SettingsProvider).
     final prefs = await SharedPreferences.getInstance();
+    Map<String, String> routingMap = {};
+    final routingRaw = prefs.getString('categoryAccountRouting');
+    if (routingRaw != null && routingRaw.isNotEmpty) {
+      try {
+        final decoded = json.decode(routingRaw) as Map<String, dynamic>;
+        routingMap = decoded.map((k, v) => MapEntry(k, v.toString()));
+      } catch (_) {}
+    }
+    Map<String, double> budgetsMap = {};
+    final budgetsRaw = prefs.getString('categoryBudgets');
+    if (budgetsRaw != null && budgetsRaw.isNotEmpty) {
+      try {
+        final decoded = json.decode(budgetsRaw) as Map<String, dynamic>;
+        budgetsMap = decoded.map((k, v) => MapEntry(k, (v as num).toDouble()));
+      } catch (_) {}
+    }
     settingsMap = {
       'textSize': prefs.getDouble('textSize') ?? 16.0,
       'themeMode': prefs.getInt('themeMode') ?? 0,
       'noteViewMode': prefs.getInt('noteViewMode') ?? 1,
       'isGridView': prefs.getBool('isGridView') ?? true, // legacy
       'showFinancialManager': prefs.getBool('showFinancialManager') ?? false,
+      'showSplitBills': prefs.getBool('showSplitBills') ?? false,
+      'enableSavingsVault': prefs.getBool('enableSavingsVault') ?? true,
+      'account1Name': prefs.getString('account1Name') ?? 'Daily Operating',
+      'account2Name': prefs.getString('account2Name') ?? 'Savings Vault',
+      'categoryAccountRouting': routingMap,
+      'categoryBudgets': budgetsMap,
+      'defaultPaymentInfo': prefs.getString('defaultPaymentInfo') ?? '',
+      'trashAutoPurgeDays': prefs.getInt('trashAutoPurgeDays') ?? 7,
       'currency': prefs.getString('currency') ?? 'LKR',
+      'selectedLanguageCode': prefs.getString('selectedLanguageCode') ?? 'system',
       'isPeriodTrackerEnabled': prefs.getBool('isPeriodTrackerEnabled') ?? false,
+      'isDiscreetHealthMode': prefs.getBool('isDiscreetHealthMode') ?? false,
       'appLockEnabled': prefs.getBool('appLockEnabled') ?? false,
       'useBiometrics': prefs.getBool('useBiometrics') ?? false,
       'appLockTimeout': prefs.getInt('appLockTimeout') ?? 30,
       'discreetNotificationText': prefs.getString('discreetNotificationText') ?? 'Check the app',
       'customExpenseRules': prefs.getStringList('customExpenseRules') ?? [],
       'customIncomeRules': prefs.getStringList('customIncomeRules') ?? [],
+      'customSmsRules_v2': prefs.getStringList('customSmsRules_v2') ?? [],
       'useOnDeviceAi': prefs.getBool('useOnDeviceAi') ?? false,
+      'useDynamicColor': prefs.getBool('useDynamicColor') ?? true,
+      'dailySyncEnabled': prefs.getBool('dailySyncEnabled') ?? false,
+      'dailySyncTime': prefs.getString('dailySyncTime') ?? '20:00',
+      'smsSyncFrequency': prefs.getString('smsSyncFrequency') ?? 'daily',
+      'showProTips': prefs.getBool('showProTips') ?? true,
+      'moveCompletedChecklistsToBottom': prefs.getBool('moveCompletedChecklistsToBottom') ?? false,
+      'enableSmsImport': prefs.getBool('enableSmsImport') ?? true,
+      'enableBudgetsAndAnalytics': prefs.getBool('enableBudgetsAndAnalytics') ?? true,
+      'enableRecurringRules': prefs.getBool('enableRecurringRules') ?? true,
+      'showTagFilterBar': prefs.getBool('showTagFilterBar') ?? true,
+      'minimalEditorMode': prefs.getBool('minimalEditorMode') ?? false,
     };
   }
 
@@ -943,18 +981,16 @@ class BackupService {
           ? _parseCsvBufferInIsolate(content)
           : await Isolate.run(() => _parseCsvBufferInIsolate(content));
 
-      for (final item in parsedData) {
-        await repository.createTransaction(TransactionModel(
-          amount: item['amount'] as double,
-          description: item['description'] as String,
-          date: DateTime.parse(item['date'] as String),
-          isExpense: item['isExpense'] as bool,
-          category: item['category'] as String,
-        ));
-        importedCount++;
-      }
-
-      await WidgetHelper.updateWidgetData();
+      final models = parsedData
+          .map((item) => TransactionModel(
+                amount: item['amount'] as double,
+                description: item['description'] as String,
+                date: DateTime.parse(item['date'] as String),
+                isExpense: item['isExpense'] as bool,
+                category: item['category'] as String,
+              ))
+          .toList();
+      importedCount = await repository.bulkInsertTransactions(models);
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

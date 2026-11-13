@@ -5,6 +5,7 @@ import '../data/repositories/split_bill_repository.dart';
 import '../data/transaction_repository.dart';
 import '../presentation/screens/financial_manager_screen.dart';
 import '../../../services/p2p_sync_service.dart';
+import '../../sync/providers/p2p_sync_provider.dart';
 
 class SplitBillProvider extends ChangeNotifier {
   final SplitBillRepository _repository = SplitBillRepository.instance;
@@ -131,6 +132,7 @@ class SplitBillProvider extends ChangeNotifier {
     try {
       await _repository.insertSplitBill(bill);
       await loadSplitBills(showLoading: false);
+      P2pSyncProvider.activeInstance?.triggerEventSync();
     } catch (e) {
       debugPrint('[SplitBillProvider] Error creating bill: $e');
       await loadSplitBills(showLoading: false);
@@ -151,6 +153,7 @@ class SplitBillProvider extends ChangeNotifier {
         FinancialManagerScreen.refreshNotifier.value++;
       }
       await loadSplitBills(showLoading: false);
+      P2pSyncProvider.activeInstance?.triggerEventSync();
     } catch (e) {
       debugPrint('[SplitBillProvider] Error updating bill: $e');
       await loadSplitBills(showLoading: false);
@@ -167,6 +170,7 @@ class SplitBillProvider extends ChangeNotifier {
       await _repository.softDeleteSplitBill(id);
       FinancialManagerScreen.refreshNotifier.value++;
       await loadSplitBills(showLoading: false);
+      P2pSyncProvider.activeInstance?.triggerEventSync();
     } catch (e) {
       if (deleted.isNotEmpty) {
         _bills.add(deleted.first);

@@ -78,7 +78,7 @@ class FinancialLedgerTab extends StatelessWidget {
     }
 
     return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, AppLayout.fabBottomPadding),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, AppLayout.fabBottomPadding + AppLayout.spaceM),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
           (context, index) {

@@ -39,19 +39,19 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.dock_rounded,
+            title: "Keyboard-Smart Editor Action Bars",
+            desc: "Transaction and Split Bill editors now feature a docked Save bar that auto-hides while typing and keeps every form option clear.",
+          ),
+          _WhatsNewItem(
             icon: Icons.memory_rounded,
             title: "Native Core & Isolate Acceleration",
-            desc: "Hardware-accelerated processing engine offloads deep encryption, backups, and Takeout imports to background threads with zero UI latency.",
+            desc: "Hardware-accelerated processing keeps backups, Takeout imports, and device syncs smooth with zero UI lag.",
             actionLabel: "View Sync & Backups ➔",
             onAction: () {
               Navigator.pop(context);
               AppRoute.push(context, const SyncBackupSettingsScreen());
             },
-          ),
-          _WhatsNewItem(
-            icon: Icons.unarchive_rounded,
-            title: "Background Google Takeout Import",
-            desc: "Instant background extraction and migration for imported Google Keep archives and large ZIP attachments without freezing the app.",
           ),
         ],
       ),
@@ -62,14 +62,14 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.tertiaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.mark_chat_read_rounded,
-            title: "Instant SMS Ingestion Pre-Filter",
-            desc: "High-speed message pre-filtering quickly detects bank alerts and transaction notices while ignoring non-financial messages.",
+            icon: Icons.gradient_rounded,
+            title: "Edge Scroll Fades & Unclipped Charts",
+            desc: "Subtle scroll-edge feathering on Onboarding and filter strips, full month forecast labels on Spending Trend charts, and single-line sync buttons.",
           ),
           _WhatsNewItem(
             icon: Icons.speed_rounded,
-            title: "Optimized Memory Footprint",
-            desc: "Large encryption and sync payloads stream through isolated background threads, reducing peak memory usage.",
+            title: "Streamlined Modular Workspaces",
+            desc: "Refined Onboarding, Transaction, and Split Bill layouts for snappier rendering and cleaner navigation.",
           ),
         ],
       ),
@@ -80,9 +80,9 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.secondaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.sync_rounded,
-            title: "Smooth Background Syncing",
-            desc: "Resolved potential UI pauses when processing large peer-to-peer data transfers and deep encrypted backup restorations.",
+            icon: Icons.layers_clear_rounded,
+            title: "Overlap-Free Forms & Clearer Labels",
+            desc: "Fixed button overlaps over repeat schedules and split-bill participant rows, and resolved truncated labels in Sync & Backups.",
           ),
         ],
       ),

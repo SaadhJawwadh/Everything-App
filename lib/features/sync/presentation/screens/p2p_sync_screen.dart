@@ -1,13 +1,10 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:note_taking_app/core/services/app_haptics.dart';
 import 'package:note_taking_app/core/theme/app_layout.dart';
 import 'package:note_taking_app/core/ui/app_card.dart';
-import 'package:note_taking_app/core/ui/app_bottom_sheet.dart';
 import 'package:note_taking_app/core/ui/app_chip.dart';
 import 'package:note_taking_app/core/ui/app_dialog.dart';
 import 'package:note_taking_app/core/ui/expressive_sliver_app_bar.dart';
@@ -21,8 +18,7 @@ import 'package:note_taking_app/screens/app_lock_screen.dart';
 import 'package:note_taking_app/services/backup_service.dart';
 import 'package:note_taking_app/services/p2p_sync_service.dart';
 import 'package:note_taking_app/features/sync/providers/p2p_sync_provider.dart';
-import 'package:note_taking_app/features/sync/data/p2p_pairing_model.dart';
-import 'package:note_taking_app/features/sync/presentation/widgets/qr_scanner_dialog.dart';
+import '../widgets/p2p_sync_modals.dart';
 import '../widgets/sync_activity_sheet.dart';
 
 class P2pSyncScreen extends StatefulWidget {
@@ -36,9 +32,6 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
   final TextEditingController _pairCodeController = TextEditingController();
   final TextEditingController _deviceNameController = TextEditingController();
   final TextEditingController _targetIpController = TextEditingController();
-  String? _scannedDeviceId;
-  int _scannedTargetPort = 8765;
-  List<String> _scannedCandidateIps = const [];
 
   void _refreshAllDomainProviders(
     NoteProvider noteProvider,
@@ -73,387 +66,45 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
   }
 
   void _showPairDeviceDialog(BuildContext context, P2pSyncProvider syncProvider, {DiscoveredPeer? initialPeer}) {
-    if (initialPeer != null) {
-      _deviceNameController.text = initialPeer.deviceName;
-      _targetIpController.text = initialPeer.ipAddress;
-      _scannedDeviceId = initialPeer.deviceId;
-      _scannedTargetPort = initialPeer.port;
-      _scannedCandidateIps = [initialPeer.ipAddress];
-    } else {
-      _scannedDeviceId = null;
-      _scannedTargetPort = 8765;
-      _scannedCandidateIps = const [];
-    }
+    final noteProvider = Provider.of<NoteProvider>(context, listen: false);
+    final finProvider = Provider.of<FinancialManagerProvider>(context, listen: false);
+    final splitProvider = Provider.of<SplitBillProvider>(context, listen: false);
+    final savingsProvider = Provider.of<SavingsGoalProvider>(context, listen: false);
+    final healthProvider = Provider.of<PeriodTrackerProvider>(context, listen: false);
 
-    showDialog(
+    P2pSyncModals.showPairDeviceDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (dialogCtx) {
-        bool isPairing = false;
-        String? errorMessage;
-
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            final theme = Theme.of(context);
-            final colorScheme = theme.colorScheme;
-
-            return AppDialog(
-              title: 'Pair New Device',
-              showConfirmButton: false,
-              actions: [
-                TextButton(
-                  onPressed: isPairing ? null : () => Navigator.pop(dialogCtx),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: isPairing
-                      ? null
-                      : () async {
-                          final code = _pairCodeController.text.trim();
-                          final name = _deviceNameController.text.trim();
-                          final ip = _targetIpController.text.trim();
-                          if (code.length == 6) {
-                            setDialogState(() {
-                              isPairing = true;
-                              errorMessage = null;
-                            });
-
-                            final noteProvider = Provider.of<NoteProvider>(context, listen: false);
-                            final finProvider = Provider.of<FinancialManagerProvider>(context, listen: false);
-                            final splitProvider = Provider.of<SplitBillProvider>(context, listen: false);
-                            final savingsProvider = Provider.of<SavingsGoalProvider>(context, listen: false);
-                            final healthProvider = Provider.of<PeriodTrackerProvider>(context, listen: false);
-                            try {
-                              final paired = await syncProvider.pairNewDevice(
-                                deviceName: name.isEmpty ? PairedDevice.generateRandomName() : name,
-                                pairCode: code,
-                                targetIp: ip.isEmpty ? 'relay' : ip,
-                                candidateIps: _scannedCandidateIps,
-                                targetPort: _scannedTargetPort,
-                                remoteDeviceId: _scannedDeviceId,
-                                role: 'PEER',
-                              );
-                              await syncProvider.syncBiDirectional(
-                                targetIp: paired.ipAddress ?? (ip.isEmpty ? 'relay' : ip),
-                                onCompleted: () => _refreshAllDomainProviders(
-                                  noteProvider,
-                                  finProvider,
-                                  splitProvider,
-                                  savingsProvider,
-                                  healthProvider,
-                                ),
-                              );
-                              _pairCodeController.clear();
-                              _deviceNameController.clear();
-                              _targetIpController.clear();
-                              _scannedDeviceId = null;
-                              _scannedTargetPort = 8765;
-                              _scannedCandidateIps = const [];
-                              if (dialogCtx.mounted) Navigator.pop(dialogCtx);
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Successfully paired with ${paired.deviceName}!'),
-                                    behavior: SnackBarBehavior.floating,
-                                  ),
-                                );
-                              }
-                            } catch (e) {
-                              setDialogState(() {
-                                isPairing = false;
-                                errorMessage = P2pSyncService.formatUserFriendlyErrorMessage(e, ip);
-                              });
-                            }
-                          } else {
-                            setDialogState(() {
-                              errorMessage = 'Please enter a valid 6-digit pair code.';
-                            });
-                          }
-                        },
-                  child: isPairing
-                      ? SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(colorScheme.onPrimary),
-                          ),
-                        )
-                      : const Text('Pair & Sync Device'),
-                ),
-              ],
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (errorMessage != null) ...[
-                      Container(
-                        padding: const EdgeInsets.all(AppLayout.spaceS + 2),
-                        margin: const EdgeInsets.only(bottom: AppLayout.spaceM),
-                        decoration: BoxDecoration(
-                          color: colorScheme.errorContainer.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(AppLayout.radiusM),
-                          border: Border.all(color: colorScheme.error.withValues(alpha: 0.4)),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.error_outline_rounded, color: colorScheme.error, size: 20),
-                            const SizedBox(width: AppLayout.spaceS),
-                            Expanded(
-                              child: Text(
-                                errorMessage!,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.onErrorContainer,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    Text(
-                      'Scan the Primary device QR code to auto-detect IP and pair code in 1 tap.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                    ),
-                    const SizedBox(height: AppLayout.spaceM),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: FilledButton.icon(
-                        onPressed: isPairing
-                            ? null
-                            : () async {
-                                AppLockScreen.ignoreNextResumeLock();
-                                final scanned = await Navigator.push<String>(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const QrScannerScreen()),
-                                );
-                                if (scanned != null && scanned.isNotEmpty) {
-                                  try {
-                                    final map = json.decode(scanned) as Map<String, dynamic>;
-                                    setDialogState(() {
-                                      _pairCodeController.text = map['code']?.toString() ?? scanned;
-                                      if (map['ip'] != null) _targetIpController.text = map['ip'].toString();
-                                      if (map['name'] != null) _deviceNameController.text = map['name'].toString();
-                                      _scannedDeviceId = map['deviceId']?.toString();
-                                      _scannedTargetPort = map['port'] is int
-                                          ? map['port'] as int
-                                          : int.tryParse('${map['port']}') ?? 8765;
-                                      if (map['ips'] is List) {
-                                        _scannedCandidateIps = (map['ips'] as List)
-                                            .map((e) => e.toString())
-                                            .where((e) => e.isNotEmpty)
-                                            .toList();
-                                      } else {
-                                        _scannedCandidateIps = const [];
-                                      }
-                                    });
-                                  } catch (_) {
-                                    setDialogState(() {
-                                      _pairCodeController.text = scanned;
-                                    });
-                                  }
-                                }
-                              },
-                        icon: const Icon(Icons.qr_code_scanner_rounded),
-                        label: const Text('Scan QR Code', style: TextStyle(fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                    const SizedBox(height: AppLayout.spaceL),
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: AppLayout.spaceXS),
-                        child: Text(
-                          'OR ENTER MANUAL IP & CODE',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: colorScheme.outline,
-                              ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppLayout.spaceM),
-                    TextField(
-                      controller: _targetIpController,
-                      enabled: !isPairing,
-                      keyboardType: TextInputType.datetime,
-                      decoration: const InputDecoration(
-                        labelText: 'Primary IP Address (Optional on Relay)',
-                        helperText: 'Leave blank to pair via Cross-Network E2EE Relay',
-                        prefixIcon: Icon(Icons.wifi_rounded),
-                      ),
-                    ),
-                    const SizedBox(height: AppLayout.spaceS),
-                    TextField(
-                      controller: _pairCodeController,
-                      enabled: !isPairing,
-                      keyboardType: TextInputType.number,
-                      maxLength: 6,
-                      decoration: const InputDecoration(
-                        labelText: '6-Digit Pair Code',
-                        prefixIcon: Icon(Icons.key_outlined),
-                      ),
-                    ),
-                    const SizedBox(height: AppLayout.spaceS),
-                    TextField(
-                      controller: _deviceNameController,
-                      enabled: !isPairing,
-                      decoration: const InputDecoration(
-                        labelText: 'Device Name (Optional)',
-                        prefixIcon: Icon(Icons.devices_outlined),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _showQrCodeModal(BuildContext context, P2pSyncProvider provider) async {
-    await provider.startPrimaryHostServer();
-    await provider.refreshDiagnostics();
-    if (!context.mounted) return;
-    final qrData = json.encode({
-      'version': 2,
-      'role': 'PRIMARY',
-      'code': provider.currentPairCode,
-      'deviceId': provider.localDeviceId,
-      'name': provider.localDeviceName,
-      'ip': provider.localIpAddress ?? '',
-      'ips': provider.localIpAddresses,
-      'port': 8765,
-    });
-
-    await AppBottomSheet.show(
-      context: context,
-      title: 'Primary Host QR Code',
-      child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: AppLayout.spaceS),
-            Container(
-              padding: const EdgeInsets.all(AppLayout.spaceM),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(AppLayout.radiusL),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.5),
-                ),
-              ),
-              child: QrImageView(
-                data: qrData,
-                version: QrVersions.auto,
-                size: 210.0,
-                eyeStyle: const QrEyeStyle(
-                  eyeShape: QrEyeShape.square,
-                  color: Colors.black,
-                ),
-                dataModuleStyle: const QrDataModuleStyle(
-                  dataModuleShape: QrDataModuleShape.circle,
-                  color: Colors.black,
-                ),
-              ),
-            ),
-            const SizedBox(height: AppLayout.spaceL),
-            Text(
-              'Pair Code: ${provider.currentPairCode}',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 4.0,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-            ),
-            if (provider.localIpAddress != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                'Local IP: ${provider.localIpAddress}',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-              ),
-            ],
-            const SizedBox(height: AppLayout.spaceL),
-          ],
-        ),
+      syncProvider: syncProvider,
+      pairCodeController: _pairCodeController,
+      deviceNameController: _deviceNameController,
+      targetIpController: _targetIpController,
+      initialPeer: initialPeer,
+      onRefreshProviders: () => _refreshAllDomainProviders(
+        noteProvider,
+        finProvider,
+        splitProvider,
+        savingsProvider,
+        healthProvider,
       ),
     );
   }
+
+  Future<void> _showQrCodeModal(BuildContext context, P2pSyncProvider provider) =>
+      P2pSyncModals.showQrCodeModal(context, provider);
 
   void _showRenameDeviceDialog({
     required BuildContext context,
     required String currentName,
     required Future<void> Function(String name) onSave,
-  }) {
-    final controller = TextEditingController(text: currentName);
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AppDialog(
-        title: 'Rename Device',
-        confirmLabel: 'Save Name',
-        onConfirm: () async {
-          await onSave(controller.text);
-          if (dialogContext.mounted) Navigator.pop(dialogContext);
-        },
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(
-            labelText: 'Device name',
-            prefixIcon: Icon(Icons.devices_outlined),
-          ),
-        ),
-      ),
-    ).whenComplete(controller.dispose);
-  }
+  }) =>
+      P2pSyncModals.showRenameDeviceDialog(
+        context: context,
+        currentName: currentName,
+        onSave: onSave,
+      );
 
-  void _showCustomRelayDialog(BuildContext context, P2pSyncProvider syncProvider) {
-    final controller = TextEditingController(text: syncProvider.customRelayUrl ?? '');
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AppDialog(
-        title: 'Cross-Network E2EE Relay',
-        confirmLabel: 'Save Relay',
-        onConfirm: () async {
-          await syncProvider.setCustomRelayUrl(controller.text);
-          if (dialogContext.mounted) Navigator.pop(dialogContext);
-        },
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Active Relays: ${syncProvider.connectedRelayCount} connected (BIP-340 Schnorr + AES-256 E2EE). '
-              'Used automatically when devices are on Mobile Data (4G/5G) or Wi-Fi routers with AP Client Isolation.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-            ),
-            const SizedBox(height: AppLayout.spaceM),
-            TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                labelText: 'Custom Relay URL (Optional)',
-                hintText: 'wss://relay.example.com',
-                prefixIcon: Icon(Icons.hub_rounded),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ).whenComplete(controller.dispose);
-  }
+  void _showCustomRelayDialog(BuildContext context, P2pSyncProvider syncProvider) =>
+      P2pSyncModals.showCustomRelayDialog(context, syncProvider);
 
   @override
   Widget build(BuildContext context) {
@@ -621,7 +272,11 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                     child: OutlinedButton.icon(
                                       onPressed: () => _showQrCodeModal(context, syncProvider),
                                       icon: const Icon(Icons.qr_code_2_rounded, size: 18),
-                                      label: const Text('My QR Code'),
+                                      label: const Text(
+                                        'My QR',
+                                        maxLines: 1,
+                                        softWrap: false,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -1240,24 +895,38 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                           Row(
                             children: [
                               Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: () {
-                                    AppLockScreen.ignoreNextResumeLock();
-                                    BackupService.exportBackup(context);
-                                  },
-                                  icon: const Icon(Icons.share_rounded, size: 18),
-                                  label: const Text('Export & Share'),
+                                child: SizedBox(
+                                  height: 48,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () {
+                                      AppLockScreen.ignoreNextResumeLock();
+                                      BackupService.exportBackup(context);
+                                    },
+                                    icon: const Icon(Icons.share_rounded, size: 18),
+                                    label: const Text(
+                                      'Export & Share',
+                                      maxLines: 1,
+                                      softWrap: false,
+                                    ),
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: AppLayout.spaceS),
                               Expanded(
-                                child: FilledButton.tonalIcon(
-                                  onPressed: () {
-                                    AppLockScreen.ignoreNextResumeLock();
-                                    BackupService.importBackup(context);
-                                  },
-                                  icon: const Icon(Icons.file_open_rounded, size: 18),
-                                  label: const Text('Import Sync File'),
+                                child: SizedBox(
+                                  height: 48,
+                                  child: FilledButton.tonalIcon(
+                                    onPressed: () {
+                                      AppLockScreen.ignoreNextResumeLock();
+                                      BackupService.importBackup(context);
+                                    },
+                                    icon: const Icon(Icons.file_open_rounded, size: 18),
+                                    label: const Text(
+                                      'Import File',
+                                      maxLines: 1,
+                                      softWrap: false,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],

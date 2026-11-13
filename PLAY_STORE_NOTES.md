@@ -1,12 +1,12 @@
 <en-US>
-🌟 Everything App 3.3.5 — Native Hardware Core & Isolate Acceleration!
-• Zero-Lag Backups: Native hardware acceleration and background threads keep the UI silky smooth during backups.
-• Fast Takeout Import: Background extraction and conversion for Google Keep archives and large attachments.
-• Instant SMS Detection: High-speed pre-filtering for bank alerts with reduced memory footprint.
+🌟 Everything App 3.4.0 — Polished UI & Smarter Editors!
+• Keyboard-Smart Save Bars: Transaction & Split Bill editors now keep forms clear and auto-hide while typing.
+• Cleaner Charts & Labels: Unclipped forecast labels, single-line sync buttons, and smooth scroll-edge fades.
+• Speed & Stability: Streamlined modular screens and faster hardware-backed backups.
 </en-US>
 <ta-IN>
-🌟 Everything App 3.3.5 — அதிவேக செயல்பாடு & பின்னணி ஒத்திசைவு!
-• தடையற்ற காப்புப்பிரதி: புதிய அதிவேக செயலாக்கம் மூலம் செயலியை பயன்படுத்தும் போதே பின்னணியில் காப்புப்பிரதி சேமிக்கப்படும்.
-• கூகுள் கீப் இறக்குமதி: பெரிய கோப்புகள் மற்றும் ஜிப் ஆவணங்களை எளிதாக உள்ளிடும் வசதி.
-• உடனடி வங்கி குறுஞ்செய்தி கண்டறிதல்: வங்கி வரவு செலவு தகவல்களை விரைவாக அடையாளம் காணும் மேம்பாடு.
+🌟 Everything App 3.4.0 — மெருகூட்டப்பட்ட வடிவமைப்பு!
+• ஸ்மார்ட் சேமிப்பு பட்டை: தட்டச்சு செய்யும் போது தானாக மறையும் தெளிவான படிவங்கள்.
+• தெளிவான வரைபடங்கள்: வெட்டப்படாத மாத கணிப்பு மற்றும் ஒற்றை வரி ஒத்திசைவு பொத்தான்கள்.
+• வேகம் & நிலைத்தன்மை: மென்மையான திரை ஓட்டங்கள் மற்றும் வேகமான காப்புப்பிரதி.
 </ta-IN>

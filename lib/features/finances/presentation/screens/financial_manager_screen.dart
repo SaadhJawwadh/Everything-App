@@ -3,36 +3,26 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/services/app_haptics.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
 import '../../../../data/transaction_model.dart';
 import '../../../../data/transaction_category.dart';
 import '../../../../services/sms_service.dart';
 import 'package:note_taking_app/features/finances/presentation/screens/transaction_editor_screen.dart';
-import 'package:note_taking_app/features/finances/presentation/screens/sms_rules_screen.dart';
-import 'package:note_taking_app/features/settings/presentation/screens/settings_screen.dart';
 import '../../../../screens/app_lock_screen.dart';
-import '../../../../utils/app_route.dart';
 import 'package:note_taking_app/features/finances/providers/financial_manager_provider.dart';
 
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_dialog.dart';
 
-import '../../../../widgets/bouncing_widget.dart';
-import '../widgets/sms_import_sheet.dart';
-import '../widgets/financial_trash_sheet.dart';
-import '../widgets/account_transfer_sheet.dart';
 import '../widgets/financial_ledger_tab.dart';
 import '../widgets/financial_analytics_tab.dart';
 import '../widgets/minimal_chart_deck.dart';
-import '../widgets/recurring_rules_sheet.dart';
-import '../widgets/savings_goal_editor_sheet.dart';
 import '../widgets/split_bills_tab.dart';
 import '../widgets/finance_date_range_sheet.dart';
 import '../widgets/finance_hero_summary_card.dart';
 import '../widgets/finance_sms_sync_banner.dart';
-import '../../services/financial_export_service.dart';
+import '../widgets/finance_top_bar.dart';
 import '../../services/spending_forecast_service.dart';
 
 
@@ -277,404 +267,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
     );
   }
 
-  Widget _buildSearchModeHeader(ColorScheme colorScheme, TextTheme textTheme) {
-    return Row(
-      children: [
-        IconButton(
-          icon: const Icon(Icons.arrow_back),
-          tooltip: 'Exit search',
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-          visualDensity: VisualDensity.compact,
-          onPressed: () {
-            setState(() {
-              _isSearching = false;
-              _searchController.clear();
-            });
-            context.read<FinancialManagerProvider>().setSearchQuery('');
-          },
-        ),
-        Expanded(
-          child: TextField(
-            controller: _searchController,
-            autofocus: true,
-            style: textTheme.titleMedium,
-            enableInteractiveSelection: true,
-            textCapitalization: TextCapitalization.sentences,
-            autocorrect: true,
-            decoration: InputDecoration(
-              hintText: 'Search transactions, categories...',
-              hintStyle: textTheme.titleMedium?.copyWith(
-                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-              ),
-              filled: false,
-              fillColor: Colors.transparent,
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-            ),
-            onChanged: (val) {
-              context.read<FinancialManagerProvider>().setSearchQuery(val.trim().toLowerCase());
-            },
-            onSubmitted: (_) {
-              FocusScope.of(context).unfocus();
-            },
-          ),
-        ),
-        if (context.watch<FinancialManagerProvider>().searchQuery.isNotEmpty)
-          IconButton(
-            icon: const Icon(Icons.close_rounded, size: 20),
-            tooltip: 'Clear query',
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-            visualDensity: VisualDensity.compact,
-            onPressed: () {
-              _searchController.clear();
-              context.read<FinancialManagerProvider>().setSearchQuery('');
-            },
-          ),
-        IconButton(
-          icon: const Icon(Icons.search),
-          tooltip: 'Search',
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-          visualDensity: VisualDensity.compact,
-          onPressed: () {
-            FocusScope.of(context).unfocus();
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildNormalHeader(ColorScheme colorScheme, TextTheme textTheme, String currency, bool isDark) {
-    final settings = Provider.of<SettingsProvider>(context);
-
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Finances',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Semantics(
-                button: true,
-                label:
-                    'Selected date range: ${context.watch<FinancialManagerProvider>().selectedRange.duration.inDays == 0 ? DateFormat.MMMd().format(context.watch<FinancialManagerProvider>().selectedRange.start) : '${DateFormat.MMMd().format(context.watch<FinancialManagerProvider>().selectedRange.start)} to ${DateFormat.MMMd().format(context.watch<FinancialManagerProvider>().selectedRange.end)}'}. Tap to change filter',
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                  onTap: () {
-                    _selectDateRange(context);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer.withValues(alpha: isDark ? 0.35 : 0.45),
-                      borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                      border: Border.all(
-                        color: colorScheme.primary.withValues(alpha: 0.28),
-                        width: 1.0,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.calendar_today_outlined,
-                          size: 13,
-                          color: colorScheme.primary,
-                        ),
-                        const SizedBox(width: 4),
-                        Flexible(
-                          child: Text(
-                            context.watch<FinancialManagerProvider>().selectedRange.duration.inDays == 0
-                                ? DateFormat.MMMd().format(context.watch<FinancialManagerProvider>().selectedRange.start)
-                                : '${DateFormat.MMMd().format(context.watch<FinancialManagerProvider>().selectedRange.start)} – ${DateFormat.MMMd().format(context.watch<FinancialManagerProvider>().selectedRange.end)}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurface,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 2),
-                        Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          size: 14,
-                          color: colorScheme.primary,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.search),
-          tooltip: AppLocalizations.of(context)?.searchFinances ?? 'Search transactions',
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-          visualDensity: VisualDensity.compact,
-          onPressed: () {
-            setState(() {
-              if (_selectedTab != 'Ledger') {
-                _selectedTab = 'Ledger';
-              }
-              _isSearching = true;
-            });
-          },
-        ),
-        if (settings.enableSmsImport)
-          Semantics(
-            button: true,
-            label:
-                'Sync SMS transactions. Tap for quick sync, hold for advanced import options',
-            child: Tooltip(
-              message: 'Quick Sync (Tap) | Advanced Import (Hold)',
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                child: BouncingWidget(
-                  onTap: () {
-                    _quickImportRecentSms();
-                  },
-                  onLongPress: () {
-                    AppHaptics.mediumImpact();
-                    SmsImportSheet.show(context);
-                  },
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: context.watch<FinancialManagerProvider>().isSmsSyncing
-                          ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  colorScheme.primary,
-                                ),
-                              ),
-                            )
-                          : const Icon(Icons.sync_rounded),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert_rounded),
-          tooltip: 'Finances Tools',
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-          elevation: 3,
-          shadowColor: colorScheme.shadow.withValues(alpha: 0.15),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppLayout.radiusXL),
-            side: BorderSide(
-              color: colorScheme.outlineVariant.withValues(alpha: 0.35),
-              width: 1,
-            ),
-          ),
-          color: colorScheme.surfaceContainerHigh,
-          onSelected: (value) {
-            if (value == 'savings_goals') {
-              setState(() => _selectedTab = 'Budgets');
-              SavingsGoalEditorSheet.show(context).then((_) {
-                if (mounted) _refreshTransactions();
-              });
-            } else if (value == 'sms_rules') {
-              AppRoute.push(context, const SmsRulesScreen());
-            } else if (value == 'recurring') {
-              RecurringRulesSheet.show(
-                context: context,
-                currency: currency,
-                onRulesUpdated: _refreshTransactions,
-              );
-            } else if (value == 'export') {
-              FinancialExportService.showExportSheet(
-                context,
-                context.read<FinancialManagerProvider>().transactions,
-                currency: currency,
-              );
-            } else if (value == 'transfer') {
-              AccountTransferSheet.show(context).then((_) {
-                if (mounted) _refreshTransactions();
-              });
-            } else if (value == 'trash') {
-              FinancialTrashSheet.show(context).then((_) {
-                if (mounted) _refreshTransactions();
-              });
-            }
-          },
-          itemBuilder: (ctx) {
-            final menuSettings = ctx.read<SettingsProvider>();
-            final fin = ctx.read<FinancialManagerProvider>();
-            return [
-              if (menuSettings.enableSmsImport)
-                PopupMenuItem(
-                  value: 'sms_rules',
-                  height: 48,
-                  child: Row(
-                    children: [
-                      Icon(Icons.flash_on_rounded, size: 20, color: colorScheme.primary),
-                      const SizedBox(width: 12),
-                      Text('SMS & Bank Automation', style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              if (menuSettings.enableBudgetsAndAnalytics)
-                PopupMenuItem(
-                  value: 'savings_goals',
-                  height: 48,
-                  child: Row(
-                    children: [
-                      Icon(Icons.flag_rounded, size: 20, color: colorScheme.primary),
-                      const SizedBox(width: 12),
-                      Text('Savings Goals & Pockets', style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              if (menuSettings.enableRecurringRules)
-                PopupMenuItem(
-                  value: 'recurring',
-                  height: 48,
-                  child: Row(
-                    children: [
-                      Icon(Icons.repeat_outlined, size: 20, color: colorScheme.onSurfaceVariant),
-                      const SizedBox(width: 12),
-                      Text('Recurring Subscriptions', style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              if (menuSettings.enableSavingsVault)
-                PopupMenuItem(
-                  value: 'transfer',
-                  height: 48,
-                  child: Row(
-                    children: [
-                      Icon(Icons.swap_horiz_rounded, size: 20, color: colorScheme.primary),
-                      const SizedBox(width: 12),
-                      Text('Transfer Between Accounts', style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-              PopupMenuItem(
-                value: 'export',
-                height: 48,
-                child: Row(
-                  children: [
-                    Icon(Icons.ios_share_rounded, size: 20, color: colorScheme.onSurfaceVariant),
-                    const SizedBox(width: 12),
-                    Text('Export Ledger', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'trash',
-                height: 48,
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_outline_rounded, size: 20, color: colorScheme.onSurfaceVariant),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text('Trash Bin', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
-                    ),
-                    if (fin.trashedCount > 0)
-                      Badge(
-                        label: Text('${fin.trashedCount}'),
-                        backgroundColor: colorScheme.error,
-                      ),
-                  ],
-                ),
-              ),
-            ];
-          },
-        ),
-        IconButton(
-          icon: const Icon(Icons.settings_outlined),
-          tooltip: 'Settings',
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-          visualDensity: VisualDensity.compact,
-          onPressed: () {
-            AppRoute.push(context, const SettingsScreen())
-                .then((_) => _refreshTransactions());
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSelectionModeHeader(
-    ColorScheme colorScheme,
-    TextTheme textTheme,
-    FinancialManagerProvider finProvider,
-  ) {
-    final validTxIds = finProvider.transactions.where((t) => t.id != null).map((t) => t.id!).toList();
-    final allSelected = validTxIds.isNotEmpty &&
-        validTxIds.every((id) => finProvider.selectedTransactionIds.contains(id));
-
-    return Row(
-      children: [
-        IconButton(
-          icon: const Icon(Icons.close_rounded),
-          tooltip: 'Clear selection',
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-          visualDensity: VisualDensity.compact,
-          onPressed: () {
-            AppHaptics.selectionClick();
-            finProvider.clearSelection();
-          },
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            '${finProvider.selectedCount} selected',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: colorScheme.onSurface,
-            ),
-          ),
-        ),
-        IconButton(
-          icon: Icon(allSelected ? Icons.deselect_rounded : Icons.select_all_rounded),
-          tooltip: allSelected ? 'Deselect all' : 'Select all',
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-          visualDensity: VisualDensity.compact,
-          onPressed: () {
-            AppHaptics.selectionClick();
-            if (allSelected) {
-              finProvider.clearSelection();
-            } else {
-              finProvider.selectAll(finProvider.transactions);
-            }
-          },
-        ),
-      ],
-    );
-  }
-
   List<Widget> _buildSlivers(
     ColorScheme colorScheme,
     TextTheme textTheme,
@@ -682,7 +274,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
     SettingsProvider settings,
     FinancialManagerProvider finProvider,
   ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final showBudgets = settings.enableBudgetsAndAnalytics;
     final showSplitBills = settings.showSplitBills;
     final effectiveTab = (showBudgets || _selectedTab != 'Budgets') && (showSplitBills || _selectedTab != 'Split Bills')
@@ -715,11 +306,30 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                   alignment: Alignment.center,
                   child: SizedBox(
                     height: 60,
-                    child: finProvider.isSelectionMode
-                        ? _buildSelectionModeHeader(colorScheme, textTheme, finProvider)
-                        : _isSearching
-                            ? _buildSearchModeHeader(colorScheme, textTheme)
-                            : _buildNormalHeader(colorScheme, textTheme, currency, isDark),
+                    child: FinanceTopBar(
+                      isSearching: _isSearching,
+                      searchController: _searchController,
+                      currency: currency,
+                      onExitSearch: () {
+                        setState(() {
+                          _isSearching = false;
+                          _searchController.clear();
+                        });
+                        context.read<FinancialManagerProvider>().setSearchQuery('');
+                      },
+                      onStartSearch: () {
+                        setState(() {
+                          if (_selectedTab != 'Ledger') {
+                            _selectedTab = 'Ledger';
+                          }
+                          _isSearching = true;
+                        });
+                      },
+                      onSelectDateRange: () => _selectDateRange(context),
+                      onQuickImportRecentSms: _quickImportRecentSms,
+                      onOpenSavingsGoals: () => setState(() => _selectedTab = 'Budgets'),
+                      onRefreshTransactions: _refreshTransactions,
+                    ),
                   ),
                 ),
               ),

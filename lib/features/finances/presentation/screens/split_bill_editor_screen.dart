@@ -1,19 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import '../../../../core/services/app_haptics.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/theme/app_layout.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/ui/app_bottom_sheet.dart';
-import '../../../../core/ui/app_card.dart';
+import '../widgets/split_bill_editor_sections.dart';
+import '../widgets/split_bill_tax_tip_sheet.dart';
 import '../../../../core/ui/app_dialog.dart';
-import '../../../../core/ui/app_morphing_fab.dart';
+import '../../../../core/ui/editor_bottom_action_bar.dart';
 import '../../../../core/ui/expressive_sliver_app_bar.dart';
 import '../../../../data/category_constants.dart';
-import '../../../../data/transaction_category.dart';
 import '../../../../features/settings/providers/settings_provider.dart';
 import '../../../../widgets/calculator_dialog.dart';
 import '../../data/models/split_bill_model.dart';
@@ -61,7 +57,6 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
   SplitMode _splitMode = SplitMode.equal;
   String _selectedCategory = CategoryConstants.food;
   String? _receiptImagePath;
-  bool _isFabExpanded = true;
   bool _isSaving = false;
   bool _isLoadingBill = false;
   SplitBillModel? _loadedBill;
@@ -397,212 +392,33 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
   }
 
   void _showTaxTipAllocatorSheet() {
-    final currency = Provider.of<SettingsProvider>(context, listen: false).currencySymbol;
-    final taxPercentController = TextEditingController();
-    final tipPercentController = TextEditingController();
-    final flatFeeController = TextEditingController();
-
-    AppBottomSheet.show(
+    SplitBillTaxTipSheet.show(
       context: context,
-      title: 'Proportional Tax & Tip Allocator',
-      child: StatefulBuilder(
-        builder: (context, setSheetState) {
-          final theme = Theme.of(context);
-          final colorScheme = theme.colorScheme;
-          final mediaQuery = MediaQuery.of(context);
-          final taxPct = double.tryParse(taxPercentController.text.trim()) ?? 0.0;
-          final tipPct = double.tryParse(tipPercentController.text.trim()) ?? 0.0;
-          final flatFee = double.tryParse(flatFeeController.text.trim()) ?? 0.0;
+      currentSubtotalSum: _allocatedExactSum,
+      totalSplitCount: _totalSplitCount,
+      onApply: (grandCalculatedTotal, extraRatio, feePerPerson) {
+        setState(() {
+          _amountController.text =
+              grandCalculatedTotal.toStringAsFixed(2).replaceAll('.00', '');
 
-          final currentSubtotalSum = _allocatedExactSum;
-          final calculatedTax = currentSubtotalSum * (taxPct / 100.0);
-          final calculatedTip = currentSubtotalSum * (tipPct / 100.0);
-          final grandCalculatedTotal = currentSubtotalSum + calculatedTax + calculatedTip + flatFee;
+          for (final p in _participantsData) {
+            final name = p['name'] as String;
+            final ctrl = _exactAmountControllers[name];
+            if (ctrl != null) {
+              final sub = double.tryParse(ctrl.text.trim()) ?? 0.0;
+              final allocated = sub * (1.0 + extraRatio) + feePerPerson;
+              ctrl.text = allocated.toStringAsFixed(2).replaceAll('.00', '');
+            }
+          }
 
-          return SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: EdgeInsets.only(
-              bottom: mediaQuery.viewInsets.bottom + AppLayout.spaceS,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Distributes tax, tip & service fees across subtotals',
-                  style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
-                ),
-                const SizedBox(height: AppLayout.spaceM),
-
-                    // Inputs Row: Tax % & Tip %
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: taxPercentController,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(
-                              labelText: 'Tax / VAT %',
-                              hintText: 'e.g. 10',
-                              suffixText: '%',
-                              border: OutlineInputBorder(),
-                              isDense: true,
-                            ),
-                            onChanged: (_) => setSheetState(() {}),
-                          ),
-                        ),
-                        const SizedBox(width: AppLayout.spaceM),
-                        Expanded(
-                          child: TextField(
-                            controller: tipPercentController,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(
-                              labelText: 'Tip / Service %',
-                              hintText: 'e.g. 15',
-                              suffixText: '%',
-                              border: OutlineInputBorder(),
-                              isDense: true,
-                            ),
-                            onChanged: (_) => setSheetState(() {}),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppLayout.spaceM),
-
-                    // Flat Fee input
-                    TextField(
-                      controller: flatFeeController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                        labelText: 'Flat Delivery or Service Fee',
-                        hintText: 'e.g. 5.00',
-                        prefixText: '$currency ',
-                        border: const OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      onChanged: (_) => setSheetState(() {}),
-                    ),
-                    const SizedBox(height: AppLayout.spaceL),
-
-                    // Calculation Summary Card
-                    AppCard(
-                      padding: const EdgeInsets.all(AppLayout.spaceM),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Items Subtotal:', style: theme.textTheme.bodyMedium),
-                              Text('$currency ${currentSubtotalSum.toStringAsFixed(2)}', style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                            ],
-                          ),
-                          if (calculatedTax > 0) ...[
-                            const SizedBox(height: 4),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('Tax (${taxPct.toStringAsFixed(1)}%):', style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
-                                Text('+$currency ${calculatedTax.toStringAsFixed(2)}', style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
-                              ],
-                            ),
-                          ],
-                          if (calculatedTip > 0) ...[
-                            const SizedBox(height: 4),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('Tip (${tipPct.toStringAsFixed(1)}%):', style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
-                                Text('+$currency ${calculatedTip.toStringAsFixed(2)}', style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
-                              ],
-                            ),
-                          ],
-                          if (flatFee > 0) ...[
-                            const SizedBox(height: 4),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('Flat Extra Fee:', style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
-                                Text('+$currency ${flatFee.toStringAsFixed(2)}', style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant)),
-                              ],
-                            ),
-                          ],
-                          const SizedBox(height: 8.0),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Computed Grand Total:', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-                              Text('$currency ${grandCalculatedTotal.toStringAsFixed(2)}', style: theme.textTheme.titleSmall?.copyWith(color: colorScheme.primary, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppLayout.spaceL),
-
-                    // Action buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Cancel'),
-                          ),
-                        ),
-                        const SizedBox(width: AppLayout.spaceM),
-                        Expanded(
-                          flex: 2,
-                          child: FilledButton.icon(
-                            icon: const Icon(Icons.check_rounded, size: 18),
-                            label: const Text('Apply to All Shares'),
-                            onPressed: () {
-                              if (currentSubtotalSum <= 0) {
-                                Navigator.pop(context);
-                                return;
-                              }
-                              final extraRatio = (calculatedTax + calculatedTip) / currentSubtotalSum;
-                              final feePerPerson = (_totalSplitCount > 0) ? (flatFee / _totalSplitCount) : 0.0;
-
-                              setState(() {
-                                // Update total bill amount
-                                _amountController.text = grandCalculatedTotal.toStringAsFixed(2).replaceAll('.00', '');
-
-                                // Update participant shares proportionally
-                                for (final p in _participantsData) {
-                                  final name = p['name'] as String;
-                                  final ctrl = _exactAmountControllers[name];
-                                  if (ctrl != null) {
-                                    final sub = double.tryParse(ctrl.text.trim()) ?? 0.0;
-                                    final allocated = sub * (1.0 + extraRatio) + feePerPerson;
-                                    ctrl.text = allocated.toStringAsFixed(2).replaceAll('.00', '');
-                                  }
-                                }
-
-                                if (_includeUserShare) {
-                                  final sub = double.tryParse(_userExactAmountController.text.trim()) ?? 0.0;
-                                  final allocated = sub * (1.0 + extraRatio) + feePerPerson;
-                                  _userExactAmountController.text = allocated.toStringAsFixed(2).replaceAll('.00', '');
-                                }
-                              });
-
-                              Navigator.pop(context);
-                              AppHaptics.mediumImpact();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Tax, tip, and fees distributed proportionally!'),
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              );
-        },
-      ),
+          if (_includeUserShare) {
+            final sub = double.tryParse(_userExactAmountController.text.trim()) ?? 0.0;
+            final allocated = sub * (1.0 + extraRatio) + feePerPerson;
+            _userExactAmountController.text =
+                allocated.toStringAsFixed(2).replaceAll('.00', '');
+          }
+        });
+      },
     );
   }
 
@@ -618,19 +434,8 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
     }
   }
 
-  bool _onScrollNotification(UserScrollNotification notification) {
-    if (notification.direction == ScrollDirection.reverse) {
-      if (_isFabExpanded) setState(() => _isFabExpanded = false);
-    } else if (notification.direction == ScrollDirection.forward) {
-      if (!_isFabExpanded) setState(() => _isFabExpanded = true);
-    }
-    return false;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final splitProvider = Provider.of<SplitBillProvider>(context);
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     final currency = settings.currencySymbol;
@@ -638,16 +443,8 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
     final effectiveBill = _effectiveExistingBill;
 
     return Scaffold(
-      floatingActionButton: AppMorphingFab(
-        isExpanded: _isFabExpanded,
-        icon: _isSaving ? Icons.hourglass_empty_rounded : Icons.check_rounded,
-        label: _isSaving ? 'Saving...' : (effectiveBill != null ? 'Update Bill' : 'Save Split Bill'),
-        onPressed: _isSaving ? () {} : () => _saveBill(),
-      ),
-      body: NotificationListener<UserScrollNotification>(
-        onNotification: _onScrollNotification,
-        child: CustomScrollView(
-          slivers: [
+      body: CustomScrollView(
+        slivers: [
             ExpressiveSliverAppBar(
               titleText: effectiveBill != null ? 'Edit Split Bill' : 'New Split Bill',
               showBackButton: true,
@@ -674,619 +471,115 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   // Bill Details Card
-                  AppCard(
-                    padding: const EdgeInsets.all(AppLayout.spaceM),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        TextField(
-                          controller: _titleController,
-                          textCapitalization: TextCapitalization.sentences,
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                          decoration: const InputDecoration(
-                            labelText: 'Bill / Event Title',
-                            hintText: 'e.g. Dinner at Botanik, Uber Ride, Starlink',
-                            prefixIcon: Icon(Icons.receipt_long_rounded),
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: AppLayout.spaceM),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _amountController,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                                decoration: InputDecoration(
-                                  labelText: 'Total Bill Amount (${settings.currencySymbol})',
-                                  prefixIcon: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    child: Center(
-                                      widthFactor: 0.0,
-                                      child: Text(
-                                        settings.currencySymbol,
-                                        style: theme.textTheme.titleMedium?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          color: colorScheme.primary,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  border: const OutlineInputBorder(),
-                                ),
-                                onChanged: (_) {
-                                  setState(() {
-                                    if (_splitMode == SplitMode.exact &&
-                                        (_allocatedExactSum == 0.0 || _remainingToAllocate == _totalAmount)) {
-                                      _assignEqualCustomShares();
-                                    }
-                                  });
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: AppLayout.spaceS),
-                            IconButton.filledTonal(
-                              icon: const Icon(Icons.calculate_rounded),
-                              tooltip: 'Calculator',
-                              onPressed: _openCalculator,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppLayout.spaceM),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: _selectDate,
-                                icon: const Icon(Icons.calendar_today_rounded, size: 18),
-                                label: Text(DateFormat('MMM d, yyyy').format(_selectedDate)),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  shape: const StadiumBorder(),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppLayout.spaceM),
-                        // Financial Category Selector
-                        Text('Category', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: AppLayout.spaceS),
-                        Wrap(
-                          spacing: AppLayout.spaceS,
-                          runSpacing: AppLayout.spaceXS,
-                          children: [
-                            ...TransactionCategory.allNames.map((cat) {
-                              final catColor = TransactionCategory.colorFor(cat);
-                              final catIcon = TransactionCategory.iconFor(cat);
-                              final isSelected = _selectedCategory == cat;
-                              return FilterChip(
-                                showCheckmark: false,
-                                avatar: Icon(
-                                  catIcon,
-                                  size: 16,
-                                  color: isSelected ? catColor : colorScheme.onSurfaceVariant,
-                                ),
-                                label: Text(cat),
-                                selected: isSelected,
-                                onSelected: (_) {
-                                  AppHaptics.selectionClick();
-                                  setState(() => _selectedCategory = cat);
-                                },
-                                selectedColor: catColor.withValues(alpha: 0.2),
-                                labelStyle: TextStyle(
-                                  color: isSelected ? catColor : colorScheme.onSurfaceVariant,
-                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                                ),
-                                side: BorderSide(
-                                  color: isSelected ? catColor : colorScheme.outline.withValues(alpha: 0.5),
-                                  width: isSelected ? 1.5 : 0.5,
-                                ),
-                                shape: const StadiumBorder(),
-                              );
-                            }),
-                          ],
-                        ),
-                      ],
-                    ),
+                  SplitBillDetailsCard(
+                    titleController: _titleController,
+                    amountController: _amountController,
+                    currencySymbol: settings.currencySymbol,
+                    selectedDate: _selectedDate,
+                    selectedCategory: _selectedCategory,
+                    onAmountChanged: () {
+                      setState(() {
+                        if (_splitMode == SplitMode.exact &&
+                            (_allocatedExactSum == 0.0 ||
+                                _remainingToAllocate == _totalAmount)) {
+                          _assignEqualCustomShares();
+                        }
+                      });
+                    },
+                    onOpenCalculator: () => _openCalculator(),
+                    onSelectDate: _selectDate,
+                    onCategorySelected: (cat) =>
+                        setState(() => _selectedCategory = cat),
                   ),
 
                   const SizedBox(height: AppLayout.spaceM),
 
                   // Who Paid & Split Mode Card
-                  AppCard(
-                    padding: const EdgeInsets.all(AppLayout.spaceM),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text('Who Paid for this Bill?', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: AppLayout.spaceS),
-                        SegmentedButton<bool>(
-                          showSelectedIcon: false,
-                          segments: const [
-                            ButtonSegment<bool>(
-                              value: true,
-                              label: Text('I Paid for All'),
-                              icon: Icon(Icons.person_rounded, size: 18),
-                            ),
-                            ButtonSegment<bool>(
-                              value: false,
-                              label: Text('Friend Paid'),
-                              icon: Icon(Icons.group_rounded, size: 18),
-                            ),
-                          ],
-                          selected: {_isPayerUser},
-                          onSelectionChanged: (set) {
-                            AppHaptics.selectionClick();
-                            setState(() {
-                              _isPayerUser = set.first;
-                              if (!_isPayerUser) {
-                                _includeUserShare = true;
-                              }
-                            });
-                          },
-                        ),
-                        if (!_isPayerUser) ...[
-                          const SizedBox(height: AppLayout.spaceM),
-                          TextField(
-                            controller: _payerFriendController,
-                            textCapitalization: TextCapitalization.words,
-                            decoration: const InputDecoration(
-                              labelText: 'Friend Who Paid',
-                              hintText: 'e.g. Alex, Sarah',
-                              prefixIcon: Icon(Icons.account_circle_rounded),
-                              border: OutlineInputBorder(),
-                            ),
-                            onChanged: (_) => setState(() {}),
-                            onSubmitted: (val) {
-                              if (val.trim().isNotEmpty) {
-                                setState(() {
-                                  _ensureFriendPayerInParticipants(val.trim());
-                                });
-                              }
-                            },
-                          ),
-                          // Quick-select chips from participants & recent contacts
-                          Builder(builder: (context) {
-                            final suggestions = <String>{};
-                            for (final p in _participantsData) {
-                              final name = p['name'] as String;
-                              if (name.isNotEmpty) suggestions.add(name);
-                            }
-                            final splitProv = Provider.of<SplitBillProvider>(context, listen: false);
-                            for (final c in splitProv.recentContacts) {
-                              if (c.name.isNotEmpty) suggestions.add(c.name);
-                            }
-                            if (suggestions.isEmpty) return const SizedBox.shrink();
-                            return Padding(
-                              padding: const EdgeInsets.only(top: AppLayout.spaceS),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Quick Select Payer:',
-                                    style: theme.textTheme.labelSmall?.copyWith(color: colorScheme.onSurfaceVariant),
-                                  ),
-                                  const SizedBox(height: AppLayout.spaceXS),
-                                  ConstrainedBox(
-                                    constraints: const BoxConstraints(maxHeight: 110),
-                                    child: SingleChildScrollView(
-                                      child: Wrap(
-                                        spacing: AppLayout.spaceXS,
-                                        runSpacing: AppLayout.spaceXS,
-                                        children: suggestions.map((name) {
-                                          final isPayer = _payerFriendController.text.trim().toLowerCase() == name.toLowerCase();
-                                          return ChoiceChip(
-                                            showCheckmark: false,
-                                            label: Text(name),
-                                            selected: isPayer,
-                                            onSelected: (sel) {
-                                              AppHaptics.selectionClick();
-                                              setState(() {
-                                                _payerFriendController.text = sel ? name : '';
-                                                if (sel) {
-                                                  _ensureFriendPayerInParticipants(name);
-                                                }
-                                              });
-                                            },
-                                          );
-                                        }).toList(),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-                        ],
-                        const SizedBox(height: AppLayout.spaceM),
-                        SwitchListTile(
-                          value: _includeUserShare,
-                          onChanged: !_isPayerUser ? null : (val) => setState(() => _includeUserShare = val),
-                          title: const Text('Include My Personal Share'),
-                          subtitle: Text(
-                            !_isPayerUser
-                                ? 'Locked: your share is required because a friend paid for you'
-                                : (_includeUserShare
-                                    ? 'Your share is calculated and subtracted from what others owe'
-                                    : 'You paid 100% purely on behalf of others'),
-                            style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
-                          ),
-                          contentPadding: EdgeInsets.zero,
-                          dense: true,
-                        ),
-                        const SizedBox(height: AppLayout.spaceM),
-                        Text('Splitting Method', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: AppLayout.spaceS),
-                        SegmentedButton<SplitMode>(
-                          showSelectedIcon: false,
-                          segments: const [
-                            ButtonSegment<SplitMode>(
-                              value: SplitMode.equal,
-                              label: Text('Equal Split'),
-                              icon: Icon(Icons.safety_divider_rounded, size: 18),
-                            ),
-                            ButtonSegment<SplitMode>(
-                              value: SplitMode.exact,
-                              label: Text('Custom Exact'),
-                              icon: Icon(Icons.tune_rounded, size: 18),
-                            ),
-                          ],
-                          selected: {_splitMode},
-                          onSelectionChanged: (set) {
-                            AppHaptics.selectionClick();
-                            setState(() {
-                              _splitMode = set.first;
-                              if (_splitMode == SplitMode.exact) {
-                                _assignEqualCustomShares();
-                              }
-                            });
-                          },
-                        ),
-                      ],
-                    ),
+                  SplitBillPayerCard(
+                    isPayerUser: _isPayerUser,
+                    includeUserShare: _includeUserShare,
+                    splitMode: _splitMode,
+                    payerFriendController: _payerFriendController,
+                    participantsData: _participantsData,
+                    recentContacts: splitProvider.recentContacts,
+                    onPayerTypeChanged: (val) {
+                      setState(() {
+                        _isPayerUser = val;
+                        if (!_isPayerUser) {
+                          _includeUserShare = true;
+                        }
+                      });
+                    },
+                    onFriendNameChanged: () => setState(() {}),
+                    onFriendNameSubmitted: (val) {
+                      if (val.trim().isNotEmpty) {
+                        setState(() {
+                          _ensureFriendPayerInParticipants(val.trim());
+                        });
+                      }
+                    },
+                    onQuickSelectPayer: (sel, name) {
+                      setState(() {
+                        _payerFriendController.text = sel ? name : '';
+                        if (sel) {
+                          _ensureFriendPayerInParticipants(name);
+                        }
+                      });
+                    },
+                    onIncludeUserShareChanged: (val) =>
+                        setState(() => _includeUserShare = val),
+                    onSplitModeChanged: (mode) {
+                      setState(() {
+                        _splitMode = mode;
+                        if (_splitMode == SplitMode.exact) {
+                          _assignEqualCustomShares();
+                        }
+                      });
+                    },
                   ),
 
                   const SizedBox(height: AppLayout.spaceM),
 
                   // Participants List Card
-                  AppCard(
-                    padding: const EdgeInsets.all(AppLayout.spaceM),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Participants ($_totalSplitCount)',
-                              style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                            if (_splitMode == SplitMode.equal && _totalSplitCount > 0 && _totalAmount > 0)
-                              Text(
-                                '$currency ${_equalShareAmount.toStringAsFixed(2)} / person',
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  color: colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                          ],
-                        ),
-                        if (_splitMode == SplitMode.exact) ...[
-                          const SizedBox(height: AppLayout.spaceS),
-                          Wrap(
-                            spacing: AppLayout.spaceS,
-                            runSpacing: AppLayout.spaceXS,
-                            children: [
-                              ActionChip(
-                                avatar: Icon(Icons.safety_divider_rounded, size: 16, color: colorScheme.primary),
-                                label: const Text('Split Equally'),
-                                tooltip: 'Assign total bill amount equally among all people with penny-perfect precision',
-                                onPressed: () {
-                                  AppHaptics.selectionClick();
-                                  setState(() {
-                                    _assignEqualCustomShares();
-                                  });
-                                },
-                              ),
-                              ActionChip(
-                                avatar: Icon(Icons.calculate_outlined, size: 16, color: colorScheme.primary),
-                                label: const Text('Add Tax / Tip / Fee'),
-                                tooltip: 'Distribute tax, tip, or service charge proportionally',
-                                onPressed: _showTaxTipAllocatorSheet,
-                              ),
-                              if (_remainingToAllocate.abs() > 0.009)
-                                ActionChip(
-                                  avatar: Icon(Icons.auto_awesome_rounded, size: 16, color: colorScheme.tertiary),
-                                  label: Text(
-                                    _remainingToAllocate > 0
-                                        ? 'Fill Remainder ($currency ${_remainingToAllocate.toStringAsFixed(2)})'
-                                        : 'Reconcile Balance',
-                                  ),
-                                  tooltip: 'Automatically balance remaining amount',
-                                  onPressed: _distributeRemainder,
-                                ),
-                            ],
-                          ),
-                        ],
-                        const SizedBox(height: AppLayout.spaceS),
-
-                        // Recent Friends Quick Add Chips
-                        if (splitProvider.recentContacts.isNotEmpty) ...[
-                          Text(
-                            'Quick Add Recent Friends:',
-                            style: theme.textTheme.labelSmall?.copyWith(color: colorScheme.onSurfaceVariant),
-                          ),
-                          const SizedBox(height: AppLayout.spaceXS),
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 110),
-                            child: SingleChildScrollView(
-                              child: Wrap(
-                                spacing: AppLayout.spaceXS,
-                                runSpacing: AppLayout.spaceXS,
-                                children: splitProvider.recentContacts.map((c) {
-                                  final isAdded = _participantsData.any((p) => (p['name'] as String).toLowerCase() == c.name.toLowerCase());
-                                  if (isAdded) return const SizedBox.shrink();
-                                  return ActionChip(
-                                    avatar: CircleAvatar(
-                                      radius: 10,
-                                      backgroundColor: Color(c.colorValue),
-                                      child: Text(
-                                        c.name.isNotEmpty ? c.name[0].toUpperCase() : '?',
-                                        style: const TextStyle(fontSize: 10, color: Colors.white),
-                                      ),
-                                    ),
-                                    label: Text(c.name),
-                                    onPressed: () => _addParticipant(c.name),
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: AppLayout.spaceM),
-                        ],
-
-                        // Add Person Field
-                        Row(
-                          children: [
-                            Expanded(
-                              child: RawAutocomplete<String>(
-                                textEditingController: _newParticipantController,
-                                focusNode: _newParticipantFocusNode,
-                                optionsBuilder: (TextEditingValue textEditingValue) {
-                                  if (textEditingValue.text.trim().isEmpty) {
-                                    return const Iterable<String>.empty();
-                                  }
-                                  final query = textEditingValue.text.trim().toLowerCase();
-                                  return splitProvider.recentContacts
-                                      .map((c) => c.name)
-                                      .where((name) =>
-                                          name.toLowerCase().contains(query) &&
-                                          !_participantsData.any((p) => p['name'].toString().toLowerCase() == name.toLowerCase()));
-                                },
-                                onSelected: (String selection) {
-                                  _addParticipant(selection);
-                                },
-                                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                                  return TextField(
-                                    controller: controller,
-                                    focusNode: focusNode,
-                                    textCapitalization: TextCapitalization.words,
-                                    decoration: const InputDecoration(
-                                      hintText: 'Enter friend name...',
-                                      prefixIcon: Icon(Icons.person_add_rounded),
-                                      border: OutlineInputBorder(),
-                                      isDense: true,
-                                    ),
-                                    onSubmitted: (val) {
-                                      _addParticipant(val);
-                                    },
-                                  );
-                                },
-                                optionsViewBuilder: (context, onSelected, options) {
-                                  return Align(
-                                    alignment: Alignment.topLeft,
-                                    child: Material(
-                                      elevation: 4.0,
-                                      borderRadius: BorderRadius.circular(AppLayout.radiusM),
-                                      color: colorScheme.surfaceContainerHigh,
-                                      child: ConstrainedBox(
-                                        constraints: const BoxConstraints(maxHeight: 180, maxWidth: 300),
-                                        child: ListView.builder(
-                                          padding: EdgeInsets.zero,
-                                          shrinkWrap: true,
-                                          itemCount: options.length,
-                                          itemBuilder: (BuildContext context, int index) {
-                                            final option = options.elementAt(index);
-                                            return ListTile(
-                                              dense: true,
-                                              leading: const Icon(Icons.person_outline_rounded, size: 18),
-                                              title: Text(option),
-                                              onTap: () => onSelected(option),
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: AppLayout.spaceS),
-                            IconButton.filled(
-                              icon: const Icon(Icons.add_rounded),
-                              tooltip: 'Add Person',
-                              onPressed: () => _addParticipant(_newParticipantController.text),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: AppLayout.spaceM),
-
-                        // User Share Tile
-                        if (_includeUserShare) ...[
-                          ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: colorScheme.primaryContainer,
-                              child: Text('You', style: TextStyle(color: colorScheme.onPrimaryContainer, fontWeight: FontWeight.bold)),
-                            ),
-                            title: const Text('You (Your Share)', style: TextStyle(fontWeight: FontWeight.w600)),
-                            subtitle: Text(_isPayerUser ? 'Payer • Already paid' : 'Owed to friend'),
-                            trailing: _splitMode == SplitMode.equal
-                                ? Text(
-                                    '$currency ${_equalShareAmount.toStringAsFixed(2)}',
-                                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                                  )
-                                : SizedBox(
-                                    width: 130,
-                                    child: TextField(
-                                      controller: _userExactAmountController,
-                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                      textAlign: TextAlign.end,
-                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                                      decoration: InputDecoration(
-                                        hintText: _remainingToAllocate > 0
-                                            ? _remainingToAllocate.toStringAsFixed(2)
-                                            : '0.00',
-                                        isDense: true,
-                                        prefixText: '$currency ',
-                                        prefixStyle: TextStyle(
-                                          color: colorScheme.onSurfaceVariant,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                        filled: true,
-                                        fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                                          borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.3)),
-                                        ),
-                                        enabledBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                                          borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.3)),
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                                          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
-                                        ),
-                                      ),
-                                      onChanged: (_) => setState(() {}),
-                                    ),
-                                  ),
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                          const SizedBox(height: AppLayout.spaceS),
-                        ],
-
-                        // Participant Rows
-                        if (_participantsData.isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: AppLayout.spaceL),
-                            child: Center(
-                              child: Text(
-                                'Add at least one friend to split this bill.',
-                                style: theme.textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
-                              ),
-                            ),
-                          )
-                        else
-                          ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _participantsData.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: AppLayout.spaceXS),
-                            itemBuilder: (context, index) {
-                              final p = _participantsData[index];
-                              final name = p['name'] as String;
-                              final ctrl = _exactAmountControllers[name];
-
-                              return ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: colorScheme.secondaryContainer,
-                                  child: Text(
-                                    name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                    style: TextStyle(color: colorScheme.onSecondaryContainer, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                subtitle: (!_isPayerUser && _payerFriendController.text.trim().toLowerCase() == name.toLowerCase())
-                                    ? Text('Payer • Settled', style: TextStyle(color: theme.extension<AppSemanticColors>()?.success ?? colorScheme.primary, fontSize: 12, fontWeight: FontWeight.w500))
-                                    : null,
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (_splitMode == SplitMode.equal)
-                                      Text(
-                                        '$currency ${_equalShareAmount.toStringAsFixed(2)}',
-                                        style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                                      )
-                                    else
-                                      SizedBox(
-                                        width: 148,
-                                        child: TextField(
-                                          controller: ctrl,
-                                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                          textAlign: TextAlign.end,
-                                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                                          decoration: InputDecoration(
-                                            isDense: true,
-                                            prefixText: '$currency ',
-                                            prefixStyle: TextStyle(
-                                              color: colorScheme.onSurfaceVariant,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                            suffixIcon: IconButton(
-                                              icon: const Icon(Icons.calculate_outlined, size: 18),
-                                              tooltip: 'Calculate share',
-                                              padding: EdgeInsets.zero,
-                                              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                                              onPressed: ctrl != null ? () => _openCalculator(ctrl) : null,
-                                            ),
-                                            suffixIconConstraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                            filled: true,
-                                            fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-                                            border: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                                              borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.3)),
-                                            ),
-                                            enabledBorder: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                                              borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.3)),
-                                            ),
-                                            focusedBorder: OutlineInputBorder(
-                                              borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                                              borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
-                                            ),
-                                          ),
-                                          onChanged: (_) => setState(() {}),
-                                        ),
-                                      ),
-                                    const SizedBox(width: AppLayout.spaceS),
-                                    IconButton(
-                                      icon: const Icon(Icons.close_rounded, size: 20),
-                                      tooltip: 'Remove',
-                                      onPressed: () => _removeParticipant(index),
-                                    ),
-                                  ],
-                                ),
-                                contentPadding: EdgeInsets.zero,
-                              );
-                            },
-                          ),
-                      ],
-                    ),
+                  SplitBillParticipantsCard(
+                    currency: currency,
+                    totalSplitCount: _totalSplitCount,
+                    splitMode: _splitMode,
+                    totalAmount: _totalAmount,
+                    equalShareAmount: _equalShareAmount,
+                    remainingToAllocate: _remainingToAllocate,
+                    isPayerUser: _isPayerUser,
+                    includeUserShare: _includeUserShare,
+                    payerFriendName: _payerFriendController.text,
+                    recentContacts: splitProvider.recentContacts,
+                    participantsData: _participantsData,
+                    exactAmountControllers: _exactAmountControllers,
+                    newParticipantController: _newParticipantController,
+                    newParticipantFocusNode: _newParticipantFocusNode,
+                    userExactAmountController: _userExactAmountController,
+                    onAssignEqualCustomShares: () {
+                      setState(() {
+                        _assignEqualCustomShares();
+                      });
+                    },
+                    onShowTaxTipAllocator: _showTaxTipAllocatorSheet,
+                    onDistributeRemainder: _distributeRemainder,
+                    onAddParticipant: _addParticipant,
+                    onRemoveParticipant: _removeParticipant,
+                    onOpenCalculator: (ctrl) => _openCalculator(ctrl),
+                    onAmountChanged: () => setState(() {}),
                   ),
 
-                  const SizedBox(height: AppLayout.spaceXXL),
+                  const SizedBox(height: AppLayout.spaceL),
                 ]),
               ),
             ),
-          ],
-        ),
+        ],
+      ),
+      bottomNavigationBar: EditorBottomActionBar(
+        icon: _isSaving ? Icons.hourglass_empty_rounded : Icons.check_rounded,
+        label: _isSaving ? 'Saving...' : (effectiveBill != null ? 'Update Bill' : 'Save Split Bill'),
+        onPressed: _isSaving ? null : () => _saveBill(),
       ),
     );
   }

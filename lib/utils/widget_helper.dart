@@ -260,7 +260,7 @@ class WidgetHelper {
       final prefs = await SharedPreferences.getInstance();
       await prefs.reload();
       final repo = NoteRepository.instance;
-      final activeNotes = await repo.readAllNotes(isArchived: false, isTrashed: false);
+      final activeNotes = await repo.readActiveChecklistNotes();
 
       final List<Map<String, dynamic>> todoNotes = [];
       int totalItemsCount = 0;

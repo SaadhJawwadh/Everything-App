@@ -1,9 +1,27 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../data/models/savings_goal_model.dart';
 import '../data/repositories/savings_goal_repository.dart';
+import '../../../services/p2p_sync_service.dart';
+import '../../sync/providers/p2p_sync_provider.dart';
 
 class SavingsGoalProvider extends ChangeNotifier {
   final SavingsGoalRepository _repository = SavingsGoalRepository.instance;
+  StreamSubscription? _syncEventsSubscription;
+
+  SavingsGoalProvider() {
+    _syncEventsSubscription = P2pSyncService.instance.syncEvents.listen((result) {
+      if (result.success) {
+        loadGoals();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _syncEventsSubscription?.cancel();
+    super.dispose();
+  }
 
   List<SavingsGoalModel> _goals = [];
   bool _isLoading = false;
@@ -31,16 +49,19 @@ class SavingsGoalProvider extends ChangeNotifier {
   Future<void> createGoal(SavingsGoalModel goal) async {
     await _repository.createGoal(goal);
     await loadGoals();
+    P2pSyncProvider.activeInstance?.triggerEventSync();
   }
 
   Future<void> updateGoal(SavingsGoalModel goal) async {
     await _repository.updateGoal(goal);
     await loadGoals();
+    P2pSyncProvider.activeInstance?.triggerEventSync();
   }
 
   Future<void> deleteGoal(String id) async {
     await _repository.softDeleteGoal(id);
     await loadGoals();
+    P2pSyncProvider.activeInstance?.triggerEventSync();
   }
 
   Future<SavingsGoalModel?> deposit({
@@ -60,6 +81,7 @@ class SavingsGoalProvider extends ChangeNotifier {
       note: note,
     );
     await loadGoals();
+    P2pSyncProvider.activeInstance?.triggerEventSync();
     return updated;
   }
 
@@ -80,6 +102,7 @@ class SavingsGoalProvider extends ChangeNotifier {
       note: note,
     );
     await loadGoals();
+    P2pSyncProvider.activeInstance?.triggerEventSync();
     return updated;
   }
 
@@ -98,5 +121,6 @@ class SavingsGoalProvider extends ChangeNotifier {
       recordLedgerTransaction: recordLedgerTransaction,
     );
     await loadGoals();
+    P2pSyncProvider.activeInstance?.triggerEventSync();
   }
 }

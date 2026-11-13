@@ -10,6 +10,7 @@ import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../core/ui/app_card.dart';
 import '../../../../core/ui/app_chip.dart';
 import '../../../../core/ui/app_dialog.dart';
+import '../../../../core/ui/edge_fade_mask.dart';
 import '../../../../core/ui/expressive_shape_morph_indicator.dart';
 import '../../../../core/ui/expressive_floating_toolbar.dart';
 import '../../../../data/database_helper.dart';
@@ -564,9 +565,13 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
       {'id': 'i_owe', 'label': 'I owe', 'icon': Icons.arrow_upward_rounded},
     ];
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
+    return EdgeFadeMask(
+      axis: EdgeFadeAxis.horizontalRight,
+      fadeStop: 0.92,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.only(right: AppLayout.spaceM),
+        child: Row(
         children: [
           ...filters.map((f) {
             final id = f['id']! as String;
@@ -604,6 +609,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
             );
           }),
         ],
+      ),
       ),
     );
   }

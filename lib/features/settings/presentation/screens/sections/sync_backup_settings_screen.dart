@@ -80,7 +80,7 @@ class SyncBackupSettingsScreen extends StatelessWidget {
                         SettingsTile(
                           icon: Icons.restore_rounded,
                           iconColor: colorScheme.tertiary,
-                          title: 'Database Snapshots & Recovery',
+                          title: 'Snapshots & Recovery',
                           subtitle: 'Inspect or restore rolling pre-migration & pre-sync snapshots',
                           showArrow: true,
                           onTap: () => SettingsDialogs.showDatabaseSnapshotsSheet(context),

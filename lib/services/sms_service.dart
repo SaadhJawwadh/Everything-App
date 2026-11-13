@@ -252,74 +252,133 @@ class SmsService {
     int processed = 0;
     final total = messages.length;
     onProgress?.call(0, total, 0);
+    if (messages.isEmpty) return 0;
 
-    for (var m in messages) {
+    final prefs = await SharedPreferences.getInstance();
+    final useAi = prefs.getBool('useOnDeviceAi') ?? false;
+    final preferredCurrency = prefs.getString('currency');
+    final isAiHardwareReady = useAi && (await GeminiNanoService().isSupported());
+    final knownSmsIds = await TransactionRepository.instance.getKnownSmsIds(
+      includeTombstones: !bypassTombstones,
+    );
+
+    const chunkSize = 25;
+    for (int startIdx = 0; startIdx < messages.length; startIdx += chunkSize) {
       if (_cancelRequested) {
         debugPrint('[SmsService] Sync cancelled during processing');
         break;
       }
 
-      processed++;
-      if (processed % 25 == 0) {
-        await Future.delayed(Duration.zero);
+      final endIdx = (startIdx + chunkSize < messages.length) ? startIdx + chunkSize : messages.length;
+      final chunk = messages.sublist(startIdx, endIdx);
+
+      // Fast path: when on-device AI is off or unsupported, batch-parse the chunk in a background isolate
+      List<TransactionModel?>? isolateParsedBatch;
+      if (!isAiHardwareReady) {
+        isolateParsedBatch = await SmsParser.parseBatchInIsolate(
+          batch: chunk
+              .map((m) => (
+                    body: m.body ?? '',
+                    address: m.address ?? '',
+                    messageId: m.id,
+                    messageDate: m.date,
+                  ))
+              .toList(),
+          allowedSenderIds: _allowedSenderIds,
+          blockedSenderIds: _blockedSenderIds,
+          customExpenseRules: _customExpenseRules,
+          customIncomeRules: _customIncomeRules,
+          customSmsRules: _customSmsRules,
+          preferredCurrency: preferredCurrency,
+          categoryAccountRouting: _categoryAccountRouting,
+        );
       }
 
-      final msgDate = SmsParser.resolveMessageDate(m.date);
-      if (msgDate.isBefore(from)) {
-        onProgress?.call(processed, total, count);
-        continue;
-      }
-
-      final t = await _parseWithAiFallback(
-        body: m.body ?? '',
-        address: m.address ?? '',
-        messageId: m.id,
-        messageDate: m.date,
-        allowedSenderIds: _allowedSenderIds,
-        blockedSenderIds: _blockedSenderIds,
-        customExpenseRules: _customExpenseRules,
-        customIncomeRules: _customIncomeRules,
-        customSmsRules: _customSmsRules,
-      );
-
-      if (t == null || t.smsId == null) {
-        onProgress?.call(processed, total, count);
-        continue;
-      }
-      if (await TransactionRepository.instance.hasCrossSenderDuplicate(t.amount, t.date)) {
-        onProgress?.call(processed, total, count);
-        continue;
-      }
-
-      final exists = await TransactionRepository.instance.smsExists(t.smsId!);
-      if (exists && !bypassTombstones) {
-        alreadyImported++;
-        onAlreadyImported?.call(alreadyImported);
-        onProgress?.call(processed, total, count);
-        continue;
-      }
-
-      final inserted = await TransactionRepository.instance.createSmsTransaction(
-        t,
-        bypassTombstones: bypassTombstones,
-      );
-      if (inserted == null) {
-        onProgress?.call(processed, total, count);
-        continue;
-      }
-      if (m.address != null && m.address!.isNotEmpty) {
-        await _autoRegisterSender(m.address!);
-      }
-      count++;
-      onProgress?.call(processed, total, count);
-
-      if (t.category == SmsConstants.reversalSentinel) {
-        final target = await TransactionRepository.instance.findReversalTarget(t.amount, t.date);
-        if (target != null) {
-          await TransactionRepository.instance.deleteTransaction(target.id!);
+      for (int i = 0; i < chunk.length; i++) {
+        if (_cancelRequested) {
+          debugPrint('[SmsService] Sync cancelled during processing');
+          break;
         }
-        await TransactionRepository.instance.deleteTransaction(inserted.id!);
+
+        final m = chunk[i];
+        processed++;
+
+        final msgDate = SmsParser.resolveMessageDate(m.date);
+        if (msgDate.isBefore(from)) {
+          onProgress?.call(processed, total, count);
+          continue;
+        }
+
+        TransactionModel? t;
+        if (isolateParsedBatch != null) {
+          t = isolateParsedBatch[i] ??
+              await _parseWithAiFallback(
+                body: m.body ?? '',
+                address: m.address ?? '',
+                messageId: m.id,
+                messageDate: m.date,
+                allowedSenderIds: _allowedSenderIds,
+                blockedSenderIds: _blockedSenderIds,
+                customExpenseRules: _customExpenseRules,
+                customIncomeRules: _customIncomeRules,
+                customSmsRules: _customSmsRules,
+              );
+        } else {
+          t = await _parseWithAiFallback(
+            body: m.body ?? '',
+            address: m.address ?? '',
+            messageId: m.id,
+            messageDate: m.date,
+            allowedSenderIds: _allowedSenderIds,
+            blockedSenderIds: _blockedSenderIds,
+            customExpenseRules: _customExpenseRules,
+            customIncomeRules: _customIncomeRules,
+            customSmsRules: _customSmsRules,
+          );
+        }
+
+        if (t == null || t.smsId == null) {
+          onProgress?.call(processed, total, count);
+          continue;
+        }
+        if (await TransactionRepository.instance.hasCrossSenderDuplicate(t.amount, t.date)) {
+          onProgress?.call(processed, total, count);
+          continue;
+        }
+
+        final exists = knownSmsIds.contains(t.smsId!);
+        if (exists && !bypassTombstones) {
+          alreadyImported++;
+          onAlreadyImported?.call(alreadyImported);
+          onProgress?.call(processed, total, count);
+          continue;
+        }
+
+        final inserted = await TransactionRepository.instance.createSmsTransaction(
+          t,
+          bypassTombstones: bypassTombstones,
+        );
+        if (inserted == null) {
+          onProgress?.call(processed, total, count);
+          continue;
+        }
+        knownSmsIds.add(t.smsId!);
+        if (m.address != null && m.address!.isNotEmpty) {
+          await _autoRegisterSender(m.address!);
+        }
+        count++;
+        onProgress?.call(processed, total, count);
+
+        if (t.category == SmsConstants.reversalSentinel) {
+          final target = await TransactionRepository.instance.findReversalTarget(t.amount, t.date);
+          if (target != null) {
+            await TransactionRepository.instance.deleteTransaction(target.id!);
+          }
+          await TransactionRepository.instance.deleteTransaction(inserted.id!);
+        }
       }
+
+      await Future.delayed(Duration.zero);
     }
     return count;
   }

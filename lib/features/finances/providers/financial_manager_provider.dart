@@ -12,6 +12,7 @@ class FinancialManagerProvider extends ChangeNotifier {
   final TransactionRepository _repository = TransactionRepository.instance;
   StreamSubscription? _syncSubscription;
   StreamSubscription? _smsSyncSubscription;
+  bool _isDisposed = false;
 
   List<TransactionModel> _allTransactions = [];
   List<TransactionModel> _filteredTransactions = [];
@@ -52,6 +53,7 @@ class FinancialManagerProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _syncSubscription?.cancel();
     _smsSyncSubscription?.cancel();
     FinancialManagerScreen.refreshNotifier.removeListener(_onExternalRefreshNotifier);
@@ -105,24 +107,38 @@ class FinancialManagerProvider extends ChangeNotifier {
       .fold(0.0, (sum, t) => sum + t.amount);
 
   Future<void> loadTransactions() async {
+    if (_isDisposed) return;
     _isLoading = true;
     notifyListeners();
 
     try {
-      await RecurringRuleRepository.instance.materializeDueRules();
-      await _repository.clearOldTransactionTrash(days: 30);
-    } catch (_) {}
+      try {
+        await RecurringRuleRepository.instance.materializeDueRules();
+        await _repository.clearOldTransactionTrash(days: 30);
+      } catch (_) {}
 
-    _allTransactions = await _repository.readAllTransactions();
-    _trashedTransactions = await _repository.readTrashedTransactions();
-    try {
-      _monthlyData = await _repository.getMonthlyTransactionSummary(6);
-    } catch (_) {}
+      final loadedTransactions = await _repository.readAllTransactions();
+      if (_isDisposed) return;
+      final loadedTrashed = await _repository.readTrashedTransactions();
+      if (_isDisposed) return;
+      _allTransactions = loadedTransactions;
+      _trashedTransactions = loadedTrashed;
 
-    _applyFilters();
+      try {
+        final loadedMonthly = await _repository.getMonthlyTransactionSummary(6);
+        if (_isDisposed) return;
+        _monthlyData = loadedMonthly;
+      } catch (_) {}
 
-    _isLoading = false;
-    notifyListeners();
+      _applyFilters();
+    } catch (e) {
+      debugPrint('Error loading transactions: $e');
+    } finally {
+      _isLoading = false;
+      if (!_isDisposed) {
+        notifyListeners();
+      }
+    }
   }
 
   Future<void> refresh() => loadTransactions();

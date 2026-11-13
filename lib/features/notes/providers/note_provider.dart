@@ -164,24 +164,35 @@ class NoteProvider extends ChangeNotifier {
       if (purgedCount > 0) {
         await NotificationService.showAutoPurgeNotification(purgedCount, purgeDays);
       }
-      final tags = await _noteRepository.getAllTags();
-      final colors = await _noteRepository.getAllTagColors();
+      final results = await Future.wait<dynamic>([
+        _noteRepository.getAllTags(),
+        _noteRepository.getAllTagColors(),
+        _noteRepository.readAllNotes(
+          limit: targetLimit,
+          offset: 0,
+          tags: _selectedTags.isEmpty ? null : _selectedTags.toList(),
+          isArchived: _selectedTags.contains('Archived'),
+          isTrashed: _selectedTags.contains('Trash'),
+          sortMode: _sortMode,
+          folder: _filterChecklistsOnly ? 'All Notes' : _selectedFolder,
+        ),
+        _noteRepository.getTagCounts(),
+        _noteRepository.getFolderCounts(),
+        _noteRepository.getArchivedCount(),
+        _noteRepository.getTrashCount(),
+        _noteRepository.getChecklistNotesCount(folder: 'All Notes'),
+        _noteRepository.getAllFolders(),
+      ]);
 
-      final fetchedNotes = await _noteRepository.readAllNotes(
-        limit: targetLimit,
-        offset: 0,
-        tags: _selectedTags.isEmpty ? null : _selectedTags.toList(),
-        isArchived: _selectedTags.contains('Archived'),
-        isTrashed: _selectedTags.contains('Trash'),
-        sortMode: _sortMode,
-        folder: _filterChecklistsOnly ? 'All Notes' : _selectedFolder,
-      );
-      _tagCounts = await _noteRepository.getTagCounts();
-      _folderCounts = await _noteRepository.getFolderCounts();
-      _archivedCount = await _noteRepository.getArchivedCount();
-      _trashCount = await _noteRepository.getTrashCount();
-      _checklistNotesCount = await _noteRepository.getChecklistNotesCount(folder: 'All Notes');
-      _folders = await _noteRepository.getAllFolders();
+      final tags = results[0] as List<String>;
+      final colors = results[1] as Map<String, int>;
+      final fetchedNotes = results[2] as List<Note>;
+      _tagCounts = results[3] as Map<String, int>;
+      _folderCounts = results[4] as Map<String, int>;
+      _archivedCount = results[5] as int;
+      _trashCount = results[6] as int;
+      _checklistNotesCount = results[7] as int;
+      _folders = results[8] as List<String>;
       _emptyFolders.removeWhere((f) => _folders.contains(f));
       if (_selectedFolder != null &&
           _selectedFolder != 'Notes' &&

@@ -1,12 +1,11 @@
 
 ### 🌟 What's New
-- **Native Acceleration & Zero-Lag Backups**: Hardware-accelerated processing engine and background task isolation, keeping your screen smooth and responsive even during large backup creations and device syncs.
-- **Fast Google Takeout Import**: Instant, background extraction and migration for imported Google Keep archives and large ZIP attachments without freezing the app.
+- **Keyboard-Smart Editor Action Bars**: Transaction and Split Bill editors now feature a sleek docked Save bar that automatically tucks away while typing and keeps all form options visible.
 
 ### 🚀 Improvements
-- **Instant SMS Ingestion**: High-speed message pre-filtering quickly detects bank alerts and transaction notices while ignoring non-financial messages.
-- **Optimized Memory Footprint**: Large encryption and sync payloads stream through isolated background threads, reducing peak memory usage.
+- **Smooth Edge Scroll Fades & Unclipped Charts**: Subtle edge feathering on Onboarding and filter strips, full forecast labels on Spending Trend charts, and crisp single-line action buttons in P2P Sync and Backups.
+- **Streamlined Modular Workspaces**: Refined Onboarding, Transaction, and Split Bill layouts for snappier rendering and cleaner navigation.
 
 ### 🐛 Fixes
-- **Smooth Background Syncing**: Resolved potential UI pauses when processing large peer-to-peer data transfers and deep encrypted backup restorations.
+- **Overlap-Free Forms & Clearer Labels**: Eliminated button overlaps over repeat schedules and split-bill participant inputs, and resolved truncated labels in Sync & Backups.
 

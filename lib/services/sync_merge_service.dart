@@ -453,12 +453,26 @@ class SyncMergeService {
 
       // 7. Merge Recurring Rules
       if (remoteData.containsKey('recurringRules') && remoteData['recurringRules'] is List) {
+        final localRules = await txn.query('recurring_rules');
+        final localRuleMap = {
+          for (final r in localRules)
+            if (r['id'] != null) r['id'].toString(): r,
+        };
         final batch = txn.batch();
         for (final item in remoteData['recurringRules'] as List) {
           if (item is Map) {
             final map = Map<String, Object?>.from(item);
             if (map['isExpense'] is bool) {
               map['isExpense'] = (map['isExpense'] as bool) ? 1 : 0;
+            }
+            final idKey = map['id']?.toString();
+            final local = idKey != null ? localRuleMap[idKey] : null;
+            if (local != null) {
+              final localGen = DateTime.tryParse(local['lastGeneratedDate']?.toString() ?? '');
+              final remoteGen = DateTime.tryParse(map['lastGeneratedDate']?.toString() ?? '');
+              if (localGen != null && (remoteGen == null || localGen.isAfter(remoteGen))) {
+                map['lastGeneratedDate'] = local['lastGeneratedDate'];
+              }
             }
             batch.insert('recurring_rules', map, conflictAlgorithm: ConflictAlgorithm.replace);
           }
@@ -494,6 +508,12 @@ class SyncMergeService {
                 batch.update('split_bills', {'deletedAt': remoteDeleted}, where: 'id = ?', whereArgs: [id]);
                 splitBillsMerged++;
               } else {
+                const statusRank = {'unsettled': 0, 'partial': 1, 'settled': 2};
+                final localRank = statusRank[local['status']?.toString() ?? 'unsettled'] ?? 0;
+                final remoteRank = statusRank[map['status']?.toString() ?? 'unsettled'] ?? 0;
+                if (localRank > remoteRank) {
+                  map['status'] = local['status'];
+                }
                 batch.update('split_bills', map, where: 'id = ?', whereArgs: [id]);
                 splitBillsMerged++;
               }
@@ -572,6 +592,12 @@ class SyncMergeService {
                 batch.update('savings_goals', {'deletedAt': remoteDeleted}, where: 'id = ?', whereArgs: [id]);
                 savingsGoalsMerged++;
               } else {
+                final localCompleted = (local['isCompleted'] as num?)?.toInt() == 1;
+                final remoteCompleted = (map['isCompleted'] as num?)?.toInt() == 1;
+                if (localCompleted && !remoteCompleted) {
+                  map['isCompleted'] = 1;
+                  map['completedAt'] ??= local['completedAt'];
+                }
                 batch.update('savings_goals', map, where: 'id = ?', whereArgs: [id]);
                 savingsGoalsMerged++;
               }

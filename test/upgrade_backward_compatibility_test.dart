@@ -305,7 +305,7 @@ void main() {
           value: settings,
           child: const MaterialApp(
             home: Scaffold(
-              body: WhatsNewSheet(currentVersion: '3.3.5'),
+              body: WhatsNewSheet(currentVersion: '3.4.0'),
             ),
           ),
         ),
@@ -317,12 +317,12 @@ void main() {
       expect(find.text("Improvements"), findsOneWidget);
       expect(find.text("Fixes"), findsOneWidget);
 
-      // Check marquee items for v3.3.5
+      // Check marquee items for v3.4.0
+      expect(find.text("Keyboard-Smart Editor Action Bars"), findsOneWidget);
       expect(find.text("Native Core & Isolate Acceleration"), findsOneWidget);
-      expect(find.text("Background Google Takeout Import"), findsOneWidget);
-      expect(find.text("Instant SMS Ingestion Pre-Filter"), findsOneWidget);
-      expect(find.text("Optimized Memory Footprint"), findsOneWidget);
-      expect(find.text("Smooth Background Syncing"), findsOneWidget);
+      expect(find.text("Edge Scroll Fades & Unclipped Charts"), findsOneWidget);
+      expect(find.text("Streamlined Modular Workspaces"), findsOneWidget);
+      expect(find.text("Overlap-Free Forms & Clearer Labels"), findsOneWidget);
 
       // Tap "Awesome, Got It!" to finish
       await tester.runAsync(() async {
@@ -331,7 +331,7 @@ void main() {
       });
       await tester.pumpAndSettle();
 
-      expect(settings.lastSeenVersion, '3.3.5');
+      expect(settings.lastSeenVersion, '3.4.0');
     });
   });
 }

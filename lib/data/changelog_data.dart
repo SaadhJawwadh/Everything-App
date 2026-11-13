@@ -25,9 +25,35 @@ class ChangelogRelease {
 
 final List<ChangelogRelease> kChangelogHistory = [
   ChangelogRelease(
+    version: 'v3.4.0',
+    date: 'November 13, 2026',
+    isLatest: true,
+    categories: [
+      ChangelogCategory(
+        title: "What's New",
+        items: [
+          'Keyboard-Smart Editor Action Bars: Transaction and Split Bill editors now feature a sleek docked Save bar that automatically tucks away while typing and keeps all form options visible.',
+        ],
+      ),
+      ChangelogCategory(
+        title: 'Improvements',
+        items: [
+          'Smooth Edge Scroll Fades & Unclipped Charts: Subtle edge feathering on Onboarding and filter strips, full forecast labels on Spending Trend charts, and crisp single-line buttons in P2P Sync and Backups.',
+          'Streamlined Modular Workspaces: Refined Onboarding, Transaction, and Split Bill layouts for snappier rendering and cleaner navigation.',
+        ],
+      ),
+      ChangelogCategory(
+        title: 'Fixes',
+        items: [
+          'Overlap-Free Forms & Clearer Labels: Eliminated button overlaps over repeat schedules and split-bill participant inputs, and resolved truncated labels in Sync & Backups.',
+        ],
+      ),
+    ],
+  ),
+  ChangelogRelease(
     version: 'v3.3.5',
     date: 'November 11, 2026',
-    isLatest: true,
+    isLatest: false,
     categories: [
       ChangelogCategory(
         title: "What's New",

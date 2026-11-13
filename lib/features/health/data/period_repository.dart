@@ -4,6 +4,7 @@ import '../../../data/database_helper.dart';
 import '../../../data/period_log_model.dart';
 import '../../../data/database_constants.dart';
 import '../../../services/notification_service.dart';
+import '../../sync/providers/p2p_sync_provider.dart';
 
 class PeriodRepository {
   static final PeriodRepository instance = PeriodRepository._init();
@@ -23,6 +24,7 @@ class PeriodRepository {
         await NotificationService.schedulePeriodNotifications();
       } catch (_) {}
     }
+    P2pSyncProvider.activeInstance?.triggerEventSync();
     return log;
   }
 
@@ -46,6 +48,7 @@ class PeriodRepository {
         await NotificationService.schedulePeriodNotifications();
       } catch (_) {}
     }
+    P2pSyncProvider.activeInstance?.triggerEventSync();
     return res;
   }
 
@@ -62,6 +65,7 @@ class PeriodRepository {
         await NotificationService.schedulePeriodNotifications();
       } catch (_) {}
     }
+    P2pSyncProvider.activeInstance?.triggerEventSync();
     return res;
   }
 

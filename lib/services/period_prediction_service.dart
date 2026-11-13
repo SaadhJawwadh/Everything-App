@@ -37,6 +37,15 @@ class PeriodPredictionService {
   static const int lutealPhaseLengthDays = 14; // Typical days from ovulation to next period
 
   static List<PeriodLog> _sortLogs(List<PeriodLog> logs) {
+    if (logs.length < 2) return logs;
+    bool alreadySorted = true;
+    for (int i = 0; i < logs.length - 1; i++) {
+      if (logs[i].startDate.isBefore(logs[i + 1].startDate)) {
+        alreadySorted = false;
+        break;
+      }
+    }
+    if (alreadySorted) return logs;
     return List<PeriodLog>.from(logs)..sort((a, b) => b.startDate.compareTo(a.startDate));
   }
 

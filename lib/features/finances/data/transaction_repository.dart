@@ -8,6 +8,7 @@ import '../../../data/database_constants.dart';
 import '../../../data/category_definition.dart';
 import '../../../data/sms_contact.dart';
 import '../../../utils/widget_helper.dart';
+import '../../sync/providers/p2p_sync_provider.dart';
 
 class TransactionRepository {
   static final TransactionRepository instance = TransactionRepository._init();
@@ -23,6 +24,7 @@ class TransactionRepository {
     final id = await db.insert(TableNames.transactions, transaction.toJson());
     final result = transaction.copy(id: id);
     await WidgetHelper.updateWidgetData();
+    P2pSyncProvider.activeInstance?.triggerEventSync();
     return result;
   }
 
@@ -156,6 +158,7 @@ class TransactionRepository {
     final count = await db.update(TableNames.transactions, updatedTx.toJson(), where: '${TransactionFields.id} = ?', whereArgs: [transaction.id]);
     if (count > 0) {
       await WidgetHelper.updateWidgetData();
+      P2pSyncProvider.activeInstance?.triggerEventSync();
     }
     return count;
   }
@@ -349,6 +352,7 @@ class TransactionRepository {
     );
     if (count > 0) {
       await WidgetHelper.updateWidgetData();
+      P2pSyncProvider.activeInstance?.triggerEventSync();
     }
     return count;
   }
@@ -381,6 +385,7 @@ class TransactionRepository {
     );
     if (count > 0) {
       await WidgetHelper.updateWidgetData();
+      P2pSyncProvider.activeInstance?.triggerEventSync();
     }
     return count;
   }
@@ -435,28 +440,75 @@ class TransactionRepository {
     return tombstoneCheck.isNotEmpty;
   }
 
+  /// Bulk loads all known SMS IDs (active, soft-deleted, and tombstoned when `!bypassTombstones`)
+  /// into memory so `SmsService.syncInboxFrom` can check duplicates in O(1) without N+1 queries.
+  Future<Set<String>> getKnownSmsIds({bool includeTombstones = true}) async {
+    final db = await _db;
+    final ids = <String>{};
+    final activeRows = await db.query(
+      TableNames.transactions,
+      columns: [TransactionFields.smsId],
+      where: '${TransactionFields.smsId} IS NOT NULL',
+    );
+    for (final row in activeRows) {
+      final id = row[TransactionFields.smsId] as String?;
+      if (id != null && id.isNotEmpty) ids.add(id);
+    }
+    if (includeTombstones) {
+      final tombRows = await db.query(
+        TableNames.deletedTransactionSmsIds,
+        columns: ['smsId'],
+      );
+      for (final row in tombRows) {
+        final id = row['smsId'] as String?;
+        if (id != null && id.isNotEmpty) ids.add(id);
+      }
+    }
+    return ids;
+  }
+
   Future<List<Map<String, dynamic>>> getMonthlyTransactionSummary(int months) async {
+    if (months <= 0) return [];
     final db = await _db;
     final now = DateTime.now();
+    final earliestMonth = DateTime(now.year, now.month - (months - 1), 1);
+    final latestEnd = DateTime(now.year, now.month + 1, 1);
+
+    final rows = await db.rawQuery(
+      'SELECT substr(date, 1, 7) AS ym, '
+      'SUM(CASE WHEN isExpense = 0 THEN amount ELSE 0.0 END) AS totalIncome, '
+      'SUM(CASE WHEN isExpense = 1 THEN amount ELSE 0.0 END) AS totalExpense '
+      'FROM ${TableNames.transactions} '
+      'WHERE date >= ? AND date < ? AND category != ? AND LOWER(category) != ? AND ${TransactionFields.deletedAt} IS NULL '
+      'GROUP BY ym',
+      [
+        earliestMonth.toIso8601String(),
+        latestEnd.toIso8601String(),
+        '__reversal__',
+        'transfer',
+      ],
+    );
+
+    final byYm = <String, ({double income, double expense})>{};
+    for (final r in rows) {
+      final ym = r['ym'] as String?;
+      if (ym != null) {
+        byYm[ym] = (
+          income: (r['totalIncome'] as num?)?.toDouble() ?? 0.0,
+          expense: (r['totalExpense'] as num?)?.toDouble() ?? 0.0,
+        );
+      }
+    }
+
     final result = <Map<String, dynamic>>[];
     for (int i = months - 1; i >= 0; i--) {
       final periodStart = DateTime(now.year, now.month - i, 1);
-      final periodEnd = DateTime(now.year, now.month - i + 1, 1);
-      final rows = await db.rawQuery(
-          'SELECT SUM(CASE WHEN isExpense = 0 THEN amount ELSE 0.0 END) AS totalIncome, '
-          'SUM(CASE WHEN isExpense = 1 THEN amount ELSE 0.0 END) AS totalExpense '
-          'FROM ${TableNames.transactions} '
-          'WHERE date >= ? AND date < ? AND category != ? AND LOWER(category) != ? AND ${TransactionFields.deletedAt} IS NULL',
-          [
-            periodStart.toIso8601String(),
-            periodEnd.toIso8601String(),
-            '__reversal__',
-            'transfer',
-          ]);
+      final ymKey = '${periodStart.year.toString().padLeft(4, '0')}-${periodStart.month.toString().padLeft(2, '0')}';
+      final totals = byYm[ymKey];
       result.add({
         'month': periodStart,
-        'totalIncome': (rows.first['totalIncome'] as num?)?.toDouble() ?? 0.0,
-        'totalExpense': (rows.first['totalExpense'] as num?)?.toDouble() ?? 0.0
+        'totalIncome': totals?.income ?? 0.0,
+        'totalExpense': totals?.expense ?? 0.0,
       });
     }
     return result;
@@ -599,6 +651,7 @@ class TransactionRepository {
     final allTxns = await readAllTransactions();
     if (allTxns.length < 2) return 0;
 
+    // allTxns is already ordered by date DESC; use a 120-second sliding window to avoid O(N^2) scans
     final toDeleteIds = <int>{};
     for (int i = 0; i < allTxns.length; i++) {
       final a = allTxns[i];
@@ -606,13 +659,15 @@ class TransactionRepository {
 
       for (int j = i + 1; j < allTxns.length; j++) {
         final b = allTxns[j];
+        if (a.date.difference(b.date).abs() > const Duration(seconds: 120)) {
+          break; // Since sorted by date DESC, subsequent transactions are even further away
+        }
         if (b.id == null || toDeleteIds.contains(b.id)) continue;
 
         final isSameAmount = (a.amount - b.amount).abs() < 0.01;
         final isSameType = a.isExpense == b.isExpense;
-        final isTimeClose = a.date.difference(b.date).abs() <= const Duration(seconds: 120);
 
-        if (isSameAmount && isSameType && isTimeClose) {
+        if (isSameAmount && isSameType) {
           toDeleteIds.add(b.id!);
         }
       }
@@ -626,8 +681,26 @@ class TransactionRepository {
         whereArgs: toDeleteIds.toList(),
       );
       await WidgetHelper.updateWidgetData();
+      P2pSyncProvider.activeInstance?.triggerEventSync();
     }
 
     return toDeleteIds.length;
+  }
+
+  /// Inserts a batch of transactions inside a single atomic SQLite transaction
+  /// and triggers widget + P2P sync updates once at the end.
+  Future<int> bulkInsertTransactions(List<TransactionModel> transactions) async {
+    if (transactions.isEmpty) return 0;
+    final db = await _db;
+    await db.transaction((txn) async {
+      final batch = txn.batch();
+      for (final tx in transactions) {
+        batch.insert(TableNames.transactions, tx.toJson());
+      }
+      await batch.commit(noResult: true);
+    });
+    await WidgetHelper.updateWidgetData();
+    P2pSyncProvider.activeInstance?.triggerEventSync();
+    return transactions.length;
   }
 }

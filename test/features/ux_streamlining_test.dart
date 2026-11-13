@@ -163,6 +163,7 @@ void main() {
       );
       DatabaseHelper.setMockDatabase(testDb);
 
+      FinancialManagerProvider? finProvider;
       try {
         final goal = SavingsGoalModel(
           id: 'goal_1',
@@ -189,10 +190,12 @@ void main() {
         );
 
         // Verify FinancialManagerProvider does not count internal pocket deposit as Monthly Income
-        final finProvider = FinancialManagerProvider();
+        finProvider = FinancialManagerProvider();
         await finProvider.loadTransactions();
         expect(finProvider.totalIncome, 0.0);
         expect(finProvider.totalExpense, 0.0);
+        finProvider.dispose();
+        finProvider = null;
 
         // 2. Cap withdrawal at currentAmount ($200) even if $500 is requested
         final refreshedGoal1 = (await SavingsGoalRepository.instance.getGoalById(goal.id))!;
@@ -227,6 +230,7 @@ void main() {
           reason: 'Unchecking recordLedgerTransaction should not insert a ledger expense',
         );
       } finally {
+        finProvider?.dispose();
         await testDb.close();
         DatabaseHelper.setMockDatabase(null);
       }
@@ -242,6 +246,7 @@ void main() {
       );
       DatabaseHelper.setMockDatabase(testDb);
 
+      NoteProvider? noteProvider;
       try {
         final now = DateTime.now();
         await NoteRepository.instance.createNote(
@@ -267,7 +272,7 @@ void main() {
           ),
         );
 
-        final noteProvider = NoteProvider();
+        noteProvider = NoteProvider();
         await noteProvider.refreshNotes();
 
         // Default folder is 'Notes', so 'Work Tasks' checklist isn't visible until Checklists virtual view is enabled
@@ -294,6 +299,7 @@ void main() {
         expect(noteProvider.selectedTags, contains('priority'));
         expect(noteProvider.selectedTags.contains('urgent'), isFalse);
       } finally {
+        noteProvider?.dispose();
         await testDb.close();
         DatabaseHelper.setMockDatabase(null);
       }

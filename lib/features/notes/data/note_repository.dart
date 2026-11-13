@@ -6,6 +6,7 @@ import '../../../data/database_constants.dart';
 import '../../../utils/rich_text_utils.dart';
 import '../../../utils/widget_helper.dart';
 import '../../../services/notification_service.dart';
+import '../../sync/providers/p2p_sync_provider.dart';
 
 class NoteRepository {
   static final NoteRepository instance = NoteRepository._init();
@@ -27,6 +28,7 @@ class NoteRepository {
       }
     });
     unawaited(WidgetHelper.updateTodoWidgetData());
+    P2pSyncProvider.activeInstance?.triggerEventSync();
   }
 
   Future<Note?> readNote(String id) async {
@@ -121,6 +123,7 @@ class NoteRepository {
       return res;
     });
     unawaited(WidgetHelper.updateTodoWidgetData());
+    P2pSyncProvider.activeInstance?.triggerEventSync();
     return res;
   }
 
@@ -133,6 +136,7 @@ class NoteRepository {
       return await txn.delete(TableNames.notes, where: '${NoteFields.id} = ?', whereArgs: [id]);
     });
     unawaited(WidgetHelper.updateTodoWidgetData());
+    P2pSyncProvider.activeInstance?.triggerEventSync();
     return res;
   }
 
@@ -149,6 +153,7 @@ class NoteRepository {
       whereArgs: [id],
     );
     unawaited(WidgetHelper.updateTodoWidgetData());
+    P2pSyncProvider.activeInstance?.triggerEventSync();
     return res;
   }
 
@@ -166,6 +171,7 @@ class NoteRepository {
       whereArgs: [id],
     );
     unawaited(WidgetHelper.updateTodoWidgetData());
+    P2pSyncProvider.activeInstance?.triggerEventSync();
     return res;
   }
 
@@ -182,6 +188,7 @@ class NoteRepository {
       whereArgs: [id],
     );
     unawaited(WidgetHelper.updateTodoWidgetData());
+    P2pSyncProvider.activeInstance?.triggerEventSync();
     return res;
   }
 
@@ -277,6 +284,24 @@ class NoteRepository {
 
     final result = await db.rawQuery('SELECT COUNT(*) as count FROM ${TableNames.notes} WHERE $where', whereArgs);
     return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  /// Queries only active, unlocked notes that contain checklist markers so the launcher
+  /// widget never has to load or parse plain-text notes.
+  Future<List<Note>> readActiveChecklistNotes() async {
+    final db = await _db;
+    const where = '${NoteFields.deletedAt} IS NULL AND ${NoteFields.isArchived} = 0 '
+        'AND ${NoteFields.isLocked} = 0 AND ('
+        "${NoteFields.content} LIKE '%\"list\"%\"checked\"%' OR "
+        "${NoteFields.content} LIKE '%\"list\"%\"unchecked\"%' OR "
+        "${NoteFields.content} LIKE '%- [ ]%' OR "
+        "${NoteFields.content} LIKE '%- [x]%')";
+    final rows = await db.query(
+      TableNames.notes,
+      where: where,
+      orderBy: '${NoteFields.isPinned} DESC, ${NoteFields.dateModified} DESC',
+    );
+    return rows.map((json) => Note.fromMap(json)).toList();
   }
 
   Future<void> bulkSetPinned(List<String> ids, bool pinned) async {
@@ -390,6 +415,7 @@ class NoteRepository {
       [effectiveFolder, now, ...ids],
     );
     unawaited(WidgetHelper.updateTodoWidgetData());
+    P2pSyncProvider.activeInstance?.triggerEventSync();
   }
 
   Future<List<Note>> readTrashedNotes() async {
@@ -492,8 +518,11 @@ class NoteRepository {
   Future<List<Note>> _populateNotesTags(List<Note> notes) async {
     if (notes.isEmpty) return notes;
     final db = await _db;
-    final ids = notes.map((n) => "'${n.id}'").join(',');
-    final results = await db.rawQuery('SELECT note_id, tag_name FROM note_tags WHERE note_id IN ($ids)');
+    final placeholders = List.filled(notes.length, '?').join(',');
+    final results = await db.rawQuery(
+      'SELECT note_id, tag_name FROM note_tags WHERE note_id IN ($placeholders)',
+      notes.map((n) => n.id).toList(),
+    );
     final tagMap = <String, List<String>>{};
     for (var row in results) {
       final id = row['note_id'] as String;

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
@@ -507,6 +508,43 @@ class P2pRelaySyncService {
     ]);
   }
 
+  /// Offloads Nostr NIP-01 event serialization and BIP-340 Schnorr signing to a background isolate
+  /// for multi-chunk payloads.
+  static Future<(String, String)> _buildSignedFramePairAsync({
+    required String pairCode,
+    required String envelopeJson,
+    required int createdAt,
+    required String msgId,
+    required int chunkIndex,
+    required String roomPubHex,
+    required String expiration,
+  }) {
+    return Isolate.run(() {
+      final buffered = buildSignedNostrEventFrame(
+        pairCode: pairCode,
+        kind: _replaceableMailboxKind,
+        content: envelopeJson,
+        createdAtSeconds: createdAt,
+        tags: [
+          ['d', '$msgId:$chunkIndex'],
+          ['p', roomPubHex],
+          ['expiration', expiration],
+        ],
+      );
+      final ephemeral = buildSignedNostrEventFrame(
+        pairCode: pairCode,
+        kind: _ephemeralEventKind,
+        content: envelopeJson,
+        createdAtSeconds: createdAt,
+        tags: [
+          ['d', roomPubHex],
+          ['p', roomPubHex],
+        ],
+      );
+      return (buffered, ephemeral);
+    });
+  }
+
   Future<void> _handleRelayFrame(String rawFrame) async {
     try {
       final decoded = json.decode(rawFrame);
@@ -583,8 +621,8 @@ class P2pRelaySyncService {
       String? decrypted;
       bool isLegacy = false;
       String matchedCode = _primaryPairCode;
-      for (final code in _trustedPairCodes) {
-        final (plain, legacyFlag) = _crypto.decryptPayloadDetailed(fullCiphertext, code);
+      for (final code in _trustedPairCodes.toList()) {
+        final (plain, legacyFlag) = await _crypto.decryptPayloadDetailedAsync(fullCiphertext, code);
         if (plain != null) {
           decrypted = plain;
           isLegacy = legacyFlag;
@@ -605,7 +643,7 @@ class P2pRelaySyncService {
       }
 
       if (replyPayload != null) {
-        final encryptedReply = _crypto.encryptPayload(
+        final encryptedReply = await _crypto.encryptPayloadAsync(
           json.encode(replyPayload),
           matchedCode,
           legacyMode: isLegacy,
@@ -721,27 +759,43 @@ class P2pRelaySyncService {
       });
 
       // Publish both buffered NIP-78 (kind 30078 with 120s expiration) and instant ephemeral (kind 24242)
-      final bufferedFrame = buildSignedNostrEventFrame(
-        pairCode: pairCode,
-        kind: _replaceableMailboxKind,
-        content: envelopeJson,
-        createdAtSeconds: createdAt,
-        tags: [
-          ['d', '$msgId:$i'],
-          ['p', roomPubHex],
-          ['expiration', expiration],
-        ],
-      );
-      final ephemeralFrame = buildSignedNostrEventFrame(
-        pairCode: pairCode,
-        kind: _ephemeralEventKind,
-        content: envelopeJson,
-        createdAtSeconds: createdAt,
-        tags: [
-          ['d', roomPubHex],
-          ['p', roomPubHex],
-        ],
-      );
+      final String bufferedFrame;
+      final String ephemeralFrame;
+      if (envelopeJson.length > 8192) {
+        final (bFrame, eFrame) = await _buildSignedFramePairAsync(
+          pairCode: pairCode,
+          envelopeJson: envelopeJson,
+          createdAt: createdAt,
+          msgId: msgId,
+          chunkIndex: i,
+          roomPubHex: roomPubHex,
+          expiration: expiration,
+        );
+        bufferedFrame = bFrame;
+        ephemeralFrame = eFrame;
+      } else {
+        bufferedFrame = buildSignedNostrEventFrame(
+          pairCode: pairCode,
+          kind: _replaceableMailboxKind,
+          content: envelopeJson,
+          createdAtSeconds: createdAt,
+          tags: [
+            ['d', '$msgId:$i'],
+            ['p', roomPubHex],
+            ['expiration', expiration],
+          ],
+        );
+        ephemeralFrame = buildSignedNostrEventFrame(
+          pairCode: pairCode,
+          kind: _ephemeralEventKind,
+          content: envelopeJson,
+          createdAtSeconds: createdAt,
+          tags: [
+            ['d', roomPubHex],
+            ['p', roomPubHex],
+          ],
+        );
+      }
 
       for (final ws in allSockets) {
         try {
@@ -761,7 +815,11 @@ class P2pRelaySyncService {
     Duration timeout = const Duration(seconds: 12),
     bool legacyMode = false,
   }) async {
-    final encrypted = _crypto.encryptPayload(plaintextJson, pairCode, legacyMode: legacyMode);
+    final encrypted = await _crypto.encryptPayloadAsync(
+      plaintextJson,
+      pairCode,
+      legacyMode: legacyMode,
+    );
     if (encrypted == null) return null;
 
     _trustedPairCodes.add(pairCode.trim());
@@ -843,7 +901,7 @@ class P2pRelaySyncService {
       final replyEnvelope = await completer.future.timeout(timeout);
       final replyCipher = replyEnvelope['cipher'] as String?;
       if (replyCipher == null) return null;
-      return _crypto.decryptPayload(replyCipher, pairCode);
+      return await _crypto.decryptPayloadAsync(replyCipher, pairCode);
     } catch (_) {
       return null;
     } finally {
