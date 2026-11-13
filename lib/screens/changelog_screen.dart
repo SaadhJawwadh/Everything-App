@@ -4,8 +4,38 @@ import '../core/ui/expressive_sliver_app_bar.dart';
 import '../core/ui/app_card.dart';
 import '../data/changelog_data.dart';
 
-class ChangelogScreen extends StatelessWidget {
+class ChangelogScreen extends StatefulWidget {
   const ChangelogScreen({super.key});
+
+  @override
+  State<ChangelogScreen> createState() => _ChangelogScreenState();
+}
+
+class _ChangelogScreenState extends State<ChangelogScreen> {
+  List<ChangelogRelease> _releases = kChangelogHistory;
+  bool _isLoadingHistory = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    try {
+      final fullHistory = await loadFullChangelogHistory();
+      if (!mounted) return;
+      setState(() {
+        _releases = fullHistory;
+        _isLoadingHistory = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingHistory = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,16 +58,23 @@ class ChangelogScreen extends StatelessWidget {
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
-                  final release = kChangelogHistory[index];
+                  final release = _releases[index];
                   return _buildVersionSection(
                     context,
                     release: release,
                   );
                 },
-                childCount: kChangelogHistory.length,
+                childCount: _releases.length,
               ),
             ),
           ),
+          if (_isLoadingHistory)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.only(bottom: AppLayout.spaceXL),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ),
         ],
       ),
     );

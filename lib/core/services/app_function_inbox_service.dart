@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -129,12 +130,8 @@ class AppFunctionInboxService {
         } catch (_) {}
       }
 
-      try {
-        await WidgetHelper.updateWidgetData();
-      } catch (_) {}
-      try {
-        await WidgetHelper.updateTodoWidgetData();
-      } catch (_) {}
+      unawaited(WidgetHelper.updateWidgetData());
+      unawaited(WidgetHelper.updateTodoWidgetData());
 
       // Show floating undo SnackBar if actions were executed
       if (processedDescriptions.isNotEmpty && context.mounted) {

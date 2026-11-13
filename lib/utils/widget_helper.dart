@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -20,7 +21,35 @@ const kWidgetRefreshTaskName = 'com.saadhjawwadh.notebook.widgetRefresh';
 class WidgetHelper {
   static const MethodChannel _channel = MethodChannel('com.saadhjawwadh.notebook/widget');
 
-  static Future<void> updateWidgetData() async {
+  static Future<void>? _financeActiveFuture;
+  static bool _financeDirty = false;
+
+  static Future<void>? _todoActiveFuture;
+  static bool _todoDirty = false;
+
+  /// Coalesces rapid consecutive calls to refresh financial widget metrics so
+  /// batch imports or rapid row edits trigger at most one trailing recompute.
+  static Future<void> updateWidgetData() {
+    if (_financeActiveFuture != null) {
+      _financeDirty = true;
+      return _financeActiveFuture!;
+    }
+    _financeActiveFuture = _runFinanceLoop();
+    return _financeActiveFuture!;
+  }
+
+  static Future<void> _runFinanceLoop() async {
+    try {
+      do {
+        _financeDirty = false;
+        await _performUpdateWidgetData();
+      } while (_financeDirty);
+    } finally {
+      _financeActiveFuture = null;
+    }
+  }
+
+  static Future<void> _performUpdateWidgetData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final currencyCode = prefs.getString('currency') ?? 'LKR';
@@ -190,7 +219,9 @@ class WidgetHelper {
   static Future<void> syncPendingTodoToggles() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.reload();
+      try {
+        await prefs.reload();
+      } catch (_) {}
       final pendingStr = prefs.getString('widget_pending_toggles');
       if (pendingStr == null || pendingStr.isEmpty || pendingStr == '[]') {
         return;
@@ -201,8 +232,13 @@ class WidgetHelper {
 
       // Group toggles by noteId and squash redundant intermediate toggles for the same item
       final Map<String, Map<String, Map<String, dynamic>>> byNoteSquashed = {};
+      int maxProcessedTimestamp = 0;
       for (final t in toggles) {
         if (t is Map) {
+          final ts = t['timestamp'] as int? ?? 0;
+          if (ts > maxProcessedTimestamp) {
+            maxProcessedTimestamp = ts;
+          }
           final noteId = t['noteId'] as String?;
           if (noteId != null && noteId.isNotEmpty) {
             final lineIndex = t['lineIndex'] as int? ?? -1;
@@ -245,20 +281,68 @@ class WidgetHelper {
         }
       }
 
-      // Clear pending queue once processed
-      await prefs.setString('widget_pending_toggles', '[]');
+      // Preserve any toggles queued while SQLite writes were in flight
+      try {
+        await prefs.reload();
+      } catch (_) {}
+      final latestPendingStr = prefs.getString('widget_pending_toggles');
+      final List<dynamic> remainingToggles = [];
+      if (latestPendingStr != null &&
+          latestPendingStr.isNotEmpty &&
+          latestPendingStr != '[]') {
+        try {
+          final latestList = json.decode(latestPendingStr);
+          if (latestList is List) {
+            for (final item in latestList) {
+              if (item is Map) {
+                final ts = item['timestamp'] as int? ?? 0;
+                if (ts > maxProcessedTimestamp) {
+                  remainingToggles.add(item);
+                }
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      await prefs.setString(
+        'widget_pending_toggles',
+        remainingToggles.isEmpty ? '[]' : json.encode(remainingToggles),
+      );
     } catch (e) {
       debugPrint('Sync pending todo toggles failed: $e');
     }
   }
 
-  /// Recomputes checklist notes data for the TODO AppWidget and broadcasts update.
-  static Future<void> updateTodoWidgetData() async {
+  /// Coalesces rapid consecutive calls to recompute checklist widget data.
+  static Future<void> updateTodoWidgetData() {
+    if (_todoActiveFuture != null) {
+      _todoDirty = true;
+      return _todoActiveFuture!;
+    }
+    _todoActiveFuture = _runTodoLoop();
+    return _todoActiveFuture!;
+  }
+
+  static Future<void> _runTodoLoop() async {
+    try {
+      do {
+        _todoDirty = false;
+        await _performUpdateTodoWidgetData();
+      } while (_todoDirty);
+    } finally {
+      _todoActiveFuture = null;
+    }
+  }
+
+  static Future<void> _performUpdateTodoWidgetData() async {
     try {
       await syncPendingTodoToggles();
 
       final prefs = await SharedPreferences.getInstance();
-      await prefs.reload();
+      try {
+        await prefs.reload();
+      } catch (_) {}
       final repo = NoteRepository.instance;
       final activeNotes = await repo.readActiveChecklistNotes();
 
@@ -428,7 +512,7 @@ class WidgetHelper {
         savedNote = newNote;
       }
 
-      await updateTodoWidgetData();
+      unawaited(updateTodoWidgetData());
       return savedNote;
     } catch (e) {
       debugPrint('Quick add task failed: $e');

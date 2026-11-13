@@ -305,7 +305,7 @@ void main() {
           value: settings,
           child: const MaterialApp(
             home: Scaffold(
-              body: WhatsNewSheet(currentVersion: '3.4.0'),
+              body: WhatsNewSheet(currentVersion: '3.4.1'),
             ),
           ),
         ),
@@ -317,7 +317,8 @@ void main() {
       expect(find.text("Improvements"), findsOneWidget);
       expect(find.text("Fixes"), findsOneWidget);
 
-      // Check marquee items for v3.4.0
+      // Check marquee items for v3.4.1
+      expect(find.text("Interactive Home Screen Widgets"), findsOneWidget);
       expect(find.text("Keyboard-Smart Editor Action Bars"), findsOneWidget);
       expect(find.text("Native Core & Isolate Acceleration"), findsOneWidget);
       expect(find.text("Edge Scroll Fades & Unclipped Charts"), findsOneWidget);
@@ -331,7 +332,7 @@ void main() {
       });
       await tester.pumpAndSettle();
 
-      expect(settings.lastSeenVersion, '3.4.0');
+      expect(settings.lastSeenVersion, '3.4.1');
     });
   });
 }

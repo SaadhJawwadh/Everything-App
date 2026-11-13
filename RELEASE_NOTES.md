@@ -1,11 +1,10 @@
 
 ### 🌟 What's New
-- **Keyboard-Smart Editor Action Bars**: Transaction and Split Bill editors now feature a sleek docked Save bar that automatically tucks away while typing and keeps all form options visible.
+- **Interactive Unified Home Widget**: Check off tasks directly from the Unified Android home screen widget without opening the app.
 
 ### 🚀 Improvements
-- **Smooth Edge Scroll Fades & Unclipped Charts**: Subtle edge feathering on Onboarding and filter strips, full forecast labels on Spending Trend charts, and crisp single-line action buttons in P2P Sync and Backups.
-- **Streamlined Modular Workspaces**: Refined Onboarding, Transaction, and Split Bill layouts for snappier rendering and cleaner navigation.
+- **Larger Widget Tap Targets & Faster Changelogs**: Expanded checkbox and action button hit areas across all home screen widgets, replaced currency placeholders with neutral dashes, and made older changelog history load on demand.
 
 ### 🐛 Fixes
-- **Overlap-Free Forms & Clearer Labels**: Eliminated button overlaps over repeat schedules and split-bill participant inputs, and resolved truncated labels in Sync & Backups.
+- **Reliable Widget Sync & Cleanup**: Prevented rapid checklist taps from getting dropped during background sync and cleaned up orphaned widget preferences when widgets are removed.
 

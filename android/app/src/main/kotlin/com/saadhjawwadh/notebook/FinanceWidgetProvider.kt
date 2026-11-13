@@ -70,9 +70,9 @@ class FinanceWidgetProvider : AppWidgetProvider() {
             views.setViewVisibility(R.id.widget_note_button, android.view.View.VISIBLE)
         }
 
-        val spentToday = prefs.getString("flutter.widget_spent_today", "$0.00") ?: "$0.00"
-        val spentMonth = prefs.getString("flutter.widget_spent_month", "$0.00") ?: "$0.00"
-        val netMonth = prefs.getString("flutter.widget_net_month", "+$0.00") ?: "+$0.00"
+        val spentToday = prefs.getString("flutter.widget_spent_today", "--") ?: "--"
+        val spentMonth = prefs.getString("flutter.widget_spent_month", "--") ?: "--"
+        val netMonth = prefs.getString("flutter.widget_net_month", "--") ?: "--"
         val netPositive = prefs.getBoolean("flutter.widget_net_positive", true)
 
         views.setTextViewText(R.id.widget_today_spent, spentToday)

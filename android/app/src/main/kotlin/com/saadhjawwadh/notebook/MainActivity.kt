@@ -35,6 +35,7 @@ class MainActivity: FlutterFragmentActivity() {
     private var pendingSharedText: String? = null
     private var pendingIntentExtras: Map<String, Any?>? = null
     private var multicastLock: WifiManager.MulticastLock? = null
+    private var hasPublishedWidgetPreviews = false
 
     companion object {
         private var instance: MainActivity? = null
@@ -86,6 +87,7 @@ class MainActivity: FlutterFragmentActivity() {
 
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
         super.onConfigurationChanged(newConfig)
+        hasPublishedWidgetPreviews = false
         val context = applicationContext
         FinanceWidgetProvider.updateAllWidgets(context)
         NotesWidgetProvider.updateAllWidgets(context)
@@ -157,7 +159,7 @@ class MainActivity: FlutterFragmentActivity() {
     }
 
     private fun publishGeneratedWidgetPreviews(context: Context) {
-        if (Build.VERSION.SDK_INT < 35) return
+        if (Build.VERSION.SDK_INT < 35 || hasPublishedWidgetPreviews) return
         try {
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val category = android.appwidget.AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN
@@ -171,6 +173,7 @@ class MainActivity: FlutterFragmentActivity() {
                 val remoteViews = android.widget.RemoteViews(context.packageName, layoutRes)
                 appWidgetManager.setWidgetPreview(component, category, remoteViews)
             }
+            hasPublishedWidgetPreviews = true
         } catch (_: Exception) {
             // Gracefully ignore on OEM launchers that do not support generated previews
         }

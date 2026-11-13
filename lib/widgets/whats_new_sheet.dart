@@ -39,6 +39,11 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.widgets_rounded,
+            title: "Interactive Home Screen Widgets",
+            desc: "Check off tasks directly from the Unified widget with larger tap targets and reliable background sync.",
+          ),
+          _WhatsNewItem(
             icon: Icons.dock_rounded,
             title: "Keyboard-Smart Editor Action Bars",
             desc: "Transaction and Split Bill editors now feature a docked Save bar that auto-hides while typing and keeps every form option clear.",

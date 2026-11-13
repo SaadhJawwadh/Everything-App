@@ -34,7 +34,23 @@ class UnifiedWidgetProvider : AppWidgetProvider() {
         super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
     }
 
+    override fun onDeleted(context: Context, appWidgetIds: IntArray) {
+        val prefs = context.getSharedPreferences(TodoWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE)
+        val editor = prefs.edit()
+        for (appWidgetId in appWidgetIds) {
+            editor.remove("flutter.widget_active_note_id_$appWidgetId")
+            editor.remove("flutter.widget_active_note_title_$appWidgetId")
+        }
+        editor.apply()
+        super.onDeleted(context, appWidgetIds)
+    }
+
     companion object {
+        private data class UnifiedTask(
+            val noteId: String,
+            val lineIndex: Int,
+            val text: String
+        )
         fun updateAllWidgets(context: Context) {
             val appContext = context.applicationContext ?: context
             val appWidgetManager = AppWidgetManager.getInstance(appContext)
@@ -63,9 +79,9 @@ class UnifiedWidgetProvider : AppWidgetProvider() {
         val isCompact = (minWidth in 1..220) || (minHeight in 1..90)
 
         // 1. Populate Finance Domain Data
-        val spentToday = prefs.getString("flutter.widget_spent_today", "Rs. 0") ?: "Rs. 0"
-        val spentMonth = prefs.getString("flutter.widget_spent_month", "Rs. 0") ?: "Rs. 0"
-        val netMonth = prefs.getString("flutter.widget_net_month", "+Rs. 0") ?: "+Rs. 0"
+        val spentToday = prefs.getString("flutter.widget_spent_today", "--") ?: "--"
+        val spentMonth = prefs.getString("flutter.widget_spent_month", "--") ?: "--"
+        val netMonth = prefs.getString("flutter.widget_net_month", "--") ?: "--"
         val netPositive = prefs.getBoolean("flutter.widget_net_positive", true)
 
         views.setTextViewText(R.id.unified_net_balance, netMonth)
@@ -101,7 +117,9 @@ class UnifiedWidgetProvider : AppWidgetProvider() {
             "Checklist"
         }
         var targetNoteId = ""
-        val pendingTasks = mutableListOf<String>()
+        val pendingTasks = mutableListOf<UnifiedTask>()
+        var totalTaskCount = 0
+        var checkedTaskCount = 0
 
         try {
             val notesArr = JSONArray(notesJsonStr)
@@ -110,21 +128,29 @@ class UnifiedWidgetProvider : AppWidgetProvider() {
                     activeNoteTitle = "All Action Items"
                     for (i in 0 until notesArr.length()) {
                         val noteObj = notesArr.getJSONObject(i)
+                        val noteId = noteObj.optString("id", "")
                         val items = noteObj.optJSONArray("items") ?: continue
                         for (j in 0 until items.length()) {
                             val item = items.getJSONObject(j)
-                            if (!item.optBoolean("isDone", false)) {
+                            totalTaskCount++
+                            if (item.optBoolean("isDone", false)) {
+                                checkedTaskCount++
+                            } else if (pendingTasks.size < 2) {
                                 val text = item.optString("text", "").trim()
                                 if (text.isNotEmpty()) {
-                                    pendingTasks.add(text)
+                                    pendingTasks.add(
+                                        UnifiedTask(
+                                            noteId = noteId,
+                                            lineIndex = item.optInt("lineIndex", j),
+                                            text = text
+                                        )
+                                    )
                                     if (targetNoteId.isEmpty()) {
-                                        targetNoteId = noteObj.optString("id", "")
+                                        targetNoteId = noteId
                                     }
-                                    if (pendingTasks.size >= 2) break
                                 }
                             }
                         }
-                        if (pendingTasks.size >= 2) break
                     }
                 } else {
                     for (i in 0 until notesArr.length()) {
@@ -139,11 +165,19 @@ class UnifiedWidgetProvider : AppWidgetProvider() {
                             if (items != null) {
                                 for (j in 0 until items.length()) {
                                     val item = items.getJSONObject(j)
-                                    if (!item.optBoolean("isDone", false)) {
+                                    totalTaskCount++
+                                    if (item.optBoolean("isDone", false)) {
+                                        checkedTaskCount++
+                                    } else if (pendingTasks.size < 2) {
                                         val text = item.optString("text", "").trim()
                                         if (text.isNotEmpty()) {
-                                            pendingTasks.add(text)
-                                            if (pendingTasks.size >= 2) break
+                                            pendingTasks.add(
+                                                UnifiedTask(
+                                                    noteId = activeNoteId,
+                                                    lineIndex = item.optInt("lineIndex", j),
+                                                    text = text
+                                                )
+                                            )
                                         }
                                     }
                                 }
@@ -160,11 +194,43 @@ class UnifiedWidgetProvider : AppWidgetProvider() {
         if (pendingTasks.isNotEmpty()) {
             views.setViewVisibility(R.id.unified_notes_empty, View.GONE)
             views.setViewVisibility(R.id.unified_task_1_container, View.VISIBLE)
-            views.setTextViewText(R.id.unified_task_1_text, pendingTasks[0])
+            views.setTextViewText(R.id.unified_task_1_text, pendingTasks[0].text)
+
+            val toggle1Intent = Intent(context, TodoWidgetActionReceiver::class.java).apply {
+                action = TodoWidgetProvider.ACTION_ITEM_CLICK
+                putExtra("click_action", "toggle")
+                putExtra("note_id", pendingTasks[0].noteId)
+                putExtra("line_index", pendingTasks[0].lineIndex)
+                putExtra("text", pendingTasks[0].text)
+                putExtra("is_done", false)
+            }
+            val toggle1PendingIntent = PendingIntent.getBroadcast(
+                context,
+                appWidgetId * 10 + 6,
+                toggle1Intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(R.id.unified_task_1_check, toggle1PendingIntent)
 
             if (pendingTasks.size > 1 && !isCompact) {
                 views.setViewVisibility(R.id.unified_task_2_container, View.VISIBLE)
-                views.setTextViewText(R.id.unified_task_2_text, pendingTasks[1])
+                views.setTextViewText(R.id.unified_task_2_text, pendingTasks[1].text)
+
+                val toggle2Intent = Intent(context, TodoWidgetActionReceiver::class.java).apply {
+                    action = TodoWidgetProvider.ACTION_ITEM_CLICK
+                    putExtra("click_action", "toggle")
+                    putExtra("note_id", pendingTasks[1].noteId)
+                    putExtra("line_index", pendingTasks[1].lineIndex)
+                    putExtra("text", pendingTasks[1].text)
+                    putExtra("is_done", false)
+                }
+                val toggle2PendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    appWidgetId * 10 + 7,
+                    toggle2Intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                views.setOnClickPendingIntent(R.id.unified_task_2_check, toggle2PendingIntent)
             } else {
                 views.setViewVisibility(R.id.unified_task_2_container, View.GONE)
             }
@@ -172,6 +238,11 @@ class UnifiedWidgetProvider : AppWidgetProvider() {
             views.setViewVisibility(R.id.unified_task_1_container, View.GONE)
             views.setViewVisibility(R.id.unified_task_2_container, View.GONE)
             views.setViewVisibility(R.id.unified_notes_empty, View.VISIBLE)
+            if (totalTaskCount > 0 && checkedTaskCount == totalTaskCount) {
+                views.setTextViewText(R.id.unified_notes_empty, "All caught up! 🎉")
+            } else {
+                views.setTextViewText(R.id.unified_notes_empty, "No pending tasks")
+            }
         }
 
         // 3. Setup Touch Action PendingIntents
@@ -244,9 +315,6 @@ class UnifiedWidgetProvider : AppWidgetProvider() {
         views.setOnClickPendingIntent(R.id.unified_note_title, pickerPendingIntent)
 
         appWidgetManager.updateAppWidget(appWidgetId, views)
-        try {
-            appWidgetManager.partiallyUpdateAppWidget(appWidgetId, views)
-        } catch (_: Exception) {}
     }
 }
 }

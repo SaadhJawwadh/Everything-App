@@ -100,7 +100,7 @@ class TodoWidgetActionReceiver : BroadcastReceiver() {
                         }
                     }
                     if (found) {
-                        prefs.edit().putString("flutter.widget_todo_notes_json", notesArr.toString()).apply()
+                        prefs.edit().putString("flutter.widget_todo_notes_json", notesArr.toString()).commit()
                     }
                 } catch (_: Exception) {}
 
@@ -139,7 +139,7 @@ class TodoWidgetActionReceiver : BroadcastReceiver() {
                         }
                         pendingArr.put(toggleObj)
                     }
-                    prefs.edit().putString("flutter.widget_pending_toggles", pendingArr.toString()).apply()
+                    prefs.edit().putString("flutter.widget_pending_toggles", pendingArr.toString()).commit()
                 } catch (_: Exception) {}
 
                 android.util.Log.d("TodoWidget", "ACTION_ITEM_CLICK: noteId=$noteId text=$text lineIndex=$lineIndex isDone=$newIsDone")

@@ -181,9 +181,6 @@ class TodoWidgetProvider : AppWidgetProvider() {
             views.setPendingIntentTemplate(R.id.todo_widget_list, itemClickPendingIntent)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
-            try {
-                appWidgetManager.partiallyUpdateAppWidget(appWidgetId, views)
-            } catch (_: Exception) {}
         }
     }
 
@@ -206,5 +203,16 @@ class TodoWidgetProvider : AppWidgetProvider() {
     ) {
         updateAppWidget(context, appWidgetManager, appWidgetId, newOptions)
         super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
+    }
+
+    override fun onDeleted(context: Context, appWidgetIds: IntArray) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val editor = prefs.edit()
+        for (appWidgetId in appWidgetIds) {
+            editor.remove("flutter.widget_active_note_id_$appWidgetId")
+            editor.remove("flutter.widget_active_note_title_$appWidgetId")
+        }
+        editor.apply()
+        super.onDeleted(context, appWidgetIds)
     }
 }

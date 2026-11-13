@@ -58,8 +58,10 @@
             <!-- New Note Shortcut Button -->
             <FrameLayout
                 android:id="@+id/widget_note_button"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:minWidth="44dp"
+                android:minHeight="44dp"
                 android:background="@drawable/widget_category_chip_shape"
                 android:clickable="true"
                 android:focusable="true">
@@ -76,8 +78,10 @@
             <!-- Add Transaction Action Button -->
             <FrameLayout
                 android:id="@+id/widget_add_button"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:minWidth="44dp"
+                android:minHeight="44dp"
                 android:layout_marginStart="8dp"
                 android:background="@drawable/widget_add_button_shape"
                 android:clickable="true"
@@ -124,7 +128,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
                 android:fontFamily="@font/google_sans_flex"
-                android:text="$0.00"
+                android:text="--"
                 android:textColor="@color/widget_text_primary"
                 android:textSize="15.5sp"
                 android:textStyle="bold" />
@@ -152,7 +156,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
                 android:fontFamily="@font/google_sans_flex"
-                android:text="$0.00"
+                android:text="--"
                 android:textColor="@color/widget_text_primary"
                 android:textSize="15.5sp"
                 android:textStyle="bold" />
@@ -180,7 +184,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
                 android:fontFamily="@font/google_sans_flex"
-                android:text="$0.00"
+                android:text="--"
                 android:textColor="@color/widget_income"
                 android:textSize="15.5sp"
                 android:textStyle="bold"
@@ -192,7 +196,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
                 android:fontFamily="@font/google_sans_flex"
-                android:text="$0.00"
+                android:text="--"
                 android:textColor="@color/widget_expense"
                 android:textSize="15.5sp"
                 android:textStyle="bold"
@@ -237,7 +241,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="1dp"
                 android:fontFamily="@font/google_sans_flex"
-                android:text="$0.00"
+                android:text="--"
                 android:textColor="@color/widget_text_primary"
                 android:textSize="14.5sp"
                 android:textStyle="bold" />
