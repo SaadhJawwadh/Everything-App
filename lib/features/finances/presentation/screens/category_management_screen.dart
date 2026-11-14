@@ -13,6 +13,7 @@ import 'package:note_taking_app/core/ui/expressive_sliver_app_bar.dart';
 import 'package:note_taking_app/core/ui/expressive_shape_morph_indicator.dart';
 import 'package:note_taking_app/utils/app_route.dart';
 import 'package:note_taking_app/features/finances/presentation/screens/sms_rules_screen.dart';
+import 'package:note_taking_app/services/hybrid_local_ai_service.dart';
 import 'package:note_taking_app/l10n/app_localizations.dart';
 
 class CategoryManagementScreen extends StatefulWidget {
@@ -98,6 +99,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
         existingCategories: _categories,
         onSave: (oldName, updated) async {
           await TransactionRepository.instance.renameCategoryDefinition(oldName, updated);
+          HybridLocalAiService().invalidateHistoryCache();
           await _saveAndReload();
         },
       ),
@@ -150,6 +152,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
     if (confirmed == true && mounted) {
       AppHaptics.mediumImpact();
       await TransactionRepository.instance.deleteCategoryDefinition(def.name);
+      HybridLocalAiService().invalidateHistoryCache();
       await _saveAndReload();
     }
   }

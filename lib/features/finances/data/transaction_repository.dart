@@ -9,6 +9,7 @@ import '../../../data/category_definition.dart';
 import '../../../data/sms_contact.dart';
 import '../../../utils/widget_helper.dart';
 import '../../sync/providers/p2p_sync_provider.dart';
+import 'package:note_taking_app/services/hybrid_local_ai_service.dart';
 
 class TransactionRepository {
   static final TransactionRepository instance = TransactionRepository._init();
@@ -19,11 +20,16 @@ class TransactionRepository {
 
   Future<Database> get _db async => await _dbHelper.database;
 
-  Future<TransactionModel> createTransaction(TransactionModel transaction) async {
+  Future<TransactionModel> createTransaction(
+    TransactionModel transaction, {
+    bool updateWidgets = true,
+  }) async {
     final db = await _db;
     final id = await db.insert(TableNames.transactions, transaction.toJson());
     final result = transaction.copy(id: id);
-    await WidgetHelper.updateWidgetData();
+    if (updateWidgets) {
+      await WidgetHelper.updateWidgetData();
+    }
     P2pSyncProvider.activeInstance?.triggerEventSync();
     return result;
   }
@@ -46,6 +52,7 @@ class TransactionRepository {
   Future<TransactionModel?> createSmsTransaction(
     TransactionModel transaction, {
     bool bypassTombstones = false,
+    bool updateWidgets = true,
   }) async {
     final db = await _db;
     final smsId = transaction.smsId;
@@ -71,7 +78,9 @@ class TransactionRepository {
     );
     if (id > 0) {
       final result = transaction.copy(id: id);
-      await WidgetHelper.updateWidgetData();
+      if (updateWidgets) {
+        await WidgetHelper.updateWidgetData();
+      }
       return result;
     }
     return null;
@@ -157,6 +166,7 @@ class TransactionRepository {
     final updatedTx = transaction.copy(dateModified: DateTime.now());
     final count = await db.update(TableNames.transactions, updatedTx.toJson(), where: '${TransactionFields.id} = ?', whereArgs: [transaction.id]);
     if (count > 0) {
+      HybridLocalAiService().invalidateHistoryCache();
       await WidgetHelper.updateWidgetData();
       P2pSyncProvider.activeInstance?.triggerEventSync();
     }
@@ -214,7 +224,10 @@ class TransactionRepository {
       for (final id in ids) {
         total += await txn.update(
           TableNames.transactions,
-          {TransactionFields.deletedAt: now},
+          {
+            TransactionFields.deletedAt: now,
+            TransactionFields.dateModified: now,
+          },
           where: '${TransactionFields.id} = ?',
           whereArgs: [id],
         );
@@ -236,12 +249,13 @@ class TransactionRepository {
   Future<int> bulkRestoreTransactions(List<int> ids) async {
     if (ids.isEmpty) return 0;
     final db = await _db;
+    final now = DateTime.now().toIso8601String();
     int total = 0;
     await db.transaction((txn) async {
       for (final id in ids) {
         total += await txn.rawUpdate(
-          'UPDATE ${TableNames.transactions} SET ${TransactionFields.deletedAt} = NULL WHERE ${TransactionFields.id} = ?',
-          [id],
+          'UPDATE ${TableNames.transactions} SET ${TransactionFields.deletedAt} = NULL, ${TransactionFields.dateModified} = ? WHERE ${TransactionFields.id} = ?',
+          [now, id],
         );
         await txn.rawUpdate(
           'UPDATE ${TableNames.splitBills} SET ${SplitBillFields.deletedAt} = NULL WHERE ${SplitBillFields.transactionId} = ?',
@@ -259,18 +273,23 @@ class TransactionRepository {
   Future<int> bulkUpdateCategory(List<int> ids, String category) async {
     if (ids.isEmpty) return 0;
     final db = await _db;
+    final now = DateTime.now().toIso8601String();
     int total = 0;
     await db.transaction((txn) async {
       for (final id in ids) {
         total += await txn.update(
           TableNames.transactions,
-          {TransactionFields.category: category},
+          {
+            TransactionFields.category: category,
+            TransactionFields.dateModified: now,
+          },
           where: '${TransactionFields.id} = ? AND ${TransactionFields.deletedAt} IS NULL',
           whereArgs: [id],
         );
       }
     });
     if (total > 0) {
+      HybridLocalAiService().invalidateHistoryCache();
       await WidgetHelper.updateWidgetData();
     }
     return total;
@@ -280,12 +299,16 @@ class TransactionRepository {
   Future<int> bulkUpdateAccount(List<int> ids, String account) async {
     if (ids.isEmpty) return 0;
     final db = await _db;
+    final now = DateTime.now().toIso8601String();
     int total = 0;
     await db.transaction((txn) async {
       for (final id in ids) {
         total += await txn.update(
           TableNames.transactions,
-          {TransactionFields.account: account},
+          {
+            TransactionFields.account: account,
+            TransactionFields.dateModified: now,
+          },
           where: '${TransactionFields.id} = ? AND ${TransactionFields.deletedAt} IS NULL',
           whereArgs: [id],
         );
@@ -632,15 +655,26 @@ class TransactionRepository {
     await db.update(TableNames.smsContacts, {SmsContactFields.isBlocked: blocked ? 1 : 0}, where: '${SmsContactFields.id} = ?', whereArgs: [id]);
   }
 
-  Future<bool> hasCrossSenderDuplicate(double amount, DateTime date) async {
+  Future<bool> hasCrossSenderDuplicate(
+    double amount,
+    DateTime date, {
+    bool isExpense = true,
+  }) async {
     final db = await _db;
     final windowStart = date.subtract(const Duration(minutes: 5)).toIso8601String();
     final windowEnd = date.add(const Duration(minutes: 5)).toIso8601String();
     final rows = await db.query(
       TableNames.transactions,
       columns: [TransactionFields.id],
-      where: 'amount >= ? AND amount <= ? AND smsId IS NOT NULL AND date >= ? AND date <= ?',
-      whereArgs: [amount - 0.005, amount + 0.005, windowStart, windowEnd],
+      where:
+          'amount >= ? AND amount <= ? AND smsId IS NOT NULL AND date >= ? AND date <= ? AND ${TransactionFields.isExpense} = ? AND ${TransactionFields.deletedAt} IS NULL',
+      whereArgs: [
+        amount - 0.005,
+        amount + 0.005,
+        windowStart,
+        windowEnd,
+        isExpense ? 1 : 0,
+      ],
       limit: 1,
     );
     return rows.isNotEmpty;
@@ -674,12 +708,34 @@ class TransactionRepository {
     }
 
     if (toDeleteIds.isNotEmpty) {
+      final now = DateTime.now().toIso8601String();
       final placeholders = List.filled(toDeleteIds.length, '?').join(',');
-      await db.delete(
-        TableNames.transactions,
-        where: '${TransactionFields.id} IN ($placeholders)',
-        whereArgs: toDeleteIds.toList(),
-      );
+      await db.transaction((txn) async {
+        await txn.update(
+          TableNames.transactions,
+          {
+            TransactionFields.deletedAt: now,
+            TransactionFields.dateModified: now,
+          },
+          where: '${TransactionFields.id} IN ($placeholders)',
+          whereArgs: toDeleteIds.toList(),
+        );
+        for (final tx in allTxns) {
+          if (tx.id != null &&
+              toDeleteIds.contains(tx.id) &&
+              tx.smsId != null &&
+              tx.smsId!.isNotEmpty) {
+            await txn.insert(
+              TableNames.deletedTransactionSmsIds,
+              {
+                'smsId': tx.smsId,
+                'deletedAt': now,
+              },
+              conflictAlgorithm: ConflictAlgorithm.ignore,
+            );
+          }
+        }
+      });
       await WidgetHelper.updateWidgetData();
       P2pSyncProvider.activeInstance?.triggerEventSync();
     }

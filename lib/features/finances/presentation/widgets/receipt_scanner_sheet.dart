@@ -236,13 +236,27 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
                           ),
                         ),
                         const SizedBox(height: AppLayout.spaceXS),
-                        InkWell(
-                          onTap: () => setState(() => _imagePath = null),
-                          child: Text(
-                            'Retake Photo',
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: colorScheme.primary,
-                              fontWeight: FontWeight.w600,
+                        Semantics(
+                          button: true,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(minHeight: 48),
+                            child: InkWell(
+                              onTap: () => setState(() {
+                                _imagePath = null;
+                                _errorMessage = null;
+                                _scanResult = null;
+                              }),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                widthFactor: 1.0,
+                                child: Text(
+                                  'Retake Photo',
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: colorScheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -309,11 +323,12 @@ class _ReceiptScannerSheetState extends State<ReceiptScannerSheet> {
   }
 
   void _applyScan() {
+    final messenger = ScaffoldMessenger.of(context);
     final title = _titleController.text.trim();
     final total = double.tryParse(_totalController.text.trim());
 
     if (total == null || total <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Please enter a valid bill amount.')),
       );
       return;

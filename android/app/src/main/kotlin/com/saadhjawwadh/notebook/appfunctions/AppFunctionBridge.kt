@@ -144,6 +144,7 @@ object AppFunctionBridge {
         )
     }
 
+    @Synchronized
     fun undoAction(context: Context, actionId: String) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val currentQueue = prefs.getString(PENDING_QUEUE_KEY, "[]") ?: "[]"
@@ -170,6 +171,7 @@ object AppFunctionBridge {
         MainActivity.notifyWidgetToggle()
     }
 
+    @Synchronized
     private fun enqueueAction(context: Context, obj: JSONObject) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val currentQueue = prefs.getString(PENDING_QUEUE_KEY, "[]") ?: "[]"
@@ -193,7 +195,7 @@ object AppFunctionBridge {
 
             lower.contains("uber") || lower.contains("taxi") || lower.contains("fuel") ||
             lower.contains("petrol") || lower.contains("diesel") || lower.contains("bus") ||
-            lower.contains("train") || lower.contains("flight") -> "Transportation"
+            lower.contains("train") || lower.contains("flight") -> "Transport"
 
             lower.contains("grocery") || lower.contains("supermarket") || lower.contains("keells") ||
             lower.contains("cargills") || lower.contains("milk") || lower.contains("bread") -> "Groceries"
@@ -205,12 +207,12 @@ object AppFunctionBridge {
             lower.contains("cinema") || lower.contains("game") -> "Entertainment"
 
             lower.contains("doctor") || lower.contains("pharmacy") || lower.contains("medicine") ||
-            lower.contains("hospital") -> "Healthcare"
+            lower.contains("hospital") -> "Health"
 
             lower.contains("salary") || lower.contains("bonus") || lower.contains("interest") ||
-            lower.contains("dividend") -> "Income"
+            lower.contains("dividend") -> "Deposit"
 
-            else -> "Shopping"
+            else -> "Other"
         }
     }
 

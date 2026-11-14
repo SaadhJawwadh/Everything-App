@@ -44,6 +44,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
   final ScrollController _scrollController = ScrollController();
   int _analyticsSubView = 0; // 0: Breakdown, 1: Budgets
   bool _isSearching = false;
+  DateTime? _lastResumeReload;
 
   @override
   void initState() {
@@ -68,7 +69,12 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
-      context.read<FinancialManagerProvider>().loadTransactions();
+      final now = DateTime.now();
+      if (_lastResumeReload == null ||
+          now.difference(_lastResumeReload!) >= const Duration(seconds: 30)) {
+        _lastResumeReload = now;
+        context.read<FinancialManagerProvider>().loadTransactions();
+      }
     }
   }
 
@@ -388,7 +394,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                       builder: (context, settings, _) {
                         final forecast =
                             SpendingForecastService.calculateMonthlyForecast(
-                          transactions: finProvider.transactions,
+                          transactions: finProvider.allDateFiltered,
                           categoryBudgets: settings.categoryBudgets,
                         );
                         return MinimalChartDeck(
@@ -656,7 +662,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
         Consumer<SettingsProvider>(
           builder: (context, settings, child) {
             return FinancialAnalyticsTab(
-              transactions: finProvider.transactions,
+              transactions: finProvider.allDateFiltered,
               monthlyData: finProvider.monthlyData,
               currency: currency,
               settings: settings,

@@ -64,7 +64,7 @@ class PeriodTrackerProvider extends ChangeNotifier {
     _cycleStats = await PeriodPredictionService.calculateCycleStats(_logs, _avgCycleLength);
     _calculateCyclePhase();
 
-    if (!kIsWeb) {
+    if (!kIsWeb && _logs.isNotEmpty) {
       await NotificationService.schedulePeriodNotifications();
     }
 

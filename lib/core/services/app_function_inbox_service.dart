@@ -50,19 +50,21 @@ class AppFunctionInboxService {
         return;
       }
 
-      // Atomically clear queue from SharedPreferences
-      await prefs.setString(queueKey, '[]');
-
       final txRepo = TransactionRepository.instance;
       final noteRepo = NoteRepository.instance;
 
       final processedDescriptions = <String>[];
+      final processedActionIds = <String>{};
       final createdTxIds = <int>[];
       final modifiedNotes = <Note>[];
       final createdNotes = <Note>[];
 
       for (final item in items) {
         if (item is! Map<String, dynamic>) continue;
+        final actionId = item['id']?.toString();
+        if (actionId != null && actionId.isNotEmpty) {
+          processedActionIds.add(actionId);
+        }
         final action = item['action'] as String?;
 
         if (action == 'log_expense') {
@@ -118,6 +120,26 @@ class AppFunctionInboxService {
         }
       }
 
+      // Re-read queue and remove only processed actionIds so newly arrived items are preserved
+      try {
+        await prefs.reload();
+      } catch (_) {}
+      final latestRaw = prefs.getString(queueKey);
+      if (latestRaw != null && latestRaw.isNotEmpty && latestRaw != '[]') {
+        try {
+          final latestItems = jsonDecode(latestRaw) as List<dynamic>;
+          final remaining = latestItems.where((entry) {
+            if (entry is! Map) return false;
+            final id = entry['id']?.toString();
+            if (id == null || id.isEmpty) return false;
+            return !processedActionIds.contains(id);
+          }).toList();
+          await prefs.setString(queueKey, jsonEncode(remaining));
+        } catch (_) {
+          await prefs.setString(queueKey, '[]');
+        }
+      }
+
       // Refresh providers
       if (context.mounted) {
         final finProvider = context.read<FinancialManagerProvider>();
@@ -161,7 +183,10 @@ class AppFunctionInboxService {
               textColor: Theme.of(context).colorScheme.primary,
               onPressed: () async {
                 for (final id in createdTxIds) {
-                  await txRepo.deleteTransaction(id, soft: false);
+                  await txRepo.softDeleteTransaction(id);
+                }
+                for (final note in modifiedNotes) {
+                  await noteRepo.updateNote(note);
                 }
                 for (final note in createdNotes) {
                   await noteRepo.deleteNote(note.id);

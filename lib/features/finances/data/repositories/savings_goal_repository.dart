@@ -103,7 +103,7 @@ class SavingsGoalRepository {
         whereArgs: [goalId],
       );
 
-      if (recordLedgerTransaction) {
+      if (recordLedgerTransaction && fromAccount != toAccount) {
         // Authentically log the transfer transaction in personal ledger
         // Debit from source account
         final desc = note != null && note.trim().isNotEmpty
@@ -175,7 +175,7 @@ class SavingsGoalRepository {
         whereArgs: [goalId],
       );
 
-      if (recordLedgerTransaction) {
+      if (recordLedgerTransaction && fromAccount != toAccount) {
         final desc = note != null && note.trim().isNotEmpty
             ? 'Goal Withdrawal: ${goal.title} ($note)'
             : 'Goal Withdrawal: ${goal.title}';

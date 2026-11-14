@@ -20,7 +20,7 @@ class NotificationService {
   static const String channelDescription =
       'Notifications for upcoming and late periods';
 
-  static Future<void> initialize() async {
+  static Future<void> initialize({bool isBackgroundIsolate = false}) async {
     tz.initializeTimeZones();
 
     const AndroidInitializationSettings initializationSettingsAndroid =
@@ -46,16 +46,18 @@ class NotificationService {
           _handleNotificationTap(response.payload),
     );
 
-    // Cold start: the app may have been launched by tapping a notification.
-    // Defer handling until the navigator exists (first frame + a beat).
-    final launchDetails =
-        await _notificationsPlugin.getNotificationAppLaunchDetails();
-    if (launchDetails?.didNotificationLaunchApp ?? false) {
-      final payload = launchDetails!.notificationResponse?.payload;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Future.delayed(const Duration(milliseconds: 600),
-            () => _handleNotificationTap(payload));
-      });
+    if (!isBackgroundIsolate) {
+      // Cold start: the app may have been launched by tapping a notification.
+      // Defer handling until the navigator exists (first frame + a beat).
+      final launchDetails =
+          await _notificationsPlugin.getNotificationAppLaunchDetails();
+      if (launchDetails?.didNotificationLaunchApp ?? false) {
+        final payload = launchDetails!.notificationResponse?.payload;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Future.delayed(const Duration(milliseconds: 600),
+              () => _handleNotificationTap(payload));
+        });
+      }
     }
   }
 

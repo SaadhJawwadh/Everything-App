@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 /// MediaPipe Tasks Text + Universal Sentence Encoder (.tflite) on Android.
 class LiteRtService {
   static const MethodChannel _channel = MethodChannel('com.saadhjawwadh.notebook/litert');
-  static const Duration _inferenceTimeout = Duration(milliseconds: 500);
+  static const Duration _inferenceTimeout = Duration(milliseconds: 2500);
   static const Duration _supportTimeout = Duration(seconds: 2);
 
   LiteRtService._();
@@ -26,6 +26,8 @@ class LiteRtService {
           .invokeMethod<bool>('isSupported')
           .timeout(_supportTimeout);
       _cachedSupport = result ?? false;
+    } on MissingPluginException {
+      return false;
     } catch (_) {
       _cachedSupport = false;
     }

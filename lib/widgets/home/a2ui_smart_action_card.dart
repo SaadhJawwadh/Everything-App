@@ -236,7 +236,8 @@ class _A2uiSmartActionCardState extends State<A2uiSmartActionCard> {
         final amount = (action['amount'] as num?)?.toDouble() ?? 0.0;
         final title = (action['title'] as String?) ?? 'Group Expense';
         final count = (action['participantCount'] as int?) ?? 2;
-        final share = double.parse((amount / count).toStringAsFixed(2));
+        final safeCount = count < 1 ? 1 : count;
+        final share = double.parse((amount / safeCount).toStringAsFixed(2));
         final billId = const Uuid().v4();
 
         final tx = await TransactionRepository.instance.createTransaction(

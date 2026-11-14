@@ -81,6 +81,10 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   final FocusNode _focusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
   bool isNoteSaved = false;
+  Note? _lastSavedNote;
+  bool _isSaving = false;
+  bool _pendingSave = false;
+  Future<void>? _activeSaveFuture;
   bool _isImageSelected = false;
   List<String> _noteUrls = [];
   DateTime? _reminderAt;
@@ -131,6 +135,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
     super.initState();
     _searchController = TextEditingController();
     _searchFocusNode = FocusNode();
+    _lastSavedNote = widget.note;
     _noteId = widget.note?.id ?? const Uuid().v4();
     _dateCreated = widget.note?.dateCreated ?? DateTime.now();
     _titleController = TextEditingController(
@@ -189,7 +194,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
     // Initial checklist extraction (only if moveCompletedChecklistsToBottom is enabled)
     final settings = Provider.of<SettingsProvider>(context, listen: false);
-    if (settings.moveCompletedChecklistsToBottom) {
+    if (settings.moveCompletedChecklistsToBottom && !_isNoteInTrash) {
       final initialCompleted = QuillChecklistHelper.extractAndRemoveCheckedLines(_quillController);
       if (initialCompleted.isNotEmpty) {
         _completedItems.addAll(initialCompleted);
@@ -417,6 +422,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           }
           _updateColorFromTags();
         });
+        _onContentChanged();
       },
       onTagCreated: (newTag, colorVal) {
         setState(() {
@@ -431,6 +437,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
             _tagColors[newTag] = colorVal;
           }
         });
+        _onContentChanged();
       },
     );
   }
@@ -451,33 +458,63 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         onPickImage: _pickImage,
       );
 
-  Future saveNote() async {
+  Future<void> saveNote() async {
     if (_isNoteInTrash) return;
-    final settings = Provider.of<SettingsProvider>(context, listen: false);
-    final (nextHasChanges, nextIsSaved, nextReminder) =
-        await NoteEditorActions.persistNote(
-      noteId: _noteId,
-      initialNote: widget.note,
-      isNoteSaved: isNoteSaved,
-      currentHasChanges: _hasChanges,
-      dateCreated: _dateCreated,
-      title: _titleController.text.trim(),
-      quillController: _quillController,
-      moveCompletedChecklistsToBottom:
-          settings.moveCompletedChecklistsToBottom,
-      completedItems: _completedItems,
-      isPinned: isPinned,
-      isArchived: isArchived,
-      color: color,
-      folder: _folder,
-      tags: tags,
-      reminderAt: _reminderAt,
-      lastScheduledReminder: _lastScheduledReminder,
-      isNoteLocked: _isNoteLocked,
-    );
-    _hasChanges = nextHasChanges;
-    isNoteSaved = nextIsSaved;
-    _lastScheduledReminder = nextReminder;
+    if (_isSaving) {
+      _pendingSave = true;
+      if (_activeSaveFuture != null) {
+        await _activeSaveFuture;
+      }
+      return;
+    }
+    _isSaving = true;
+    final future = _runSaveLoop();
+    _activeSaveFuture = future;
+    try {
+      await future;
+    } finally {
+      if (identical(_activeSaveFuture, future)) {
+        _activeSaveFuture = null;
+      }
+      _isSaving = false;
+    }
+  }
+
+  Future<void> _runSaveLoop() async {
+    do {
+      _pendingSave = false;
+      if (!mounted || _isNoteInTrash) break;
+      final settings = Provider.of<SettingsProvider>(context, listen: false);
+      final (nextHasChanges, nextIsSaved, nextReminder, savedNote) =
+          await NoteEditorActions.persistNote(
+        noteId: _noteId,
+        initialNote: _lastSavedNote,
+        isNoteSaved: isNoteSaved,
+        currentHasChanges: _hasChanges,
+        dateCreated: _dateCreated,
+        title: _titleController.text.trim(),
+        quillController: _quillController,
+        moveCompletedChecklistsToBottom:
+            settings.moveCompletedChecklistsToBottom,
+        completedItems: _completedItems,
+        isPinned: isPinned,
+        isArchived: isArchived,
+        color: color,
+        folder: _folder,
+        tags: tags,
+        reminderAt: _reminderAt,
+        lastScheduledReminder: _lastScheduledReminder,
+        isNoteLocked: _isNoteLocked,
+      );
+      _hasChanges = nextHasChanges;
+      isNoteSaved = nextIsSaved;
+      _lastScheduledReminder = nextReminder;
+      if (savedNote != null) {
+        _lastSavedNote = savedNote;
+      } else if (!nextIsSaved) {
+        _lastSavedNote = null;
+      }
+    } while (_pendingSave);
   }
 
   void _jumpToTargetChecklist() {
@@ -681,7 +718,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         if (mounted) {
           setState(() {
             for (final tag in newTags) {
-              if (!tags.contains(tag)) {
+              if (!tags.any((t) => t.toLowerCase() == tag.toLowerCase())) {
                 tags.add(tag);
               }
             }

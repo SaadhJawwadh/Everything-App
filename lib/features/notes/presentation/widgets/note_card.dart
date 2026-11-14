@@ -47,7 +47,7 @@ class NoteCard extends StatelessWidget {
       borderColor = scheme.outline.withValues(alpha: 0.2);
     }
 
-    final searchQuery = context.watch<NoteProvider>().searchQuery;
+    final searchQuery = context.select<NoteProvider, String>((p) => p.searchQuery);
 
     List<ChecklistItemData> checklistItems = const [];
     int checkedCount = 0;

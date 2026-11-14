@@ -41,7 +41,7 @@ void callbackDispatcher() {
   try {
     Workmanager().executeTask((task, inputData) async {
       WidgetsFlutterBinding.ensureInitialized();
-      await NotificationService.initialize();
+      await NotificationService.initialize(isBackgroundIsolate: true);
       if (task == kAutoBackupTaskName) return await performAutoBackup();
       if (task == SmsService.kDailySyncTaskName) return await SmsService.performDailyTransactionSync();
       if (task == kWidgetRefreshTaskName) {
@@ -358,7 +358,18 @@ class BackupService {
     final ciphertext = enc.Encrypted.fromBase64(container['ciphertext'] as String);
     final key = _deriveKey(passphrase, Uint8List.fromList(salt));
     final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
-    return encrypter.decrypt(ciphertext, iv: iv);
+    final decrypted = encrypter.decrypt(ciphertext, iv: iv);
+    try {
+      final decoded = jsonDecode(decrypted);
+      if (decoded is! Map) {
+        throw const FormatException('Invalid backup passphrase or corrupted backup data');
+      }
+    } on FormatException {
+      throw const FormatException('Invalid backup passphrase or corrupted backup data');
+    } catch (_) {
+      throw const FormatException('Invalid backup passphrase or corrupted backup data');
+    }
+    return decrypted;
   }
 
   /// Offloads heavy backup decryption to a background isolate, eliminating UI thread frame drops.

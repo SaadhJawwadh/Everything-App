@@ -18,6 +18,7 @@ import 'package:workmanager/workmanager.dart';
 import 'notification_service.dart';
 import 'dart:io';
 import 'native_core_bridge.dart';
+import '../utils/widget_helper.dart';
 
 enum SmsSyncTrigger { manualDashboard, historicalSheet, backgroundScheduled, catchUp }
 
@@ -77,7 +78,11 @@ class SmsService {
     if (transaction == null || transaction.smsId == null) {
       return null;
     }
-    if (await TransactionRepository.instance.hasCrossSenderDuplicate(transaction.amount, transaction.date)) {
+    if (await TransactionRepository.instance.hasCrossSenderDuplicate(
+      transaction.amount,
+      transaction.date,
+      isExpense: transaction.isExpense,
+    )) {
       return null;
     }
 
@@ -257,7 +262,8 @@ class SmsService {
     final prefs = await SharedPreferences.getInstance();
     final useAi = prefs.getBool('useOnDeviceAi') ?? false;
     final preferredCurrency = prefs.getString('currency');
-    final isAiHardwareReady = useAi && (await HybridLocalAiService().isSupported());
+    final aiService = HybridLocalAiService();
+    final isAiHardwareReady = useAi && (await aiService.isSupported());
     final knownSmsIds = await TransactionRepository.instance.getKnownSmsIds(
       includeTombstones: !bypassTombstones,
     );
@@ -322,6 +328,11 @@ class SmsService {
                 customExpenseRules: _customExpenseRules,
                 customIncomeRules: _customIncomeRules,
                 customSmsRules: _customSmsRules,
+                useAiOverride: useAi,
+                preferredCurrencyOverride: preferredCurrency,
+                skipCategoryReload: true,
+                aiServiceOverride: aiService,
+                isAiSupportedOverride: isAiHardwareReady,
               );
         } else {
           t = await _parseWithAiFallback(
@@ -334,6 +345,11 @@ class SmsService {
             customExpenseRules: _customExpenseRules,
             customIncomeRules: _customIncomeRules,
             customSmsRules: _customSmsRules,
+            useAiOverride: useAi,
+            preferredCurrencyOverride: preferredCurrency,
+            skipCategoryReload: true,
+            aiServiceOverride: aiService,
+            isAiSupportedOverride: isAiHardwareReady,
           );
         }
 
@@ -341,7 +357,11 @@ class SmsService {
           onProgress?.call(processed, total, count);
           continue;
         }
-        if (await TransactionRepository.instance.hasCrossSenderDuplicate(t.amount, t.date)) {
+        if (await TransactionRepository.instance.hasCrossSenderDuplicate(
+          t.amount,
+          t.date,
+          isExpense: t.isExpense,
+        )) {
           onProgress?.call(processed, total, count);
           continue;
         }
@@ -357,6 +377,7 @@ class SmsService {
         final inserted = await TransactionRepository.instance.createSmsTransaction(
           t,
           bypassTombstones: bypassTombstones,
+          updateWidgets: false,
         );
         if (inserted == null) {
           onProgress?.call(processed, total, count);
@@ -379,6 +400,9 @@ class SmsService {
       }
 
       await Future.delayed(Duration.zero);
+    }
+    if (count > 0) {
+      await WidgetHelper.updateWidgetData();
     }
     return count;
   }
@@ -466,14 +490,26 @@ class SmsService {
     required List<String> customExpenseRules,
     required List<String> customIncomeRules,
     List<CustomSmsRule>? customSmsRules,
+    bool? useAiOverride,
+    String? preferredCurrencyOverride,
+    bool skipCategoryReload = false,
+    HybridLocalAiService? aiServiceOverride,
+    bool? isAiSupportedOverride,
   }) async {
     if (body.trim().isEmpty) return null;
 
     TransactionModel? transaction;
 
-    final prefs = await SharedPreferences.getInstance();
-    final useAi = prefs.getBool('useOnDeviceAi') ?? false;
-    final preferredCurrency = prefs.getString('currency');
+    late final bool useAi;
+    late final String? preferredCurrency;
+    if (useAiOverride != null) {
+      useAi = useAiOverride;
+      preferredCurrency = preferredCurrencyOverride;
+    } else {
+      final prefs = await SharedPreferences.getInstance();
+      useAi = prefs.getBool('useOnDeviceAi') ?? false;
+      preferredCurrency = prefs.getString('currency');
+    }
 
     // 1. Try AI-First (Gemini Nano) if enabled and supported
     if (useAi && SmsParser.isPotentiallyRelevant(
@@ -484,12 +520,14 @@ class SmsService {
           preferredCurrency: preferredCurrency,
           customSmsRules: customSmsRules,
         )) {
-      await TransactionCategory.reload();
+      if (!skipCategoryReload) {
+        await TransactionCategory.reload();
+      }
       final activeCategories = TransactionCategory.allNames;
-      final aiService = HybridLocalAiService();
+      final aiService = aiServiceOverride ?? HybridLocalAiService();
 
       try {
-        if (await aiService.isSupported()) {
+        if (isAiSupportedOverride ?? await aiService.isSupported()) {
           final aiParsed = await aiService.parseSmsTransaction(body, activeCategories);
           if (aiParsed != null && aiParsed['amount'] != null && (aiParsed['amount'] as num) > 0) {
             final date = SmsParser.resolveMessageDate(messageDate);
@@ -551,8 +589,8 @@ class SmsService {
       // AI Refinement Step: Refine description of regex-parsed transaction if AI is enabled and supported
       if (transaction != null && useAi) {
         try {
-          final aiService = HybridLocalAiService();
-          if (await aiService.isSupported()) {
+          final aiService = aiServiceOverride ?? HybridLocalAiService();
+          if (isAiSupportedOverride ?? await aiService.isSupported()) {
             final refined = await aiService.refineTransactionDescription(
               transaction.description,
               body,
@@ -575,7 +613,9 @@ class SmsService {
           allowedSenderIds: allowedSenderIds,
           blockedSenderIds: blockedSenderIds,
         )) {
-      await TransactionCategory.reload();
+      if (!skipCategoryReload) {
+        await TransactionCategory.reload();
+      }
       final activeCategories = TransactionCategory.allNames;
       final aiParsed = OfflineAiFallbackService.parseSmsTransaction(body, activeCategories);
 
@@ -873,11 +913,17 @@ class SmsService {
   /// Refines a single transaction using Gemini Nano AI.
   /// First attempts full SMS re-parsing using the original SMS body if available;
   /// falls back to refining the current description string directly.
-  static Future<TransactionModel?> refineSingleTransactionWithAi(TransactionModel transaction) async {
-    final aiService = HybridLocalAiService();
-    if (!await aiService.isSupported()) return null;
+  static Future<TransactionModel?> refineSingleTransactionWithAi(
+    TransactionModel transaction, {
+    HybridLocalAiService? aiServiceOverride,
+    bool skipCategoryReload = false,
+  }) async {
+    final aiService = aiServiceOverride ?? HybridLocalAiService();
+    if (aiServiceOverride == null && !await aiService.isSupported()) return null;
 
-    await TransactionCategory.reload();
+    if (!skipCategoryReload) {
+      await TransactionCategory.reload();
+    }
     final activeCategories = TransactionCategory.allNames;
     final fullSmsBody = await getOriginalSmsBody(transaction);
 
@@ -954,13 +1000,19 @@ class SmsService {
 
     if (candidates.isEmpty) return 0;
 
+    await TransactionCategory.reload();
+
     int refinedCount = 0;
     int processedCount = 0;
     onProgress?.call(0, candidates.length);
 
     for (final t in candidates) {
       processedCount++;
-      final refined = await refineSingleTransactionWithAi(t);
+      final refined = await refineSingleTransactionWithAi(
+        t,
+        aiServiceOverride: aiService,
+        skipCategoryReload: true,
+      );
       if (refined != null) {
         final updated = refined.copy(isAiRefined: true);
         await TransactionRepository.instance.updateTransaction(updated);
@@ -984,30 +1036,23 @@ Future<void> backgroundMessageHandler(SmsMessage message) async {
     await SmsService.reloadSmsContacts();
     await TransactionCategory.reload();
 
-    final contacts = await TransactionRepository.instance.getAllSmsContacts();
-    final allowed = <String>{};
-    final blocked = <String>{};
-    for (final c in contacts) {
-      if (c.isBlocked) {
-        blocked.addAll(c.senderIds.map((s) => s.toLowerCase()));
-      } else {
-        allowed.addAll(c.senderIds.map((s) => s.toLowerCase()));
-      }
-    }
-
     final transaction = await SmsService._parseWithAiFallback(
       body: message.body ?? '',
       address: message.address ?? '',
       messageId: message.id,
       messageDate: message.date,
-      allowedSenderIds: allowed,
-      blockedSenderIds: blocked,
+      allowedSenderIds: SmsService._allowedSenderIds,
+      blockedSenderIds: SmsService._blockedSenderIds,
       customExpenseRules: SmsService._customExpenseRules,
       customIncomeRules: SmsService._customIncomeRules,
       customSmsRules: SmsService._customSmsRules,
     );
     if (transaction != null) {
-      if (await TransactionRepository.instance.hasCrossSenderDuplicate(transaction.amount, transaction.date)) {
+      if (await TransactionRepository.instance.hasCrossSenderDuplicate(
+        transaction.amount,
+        transaction.date,
+        isExpense: transaction.isExpense,
+      )) {
         return;
       }
       final inserted = await TransactionRepository.instance.createSmsTransaction(transaction);

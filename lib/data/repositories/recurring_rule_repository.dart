@@ -5,6 +5,7 @@ import '../database_constants.dart';
 import '../recurring_rule_model.dart';
 import '../transaction_model.dart';
 import '../../features/finances/data/transaction_repository.dart';
+import '../../utils/widget_helper.dart';
 
 class RecurringRuleRepository {
   static final RecurringRuleRepository instance = RecurringRuleRepository._init();
@@ -211,6 +212,7 @@ class RecurringRuleRepository {
               category: rule.category,
               account: rule.account,
             ),
+            updateWidgets: false,
           );
           created++;
         }
@@ -233,6 +235,9 @@ class RecurringRuleRepository {
           whereArgs: [rule.id],
         );
       }
+    }
+    if (created > 0) {
+      await WidgetHelper.updateWidgetData();
     }
     return created;
   }

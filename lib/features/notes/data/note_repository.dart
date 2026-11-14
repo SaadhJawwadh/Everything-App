@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import '../../../data/database_helper.dart';
 import '../../../data/note_model.dart';
@@ -99,15 +101,36 @@ class NoteRepository {
     return await _populateNotesTags(result.map((json) => Note.fromMap(json)).toList());
   }
 
-  Future<List<Note>> searchNotes(String keyword) async {
+  Future<List<Note>> searchNotes(
+    String keyword, {
+    String? folderId,
+    bool isArchived = false,
+  }) async {
     final db = await _db;
-    final result = await db.rawQuery('''
-      SELECT * FROM ${TableNames.notes} 
-      WHERE (${NoteFields.title} LIKE ? OR ${NoteFields.previewText} LIKE ? OR 
-             ${NoteFields.id} IN (SELECT note_id FROM note_tags WHERE tag_name LIKE ?))
-      AND ${NoteFields.deletedAt} IS NULL
-      ORDER BY ${NoteFields.dateModified} DESC
-    ''', ['%$keyword%', '%$keyword%', '%$keyword%']);
+    final like = '%$keyword%';
+    final whereParts = <String>[
+      '((${NoteFields.isLocked} = 0 AND ${NoteFields.previewText} LIKE ?) OR ${NoteFields.title} LIKE ? OR ${NoteFields.id} IN (SELECT note_id FROM note_tags WHERE tag_name LIKE ?))',
+      '${NoteFields.deletedAt} IS NULL',
+      '${NoteFields.isArchived} = ?',
+    ];
+    final whereArgs = <dynamic>[like, like, like, isArchived ? 1 : 0];
+
+    if (folderId != null && folderId != 'All Notes') {
+      if (folderId == 'Notes') {
+        whereParts.add('(${NoteFields.category} IS NULL OR ${NoteFields.category} = ? OR ${NoteFields.category} = ? OR ${NoteFields.category} = ?)');
+        whereArgs.addAll(['Notes', 'All Notes', '']);
+      } else {
+        whereParts.add('${NoteFields.category} = ?');
+        whereArgs.add(folderId);
+      }
+    }
+
+    final result = await db.query(
+      TableNames.notes,
+      where: whereParts.join(' AND '),
+      whereArgs: whereArgs,
+      orderBy: '${NoteFields.dateModified} DESC',
+    );
     return await _populateNotesTags(result.map((json) => Note.fromMap(json)).toList());
   }
 
@@ -130,11 +153,28 @@ class NoteRepository {
   Future<int> deleteNote(String id) async {
     final db = await _db;
     final now = DateTime.now().toIso8601String();
+    final targetRows = await db.query(
+      TableNames.notes,
+      columns: [NoteFields.imagePath, NoteFields.content],
+      where: '${NoteFields.id} = ?',
+      whereArgs: [id],
+    );
+    final candidatePaths = <String>{};
+    for (final row in targetRows) {
+      _collectNoteImagePaths(
+        row[NoteFields.imagePath] as String?,
+        row[NoteFields.content] as String?,
+        candidatePaths,
+      );
+    }
+
     final res = await db.transaction((txn) async {
       await txn.delete('note_tags', where: 'note_id = ?', whereArgs: [id]);
       await txn.insert('deleted_notes', {'id': id, 'deletedAt': now}, conflictAlgorithm: ConflictAlgorithm.replace);
       return await txn.delete(TableNames.notes, where: '${NoteFields.id} = ?', whereArgs: [id]);
     });
+
+    await _deleteOrphanedNoteImages(db, candidatePaths);
     unawaited(WidgetHelper.updateTodoWidgetData());
     P2pSyncProvider.activeInstance?.triggerEventSync();
     return res;
@@ -305,6 +345,7 @@ class NoteRepository {
   }
 
   Future<void> bulkSetPinned(List<String> ids, bool pinned) async {
+    if (ids.isEmpty) return;
     final db = await _db;
     final now = DateTime.now().toIso8601String();
     final batch = db.batch();
@@ -320,9 +361,11 @@ class NoteRepository {
       );
     }
     await batch.commit(noResult: true);
+    P2pSyncProvider.activeInstance?.triggerEventSync();
   }
 
   Future<void> bulkArchive(List<String> ids, bool archive) async {
+    if (ids.isEmpty) return;
     final db = await _db;
     final now = DateTime.now().toIso8601String();
     final batch = db.batch();
@@ -338,9 +381,11 @@ class NoteRepository {
       );
     }
     await batch.commit(noResult: true);
+    P2pSyncProvider.activeInstance?.triggerEventSync();
   }
 
   Future<void> bulkDelete(List<String> ids) async {
+    if (ids.isEmpty) return;
     for (final id in ids) {
       await NotificationService.cancelNoteReminder(id);
     }
@@ -359,6 +404,7 @@ class NoteRepository {
       );
     }
     await batch.commit(noResult: true);
+    P2pSyncProvider.activeInstance?.triggerEventSync();
   }
 
   Future<void> bulkTag(List<String> ids, List<String> tags) async {
@@ -402,6 +448,7 @@ class NoteRepository {
       }
       await batch.commit(noResult: true);
     });
+    P2pSyncProvider.activeInstance?.triggerEventSync();
   }
 
   Future<void> bulkMoveNotesToFolder(List<String> ids, String folder) async {
@@ -489,15 +536,21 @@ class NoteRepository {
     final cutoff = DateTime.now().subtract(Duration(days: days));
     final nowIso = DateTime.now().toIso8601String();
     int purgedCount = 0;
+    final candidatePaths = <String>{};
     await db.transaction((txn) async {
       final oldNotes = await txn.query(
         TableNames.notes,
-        columns: [NoteFields.id],
+        columns: [NoteFields.id, NoteFields.imagePath, NoteFields.content],
         where: '${NoteFields.deletedAt} IS NOT NULL AND ${NoteFields.deletedAt} < ?',
         whereArgs: [cutoff.toIso8601String()],
       );
       purgedCount = oldNotes.length;
       for (final row in oldNotes) {
+        _collectNoteImagePaths(
+          row[NoteFields.imagePath] as String?,
+          row[NoteFields.content] as String?,
+          candidatePaths,
+        );
         final id = row[NoteFields.id] as String;
         await NotificationService.cancelNoteReminder(id);
         await txn.delete('note_tags', where: 'note_id = ?', whereArgs: [id]);
@@ -505,7 +558,65 @@ class NoteRepository {
         await txn.delete(TableNames.notes, where: '${NoteFields.id} = ?', whereArgs: [id]);
       }
     });
+    await _deleteOrphanedNoteImages(db, candidatePaths);
     return purgedCount;
+  }
+
+  static bool _isNoteImagesPath(String path) =>
+      path.contains('/note_images/') || path.contains('\\note_images\\');
+
+  static void _collectNoteImagePaths(
+    String? imagePath,
+    String? content,
+    Set<String> out,
+  ) {
+    if (imagePath != null && imagePath.isNotEmpty && _isNoteImagesPath(imagePath)) {
+      out.add(imagePath);
+    }
+    if (content == null || !content.trimLeft().startsWith('[')) return;
+    try {
+      final decoded = jsonDecode(content);
+      if (decoded is! List) return;
+      for (final op in decoded) {
+        if (op is Map) {
+          final insert = op['insert'];
+          if (insert is Map) {
+            final img = insert['image'];
+            if (img is String && img.isNotEmpty && _isNoteImagesPath(img)) {
+              out.add(img);
+            }
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _deleteOrphanedNoteImages(
+    Database db,
+    Set<String> candidatePaths,
+  ) async {
+    if (candidatePaths.isEmpty) return;
+    final remainingRows = await db.query(
+      TableNames.notes,
+      columns: [NoteFields.imagePath, NoteFields.content],
+    );
+    final referencedPaths = <String>{};
+    for (final row in remainingRows) {
+      _collectNoteImagePaths(
+        row[NoteFields.imagePath] as String?,
+        row[NoteFields.content] as String?,
+        referencedPaths,
+      );
+    }
+    for (final path in candidatePaths) {
+      if (referencedPaths.contains(path)) continue;
+      try {
+        final file = File(path);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } on FileSystemException catch (_) {}
+    }
   }
 
   Future<Note> _populateNoteTags(Note note) async {

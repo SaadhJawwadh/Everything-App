@@ -166,6 +166,7 @@ class SplitBillRepository {
 
       // Propagate changes to linked ledger transaction if present
       if (bill.transactionId != null) {
+        final now = DateTime.now().toIso8601String();
         if (bill.isPayerUser) {
           await txn.update(
             TableNames.transactions,
@@ -173,6 +174,7 @@ class SplitBillRepository {
               TransactionFields.amount: bill.totalAmount,
               TransactionFields.description: '${bill.title} (Split: You paid)',
               TransactionFields.date: bill.date.toIso8601String(),
+              TransactionFields.dateModified: now,
               if (bill.groupTag != null && bill.groupTag!.isNotEmpty)
                 TransactionFields.category: bill.groupTag,
             },
@@ -184,7 +186,10 @@ class SplitBillRepository {
           // soft-delete the old linked ledger transaction and set transactionId = null on split_bills
           await txn.update(
             TableNames.transactions,
-            {TransactionFields.deletedAt: DateTime.now().toIso8601String()},
+            {
+              TransactionFields.deletedAt: now,
+              TransactionFields.dateModified: now,
+            },
             where: '${TransactionFields.id} = ?',
             whereArgs: [bill.transactionId],
           );
@@ -594,7 +599,10 @@ class SplitBillRepository {
         final txId = maps.first[SplitBillFields.transactionId] as int;
         await txn.update(
           TableNames.transactions,
-          {TransactionFields.deletedAt: now},
+          {
+            TransactionFields.deletedAt: now,
+            TransactionFields.dateModified: now,
+          },
           where: '${TransactionFields.id} = ?',
           whereArgs: [txId],
         );
@@ -604,6 +612,7 @@ class SplitBillRepository {
 
   Future<void> restoreSplitBill(String id) async {
     final db = await _dbHelper.database;
+    final now = DateTime.now().toIso8601String();
     await db.transaction((txn) async {
       await txn.update(
         TableNames.splitBills,
@@ -622,7 +631,10 @@ class SplitBillRepository {
         final txId = maps.first[SplitBillFields.transactionId] as int;
         await txn.update(
           TableNames.transactions,
-          {TransactionFields.deletedAt: null},
+          {
+            TransactionFields.deletedAt: null,
+            TransactionFields.dateModified: now,
+          },
           where: '${TransactionFields.id} = ?',
           whereArgs: [txId],
         );

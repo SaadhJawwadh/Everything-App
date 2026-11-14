@@ -437,15 +437,42 @@ class SyncMergeService {
       }
 
       if (remoteData.containsKey('periodLogs') && remoteData['periodLogs'] is List) {
+        final localLogs = await txn.query('period_logs');
+        final localLogMap = {
+          for (final l in localLogs)
+            if (l['id'] != null) l['id'].toString(): l,
+        };
         final batch = txn.batch();
         for (final item in remoteData['periodLogs'] as List) {
           if (item is Map) {
-            final logId = item['id']?.toString();
+            final map = Map<String, Object?>.from(item);
+            final logId = map['id']?.toString();
             if (logId != null && tombstonePeriodLogIds.contains(logId)) {
               continue; // Skip resurrecting deleted period log
             }
-            batch.insert('period_logs', Map<String, Object?>.from(item), conflictAlgorithm: ConflictAlgorithm.replace);
-            periodLogsMerged++;
+            final local = logId != null ? localLogMap[logId] : null;
+            if (local == null) {
+              batch.insert('period_logs', map, conflictAlgorithm: ConflictAlgorithm.replace);
+              periodLogsMerged++;
+            } else {
+              final localModStr = local['dateModified']?.toString() ??
+                  local['updatedAt']?.toString() ??
+                  local['endDate']?.toString() ??
+                  local['startDate']?.toString() ??
+                  '';
+              final remoteModStr = map['dateModified']?.toString() ??
+                  map['updatedAt']?.toString() ??
+                  map['endDate']?.toString() ??
+                  map['startDate']?.toString() ??
+                  '';
+              final localMod = DateTime.tryParse(localModStr) ?? DateTime.fromMillisecondsSinceEpoch(0);
+              final remoteMod = DateTime.tryParse(remoteModStr) ?? DateTime.fromMillisecondsSinceEpoch(0);
+              if (remoteMod.isAfter(localMod) ||
+                  remoteMod.difference(localMod).inSeconds.abs() <= 5) {
+                batch.update('period_logs', map, where: 'id = ?', whereArgs: [logId]);
+                periodLogsMerged++;
+              }
+            }
           }
         }
         await batch.commit(noResult: true);
@@ -508,9 +535,28 @@ class SyncMergeService {
                 batch.update('split_bills', {'deletedAt': remoteDeleted}, where: 'id = ?', whereArgs: [id]);
                 splitBillsMerged++;
               } else {
+                final localModStr = local['dateModified']?.toString() ??
+                    local['updatedAt']?.toString() ??
+                    local['createdAt']?.toString() ??
+                    '';
+                final remoteModStr = map['dateModified']?.toString() ??
+                    map['updatedAt']?.toString() ??
+                    map['createdAt']?.toString() ??
+                    '';
+                final localMod = DateTime.tryParse(localModStr) ?? DateTime.fromMillisecondsSinceEpoch(0);
+                final remoteMod = DateTime.tryParse(remoteModStr) ?? DateTime.fromMillisecondsSinceEpoch(0);
+                final remoteIsNewerOrSameWindow = remoteMod.isAfter(localMod) ||
+                    remoteMod.difference(localMod).inSeconds.abs() <= 5;
                 const statusRank = {'unsettled': 0, 'partial': 1, 'settled': 2};
                 final localRank = statusRank[local['status']?.toString() ?? 'unsettled'] ?? 0;
                 final remoteRank = statusRank[map['status']?.toString() ?? 'unsettled'] ?? 0;
+                if (!remoteIsNewerOrSameWindow) {
+                  if (remoteRank > localRank) {
+                    batch.update('split_bills', {'status': map['status']}, where: 'id = ?', whereArgs: [id]);
+                    splitBillsMerged++;
+                  }
+                  continue;
+                }
                 if (localRank > remoteRank) {
                   map['status'] = local['status'];
                 }
@@ -592,8 +638,34 @@ class SyncMergeService {
                 batch.update('savings_goals', {'deletedAt': remoteDeleted}, where: 'id = ?', whereArgs: [id]);
                 savingsGoalsMerged++;
               } else {
+                final localModStr = local['dateModified']?.toString() ??
+                    local['updatedAt']?.toString() ??
+                    local['completedAt']?.toString() ??
+                    local['createdAt']?.toString() ??
+                    '';
+                final remoteModStr = map['dateModified']?.toString() ??
+                    map['updatedAt']?.toString() ??
+                    map['completedAt']?.toString() ??
+                    map['createdAt']?.toString() ??
+                    '';
+                final localMod = DateTime.tryParse(localModStr) ?? DateTime.fromMillisecondsSinceEpoch(0);
+                final remoteMod = DateTime.tryParse(remoteModStr) ?? DateTime.fromMillisecondsSinceEpoch(0);
+                final remoteIsNewerOrSameWindow = remoteMod.isAfter(localMod) ||
+                    remoteMod.difference(localMod).inSeconds.abs() <= 5;
                 final localCompleted = (local['isCompleted'] as num?)?.toInt() == 1;
                 final remoteCompleted = (map['isCompleted'] as num?)?.toInt() == 1;
+                if (!remoteIsNewerOrSameWindow) {
+                  if (!localCompleted && remoteCompleted) {
+                    batch.update(
+                      'savings_goals',
+                      {'isCompleted': 1, 'completedAt': map['completedAt']},
+                      where: 'id = ?',
+                      whereArgs: [id],
+                    );
+                    savingsGoalsMerged++;
+                  }
+                  continue;
+                }
                 if (localCompleted && !remoteCompleted) {
                   map['isCompleted'] = 1;
                   map['completedAt'] ??= local['completedAt'];

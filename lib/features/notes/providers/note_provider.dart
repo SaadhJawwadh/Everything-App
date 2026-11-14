@@ -211,13 +211,19 @@ class NoteProvider extends ChangeNotifier {
 
       _tagColors = colors;
       _notes = fetchedNotes;
-      _applySearchFilter();
-      
       _currentPage = fetchedNotes.isEmpty ? 0 : ((fetchedNotes.length - 1) ~/ _pageSize);
       _hasMoreNotes = fetchedNotes.length >= targetLimit;
+      if (_searchQuery.isEmpty || !_hasMoreNotes || _selectedTags.contains('Trash')) {
+        _dbSearchResults = null;
+      }
+      _applySearchFilter();
+
       _isLoading = false;
       notifyListeners();
       unawaited(WidgetHelper.updateTodoWidgetData());
+      if (_searchQuery.isNotEmpty && _hasMoreNotes && !_selectedTags.contains('Trash')) {
+        unawaited(_runDbSearch(_searchQuery, ++_searchToken));
+      }
     } catch (e) {
       _isLoading = false;
       notifyListeners();
@@ -255,15 +261,58 @@ class NoteProvider extends ChangeNotifier {
 
   String _searchQuery = '';
   String get searchQuery => _searchQuery;
+  List<Note>? _dbSearchResults;
+  int _searchToken = 0;
 
   void setSearchQuery(String query) {
     _searchQuery = query.trim().toLowerCase();
+    final token = ++_searchToken;
+    if (_searchQuery.isEmpty) {
+      _dbSearchResults = null;
+      _applySearchFilter();
+      notifyListeners();
+      return;
+    }
     _applySearchFilter();
     notifyListeners();
+    if (_hasMoreNotes && !_selectedTags.contains('Trash')) {
+      unawaited(_runDbSearch(_searchQuery, token));
+    }
+  }
+
+  Future<void> _runDbSearch(String query, int token) async {
+    try {
+      final isArchived = _selectedTags.contains('Archived');
+      final folder = _filterChecklistsOnly ? 'All Notes' : _selectedFolder;
+      final dbResults = await _noteRepository.searchNotes(
+        query,
+        folderId: folder,
+        isArchived: isArchived,
+      );
+      if (token != _searchToken || _searchQuery != query) return;
+      _dbSearchResults = dbResults;
+      _applySearchFilter();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error searching notes in DB: $e');
+    }
   }
 
   void _applySearchFilter() {
-    Iterable<Note> result = _notes;
+    Iterable<Note> result = (_searchQuery.isNotEmpty && _dbSearchResults != null)
+        ? _dbSearchResults!
+        : _notes;
+
+    if (_searchQuery.isNotEmpty && _dbSearchResults != null) {
+      final activeTags = _selectedTags
+          .where((t) => t != 'All' && t != 'Archived' && t != 'Trash')
+          .toSet();
+      if (activeTags.isNotEmpty) {
+        result = result.where(
+          (note) => activeTags.every((t) => note.tags.contains(t)),
+        );
+      }
+    }
 
     if (_filterChecklistsOnly) {
       result = result.where((note) {

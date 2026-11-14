@@ -1,5 +1,31 @@
 [
   {
+    "version": "v3.5.0",
+    "date": "November 14, 2026",
+    "isLatest": false,
+    "categories": [
+      {
+        "title": "What's New",
+        "items": [
+          "Universal On-Device Smart Categorization: Every Android phone now gets offline smart expense categorization, note tag suggestions, and natural-language quick actions—no flagship hardware required."
+        ]
+      },
+      {
+        "title": "Improvements",
+        "items": [
+          "Learns From Your History: Fixing a local merchant category once automatically teaches the app how to categorize future transactions from that merchant.",
+          "Cleaner Merchant Names: Automatically strips phone numbers, city/country codes, and extra bank SMS noise from imported transaction descriptions."
+        ]
+      },
+      {
+        "title": "Fixes",
+        "items": [
+          "Seamless Offline Fallback: Ensured background syncs and older devices fall back smoothly to instant rule-based parsing with zero interruptions."
+        ]
+      }
+    ]
+  },
+  {
     "version": "v3.4.1",
     "date": "November 13, 2026",
     "isLatest": false,

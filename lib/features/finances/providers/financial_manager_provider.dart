@@ -217,7 +217,6 @@ class FinancialManagerProvider extends ChangeNotifier {
 
     for (final tx in _filteredTransactions) {
       final isTransfer = tx.category.toLowerCase() == 'transfer';
-      final isSavings = tx.account == 'savings' || tx.account == AccountType.savings;
 
       if (!isTransfer) {
         if (tx.isExpense) {
@@ -226,7 +225,10 @@ class FinancialManagerProvider extends ChangeNotifier {
           _totalIncome += tx.amount;
         }
       }
+    }
 
+    for (final tx in _allDateFiltered) {
+      final isSavings = tx.account == 'savings' || tx.account == AccountType.savings;
       final delta = tx.isExpense ? -tx.amount : tx.amount;
       if (isSavings) {
         _savingsVaultCashFlow += delta;

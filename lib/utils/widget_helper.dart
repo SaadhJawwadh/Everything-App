@@ -346,6 +346,22 @@ class WidgetHelper {
       final repo = NoteRepository.instance;
       final activeNotes = await repo.readActiveChecklistNotes();
 
+      final activeNoteId = prefs.getString('widget_active_note_id');
+      final allKeys = prefs.getKeys();
+      final pinnedNoteIds = <String>{};
+      if (activeNoteId != null && activeNoteId != 'ALL_NOTES') {
+        pinnedNoteIds.add(activeNoteId);
+      }
+      for (final key in allKeys) {
+        if (key.startsWith('widget_active_note_id_')) {
+          final widgetSpecificId = prefs.getString(key);
+          if (widgetSpecificId != null && widgetSpecificId != 'ALL_NOTES') {
+            pinnedNoteIds.add(widgetSpecificId);
+          }
+        }
+      }
+      final remainingPinnedIds = Set<String>.from(pinnedNoteIds);
+
       final List<Map<String, dynamic>> todoNotes = [];
       int totalItemsCount = 0;
       const int maxTotalItems = 100;
@@ -354,6 +370,13 @@ class WidgetHelper {
       for (final note in activeNotes) {
         // Privacy invariant: Never expose password or biometric-locked notes to unauthenticated widget
         if (note.isLocked) continue;
+
+        final isPinnedToWidget = pinnedNoteIds.contains(note.id);
+        remainingPinnedIds.remove(note.id);
+        if (totalItemsCount >= maxTotalItems && !isPinnedToWidget) {
+          if (remainingPinnedIds.isEmpty) break;
+          continue;
+        }
 
         // Strict checklist signature check (prevents false-positive matches on words like 'playlist')
         final hasChecklist = note.content.contains('"list":"checked"') ||
@@ -373,13 +396,12 @@ class WidgetHelper {
             'items': boundedItems.map((it) => it.toJson()).toList(),
           });
           totalItemsCount += boundedItems.length;
-          if (totalItemsCount >= maxTotalItems) break;
+          if (totalItemsCount >= maxTotalItems && remainingPinnedIds.isEmpty) break;
         }
       }
 
       await prefs.setString('widget_todo_notes_json', json.encode(todoNotes));
 
-      final activeNoteId = prefs.getString('widget_active_note_id');
       if (activeNoteId != null && activeNoteId != 'ALL_NOTES') {
         final exists = todoNotes.any((n) => n['id'] == activeNoteId);
         if (!exists) {
@@ -392,7 +414,6 @@ class WidgetHelper {
       }
 
       // Synchronize and clean up per-widget active note titles and deleted IDs
-      final allKeys = prefs.getKeys();
       for (final key in allKeys) {
         if (key.startsWith('widget_active_note_id_')) {
           final widgetSpecificId = prefs.getString(key);

@@ -333,8 +333,8 @@ class _SettleUpSheetState extends State<SettleUpSheet> {
         }
 
         if (mounted) {
-          Navigator.of(context).pop();
           final messenger = ScaffoldMessenger.of(context);
+          Navigator.of(context).pop();
           messenger.clearSnackBars();
           messenger.showSnackBar(
             SnackBar(
@@ -346,25 +346,17 @@ class _SettleUpSheetState extends State<SettleUpSheet> {
                 onPressed: () async {
                   if (widget.specificParticipant != null) {
                     final removedTx = await splitProvider.toggleParticipantPaid(widget.specificParticipant!.id, false);
-                    if (removedTx != null) {
-                      await TransactionRepository.instance.deleteTransaction(removedTx);
-                    } else if (createdTxId != null) {
+                    if (removedTx == null && createdTxId != null) {
                       await TransactionRepository.instance.deleteTransaction(createdTxId);
                     }
                   } else if (widget.specificBill != null && !widget.specificBill!.isPayerUser) {
                     final removedTx = await splitProvider.toggleUserShareForBill(widget.specificBill!.id, false);
-                    if (removedTx != null) {
-                      await TransactionRepository.instance.deleteTransaction(removedTx);
-                    } else if (createdTxId != null) {
+                    if (removedTx == null && createdTxId != null) {
                       await TransactionRepository.instance.deleteTransaction(createdTxId);
                     }
                   } else {
                     final removedTxIds = await splitProvider.unsettleAllForContact(widget.contactName);
-                    if (removedTxIds.isNotEmpty) {
-                      for (final txId in removedTxIds) {
-                        await TransactionRepository.instance.deleteTransaction(txId);
-                      }
-                    } else if (createdTxId != null) {
+                    if (removedTxIds.isEmpty && createdTxId != null) {
                       await TransactionRepository.instance.deleteTransaction(createdTxId);
                     }
                   }

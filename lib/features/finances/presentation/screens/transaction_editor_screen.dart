@@ -12,6 +12,7 @@ import 'package:note_taking_app/data/repositories/recurring_rule_repository.dart
 import 'package:note_taking_app/widgets/calculator_dialog.dart';
 import 'package:note_taking_app/features/finances/presentation/screens/category_management_screen.dart';
 import 'package:note_taking_app/services/sms_service.dart';
+import 'package:note_taking_app/services/hybrid_local_ai_service.dart';
 import 'package:note_taking_app/utils/app_route.dart';
 import 'package:uuid/uuid.dart';
 import 'package:note_taking_app/core/theme/app_layout.dart';
@@ -316,10 +317,11 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
             }
           }
           if (targetDef != null) {
-            if (!targetDef.keywords.contains(rule)) {
+            if (!targetDef.keywords.any((k) => k.toLowerCase() == rule.toLowerCase())) {
               final updatedKeywords = List<String>.from(targetDef.keywords)..add(rule.toLowerCase());
               await db.upsertCategoryDefinition(targetDef.copyWith(keywords: updatedKeywords));
               await TransactionCategory.reload();
+              HybridLocalAiService().invalidateHistoryCache();
             }
           }
         }

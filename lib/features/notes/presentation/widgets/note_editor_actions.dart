@@ -546,8 +546,8 @@ class NoteEditorActions {
   }
 
   /// Persists the note to `NoteRepository`, updates the Android widget, and syncs reminders.
-  /// Returns `(hasChanges, isNoteSaved, lastScheduledReminder)`.
-  static Future<(bool, bool, DateTime?)> persistNote({
+  /// Returns `(hasChanges, isNoteSaved, lastScheduledReminder, savedNote)`.
+  static Future<(bool, bool, DateTime?, Note?)> persistNote({
     required String noteId,
     required Note? initialNote,
     required bool isNoteSaved,
@@ -593,9 +593,9 @@ class NoteEditorActions {
     if (isEmpty) {
       if (exists) {
         await NoteRepository.instance.deleteNote(noteId);
-        return (true, isNoteSaved, lastScheduledReminder);
+        return (true, false, lastScheduledReminder, null);
       }
-      return (currentHasChanges, isNoteSaved, lastScheduledReminder);
+      return (currentHasChanges, isNoteSaved, lastScheduledReminder, initialNote);
     }
 
     bool hasChanges = false;
@@ -614,7 +614,7 @@ class NoteEditorActions {
     }
 
     if (!hasChanges) {
-      return (currentHasChanges, isNoteSaved, lastScheduledReminder);
+      return (currentHasChanges, isNoteSaved, lastScheduledReminder, initialNote);
     }
 
     final note = Note(
@@ -655,7 +655,7 @@ class NoteEditorActions {
         await NotificationService.cancelNoteReminder(noteId);
       }
     }
-    return (true, nextIsSaved, nextScheduledReminder);
+    return (true, nextIsSaved, nextScheduledReminder, note);
   }
 
   /// Finds all match offsets for `query` in `quillController` and jumps to the first match.

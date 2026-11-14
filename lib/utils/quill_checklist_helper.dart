@@ -51,6 +51,7 @@ class QuillChecklistHelper {
 
     final extracted = <String>[];
     final originalDelta = doc.toDelta();
+    final plainText = doc.toPlainText();
     var remainingDelta = Delta();
 
     for (final line in lines) {
@@ -59,7 +60,6 @@ class QuillChecklistHelper {
       final isChecked = line.style.attributes['list']?.value == 'checked';
 
       if (isChecked) {
-        final plainText = doc.toPlainText();
         String text = '';
         if (start < plainText.length) {
           final end = (start + len).clamp(0, plainText.length);

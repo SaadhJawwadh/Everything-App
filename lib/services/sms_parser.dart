@@ -5,6 +5,7 @@ import '../data/category_constants.dart';
 import '../data/custom_sms_rule.dart';
 import 'sms_constants.dart';
 import 'native_core_bridge.dart';
+import 'lite_rt_service.dart';
 
 class SmsParser {
   /// Safely parses a raw numerical amount string supporting both standard
@@ -140,7 +141,7 @@ class SmsParser {
       }
     }
 
-    if (blockedSenderIds.contains(senderLower)) return null;
+    if (blockedSenderIds.any((s) => senderLower.contains(s))) return null;
 
     // Guardrail: Reject standard OTP / 2FA / Authorization messages
     // UNLESS the matching custom rule explicitly has bypassOtpFilter: true
@@ -458,7 +459,7 @@ class SmsParser {
     return Isolate.run(() {
       final results = <TransactionModel?>[];
       for (final item in batch) {
-        results.add(parseMessage(
+        var tx = parseMessage(
           body: item.body,
           address: item.address,
           messageId: item.messageId,
@@ -470,7 +471,13 @@ class SmsParser {
           customSmsRules: customSmsRules,
           preferredCurrency: preferredCurrency,
           categoryAccountRouting: categoryAccountRouting,
-        ));
+        );
+        if (tx != null && tx.description.isNotEmpty) {
+          tx = tx.copy(
+            description: LiteRtService.normalizeMerchantText(tx.description),
+          );
+        }
+        results.add(tx);
       }
       return results;
     });

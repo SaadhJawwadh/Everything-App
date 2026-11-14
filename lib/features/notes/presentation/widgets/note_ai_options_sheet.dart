@@ -251,6 +251,7 @@ class NoteAiOptionsSheet {
                                 statusText = 'Proofreading text...';
                               });
                               final res = await aiService.refineText(targetText, 'proofread');
+                              if (!sheetContext.mounted) return;
                               if (res != null && res.trim().isNotEmpty) {
                                 nav.pop();
                                 if (context.mounted) {
@@ -289,6 +290,7 @@ class NoteAiOptionsSheet {
                                 statusText = 'Improving fluency...';
                               });
                               final res = await aiService.refineText(targetText, 'improve');
+                              if (!sheetContext.mounted) return;
                               if (res != null && res.trim().isNotEmpty) {
                                 nav.pop();
                                 if (context.mounted) {
@@ -327,6 +329,7 @@ class NoteAiOptionsSheet {
                                 statusText = 'Adjusting tone...';
                               });
                               final res = await aiService.refineText(targetText, 'professional');
+                              if (!sheetContext.mounted) return;
                               if (res != null && res.trim().isNotEmpty) {
                                 nav.pop();
                                 if (context.mounted) {
@@ -365,6 +368,7 @@ class NoteAiOptionsSheet {
                                 statusText = 'Shortening text...';
                               });
                               final res = await aiService.refineText(targetText, 'shorten');
+                              if (!sheetContext.mounted) return;
                               if (res != null && res.trim().isNotEmpty) {
                                 nav.pop();
                                 if (context.mounted) {
@@ -403,6 +407,7 @@ class NoteAiOptionsSheet {
                                 statusText = 'Expanding text...';
                               });
                               final res = await aiService.refineText(targetText, 'expand');
+                              if (!sheetContext.mounted) return;
                               if (res != null && res.trim().isNotEmpty) {
                                 nav.pop();
                                 if (context.mounted) {
@@ -446,6 +451,7 @@ class NoteAiOptionsSheet {
                                 final prompt =
                                     "Generate a short, concise title (maximum 4-5 words) for the following text. Respond ONLY with the title:\n\n$targetText";
                                 String? suggested = await aiService.generateText(prompt);
+                                if (!sheetContext.mounted) return;
                                 if (suggested == null || suggested.trim().isEmpty) {
                                   final lines = targetText.split(RegExp(r'\r?\n|\.'));
                                   final firstLine = lines.firstWhere((l) => l.trim().isNotEmpty, orElse: () => '');
@@ -484,6 +490,7 @@ class NoteAiOptionsSheet {
                                 final prompt =
                                     "Suggest 2 to 4 short comma-separated topic tags for this note:\n\n$targetText";
                                 final res = await aiService.generateText(prompt);
+                                if (!sheetContext.mounted) return;
                                 if (res != null && res.trim().isNotEmpty) {
                                   final split = res
                                       .split(RegExp(r'[,;\n]'))
@@ -520,6 +527,7 @@ class NoteAiOptionsSheet {
                                   statusText = 'Generating summary...';
                                 });
                                 final summary = await aiService.summarize(targetText);
+                                if (!sheetContext.mounted) return;
                                 if (summary != null && summary.trim().isNotEmpty) {
                                   onSummaryGenerated(summary.trim());
                                   nav.pop();

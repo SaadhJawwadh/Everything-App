@@ -1662,6 +1662,13 @@ class P2pSyncService {
 
     const int max503Retries = 2;
     for (int attempt = 0; attempt <= max503Retries; attempt++) {
+      if (attempt > 0 && _isSyncing) {
+        int waitedMs = 0;
+        while (_isSyncing && waitedMs < 2000) {
+          await Future<void>.delayed(const Duration(milliseconds: 200));
+          waitedMs += 200;
+        }
+      }
       if (_isSyncing) {
         return SyncResult(success: false, errorMessage: 'Sync already in progress');
       }

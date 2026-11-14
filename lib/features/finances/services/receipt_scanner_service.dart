@@ -157,7 +157,10 @@ $rawText
     // Fallback: search for the highest plausible number in the bottom half of the receipt
     if (detectedTotal == null) {
       double maxFound = 0.0;
-      final numbers = RegExp(r'\b([0-9]{2,6}(?:\.[0-9]{2})?)\b').allMatches(rawText);
+      final searchText = lines.length >= 4
+          ? lines.sublist(lines.length ~/ 2).join('\n')
+          : rawText;
+      final numbers = RegExp(r'\b([0-9]{2,6}(?:\.[0-9]{2})?)\b').allMatches(searchText);
       for (final n in numbers) {
         final val = double.tryParse(n.group(1)!);
         if (val != null && val > maxFound && val < 5000000) {
