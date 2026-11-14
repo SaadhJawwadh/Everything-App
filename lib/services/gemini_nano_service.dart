@@ -19,6 +19,12 @@ class GeminiNanoService implements LocalAiService {
   }
 
   @override
+  Future<bool> isGenAiSupported() => isSupported();
+
+  @override
+  Future<bool> isEmbeddingSupported() async => false;
+
+  @override
   Future<String?> generateText(String prompt) async {
     if (!await isSupported()) return null;
     try {

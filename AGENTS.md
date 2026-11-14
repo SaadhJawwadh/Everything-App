@@ -215,6 +215,12 @@ lib/
 * **Decoupled Picker Dialogs**: Modal sheets, input dialogs, and picker sheets reside in `settings_dialogs.dart` to prevent code duplication across sections.
 * **Zero-Latency Universal Search**: The search bar in `SettingsScreen` queries `settings_search_index.dart` to filter deep settings items across all 6 hubs simultaneously without requiring navigation into sub-screens.
 
+### 📱 Invariant 20: Android Home Screen Widgets & Cross-Engine Sync
+* **Synchronous Native Writes (`.commit()`)**: Native `BroadcastReceiver` / `AppWidgetProvider` writes to `FlutterSharedPreferences` (`flutter.widget_todo_notes_json`, `flutter.widget_pending_toggles`) MUST use `.commit()` instead of `.apply()` so Dart `prefs.reload()` immediately sees updates across engines.
+* **Race-Safe Pending Toggle Drain**: `WidgetHelper.syncPendingTodoToggles()` MUST track `maxProcessedTimestamp` and preserve any newer toggles queued while SQLite writes are in flight—never overwrite `widget_pending_toggles` unconditionally with `'[]'`. Guard `prefs.reload()` with `try/catch` for unit-test mock compatibility.
+* **Timer-Free Coalescing**: Coalesce `WidgetHelper.updateWidgetData()` and `updateTodoWidgetData()` using Future-based trailing-edge tracking (`_activeFuture` + `_dirty` flag), never `Timer`, to avoid pending-timer assertions in `testWidgets`.
+* **Widget Lifecycle Cleanup & Preview Guard**: `TodoWidgetProvider` and `UnifiedWidgetProvider` MUST clean up per-widget keys (`flutter.widget_active_note_id_$id`, `flutter.widget_active_note_title_$id`) in `onDeleted()`. Guard `MainActivity.publishGeneratedWidgetPreviews` once per session/configuration change.
+
 ---
 
 ## 4. Token & Command Economy (LLM OS Principles)

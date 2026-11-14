@@ -39,6 +39,11 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
+            icon: Icons.psychology_rounded,
+            title: "Universal Smart Categorization",
+            desc: "Offline smart expense categorization, cleaner merchant names, and semantic note tag suggestions now work on every Android phone.",
+          ),
+          _WhatsNewItem(
             icon: Icons.widgets_rounded,
             title: "Interactive Home Screen Widgets",
             desc: "Check off tasks directly from the Unified widget with larger tap targets and reliable background sync.",

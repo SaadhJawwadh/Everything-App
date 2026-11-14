@@ -23,6 +23,12 @@ class _FakeLocalAiService implements LocalAiService {
   Future<bool> isSupported() async => supported;
 
   @override
+  Future<bool> isGenAiSupported() async => supported;
+
+  @override
+  Future<bool> isEmbeddingSupported() async => false;
+
+  @override
   Future<String?> generateText(String prompt) async => null;
 
   @override

@@ -49,26 +49,27 @@ class ChangelogRelease {
 
 /// Latest release kept in Dart for synchronous rendering.
 final ChangelogRelease kLatestChangelog = ChangelogRelease(
-  version: 'v3.4.1',
-  date: 'November 13, 2026',
+  version: 'v3.5.0',
+  date: 'November 14, 2026',
   isLatest: true,
   categories: [
     ChangelogCategory(
       title: "What's New",
       items: [
-        'Interactive Unified Home Widget: Check off tasks directly from the Unified Android home screen widget without opening the app.',
+        'Universal On-Device Smart Categorization: Every Android phone now gets offline smart expense categorization, note tag suggestions, and natural-language quick actions—no flagship hardware required.',
       ],
     ),
     ChangelogCategory(
       title: 'Improvements',
       items: [
-        'Larger Widget Tap Targets & Faster Changelogs: Expanded checkbox and action button hit areas across all home screen widgets, replaced currency placeholders with neutral dashes, and made older changelog history load on demand.',
+        'Learns From Your History: Fixing a local merchant category once automatically teaches the app how to categorize future transactions from that merchant.',
+        'Cleaner Merchant Names: Automatically strips phone numbers, city/country codes, and extra bank SMS noise from imported transaction descriptions.',
       ],
     ),
     ChangelogCategory(
       title: 'Fixes',
       items: [
-        'Reliable Widget Sync & Cleanup: Prevented rapid checklist taps from getting dropped during background sync and cleaned up orphaned widget preferences when widgets are removed.',
+        'Seamless Offline Fallback: Ensured background syncs and older devices fall back smoothly to instant rule-based parsing with zero interruptions.',
       ],
     ),
   ],

@@ -11,7 +11,7 @@ import '../data/sms_contact.dart';
 import '../data/custom_sms_rule.dart';
 import 'sms_parser.dart';
 import 'sms_constants.dart';
-import 'gemini_nano_service.dart';
+import 'hybrid_local_ai_service.dart';
 import 'offline_ai_fallback_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:workmanager/workmanager.dart';
@@ -257,7 +257,7 @@ class SmsService {
     final prefs = await SharedPreferences.getInstance();
     final useAi = prefs.getBool('useOnDeviceAi') ?? false;
     final preferredCurrency = prefs.getString('currency');
-    final isAiHardwareReady = useAi && (await GeminiNanoService().isSupported());
+    final isAiHardwareReady = useAi && (await HybridLocalAiService().isSupported());
     final knownSmsIds = await TransactionRepository.instance.getKnownSmsIds(
       includeTombstones: !bypassTombstones,
     );
@@ -486,7 +486,7 @@ class SmsService {
         )) {
       await TransactionCategory.reload();
       final activeCategories = TransactionCategory.allNames;
-      final aiService = GeminiNanoService();
+      final aiService = HybridLocalAiService();
 
       try {
         if (await aiService.isSupported()) {
@@ -551,7 +551,7 @@ class SmsService {
       // AI Refinement Step: Refine description of regex-parsed transaction if AI is enabled and supported
       if (transaction != null && useAi) {
         try {
-          final aiService = GeminiNanoService();
+          final aiService = HybridLocalAiService();
           if (await aiService.isSupported()) {
             final refined = await aiService.refineTransactionDescription(
               transaction.description,
@@ -874,7 +874,7 @@ class SmsService {
   /// First attempts full SMS re-parsing using the original SMS body if available;
   /// falls back to refining the current description string directly.
   static Future<TransactionModel?> refineSingleTransactionWithAi(TransactionModel transaction) async {
-    final aiService = GeminiNanoService();
+    final aiService = HybridLocalAiService();
     if (!await aiService.isSupported()) return null;
 
     await TransactionCategory.reload();
@@ -936,7 +936,7 @@ class SmsService {
     Duration? lookbackWindow,
     void Function(int processed, int total)? onProgress,
   }) async {
-    final aiService = GeminiNanoService();
+    final aiService = HybridLocalAiService();
     if (!await aiService.isSupported()) return 0;
 
     final now = DateTime.now();

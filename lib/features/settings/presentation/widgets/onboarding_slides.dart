@@ -1047,7 +1047,9 @@ class OnboardingAiSlide extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
-        final isSupported = settings.isDeviceAiSupported;
+        final isGenAi = settings.isGenAiSupported;
+        final isEmbedding = settings.isEmbeddingSupported;
+        final isSupported = isGenAi || isEmbedding;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: AppLayout.spaceXL),
@@ -1077,7 +1079,7 @@ class OnboardingAiSlide extends StatelessWidget {
               ),
               const SizedBox(height: AppLayout.spaceS),
               Text(
-                'Private intelligence powered by Google AICore and on-device NLP.',
+                'Private intelligence powered by on-device semantic models and Google AICore.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -1100,14 +1102,20 @@ class OnboardingAiSlide extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            isSupported ? 'Hardware NPU Detected' : 'Offline Rule-Based AI Engine',
+                            isGenAi
+                                ? 'Hardware NPU Detected'
+                                : (isEmbedding
+                                    ? 'On-Device Semantic AI Ready'
+                                    : 'Offline Rule-Based AI Engine'),
                             style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: AppLayout.spaceXS),
                           Text(
-                            isSupported
-                                ? 'Your device supports local Gemini Nano hardware acceleration.'
-                                : 'Using high-speed local regular expression engines & heuristics.',
+                            isGenAi
+                                ? 'Your device supports Gemini Nano hardware acceleration plus universal smart categorization.'
+                                : (isEmbedding
+                                    ? 'Smart expense categorization, note tag suggestions, and history learning run 100% offline on your device.'
+                                    : 'Using high-speed local regular expression engines & heuristics.'),
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
@@ -1137,7 +1145,7 @@ class OnboardingAiSlide extends StatelessWidget {
                     style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text(
-                    'Enables note summaries, title suggestions, smart SMS auto-categorization, and natural-language Search Action refinement.',
+                    'Enables smart SMS auto-categorization, merchant history learning, note tag suggestions, and AI summaries.',
                     style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                   ),
                   value: settings.useOnDeviceAi,

@@ -36,6 +36,7 @@ class MainActivity: FlutterFragmentActivity() {
     private var pendingIntentExtras: Map<String, Any?>? = null
     private var multicastLock: WifiManager.MulticastLock? = null
     private var hasPublishedWidgetPreviews = false
+    private var liteRtHandler: LiteRtChannelHandler? = null
 
     companion object {
         private var instance: MainActivity? = null
@@ -219,6 +220,8 @@ class MainActivity: FlutterFragmentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        liteRtHandler?.dispose()
+        liteRtHandler = null
         releaseMulticastLock()
         multicastLock = null
         if (instance == this) {
@@ -262,6 +265,9 @@ class MainActivity: FlutterFragmentActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        liteRtHandler = LiteRtChannelHandler(applicationContext).also {
+            it.register(flutterEngine.dartExecutor.binaryMessenger)
+        }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             if (call.method == "isDeviceLocked") {
                 val isLocked = checkIsDeviceLocked() || screenOffLock

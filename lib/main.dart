@@ -28,7 +28,7 @@ import 'services/notification_service.dart';
 import 'services/backup_service.dart' as backup;
 
 import 'services/local_ai_service.dart';
-import 'services/gemini_nano_service.dart';
+import 'services/hybrid_local_ai_service.dart';
 import 'data/repositories/recurring_rule_repository.dart';
 import 'utils/widget_helper.dart';
 import 'utils/app_globals.dart';
@@ -113,7 +113,7 @@ Future<void> main() async {
   runApp(
     MultiProvider(
       providers: [
-        Provider<LocalAiService>(create: (_) => GeminiNanoService()),
+        Provider<LocalAiService>(create: (_) => HybridLocalAiService()),
         ChangeNotifierProvider(
           create: (context) {
             final settings = SettingsProvider();

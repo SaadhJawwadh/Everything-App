@@ -83,6 +83,10 @@ android {
             )
         }
     }
+
+    androidResources {
+        noCompress += listOf("tflite", "lite")
+    }
 }
 
 flutter {
@@ -97,6 +101,9 @@ dependencies {
     // Android AppFunctions Jetpack Library (Android 16+)
     implementation("androidx.appfunctions:appfunctions:1.0.0-alpha13")
     ksp("androidx.appfunctions:appfunctions-compiler:1.0.0-alpha13")
+
+    // Tier 1 On-Device Semantic Embeddings (MediaPipe Tasks Text + Universal Sentence Encoder)
+    implementation("com.google.mediapipe:tasks-text:0.10.21")
 }
 
 tasks.matching { it.name.contains("AarMetadata") }.configureEach {

@@ -1,6 +1,12 @@
 abstract class LocalAiService {
-  /// Checks if the device's hardware supports Gemini Nano and AI Core is ready.
+  /// Checks if ANY on-device AI tier (Tier 1 LiteRT/MediaPipe or Tier 2 Gemini Nano) is ready.
   Future<bool> isSupported();
+
+  /// Tier 2: Checks if hardware supports Gemini Nano / AICore generative AI.
+  Future<bool> isGenAiSupported() async => isSupported();
+
+  /// Tier 1: Checks if universal on-device semantic embeddings (MediaPipe / LiteRT) are ready.
+  Future<bool> isEmbeddingSupported() async => false;
 
   /// Generates a response based on a prompt.
   Future<String?> generateText(String prompt);

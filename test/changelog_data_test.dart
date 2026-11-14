@@ -12,7 +12,7 @@ void main() {
     expect(full.length, greaterThan(10));
     expect(full.first.version, equals(kLatestChangelog.version));
     expect(full.first.isLatest, isTrue);
-    expect(full[1].version, equals('v3.4.0'));
+    expect(full[1].version, equals('v3.4.1'));
     expect(full.last.categories, isNotEmpty);
   });
 

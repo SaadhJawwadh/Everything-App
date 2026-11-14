@@ -1,10 +1,11 @@
 
 ### 🌟 What's New
-- **Interactive Unified Home Widget**: Check off tasks directly from the Unified Android home screen widget without opening the app.
+- **Universal On-Device Smart Categorization**: Every Android phone now gets offline smart expense categorization, note tag suggestions, and natural-language quick actions—no flagship hardware required.
 
 ### 🚀 Improvements
-- **Larger Widget Tap Targets & Faster Changelogs**: Expanded checkbox and action button hit areas across all home screen widgets, replaced currency placeholders with neutral dashes, and made older changelog history load on demand.
+- **Learns From Your History**: Fixing a local merchant's category once automatically teaches the app how to categorize future transactions from that merchant.
+- **Cleaner Merchant Names**: Automatically strips phone numbers, city/country codes, and extra bank SMS noise from imported transaction descriptions.
 
 ### 🐛 Fixes
-- **Reliable Widget Sync & Cleanup**: Prevented rapid checklist taps from getting dropped during background sync and cleaned up orphaned widget preferences when widgets are removed.
+- **Seamless Offline Fallback**: Ensured background syncs and older devices fall back smoothly to instant rule-based parsing with zero interruptions.
 

@@ -114,3 +114,15 @@
     java.lang.Object writeReplace();
     java.lang.Object readResolve();
 }
+
+# MediaPipe Tasks Text & LiteRT (Tier 1 Embeddings)
+-keep class com.google.mediapipe.tasks.text.** { *; }
+-keep class com.google.mediapipe.tasks.core.** { *; }
+-keep class com.google.mediapipe.tasks.components.** { *; }
+-keep class com.google.mediapipe.framework.** { *; }
+-dontwarn com.google.mediapipe.**
+-dontwarn org.tensorflow.lite.**
+-dontwarn javax.lang.model.**
+-dontwarn autovalue.shaded.**
+-dontwarn com.google.auto.value.**
+-keep class com.saadhjawwadh.notebook.LiteRtChannelHandler { *; }

@@ -1,5 +1,30 @@
 [
   {
+    "version": "v3.4.1",
+    "date": "November 13, 2026",
+    "isLatest": false,
+    "categories": [
+      {
+        "title": "What's New",
+        "items": [
+          "Interactive Unified Home Widget: Check off tasks directly from the Unified Android home screen widget without opening the app."
+        ]
+      },
+      {
+        "title": "Improvements",
+        "items": [
+          "Larger Widget Tap Targets & Faster Changelogs: Expanded checkbox and action button hit areas across all home screen widgets, replaced currency placeholders with neutral dashes, and made older changelog history load on demand."
+        ]
+      },
+      {
+        "title": "Fixes",
+        "items": [
+          "Reliable Widget Sync & Cleanup: Prevented rapid checklist taps from getting dropped during background sync and cleaned up orphaned widget preferences when widgets are removed."
+        ]
+      }
+    ]
+  },
+  {
     "version": "v3.4.0",
     "date": "November 13, 2026",
     "isLatest": false,

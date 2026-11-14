@@ -27,7 +27,10 @@ Before bumping the version or running deployment, ensure all of the following ar
   * 🌟 **What's New** (New user-facing features)
   * 🚀 **Improvements** (UI polish, performance, usability enhancements)
   * 🐛 **Fixes** (Bug fixes and stability improvements)
-* **Changelog Screen (MANDATORY for every release)**: Update `lib/screens/changelog_screen.dart` by adding a new `_buildVersionSection(context, version: 'vX.Y.Z', date: '...', isLatest: true, changes: [...])` entry at the top of the list.
+* **Changelog Data & JSON History (MANDATORY for every release)**:
+  1. Move the previous `kLatestChangelog` entry into `assets/changelog_history.json` (with `"isLatest": false`) at index `0`.
+  2. Update `kLatestChangelog` in `lib/data/changelog_data.dart` to the new `'vX.Y.Z'` release (`isLatest: true`).
+  3. Update the previous-version assertions in `test/changelog_data_test.dart` and `integration_test/app_smoke_test.dart` to match the newly archived version.
 * **What's New Sheet & Compatibility Test (MANDATORY — must match pubspec version)**: Update `lib/widgets/whats_new_sheet.dart` cards for THIS release's features (3–5 cards max). The version string passed to `WhatsNewSheet(currentVersion: ...)` in `home_screen.dart` must match the version in `pubspec.yaml` exactly, otherwise the sheet will not show on first launch of the new version. Verify by grepping `WhatsNewSheet` in `home_screen.dart` and confirming the version string is updated. Also update the exact version assertion in `test/upgrade_backward_compatibility_test.dart`. All 5 release points (`CHANGELOG.md`, `changelog_screen.dart`, `whats_new_sheet.dart`, `PLAY_STORE_NOTES.md`, and `upgrade_backward_compatibility_test.dart`) must ALWAYS be updated together atomically.
 * **Onboarding Wizard Sync (`onboarding_screen.dart`) (MANDATORY)**: Update `lib/features/settings/presentation/screens/onboarding_screen.dart` feature summaries (e.g. Page 3 Modular Powerups) whenever new core features or UI dashboards are added so first-time users and replaying users see accurate descriptions.
 * **Play Console Listing Notes (`PLAY_STORE_NOTES.md`) (MANDATORY BEFORE DEPLOYMENT)**:
@@ -59,7 +62,7 @@ flutter build apk --release
 ```
 Provide the APK path (`build/app/outputs/flutter-apk/app-release.apk`) to the user for verification.
 
-**Release-mode emulator smoke test is mandatory, not optional.** Install the release APK on the emulator and cold-start it. Verify:
+**Release-mode emulator smoke test is mandatory, not optional.** Run `flutter test integration_test/app_smoke_test.dart -d <device>` (verifying SQLCipher initialization, repository CRUD, `generateBackupJson()`, `WidgetHelper` sync, and `ChangelogScreen` asset loading), then install the release APK on the emulator and cold-start it. Verify:
 * First frame renders without jank or white screen flashes.
 * The What's New sheet fires with the exact version matching `pubspec.yaml`.
 * Each module tab (Notes, Finances, Health, Settings) opens smoothly.

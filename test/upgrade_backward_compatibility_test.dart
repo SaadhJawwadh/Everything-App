@@ -288,14 +288,14 @@ void main() {
       expect(settings.trashAutoPurgeDays, 30);
     });
 
-    testWidgets('WhatsNewSheet renders v3.3.0 cards and records version on dismiss', (tester) async {
+    testWidgets('WhatsNewSheet renders v3.5.0 cards and records version on dismiss', (tester) async {
       tester.view.physicalSize = const Size(1080, 3200);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
       SharedPreferences.setMockInitialValues({
-        'lastSeenVersion': '3.2.1',
+        'lastSeenVersion': '3.4.1',
       });
       final settings = SettingsProvider();
       await settings.loadSettings();
@@ -305,7 +305,7 @@ void main() {
           value: settings,
           child: const MaterialApp(
             home: Scaffold(
-              body: WhatsNewSheet(currentVersion: '3.4.1'),
+              body: WhatsNewSheet(currentVersion: '3.5.0'),
             ),
           ),
         ),
@@ -317,7 +317,8 @@ void main() {
       expect(find.text("Improvements"), findsOneWidget);
       expect(find.text("Fixes"), findsOneWidget);
 
-      // Check marquee items for v3.4.1
+      // Check marquee items for v3.5.0
+      expect(find.text("Universal Smart Categorization"), findsOneWidget);
       expect(find.text("Interactive Home Screen Widgets"), findsOneWidget);
       expect(find.text("Keyboard-Smart Editor Action Bars"), findsOneWidget);
       expect(find.text("Native Core & Isolate Acceleration"), findsOneWidget);
@@ -332,7 +333,7 @@ void main() {
       });
       await tester.pumpAndSettle();
 
-      expect(settings.lastSeenVersion, '3.4.1');
+      expect(settings.lastSeenVersion, '3.5.0');
     });
   });
 }

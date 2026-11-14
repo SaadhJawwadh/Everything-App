@@ -142,11 +142,22 @@ class SettingsProvider extends ChangeNotifier {
   bool _useOnDeviceAi = false;
   bool get useOnDeviceAi => _useOnDeviceAi;
 
-  bool _isDeviceAiSupported = false;
-  bool get isDeviceAiSupported => _isDeviceAiSupported;
+  bool _isGenAiSupported = false;
+  bool get isGenAiSupported => _isGenAiSupported;
 
-  /// True ONLY when the device hardware supports AI (Gemini Nano / AICore) AND the user has enabled it in settings.
-  bool get isAiActive => _useOnDeviceAi && _isDeviceAiSupported;
+  bool _isEmbeddingSupported = false;
+  bool get isEmbeddingSupported => _isEmbeddingSupported;
+
+  bool get isDeviceAiSupported => _isGenAiSupported || _isEmbeddingSupported;
+
+  /// Tier 2: True ONLY when hardware supports Gemini Nano / AICore AND the user enabled AI.
+  bool get isGenAiActive => _useOnDeviceAi && _isGenAiSupported;
+
+  /// Tier 1: True when universal MediaPipe/LiteRT semantic embeddings are ready AND the user enabled AI.
+  bool get isEmbeddingActive => _useOnDeviceAi && _isEmbeddingSupported;
+
+  /// True when the user has enabled On-Device AI AND at least one hardware tier (GenAI or Embeddings) is supported.
+  bool get isAiActive => _useOnDeviceAi && isDeviceAiSupported;
 
   String? _selectedLanguageCode;
   String get selectedLanguageCode => _selectedLanguageCode ?? 'system';
@@ -980,9 +991,15 @@ class SettingsProvider extends ChangeNotifier {
 
   Future<void> checkAiCoreSupport(LocalAiService aiService) async {
     try {
-      _isDeviceAiSupported = await aiService.isSupported();
+      final results = await Future.wait([
+        aiService.isGenAiSupported(),
+        aiService.isEmbeddingSupported(),
+      ]);
+      _isGenAiSupported = results[0];
+      _isEmbeddingSupported = results[1];
     } catch (_) {
-      _isDeviceAiSupported = false;
+      _isGenAiSupported = false;
+      _isEmbeddingSupported = false;
     }
     notifyListeners();
   }
