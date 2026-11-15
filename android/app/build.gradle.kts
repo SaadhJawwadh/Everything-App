@@ -103,7 +103,7 @@ dependencies {
     ksp("androidx.appfunctions:appfunctions-compiler:1.0.0-alpha13")
 
     // Tier 1 On-Device Semantic Embeddings (MediaPipe Tasks Text + Universal Sentence Encoder)
-    implementation("com.google.mediapipe:tasks-text:0.10.21")
+    implementation("com.google.mediapipe:tasks-text:0.10.32")
 }
 
 tasks.matching { it.name.contains("AarMetadata") }.configureEach {
