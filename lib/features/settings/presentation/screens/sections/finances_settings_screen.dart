@@ -120,6 +120,15 @@ class FinancesSettingsScreen extends StatelessWidget {
                             showArrow: true,
                             onTap: () => AppRoute.push(context, const CategoryManagementScreen()),
                           ),
+                          if (settings.isDeviceAiSupported)
+                            SettingsSwitchTile(
+                              icon: Icons.auto_awesome_outlined,
+                              iconColor: colorScheme.primary,
+                              title: 'On-Device Smart AI',
+                              subtitle: 'Smart merchant cleanup & automatic category classification',
+                              value: settings.useOnDeviceAi,
+                              onChanged: settings.setUseOnDeviceAi,
+                            ),
                         ],
                       ),
                       const SizedBox(height: AppLayout.spaceL),

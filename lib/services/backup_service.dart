@@ -30,10 +30,12 @@ import '../utils/rich_text_utils.dart';
 import '../utils/widget_helper.dart';
 import 'package:intl/intl.dart';
 import 'notification_service.dart';
+import 'p2p_relay_sync_service.dart';
 import 'sms_service.dart';
 import 'native_core_bridge.dart';
 
 const kAutoBackupTaskName = 'com.saadhjawwadh.notebook.autoBackup';
+const kP2pBackgroundSyncTaskName = 'com.saadhjawwadh.notebook.p2pBackgroundSync';
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
@@ -44,6 +46,10 @@ void callbackDispatcher() {
       await NotificationService.initialize(isBackgroundIsolate: true);
       if (task == kAutoBackupTaskName) return await performAutoBackup();
       if (task == SmsService.kDailySyncTaskName) return await SmsService.performDailyTransactionSync();
+      if (task == kP2pBackgroundSyncTaskName) {
+        await P2pRelaySyncService.instance.drainOfflineRelayMailboxes();
+        return true;
+      }
       if (task == kWidgetRefreshTaskName) {
         // Recomputes widget prefs; the widget's own updatePeriodMillis cycle
         // redraws from them since the widget channel isn't available here.
@@ -307,6 +313,27 @@ Future<void> syncAutoBackupSchedule({
     );
   } catch (e) {
     debugPrint('Workmanager syncAutoBackupSchedule error: $e');
+  }
+}
+
+Future<void> syncP2pBackgroundSchedule({required bool hasPairedDevices}) async {
+  if (kIsWeb || !(Platform.isAndroid || Platform.isIOS)) return;
+  try {
+    if (!hasPairedDevices) {
+      await Workmanager().cancelByUniqueName(kP2pBackgroundSyncTaskName);
+      return;
+    }
+    await Workmanager().registerPeriodicTask(
+      kP2pBackgroundSyncTaskName,
+      kP2pBackgroundSyncTaskName,
+      frequency: const Duration(minutes: 15),
+      constraints: Constraints(
+        networkType: NetworkType.connected,
+      ),
+      existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+    );
+  } catch (e) {
+    debugPrint('Workmanager syncP2pBackgroundSchedule error: $e');
   }
 }
 

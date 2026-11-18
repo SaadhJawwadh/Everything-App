@@ -35,6 +35,44 @@ class PeriodTrackerProvider extends ChangeNotifier {
   CycleStats get cycleStats => _cycleStats;
   bool get isPeriodActive => getCurrentOngoingPeriod() != null;
 
+  /// Difference in days between the longest and shortest historical cycle lengths
+  /// when at least 2 completed cycles exist; otherwise null.
+  int? get cycleVariationDays {
+    if (_logs.length < 3) return null;
+    final sortedLogs = List<PeriodLog>.from(_logs)
+      ..sort((a, b) => b.startDate.compareTo(a.startDate));
+
+    final cycleLengths = <int>[];
+    for (int i = 0; i < sortedLogs.length - 1; i++) {
+      final current = sortedLogs[i].startDate;
+      final previous = sortedLogs[i + 1].startDate;
+      final currentUtc = DateTime.utc(current.year, current.month, current.day);
+      final previousUtc = DateTime.utc(previous.year, previous.month, previous.day);
+      final diff = currentUtc.difference(previousUtc).inDays;
+      if (diff >= 15 && diff <= 60) {
+        cycleLengths.add(diff);
+      }
+    }
+
+    if (cycleLengths.length < 2) return null;
+    int minLen = cycleLengths.first;
+    int maxLen = cycleLengths.first;
+    for (final len in cycleLengths) {
+      if (len < minLen) minLen = len;
+      if (len > maxLen) maxLen = len;
+    }
+    return maxLen - minLen;
+  }
+
+  /// Human-readable cycle regularity tier derived from [cycleVariationDays].
+  String get cycleRegularityLabel {
+    final variation = cycleVariationDays;
+    if (variation == null) return 'Building History';
+    if (variation <= 4) return 'Consistent';
+    if (variation <= 8) return 'Moderate Variation';
+    return 'Irregular';
+  }
+
   PeriodTrackerProvider() {
     loadData();
     _syncEventsSubscription = P2pSyncService.instance.syncEvents.listen((result) {

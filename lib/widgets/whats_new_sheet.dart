@@ -41,7 +41,17 @@ class WhatsNewSheet extends StatelessWidget {
           _WhatsNewItem(
             icon: Icons.psychology_rounded,
             title: "Universal Smart Categorization",
-            desc: "Offline smart expense categorization, cleaner merchant names, and semantic note tag suggestions now work on every Android phone.",
+            desc: "Offline smart expense categorization, background SMS auto-refinement, and semantic note tag suggestions now work on every Android phone.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.sync_lock_rounded,
+            title: "Offline Mailbox P2P Sync",
+            desc: "Sync requests queue securely in an encrypted mailbox even when your other device is closed, merging automatically in the background.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.auto_stories_rounded,
+            title: "Multi-Slide Story Cards",
+            desc: "Long notes auto-paginate into crisp multi-slide carousels with 1-tap AI Highlights and remembered style preferences.",
           ),
           _WhatsNewItem(
             icon: Icons.widgets_rounded,

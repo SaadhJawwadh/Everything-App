@@ -61,6 +61,38 @@ class HybridLocalAiService implements LocalAiService {
     _cachedMerchantHistory = null;
   }
 
+  /// Classifies a transaction's category using Personal History (SQLite) first,
+  /// then Tier 1 LiteRT / MediaPipe semantic embeddings.
+  Future<String?> classifyTransactionCategory({
+    required String description,
+    required String smsBody,
+    required bool isExpense,
+    required List<String> categories,
+  }) async {
+    final normalizedMerchant = LiteRtService.normalizeMerchantText(description);
+    if (normalizedMerchant.isNotEmpty) {
+      final learned = await _lookupMerchantCategory(normalizedMerchant);
+      if (learned != null && categories.contains(learned)) {
+        return learned;
+      }
+    }
+
+    if (categories.isNotEmpty && await isEmbeddingSupported()) {
+      final candidateCategories = isExpense
+          ? categories.where((c) => c != 'Deposit').toList()
+          : categories;
+      if (candidateCategories.isNotEmpty) {
+        final queryText = normalizedMerchant.isNotEmpty ? normalizedMerchant : smsBody;
+        return _liteRt.classifyBestLabel(
+          text: queryText,
+          labels: candidateCategories,
+          minConfidence: 0.25,
+        );
+      }
+    }
+    return null;
+  }
+
   @override
   Future<bool> isSupported() async {
     final results = await Future.wait([isGenAiSupported(), isEmbeddingSupported()]);

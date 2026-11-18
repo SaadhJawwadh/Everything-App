@@ -105,11 +105,11 @@ class SettingsSearchIndex {
     ),
     SettingsIndexItem(
       id: 'gemini_nano_ai',
-      title: 'Gemini Nano On-Device AI',
+      title: 'On-Device Smart AI',
       subtitle: 'Offline note summaries, tag suggestions & smart SMS parsing',
       section: 'Features',
       icon: Icons.auto_awesome_outlined,
-      keywords: ['gemini', 'nano', 'ai', 'artificial intelligence', 'summarize', 'offline ai', 'aicore', 'smart parse', 'refine'],
+      keywords: ['gemini', 'nano', 'ai', 'artificial intelligence', 'summarize', 'offline ai', 'aicore', 'smart parse', 'refine', 'on-device smart ai'],
       settingKey: 'useOnDeviceAi',
     ),
     SettingsIndexItem(

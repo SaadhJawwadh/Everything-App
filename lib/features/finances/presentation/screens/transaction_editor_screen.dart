@@ -738,31 +738,84 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
                     ListenableBuilder(
                       listenable: _descriptionController,
                       builder: (context, _) {
-                        final candidate = _extractCleanMerchantKeyword(_descriptionController.text);
-                        if (candidate == null || candidate.isEmpty) return const SizedBox.shrink();
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 10),
-                          child: ActionChip(
-                            avatar: const Icon(Icons.auto_awesome, size: 16, color: Colors.amber),
-                            label: Text(
-                              'Always categorize "$candidate" as $_category',
-                              style: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
-                            ),
-                            backgroundColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-                            side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
-                            shape: const StadiumBorder(),
-                            onPressed: () async {
-                              final messenger = ScaffoldMessenger.of(context);
-                              AppHaptics.selectionClick();
-                              await _trainCategoryKeyword(candidate, _category);
-                              messenger.showSnackBar(
-                                SnackBar(
-                                  content: Text('Future SMS matching "$candidate" will be categorized as "$_category"'),
-                                  behavior: SnackBarBehavior.floating,
+                        final descText = _descriptionController.text.trim();
+                        final candidate = _extractCleanMerchantKeyword(descText);
+                        final showMerchantRuleChip = candidate != null && candidate.isNotEmpty;
+                        final showAiLearningFeedback =
+                            (widget.transaction != null || descText.length >= 3) &&
+                                _category != TransactionCategory.other &&
+                                _category.toLowerCase() != 'other';
+
+                        if (!showMerchantRuleChip && !showAiLearningFeedback) {
+                          return const SizedBox.shrink();
+                        }
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (showMerchantRuleChip)
+                              Padding(
+                                padding: const EdgeInsets.only(top: AppLayout.spaceS + 2),
+                                child: ActionChip(
+                                  avatar: const Icon(Icons.auto_awesome, size: 16, color: Colors.amber),
+                                  label: Text(
+                                    'Always categorize "$candidate" as $_category',
+                                    style: textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
+                                  ),
+                                  backgroundColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+                                  side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                                  shape: const StadiumBorder(),
+                                  onPressed: () async {
+                                    final messenger = ScaffoldMessenger.of(context);
+                                    AppHaptics.selectionClick();
+                                    await _trainCategoryKeyword(candidate, _category);
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text('Future SMS matching "$candidate" will be categorized as "$_category"'),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  },
                                 ),
-                              );
-                            },
-                          ),
+                              ),
+                            if (showAiLearningFeedback)
+                              Padding(
+                                padding: const EdgeInsets.only(top: AppLayout.spaceS),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppLayout.spaceM,
+                                    vertical: AppLayout.spaceS,
+                                  ),
+                                  decoration: ShapeDecoration(
+                                    color: colorScheme.surfaceContainerLow,
+                                    shape: StadiumBorder(
+                                      side: BorderSide(
+                                        color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                                      ),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.auto_awesome_outlined,
+                                        size: 14,
+                                        color: colorScheme.primary,
+                                      ),
+                                      const SizedBox(width: AppLayout.spaceS),
+                                      Flexible(
+                                        child: Text(
+                                          'On-device AI will remember $_category for future transactions from this merchant.',
+                                          style: textTheme.bodySmall?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
                         );
                       },
                     ),

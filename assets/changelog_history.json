@@ -1,5 +1,18 @@
 [
   {
+    "version": "v3.5.2",
+    "date": "November 15, 2026",
+    "isLatest": false,
+    "categories": [
+      {
+        "title": "Improvements",
+        "items": [
+          "Android 15/16 16 KB Page Size Support: Upgraded on-device AI native libraries for full 16 KB memory page compatibility and optimized Play Store delivery."
+        ]
+      }
+    ]
+  },
+  {
     "version": "v3.5.1",
     "date": "November 14, 2026",
     "isLatest": false,

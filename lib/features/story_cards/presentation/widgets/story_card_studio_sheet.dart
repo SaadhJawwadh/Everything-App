@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/services/app_haptics.dart';
 
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../core/ui/app_snack_bar.dart';
+import '../../../../services/hybrid_local_ai_service.dart';
 import '../../models/story_card_aspect_ratio.dart';
 import '../../models/story_card_config.dart';
 import '../../models/story_card_layout_mode.dart';
@@ -60,6 +62,11 @@ class StoryCardStudioSheet extends StatefulWidget {
 }
 
 class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
+  static const String _prefAspectKey = 'story_pref_aspect';
+  static const String _prefThemeKey = 'story_pref_theme';
+  static const String _prefFontKey = 'story_pref_font';
+  static const String _prefWatermarkKey = 'story_pref_watermark';
+
   final GlobalKey _repaintKey = GlobalKey();
   final StoryCardRenderService _renderService = const StoryCardRenderService();
   final StoryCardMediaService _mediaService = const StoryCardMediaService();
@@ -70,6 +77,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
   late StoryCardConfig _config;
   bool _isExporting = false;
   bool _isEditingText = false;
+  bool _isSummarizing = false;
   String? _feedbackMessage;
   Timer? _feedbackTimer;
 
@@ -82,7 +90,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
 
     final autoLayoutMode = StoryCardLayoutMode.autoDetect(trimmedText);
 
-    _config = StoryCardConfig(
+    final initialConfig = StoryCardConfig(
       title: widget.noteTitle.trim(),
       text: trimmedText,
       category: widget.category.isNotEmpty ? widget.category : 'Note',
@@ -97,6 +105,103 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
       showDate: true,
       showWatermark: false,
     );
+    _config = initialConfig.copyWith(totalSlides: initialConfig.slides.length);
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (!mounted) return;
+
+      final savedAspect = prefs.getString(_prefAspectKey);
+      final savedTheme = prefs.getString(_prefThemeKey);
+      final savedFont = prefs.getString(_prefFontKey);
+      final savedWatermark = prefs.getBool(_prefWatermarkKey);
+
+      final aspect = savedAspect != null
+          ? StoryCardAspectRatio.values.where((e) => e.name == savedAspect).firstOrNull
+          : null;
+      final theme = savedTheme != null
+          ? StoryCardThemePreset.values.where((e) => e.name == savedTheme).firstOrNull
+          : null;
+      final font = savedFont != null
+          ? StoryCardFontStyle.values.where((e) => e.name == savedFont).firstOrNull
+          : null;
+
+      if (aspect != null || theme != null || font != null || savedWatermark != null) {
+        setState(() {
+          _updateConfig(_config.copyWith(
+            aspectRatio: aspect ?? _config.aspectRatio,
+            themePreset: theme ?? _config.themePreset,
+            fontStyle: font ?? _config.fontStyle,
+            showWatermark: savedWatermark ?? _config.showWatermark,
+          ));
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _savePreference({
+    StoryCardAspectRatio? aspectRatio,
+    StoryCardThemePreset? themePreset,
+    StoryCardFontStyle? fontStyle,
+    bool? showWatermark,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (aspectRatio != null) {
+        await prefs.setString(_prefAspectKey, aspectRatio.name);
+      }
+      if (themePreset != null) {
+        await prefs.setString(_prefThemeKey, themePreset.name);
+      }
+      if (fontStyle != null) {
+        await prefs.setString(_prefFontKey, fontStyle.name);
+      }
+      if (showWatermark != null) {
+        await prefs.setBool(_prefWatermarkKey, showWatermark);
+      }
+    } catch (_) {}
+  }
+
+  void _updateConfig(StoryCardConfig next) {
+    final slides = next.slides;
+    final clampedIndex = next.currentSlideIndex.clamp(0, slides.length - 1);
+    _config = next.copyWith(
+      currentSlideIndex: clampedIndex,
+      totalSlides: slides.length,
+    );
+  }
+
+  Future<void> _applyAiHighlight() async {
+    if (_isSummarizing) return;
+    AppHaptics.selectionClick();
+    setState(() => _isSummarizing = true);
+    try {
+      final summary = await HybridLocalAiService().summarize(_config.text);
+      if (!mounted) return;
+      if (summary != null && summary.trim().isNotEmpty) {
+        final cleaned = summary
+            .split('\n')
+            .map((line) => line.replaceFirst(RegExp(r'^\s*[-*•]\s+'), '').trim())
+            .where((line) => line.isNotEmpty)
+            .join(' ');
+        if (cleaned.isNotEmpty) {
+          setState(() {
+            _textController.text = cleaned;
+            _updateConfig(_config.copyWith(text: cleaned, currentSlideIndex: 0));
+          });
+          _setFeedback('AI Highlight applied');
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        AppSnackBar.showError(context, message: 'Could not generate AI highlight');
+      }
+    } finally {
+      if (mounted) setState(() => _isSummarizing = false);
+    }
   }
 
   @override
@@ -277,6 +382,35 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                 ),
               ],
             ),
+            if (_config.totalWordCount > 30) ...[
+              const SizedBox(height: AppLayout.spaceXS),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: ActionChip(
+                  avatar: _isSummarizing
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          Icons.auto_awesome_rounded,
+                          size: 15,
+                          color: colorScheme.primary,
+                        ),
+                  label: Text(
+                    _isSummarizing ? 'Distilling...' : 'AI Highlight',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  onPressed: _isSummarizing ? null : _applyAiHighlight,
+                ),
+              ),
+            ],
             const SizedBox(height: AppLayout.spaceS),
 
             // Optional Text & Title Editor Box
@@ -318,7 +452,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                       ),
                       onChanged: (val) {
                         setState(() {
-                          _config = _config.copyWith(text: val);
+                          _updateConfig(_config.copyWith(text: val));
                         });
                       },
                     ),
@@ -349,6 +483,62 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                 ),
               ),
             ),
+            if (_config.slides.length > 1) ...[
+              const SizedBox(height: AppLayout.spaceS),
+              Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      onPressed: _config.currentSlideIndex > 0
+                          ? () {
+                              AppHaptics.selectionClick();
+                              setState(() {
+                                _updateConfig(_config.copyWith(
+                                  currentSlideIndex: _config.currentSlideIndex - 1,
+                                ));
+                              });
+                            }
+                          : null,
+                      icon: const Icon(Icons.chevron_left_rounded),
+                      tooltip: 'Previous slide',
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(AppLayout.radiusM),
+                      ),
+                      child: Text(
+                        'Slide ${_config.currentSlideIndex + 1} of ${_config.slides.length}',
+                        style: textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _config.currentSlideIndex < _config.slides.length - 1
+                          ? () {
+                              AppHaptics.selectionClick();
+                              setState(() {
+                                _updateConfig(_config.copyWith(
+                                  currentSlideIndex: _config.currentSlideIndex + 1,
+                                ));
+                              });
+                            }
+                          : null,
+                      icon: const Icon(Icons.chevron_right_rounded),
+                      tooltip: 'Next slide',
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: AppLayout.spaceM),
 
             // Controls 0: Layout Mode Switcher (Quote vs Reader)
@@ -370,9 +560,9 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                 onSelectionChanged: (set) {
                   AppHaptics.selectionClick();
                   setState(() {
-                    _config = _config.copyWith(
+                    _updateConfig(_config.copyWith(
                       layoutMode: set.first,
-                    );
+                    ));
                   });
                 },
               ),
@@ -397,7 +587,9 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                 ),
                 onSelectionChanged: (set) {
                   AppHaptics.selectionClick();
-                  setState(() => _config = _config.copyWith(aspectRatio: set.first));
+                  final nextRatio = set.first;
+                  setState(() => _config = _config.copyWith(aspectRatio: nextRatio));
+                  _savePreference(aspectRatio: nextRatio);
                 },
               ),
             ),
@@ -436,6 +628,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                       onSelected: (_) {
                         AppHaptics.selectionClick();
                         setState(() => _config = _config.copyWith(fontStyle: style));
+                        _savePreference(fontStyle: style);
                       },
                     ),
                   );
@@ -482,6 +675,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                       onSelected: (_) {
                         AppHaptics.selectionClick();
                         setState(() => _config = _config.copyWith(themePreset: preset));
+                        _savePreference(themePreset: preset);
                       },
                     ),
                   );
@@ -559,6 +753,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                   onSelected: (val) {
                     AppHaptics.selectionClick();
                     setState(() => _config = _config.copyWith(showWatermark: val));
+                    _savePreference(showWatermark: val);
                   },
                 ),
               ],

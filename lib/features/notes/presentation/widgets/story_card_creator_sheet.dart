@@ -9,6 +9,7 @@ export '../../../story_cards/presentation/widgets/story_card_studio_sheet.dart';
 class StoryCardCreatorSheet extends StatelessWidget {
   final String initialText;
   final String noteTitle;
+  final String category;
   final int noteColorValue;
   final DateTime noteDate;
 
@@ -16,6 +17,7 @@ class StoryCardCreatorSheet extends StatelessWidget {
     super.key,
     required this.initialText,
     required this.noteTitle,
+    this.category = 'Note',
     this.noteColorValue = 0,
     required this.noteDate,
   });
@@ -25,6 +27,7 @@ class StoryCardCreatorSheet extends StatelessWidget {
     required BuildContext context,
     required String initialText,
     required String noteTitle,
+    String category = 'Note',
     int noteColorValue = 0,
     required DateTime noteDate,
   }) {
@@ -32,6 +35,7 @@ class StoryCardCreatorSheet extends StatelessWidget {
       context: context,
       initialText: initialText,
       noteTitle: noteTitle,
+      category: category,
       noteColorValue: noteColorValue,
       noteDate: noteDate,
     );
@@ -42,6 +46,7 @@ class StoryCardCreatorSheet extends StatelessWidget {
     return StoryCardStudioSheet(
       initialText: initialText,
       noteTitle: noteTitle,
+      category: category,
       noteColorValue: noteColorValue,
       noteDate: noteDate,
     );

@@ -34,7 +34,7 @@ class StoryCardPreview extends StatelessWidget {
     final ratio = config.aspectRatio;
     final isStory = ratio == StoryCardAspectRatio.story;
     final isPortrait = ratio == StoryCardAspectRatio.portrait;
-    final text = config.resolvedText;
+    final text = config.currentSlideText;
     final isTamil = StoryCardConfig.containsTamil(text);
     final dateStr = DateFormat('MMM d, y').format(config.date);
 
@@ -487,52 +487,86 @@ class StoryCardPreview extends StatelessWidget {
     );
   }
 
-  /// Builds the bottom footer zone with the centered watermark badge.
+  /// Builds the bottom footer zone with the centered watermark badge and optional slide counter.
   Widget _buildFooterZone(StoryCardThemeStyle style) {
-    if (!config.showWatermark) {
+    final slideCount = config.slides.length;
+    final hasMultiSlides = slideCount > 1;
+    if (!config.showWatermark && !hasMultiSlides) {
       return const SizedBox(height: 8);
     }
+
+    final safeSlideIndex = config.currentSlideIndex.clamp(0, slideCount - 1);
 
     return Center(
       child: FittedBox(
         fit: BoxFit.scaleDown,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
-          decoration: BoxDecoration(
-            color: style.text.withValues(alpha: 0.07),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: style.text.withValues(alpha: 0.12),
-              width: 0.8,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(3),
-                child: Image.asset(
-                  'assets/app_icon_monochrome.png',
-                  width: 12,
-                  height: 12,
-                  cacheWidth: 36,
-                  color: style.accent,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (config.showWatermark)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
+                decoration: BoxDecoration(
+                  color: style.text.withValues(alpha: 0.07),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: style.text.withValues(alpha: 0.12),
+                    width: 0.8,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(3),
+                      child: Image.asset(
+                        'assets/app_icon_monochrome.png',
+                        width: 12,
+                        height: 12,
+                        cacheWidth: 36,
+                        color: style.accent,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Everything App',
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.6,
+                        color: style.subtext,
+                        fontFamily: AppTheme.fontInter,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 5),
-              Text(
-                'Everything App',
-                style: TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.6,
-                  color: style.subtext,
-                  fontFamily: AppTheme.fontInter,
+            if (config.showWatermark && hasMultiSlides) const SizedBox(width: 8),
+            if (hasMultiSlides)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
+                decoration: BoxDecoration(
+                  color: style.text.withValues(alpha: 0.07),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: style.text.withValues(alpha: 0.12),
+                    width: 0.8,
+                  ),
+                ),
+                child: Text(
+                  '${safeSlideIndex + 1} / $slideCount',
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.6,
+                    color: style.subtext,
+                    fontFamily: AppTheme.fontInter,
+                  ),
                 ),
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );

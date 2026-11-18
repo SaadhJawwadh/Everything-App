@@ -102,7 +102,7 @@ class NotesSettingsScreen extends StatelessWidget {
                           SettingsSwitchTile(
                             icon: Icons.auto_awesome_outlined,
                             iconColor: colorScheme.primary,
-                            title: 'Gemini Nano AI',
+                            title: 'On-Device Smart AI',
                             subtitle: 'Enable offline summaries, tag suggestions & smart SMS parsing',
                             value: settings.useOnDeviceAi,
                             onChanged: settings.setUseOnDeviceAi,

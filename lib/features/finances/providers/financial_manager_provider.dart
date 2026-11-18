@@ -21,6 +21,7 @@ class FinancialManagerProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _monthlyData = [];
   bool _isLoading = false;
   bool _isSmsSyncing = false;
+  bool _isAutoRefining = false;
   SmsSyncProgress? _smsSyncProgress;
 
   DateTimeRange _selectedRange = DateTimeRange(
@@ -131,6 +132,7 @@ class FinancialManagerProvider extends ChangeNotifier {
       } catch (_) {}
 
       _applyFilters();
+      _triggerForegroundAiCatchUpIfNeeded();
     } catch (e) {
       debugPrint('Error loading transactions: $e');
     } finally {
@@ -142,6 +144,41 @@ class FinancialManagerProvider extends ChangeNotifier {
   }
 
   Future<void> refresh() => loadTransactions();
+
+  /// Checks for any non-deleted SMS transactions from the last 24 hours that
+  /// have not yet been refined by on-device AI and runs bulk refinement in the background.
+  void _triggerForegroundAiCatchUpIfNeeded() {
+    if (_isDisposed || _isAutoRefining) return;
+    final cutoff = DateTime.now().subtract(const Duration(hours: 24));
+    final hasUnrefinedRecentSms = _allTransactions.any(
+      (t) =>
+          t.deletedAt == null &&
+          t.smsId != null &&
+          !t.isAiRefined &&
+          (t.date.isAfter(cutoff) || t.date.isAtSameMomentAs(cutoff)),
+    );
+    if (!hasUnrefinedRecentSms) return;
+
+    _isAutoRefining = true;
+    unawaited(_runForegroundAiCatchUp());
+  }
+
+  Future<void> _runForegroundAiCatchUp() async {
+    try {
+      final refinedCount = await SmsService.performBulkAiRefine();
+      if (_isDisposed || refinedCount <= 0) return;
+
+      final refreshed = await TransactionRepository.instance.readAllTransactions();
+      if (_isDisposed) return;
+      _allTransactions = refreshed;
+      _applyFilters();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Foreground AI catch-up error: $e');
+    } finally {
+      _isAutoRefining = false;
+    }
+  }
   Future<void> refreshTransactions({bool showLoading = false}) async {
     if (showLoading && _filteredTransactions.isEmpty) {
       _isLoading = true;

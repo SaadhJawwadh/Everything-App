@@ -260,7 +260,7 @@ class SmsService {
     if (messages.isEmpty) return 0;
 
     final prefs = await SharedPreferences.getInstance();
-    final useAi = prefs.getBool('useOnDeviceAi') ?? false;
+    final useAi = prefs.getBool('useOnDeviceAi') ?? true;
     final preferredCurrency = prefs.getString('currency');
     final aiService = HybridLocalAiService();
     final isAiHardwareReady = useAi && (await aiService.isSupported());
@@ -507,12 +507,81 @@ class SmsService {
       preferredCurrency = preferredCurrencyOverride;
     } else {
       final prefs = await SharedPreferences.getInstance();
-      useAi = prefs.getBool('useOnDeviceAi') ?? false;
+      useAi = prefs.getBool('useOnDeviceAi') ?? true;
       preferredCurrency = prefs.getString('currency');
     }
 
-    // 1. Try AI-First (Gemini Nano) if enabled and supported
-    if (useAi && SmsParser.isPotentiallyRelevant(
+    // 1. Run deterministic Regex / Custom Rules parser FIRST
+    transaction = SmsParser.parseMessage(
+      body: body,
+      address: address,
+      messageId: messageId,
+      messageDate: messageDate,
+      allowedSenderIds: allowedSenderIds,
+      blockedSenderIds: blockedSenderIds,
+      customExpenseRules: customExpenseRules,
+      customIncomeRules: customIncomeRules,
+      customSmsRules: customSmsRules,
+      preferredCurrency: preferredCurrency,
+      categoryAccountRouting: _categoryAccountRouting,
+    );
+
+    if (transaction != null && useAi) {
+      try {
+        if (!skipCategoryReload) {
+          await TransactionCategory.reload();
+        }
+        final activeCategories = TransactionCategory.allNames;
+        final aiService = aiServiceOverride ?? HybridLocalAiService();
+        final isHardwareSupported = isAiSupportedOverride ?? await aiService.isSupported();
+
+        final refined = await aiService.refineTransactionDescription(
+          transaction.description,
+          body,
+        );
+        final refinedDesc = (refined != null && refined.trim().isNotEmpty)
+            ? refined.trim()
+            : transaction.description;
+
+        String newCategory = transaction.category;
+        String newAccount = transaction.account;
+        if (newCategory == 'Other' || !activeCategories.contains(newCategory)) {
+          final classified = await aiService.classifyTransactionCategory(
+            description: refinedDesc,
+            smsBody: body,
+            isExpense: transaction.isExpense,
+            categories: activeCategories,
+          );
+          if (classified != null && classified.isNotEmpty) {
+            newCategory = classified;
+            final matchingRule = customSmsRules?.cast<CustomSmsRule?>().firstWhere(
+              (r) => r != null && r.isEnabled && body.toLowerCase().contains(r.keyword.toLowerCase()),
+              orElse: () => null,
+            );
+            newAccount = SmsParser.resolveAccount(
+              body: body,
+              category: newCategory,
+              matchingRule: matchingRule,
+              categoryAccountRouting: _categoryAccountRouting,
+            );
+          }
+        }
+
+        transaction = transaction.copy(
+          description: refinedDesc,
+          category: newCategory,
+          account: newAccount,
+          isAiRefined: isHardwareSupported || (newCategory != 'Other'),
+        );
+      } catch (e) {
+        debugPrint('AI Refinement failed: $e');
+      }
+    }
+
+    // 2. Fall back to On-Device AI parser only if Regex parser returned null
+    if (transaction == null &&
+        useAi &&
+        SmsParser.isPotentiallyRelevant(
           body: body,
           address: address,
           allowedSenderIds: allowedSenderIds,
@@ -567,41 +636,6 @@ class SmsService {
         }
       } catch (e) {
         debugPrint('On-device AI SMS parsing failed: $e');
-      }
-    }
-
-    // 2. Fallback to Regex parser if AI did not return a valid transaction
-    if (transaction == null) {
-      transaction = SmsParser.parseMessage(
-        body: body,
-        address: address,
-        messageId: messageId,
-        messageDate: messageDate,
-        allowedSenderIds: allowedSenderIds,
-        blockedSenderIds: blockedSenderIds,
-        customExpenseRules: customExpenseRules,
-        customIncomeRules: customIncomeRules,
-        customSmsRules: customSmsRules,
-        preferredCurrency: preferredCurrency,
-        categoryAccountRouting: _categoryAccountRouting,
-      );
-
-      // AI Refinement Step: Refine description of regex-parsed transaction if AI is enabled and supported
-      if (transaction != null && useAi) {
-        try {
-          final aiService = aiServiceOverride ?? HybridLocalAiService();
-          if (isAiSupportedOverride ?? await aiService.isSupported()) {
-            final refined = await aiService.refineTransactionDescription(
-              transaction.description,
-              body,
-            );
-            if (refined != null && refined.isNotEmpty) {
-              transaction = transaction.copy(description: refined, isAiRefined: true);
-            }
-          }
-        } catch (e) {
-          debugPrint('AI Refinement failed: $e');
-        }
       }
     }
 
@@ -934,7 +968,15 @@ class SmsService {
           final description = (aiParsed['description'] ?? aiParsed['merchant'] ?? transaction.description).toString().trim();
           String category = aiParsed['category'] ?? transaction.category;
           if (category == 'Other' || !activeCategories.contains(category) || category.isEmpty) {
-            category = TransactionCategory.fromDescriptionCached('$description $fullSmsBody');
+            final classified = await aiService.classifyTransactionCategory(
+              description: description,
+              smsBody: fullSmsBody,
+              isExpense: transaction.isExpense,
+              categories: activeCategories,
+            );
+            category = (classified != null && classified.isNotEmpty)
+                ? classified
+                : TransactionCategory.fromDescriptionCached('$description $fullSmsBody');
           }
           if (description.isNotEmpty && (description != transaction.description.trim() || category != transaction.category)) {
             return transaction.copy(
@@ -960,7 +1002,15 @@ class SmsService {
 
       String finalCategory = transaction.category;
       if (finalCategory == 'Other' || !activeCategories.contains(finalCategory) || finalCategory.isEmpty) {
-        finalCategory = TransactionCategory.fromDescriptionCached('$finalDesc ${fullSmsBody ?? ""}');
+        final classified = await aiService.classifyTransactionCategory(
+          description: finalDesc,
+          smsBody: fullSmsBody ?? transaction.description,
+          isExpense: transaction.isExpense,
+          categories: activeCategories,
+        );
+        finalCategory = (classified != null && classified.isNotEmpty)
+            ? classified
+            : TransactionCategory.fromDescriptionCached('$finalDesc ${fullSmsBody ?? ""}');
       }
 
       if (finalDesc != transaction.description.trim() || finalCategory != transaction.category) {

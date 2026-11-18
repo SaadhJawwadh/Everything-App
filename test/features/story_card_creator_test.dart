@@ -304,5 +304,71 @@ void main() {
     final segmentedButtonAfter = tester.widget<SegmentedButton<StoryCardLayoutMode>>(segmentedButtonFinder);
     expect(segmentedButtonAfter.selected, contains(StoryCardLayoutMode.quote));
   });
+
+  test('StoryCardConfig.cleanMarkdownForCard formats checklists, headings, and bold text', () {
+    const raw = '# Sprint Goals\n- [x] Ship **release**\n- [ ] Update docs\n  * [X] Subtask done';
+    final cleaned = StoryCardConfig.cleanMarkdownForCard(raw);
+    expect(
+      cleaned,
+      'Sprint Goals\n☑ Ship release\n☐ Update docs\n  ☑ Subtask done',
+    );
+  });
+
+  test('StoryCardConfig.slides paginates long notes across multiple slides', () {
+    // Quote mode threshold is 60 words
+    final longQuoteText = List.generate(130, (i) => 'word$i').join(' ');
+    final quoteConfig = StoryCardConfig(
+      title: 'Long Quote',
+      text: longQuoteText,
+      date: DateTime(2026, 9, 5),
+      layoutMode: StoryCardLayoutMode.quote,
+    );
+    expect(quoteConfig.slides.length, greaterThan(1));
+    expect(quoteConfig.currentSlideText, quoteConfig.slides.first);
+
+    // Article mode threshold is 110 words
+    final longArticleText = [
+      List.generate(60, (i) => 'paraOne$i').join(' '),
+      List.generate(60, (i) => 'paraTwo$i').join(' '),
+      List.generate(60, (i) => 'paraThree$i').join(' '),
+    ].join('\n\n');
+    final articleConfig = StoryCardConfig(
+      title: 'Long Article',
+      text: longArticleText,
+      date: DateTime(2026, 9, 5),
+      layoutMode: StoryCardLayoutMode.article,
+    );
+    expect(articleConfig.slides.length, greaterThan(1));
+    final secondSlideConfig = articleConfig.copyWith(currentSlideIndex: 1);
+    expect(secondSlideConfig.currentSlideText, articleConfig.slides[1]);
+  });
+
+  testWidgets('StoryCardStudioSheet displays slide navigation for long notes', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final longNote = [
+      List.generate(70, (i) => 'alpha$i').join(' '),
+      List.generate(70, (i) => 'beta$i').join(' '),
+    ].join('\n\n');
+
+    await tester.pumpWidget(buildTestSheet(
+      initialText: longNote,
+      noteTitle: 'Long Essay',
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Slide 1 of 2'), findsOneWidget);
+    expect(find.byTooltip('Next slide'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Next slide'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Slide 2 of 2'), findsOneWidget);
+  });
 }
 

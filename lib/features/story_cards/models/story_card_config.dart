@@ -17,6 +17,8 @@ class StoryCardConfig {
   final bool showTitle;
   final bool showDate;
   final bool showWatermark;
+  final int currentSlideIndex;
+  final int totalSlides;
 
   const StoryCardConfig({
     required this.title,
@@ -32,7 +34,28 @@ class StoryCardConfig {
     this.showTitle = true,
     this.showDate = true,
     this.showWatermark = false,
+    this.currentSlideIndex = 0,
+    this.totalSlides = 1,
   });
+
+  /// Cleans raw markdown/checklist syntax into card-ready typography.
+  static String cleanMarkdownForCard(String raw) {
+    var cleaned = raw;
+    cleaned = cleaned.replaceAllMapped(
+      RegExp(r'^(\s*)[-*]\s+\[[xX]\]\s+', multiLine: true),
+      (m) => '${m.group(1)}☑ ',
+    );
+    cleaned = cleaned.replaceAllMapped(
+      RegExp(r'^(\s*)[-*]\s+\[ \]\s+', multiLine: true),
+      (m) => '${m.group(1)}☐ ',
+    );
+    cleaned = cleaned.replaceAll(RegExp(r'^#{1,6}\s+', multiLine: true), '');
+    cleaned = cleaned.replaceAllMapped(
+      RegExp(r'\*\*(.+?)\*\*'),
+      (m) => m.group(1)!,
+    );
+    return cleaned;
+  }
 
   /// Detects if text contains Tamil characters for language-aware font selection.
   static bool containsTamil(String input) {
@@ -82,6 +105,99 @@ class StoryCardConfig {
   /// Word count of the currently resolved/truncated text.
   int get displayedWordCount => countWords(resolvedText);
 
+  /// Splits [cleanMarkdownForCard(resolvedText)] into readable carousel slides
+  /// along paragraph, sentence, and word boundaries.
+  List<String> get slides {
+    final cleaned = cleanMarkdownForCard(resolvedText).trim();
+    if (cleaned.isEmpty) return const [''];
+
+    final maxWords = layoutMode == StoryCardLayoutMode.quote ? 60 : 110;
+    if (wordLimit != StoryCardWordLimit.all || countWords(cleaned) <= maxWords) {
+      return [cleaned];
+    }
+
+    final result = <String>[];
+    final buffer = StringBuffer();
+
+    void flushBuffer() {
+      final text = buffer.toString().trim();
+      if (text.isNotEmpty) {
+        result.add(text);
+      }
+      buffer.clear();
+    }
+
+    void appendUnit(String unit, String separator) {
+      final trimmedUnit = unit.trim();
+      if (trimmedUnit.isEmpty) return;
+
+      final current = buffer.toString().trim();
+      if (current.isEmpty) {
+        if (countWords(trimmedUnit) <= maxWords) {
+          buffer.write(trimmedUnit);
+        } else {
+          // Split oversized unit by words
+          final words = trimmedUnit.split(RegExp(r'\s+'));
+          for (final word in words) {
+            final cur = buffer.toString().trim();
+            final candidate = cur.isEmpty ? word : '$cur $word';
+            if (cur.isNotEmpty && countWords(candidate) > maxWords) {
+              flushBuffer();
+              buffer.write(word);
+            } else {
+              if (cur.isNotEmpty) buffer.write(' ');
+              buffer.write(word);
+            }
+          }
+        }
+        return;
+      }
+
+      final candidate = '$current$separator$trimmedUnit';
+      if (countWords(candidate) <= maxWords) {
+        buffer.write(separator);
+        buffer.write(trimmedUnit);
+      } else {
+        flushBuffer();
+        appendUnit(trimmedUnit, separator);
+      }
+    }
+
+    final paragraphs = cleaned.split(RegExp(r'\n\s*\n'));
+    for (final paragraph in paragraphs) {
+      final trimmedPara = paragraph.trim();
+      if (trimmedPara.isEmpty) continue;
+
+      if (countWords(trimmedPara) <= maxWords) {
+        appendUnit(trimmedPara, '\n\n');
+      } else {
+        final lines = trimmedPara.split('\n');
+        for (final line in lines) {
+          final trimmedLine = line.trim();
+          if (trimmedLine.isEmpty) continue;
+
+          if (countWords(trimmedLine) <= maxWords) {
+            appendUnit(trimmedLine, '\n');
+          } else {
+            final sentences = trimmedLine.split(RegExp(r'(?<=[.!?])\s+'));
+            for (final sentence in sentences) {
+              appendUnit(sentence, ' ');
+            }
+          }
+        }
+      }
+    }
+
+    flushBuffer();
+    return result.isEmpty ? const [''] : result;
+  }
+
+  /// Returns the text for the active [currentSlideIndex].
+  String get currentSlideText {
+    final allSlides = slides;
+    return allSlides[currentSlideIndex.clamp(0, allSlides.length - 1)];
+  }
+
   /// Creates a copy with modified fields.
   StoryCardConfig copyWith({
     String? title,
@@ -97,6 +213,8 @@ class StoryCardConfig {
     bool? showTitle,
     bool? showDate,
     bool? showWatermark,
+    int? currentSlideIndex,
+    int? totalSlides,
   }) {
     return StoryCardConfig(
       title: title ?? this.title,
@@ -112,6 +230,8 @@ class StoryCardConfig {
       showTitle: showTitle ?? this.showTitle,
       showDate: showDate ?? this.showDate,
       showWatermark: showWatermark ?? this.showWatermark,
+      currentSlideIndex: currentSlideIndex ?? this.currentSlideIndex,
+      totalSlides: totalSlides ?? this.totalSlides,
     );
   }
 
@@ -132,7 +252,9 @@ class StoryCardConfig {
           layoutMode == other.layoutMode &&
           showTitle == other.showTitle &&
           showDate == other.showDate &&
-          showWatermark == other.showWatermark;
+          showWatermark == other.showWatermark &&
+          currentSlideIndex == other.currentSlideIndex &&
+          totalSlides == other.totalSlides;
 
   @override
   int get hashCode => Object.hash(
@@ -149,5 +271,7 @@ class StoryCardConfig {
         showTitle,
         showDate,
         showWatermark,
+        currentSlideIndex,
+        totalSlides,
       );
 }

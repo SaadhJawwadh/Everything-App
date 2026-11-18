@@ -136,6 +136,30 @@ class P2pSyncService {
       ..addAll(codes.map((c) => c.trim()).where((c) => c.isNotEmpty));
     final primary = _trustedPairCodes.isNotEmpty ? _trustedPairCodes.first : '';
     P2pRelaySyncService.instance.updateTrustedPairCodes(primary, _trustedPairCodes);
+    unawaited(_syncBackgroundRelaySchedule());
+  }
+
+  Future<void> _syncBackgroundRelaySchedule() async {
+    final devices = await getPairedDevices();
+    await syncP2pBackgroundSchedule(hasPairedDevices: devices.isNotEmpty);
+  }
+
+  /// Loads persisted paired devices from SharedPreferences so background workers
+  /// and offline relay drainers can resolve peer pair codes without a BuildContext.
+  Future<List<PairedDevice>> getPairedDevices() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('p2p_paired_devices_v2') ?? prefs.getString('p2p_paired_devices_v1');
+      if (raw == null || raw.isEmpty) return const [];
+      final decoded = json.decode(raw);
+      if (decoded is! List) return const [];
+      return decoded
+          .whereType<Map>()
+          .map((m) => PairedDevice.fromMap(Map<String, dynamic>.from(m)))
+          .toList();
+    } catch (_) {
+      return const [];
+    }
   }
 
   List<String> _candidateCodes(String primaryCode) {
@@ -1644,11 +1668,30 @@ class P2pSyncService {
       return syncRes;
     }
 
+    Future<SyncResult?> attemptOfflineMailboxQueue() async {
+      final Map<String, dynamic> relayPayloadMap = json.decode(clientBackupJson) as Map<String, dynamic>;
+      relayPayloadMap['action'] = 'bidirectional_sync';
+      final queued = await P2pRelaySyncService.instance.publishOfflineMailboxSync(
+        pairCode: pairCode,
+        plaintextJson: json.encode(relayPayloadMap),
+      );
+      if (!queued) return null;
+      final queuedRes = SyncResult(
+        success: true,
+        sentCount: 1,
+        transportUsed: 'E2EE Relay Mailbox (Queued for Peer)',
+      );
+      _syncEventsController.add(queuedRes);
+      return queuedRes;
+    }
+
     if (isExplicitRelayTarget) {
       _isSyncing = true;
       try {
         final relayRes = await attemptRelaySync();
         if (relayRes != null) return relayRes;
+        final mailboxRes = await attemptOfflineMailboxQueue();
+        if (mailboxRes != null) return mailboxRes;
         final fail = SyncResult(
           success: false,
           errorMessage: 'Cross-Network Relay sync timed out. Ensure peer device has Everything App open.',
@@ -1744,6 +1787,8 @@ class P2pSyncService {
           debugPrint('[P2pSyncService] Direct sync ($cleanIp) failed ($e); trying Cross-Network E2EE Relay...');
           final relayRes = await attemptRelaySync();
           if (relayRes != null) return relayRes;
+          final mailboxRes = await attemptOfflineMailboxQueue();
+          if (mailboxRes != null) return mailboxRes;
         }
         final res = SyncResult(success: false, errorMessage: _formatUserFriendlyError(e, cleanIp));
         _syncEventsController.add(res);

@@ -650,7 +650,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
         quillController: _quillController,
         isCustomFolder: _isCustomFolder,
         folder: _folder,
-        noteTags: widget.note?.tags ?? const [],
+        noteTags: tags,
         colorValue: color,
         noteDate: _dateCreated,
         selectedOnly: selectedOnly,

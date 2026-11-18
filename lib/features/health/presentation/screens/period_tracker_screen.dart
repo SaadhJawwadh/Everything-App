@@ -525,8 +525,15 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                       child: FadeInAnimation(
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                          child: CycleInsightsCard(
-                            stats: provider.cycleStats,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              CycleInsightsCard(
+                                stats: provider.cycleStats,
+                              ),
+                              const SizedBox(height: AppLayout.spaceS),
+                              _buildCycleRegularityPill(context, provider),
+                            ],
                           ),
                         ),
                       ),
@@ -591,6 +598,83 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
           ),
         );
       },
+    );
+  }
+
+  Widget _buildCycleRegularityPill(
+    BuildContext context,
+    PeriodTrackerProvider provider,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final label = provider.cycleRegularityLabel;
+    final variation = provider.cycleVariationDays;
+
+    final Color accentColor;
+    final IconData icon;
+    if (variation == null) {
+      accentColor = colorScheme.onSurfaceVariant;
+      icon = Icons.hourglass_bottom_rounded;
+    } else if (variation <= 4) {
+      accentColor = colorScheme.primary;
+      icon = Icons.check_circle_outline_rounded;
+    } else if (variation <= 8) {
+      accentColor = colorScheme.tertiary;
+      icon = Icons.timeline_rounded;
+    } else {
+      accentColor = colorScheme.error;
+      icon = Icons.waves_rounded;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppLayout.spaceM,
+        vertical: AppLayout.spaceS + 2,
+      ),
+      decoration: ShapeDecoration(
+        color: colorScheme.surfaceContainerLow,
+        shape: StadiumBorder(
+          side: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.45),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: accentColor),
+          const SizedBox(width: AppLayout.spaceS),
+          Expanded(
+            child: Text(
+              'Cycle Regularity: $label',
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (variation != null) ...[
+            const SizedBox(width: AppLayout.spaceS),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppLayout.spaceS + 2,
+                vertical: AppLayout.spaceXS,
+              ),
+              decoration: ShapeDecoration(
+                color: accentColor.withValues(alpha: 0.12),
+                shape: const StadiumBorder(),
+              ),
+              child: Text(
+                '${variation}d range',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: accentColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

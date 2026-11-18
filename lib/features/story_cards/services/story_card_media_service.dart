@@ -100,6 +100,21 @@ class StoryCardMediaService {
     final name = filename ?? 'story_share_${DateTime.now().millisecondsSinceEpoch}.png';
     try {
       final tempDir = await getTemporaryDirectory();
+      final cutoff = DateTime.now().subtract(const Duration(hours: 1));
+      await for (final entity in tempDir.list()) {
+        if (entity is File) {
+          final baseName = entity.uri.pathSegments.last;
+          if (baseName.startsWith('story_share_') && baseName.endsWith('.png')) {
+            try {
+              final stat = await entity.stat();
+              if (stat.modified.isBefore(cutoff)) {
+                await entity.delete();
+              }
+            } catch (_) {}
+          }
+        }
+      }
+
       final file = File('${tempDir.path}/$name');
       await file.writeAsBytes(bytes);
 

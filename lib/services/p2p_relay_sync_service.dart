@@ -218,6 +218,7 @@ class P2pRelaySyncService {
   P2pRelaySyncService._internal();
 
   static const String customRelayPrefKey = 'p2p_custom_relay_url_v1';
+  static const String _processedMailboxIdsKey = 'p2p_processed_mailbox_ids_v1';
   static const int _ephemeralEventKind = 24242; // NIP-01 Ephemeral range (instant push)
   static const int _replaceableMailboxKind = 30078; // NIP-78 buffered event (eliminates connection race)
   static const int _maxChunkChars = 48000; // ~48KB per WebSocket frame to respect relay frame limits
@@ -238,6 +239,7 @@ class P2pRelaySyncService {
   final Map<String, List<Completer<Map<String, dynamic>>>> _pendingRpcReplies = {};
   final Map<String, Map<int, String>> _incomingChunkBuffers = {};
   final Set<String> _processedMessageIds = {};
+  int _mailboxMergedCounter = 0;
 
   bool _isListening = false;
   bool get isListening => _isListening;
@@ -465,7 +467,7 @@ class P2pRelaySyncService {
       {
         'authors': roomPubkeys,
         'kinds': [_ephemeralEventKind, _replaceableMailboxKind],
-        'since': (DateTime.now().millisecondsSinceEpoch ~/ 1000) - 90,
+        'since': (DateTime.now().millisecondsSinceEpoch ~/ 1000) - 86400,
       },
     ]);
     try {
@@ -558,9 +560,12 @@ class P2pRelaySyncService {
       if (envelope is! Map<String, dynamic>) return;
       if (envelope['app'] != 'everything_p2p_relay_v2') return;
 
-      // Ignore stale buffered events older than 60 seconds
+      final msgType = envelope['type'] as String? ?? 'req'; // 'req', 'ack', or 'mailbox_push'
+
+      // Allow mailbox_push envelopes up to 24 hours old; keep 60s window for live req/ack
+      final maxAgeMs = msgType == 'mailbox_push' ? 86400000 : 60000;
       final ts = envelope['ts'] is int ? envelope['ts'] as int : 0;
-      if (ts > 0 && (DateTime.now().millisecondsSinceEpoch - ts).abs() > 60000) {
+      if (ts > 0 && (DateTime.now().millisecondsSinceEpoch - ts).abs() > maxAgeMs) {
         return;
       }
 
@@ -598,7 +603,6 @@ class P2pRelaySyncService {
       }
       if (fullCiphertext == null) return;
 
-      final msgType = envelope['type'] as String? ?? 'req'; // 'req' or 'ack'
       final corrId = envelope['corrId'] as String? ?? msgId;
 
       if (msgType == 'ack') {
@@ -614,6 +618,35 @@ class P2pRelaySyncService {
           }
           _pendingRpcReplies.remove(corrId);
         }
+        return;
+      }
+
+      if (msgType == 'mailbox_push') {
+        final prefs = await SharedPreferences.getInstance();
+        final processedList = prefs.getStringList(_processedMailboxIdsKey) ?? <String>[];
+        if (processedList.contains(msgId)) return;
+
+        String? decrypted;
+        String matchedCode = _primaryPairCode;
+        for (final code in _trustedPairCodes.toList()) {
+          final (plain, _) = await _crypto.decryptPayloadDetailedAsync(fullCiphertext, code);
+          if (plain != null) {
+            decrypted = plain;
+            matchedCode = code;
+            break;
+          }
+        }
+        if (decrypted == null) return;
+
+        final updatedList = [...processedList, msgId];
+        if (updatedList.length > 100) {
+          updatedList.removeRange(0, updatedList.length - 100);
+        }
+        await prefs.setStringList(_processedMailboxIdsKey, updatedList);
+
+        final payloadMap = json.decode(decrypted) as Map<String, dynamic>;
+        await _defaultInboundHandler('bidirectional_sync', payloadMap, matchedCode);
+        _mailboxMergedCounter++;
         return;
       }
 
@@ -907,6 +940,160 @@ class P2pRelaySyncService {
     } finally {
       retryTimer?.cancel();
       _pendingRpcReplies.remove(corrId);
+      for (final sub in tempSubs) {
+        await sub.cancel().catchError((_) {});
+      }
+      for (final ws in tempSockets) {
+        await ws.close().catchError((_) {});
+      }
+    }
+  }
+
+  /// Encrypts [plaintextJson] and publishes a persistent `kind: 30078` (`mailbox_push`)
+  /// event with 24-hour expiration so an offline peer merges it on next launch or background wake.
+  Future<bool> publishOfflineMailboxSync({
+    required String pairCode,
+    required String plaintextJson,
+    String? targetDeviceId,
+  }) async {
+    final encrypted = await _crypto.encryptPayloadAsync(plaintextJson, pairCode);
+    if (encrypted == null) return false;
+
+    final tempSockets = <WebSocket>[];
+    try {
+      final openSockets = _sockets.values.where((ws) => ws.readyState == WebSocket.open).toList();
+      if (openSockets.isEmpty) {
+        final urls = await getActiveRelayUrls();
+        await Future.wait(
+          urls.map((url) async {
+            try {
+              // ignore: close_sinks
+              final ws = await WebSocket.connect(url).timeout(const Duration(seconds: 4));
+              tempSockets.add(ws);
+            } catch (_) {}
+          }),
+        );
+      }
+
+      final allSockets = <WebSocket>{
+        ...openSockets,
+        ...tempSockets.where((ws) => ws.readyState == WebSocket.open),
+      };
+      if (allSockets.isEmpty) return false;
+
+      final myDeviceId = await P2pSyncService.instance.getDeviceId();
+      final roomPubHex = Bip340Schnorr.deriveRoomKeyPair(pairCode).pubHex;
+      final chunks = splitCiphertextChunks(encrypted);
+      final msgId = const Uuid().v4();
+      final createdAt = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final expiration = (createdAt + 86400).toString();
+
+      bool anySent = false;
+      for (int i = 0; i < chunks.length; i++) {
+        final envelopeJson = json.encode({
+          'app': 'everything_p2p_relay_v2',
+          'type': 'mailbox_push',
+          'msgId': msgId,
+          'corrId': msgId,
+          'senderId': myDeviceId,
+          if (targetDeviceId != null) 'targetDeviceId': targetDeviceId,
+          'chunkIndex': i,
+          'totalChunks': chunks.length,
+          'cipher': chunks[i],
+          'ts': DateTime.now().millisecondsSinceEpoch,
+        });
+
+        final frame = buildSignedNostrEventFrame(
+          pairCode: pairCode,
+          kind: _replaceableMailboxKind,
+          content: envelopeJson,
+          createdAtSeconds: createdAt,
+          tags: [
+            ['d', 'mailbox:$roomPubHex:$myDeviceId:$i'],
+            ['p', roomPubHex],
+            ['expiration', expiration],
+          ],
+        );
+
+        for (final ws in allSockets) {
+          try {
+            ws.add(frame);
+            anySent = true;
+          } catch (_) {}
+        }
+      }
+
+      if (tempSockets.isNotEmpty) {
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+      }
+      return anySent;
+    } catch (e) {
+      debugPrint('[P2pRelaySyncService] publishOfflineMailboxSync error: $e');
+      return false;
+    } finally {
+      for (final ws in tempSockets) {
+        await ws.close().catchError((_) {});
+      }
+    }
+  }
+
+  /// Connects briefly to active relays, fetches any `kind: 30078` `mailbox_push` events
+  /// from the last 24 hours for paired devices, merges them, and closes temporary sockets.
+  Future<int> drainOfflineRelayMailboxes() async {
+    final pairedDevices = await P2pSyncService.instance.getPairedDevices();
+    final codes = <String>{
+      ..._trustedPairCodes,
+      ...pairedDevices.map((d) => d.pairCode.trim()).where((c) => c.isNotEmpty),
+    };
+    if (codes.isEmpty) return 0;
+
+    _trustedPairCodes.addAll(codes);
+    final roomPubkeys = codes.map((c) => Bip340Schnorr.deriveRoomKeyPair(c).pubHex).toSet().toList();
+    if (roomPubkeys.isEmpty) return 0;
+
+    final urls = await getActiveRelayUrls();
+    final tempSockets = <WebSocket>[];
+    final tempSubs = <StreamSubscription<dynamic>>[];
+    final startMerged = _mailboxMergedCounter;
+
+    try {
+      final sinceSec = (DateTime.now().millisecondsSinceEpoch ~/ 1000) - 86400;
+      await Future.wait(
+        urls.map((url) async {
+          try {
+            // ignore: close_sinks
+            final ws = await WebSocket.connect(url).timeout(const Duration(seconds: 4));
+            tempSockets.add(ws);
+            // ignore: cancel_subscriptions
+            tempSubs.add(
+              ws.listen((dynamic raw) {
+                if (raw is String) {
+                  unawaited(_handleRelayFrame(raw));
+                }
+              }),
+            );
+            final subFrame = json.encode([
+              'REQ',
+              'everything_mailbox_drain',
+              {
+                'authors': roomPubkeys,
+                'kinds': [_replaceableMailboxKind],
+                'since': sinceSec,
+              },
+            ]);
+            ws.add(subFrame);
+          } catch (_) {}
+        }),
+      );
+
+      if (tempSockets.isNotEmpty) {
+        await Future<void>.delayed(const Duration(seconds: 4));
+      }
+      return _mailboxMergedCounter - startMerged;
+    } catch (e) {
+      debugPrint('[P2pRelaySyncService] drainOfflineRelayMailboxes error: $e');
+      return 0;
+    } finally {
       for (final sub in tempSubs) {
         await sub.cancel().catchError((_) {});
       }

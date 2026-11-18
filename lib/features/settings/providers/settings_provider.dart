@@ -997,6 +997,13 @@ class SettingsProvider extends ChangeNotifier {
       ]);
       _isGenAiSupported = results[0];
       _isEmbeddingSupported = results[1];
+      if (isDeviceAiSupported) {
+        final prefs = await SharedPreferences.getInstance();
+        if (!prefs.containsKey('useOnDeviceAi')) {
+          _useOnDeviceAi = true;
+          await prefs.setBool('useOnDeviceAi', true);
+        }
+      }
     } catch (_) {
       _isGenAiSupported = false;
       _isEmbeddingSupported = false;
