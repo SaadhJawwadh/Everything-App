@@ -239,6 +239,7 @@ class P2pRelaySyncService {
   final Map<String, List<Completer<Map<String, dynamic>>>> _pendingRpcReplies = {};
   final Map<String, Map<int, String>> _incomingChunkBuffers = {};
   final Set<String> _processedMessageIds = {};
+  final Set<String> _inFlightMailboxIds = {};
   int _mailboxMergedCounter = 0;
 
   bool _isListening = false;
@@ -622,31 +623,61 @@ class P2pRelaySyncService {
       }
 
       if (msgType == 'mailbox_push') {
+        if (_inFlightMailboxIds.contains(msgId)) return;
         final prefs = await SharedPreferences.getInstance();
-        final processedList = prefs.getStringList(_processedMailboxIdsKey) ?? <String>[];
-        if (processedList.contains(msgId)) return;
+        final existingProcessed = prefs.getStringList(_processedMailboxIdsKey) ?? <String>[];
+        if (existingProcessed.contains(msgId)) return;
 
-        String? decrypted;
-        String matchedCode = _primaryPairCode;
-        for (final code in _trustedPairCodes.toList()) {
-          final (plain, _) = await _crypto.decryptPayloadDetailedAsync(fullCiphertext, code);
-          if (plain != null) {
-            decrypted = plain;
-            matchedCode = code;
-            break;
+        _inFlightMailboxIds.add(msgId);
+        try {
+          String? decrypted;
+          String matchedCode = _primaryPairCode;
+          for (final code in _trustedPairCodes.toList()) {
+            final (plain, _) = await _crypto.decryptPayloadDetailedAsync(fullCiphertext, code);
+            if (plain != null) {
+              decrypted = plain;
+              matchedCode = code;
+              break;
+            }
           }
-        }
-        if (decrypted == null) return;
+          if (decrypted == null) return;
 
-        final updatedList = [...processedList, msgId];
-        if (updatedList.length > 100) {
-          updatedList.removeRange(0, updatedList.length - 100);
-        }
-        await prefs.setStringList(_processedMailboxIdsKey, updatedList);
+          final payloadMap = json.decode(decrypted) as Map<String, dynamic>;
+          final replyMap = onInboundRelayRequest != null
+              ? await onInboundRelayRequest!('bidirectional_sync', payloadMap, matchedCode, false)
+              : await _defaultInboundHandler('bidirectional_sync', payloadMap, matchedCode);
 
-        final payloadMap = json.decode(decrypted) as Map<String, dynamic>;
-        await _defaultInboundHandler('bidirectional_sync', payloadMap, matchedCode);
-        _mailboxMergedCounter++;
+          // Persist processed msgId ONLY AFTER merge succeeds so killed runs retry safely.
+          final freshPrefs = await SharedPreferences.getInstance();
+          final freshProcessed = freshPrefs.getStringList(_processedMailboxIdsKey) ?? <String>[];
+          if (!freshProcessed.contains(msgId)) {
+            final updatedList = [...freshProcessed, msgId];
+            if (updatedList.length > 100) {
+              updatedList.removeRange(0, updatedList.length - 100);
+            }
+            await freshPrefs.setStringList(_processedMailboxIdsKey, updatedList);
+          }
+
+          _mailboxMergedCounter++;
+
+          // Loop-safe 2-way return push: share our updated state back if this was not itself a reply.
+          if (envelope['isMailboxReply'] != true && replyMap != null) {
+            unawaited(
+              publishOfflineMailboxSync(
+                pairCode: matchedCode,
+                plaintextJson: json.encode(replyMap),
+                targetDeviceId: senderId,
+                isMailboxReply: true,
+              ),
+            );
+          }
+        } catch (e) {
+          // Allow future retries in this session if decrypt/merge failed before checkpointing msgId.
+          _processedMessageIds.remove(dedupKey);
+          rethrow;
+        } finally {
+          _inFlightMailboxIds.remove(msgId);
+        }
         return;
       }
 
@@ -955,6 +986,7 @@ class P2pRelaySyncService {
     required String pairCode,
     required String plaintextJson,
     String? targetDeviceId,
+    bool isMailboxReply = false,
   }) async {
     final encrypted = await _crypto.encryptPayloadAsync(plaintextJson, pairCode);
     if (encrypted == null) return false;
@@ -987,12 +1019,14 @@ class P2pRelaySyncService {
       final msgId = const Uuid().v4();
       final createdAt = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       final expiration = (createdAt + 86400).toString();
+      final tagPrefix = isMailboxReply ? 'mailbox_reply' : 'mailbox';
 
       bool anySent = false;
       for (int i = 0; i < chunks.length; i++) {
         final envelopeJson = json.encode({
           'app': 'everything_p2p_relay_v2',
           'type': 'mailbox_push',
+          'isMailboxReply': isMailboxReply,
           'msgId': msgId,
           'corrId': msgId,
           'senderId': myDeviceId,
@@ -1009,7 +1043,7 @@ class P2pRelaySyncService {
           content: envelopeJson,
           createdAtSeconds: createdAt,
           tags: [
-            ['d', 'mailbox:$roomPubHex:$myDeviceId:$i'],
+            ['d', '$tagPrefix:$roomPubHex:$myDeviceId:$i'],
             ['p', roomPubHex],
             ['expiration', expiration],
           ],
@@ -1038,7 +1072,8 @@ class P2pRelaySyncService {
   }
 
   /// Connects briefly to active relays, fetches any `kind: 30078` `mailbox_push` events
-  /// from the last 24 hours for paired devices, merges them, and closes temporary sockets.
+  /// from the last 24 hours for paired devices, merges them, and closes temporary sockets
+  /// as soon as relays signal `EOSE` and in-flight frames finish.
   Future<int> drainOfflineRelayMailboxes() async {
     final pairedDevices = await P2pSyncService.instance.getPairedDevices();
     final codes = <String>{
@@ -1054,7 +1089,10 @@ class P2pRelaySyncService {
     final urls = await getActiveRelayUrls();
     final tempSockets = <WebSocket>[];
     final tempSubs = <StreamSubscription<dynamic>>[];
+    final activeFrameFutures = <Future<void>>[];
     final startMerged = _mailboxMergedCounter;
+    int eoseCount = 0;
+    final eoseCompleter = Completer<void>();
 
     try {
       final sinceSec = (DateTime.now().millisecondsSinceEpoch ~/ 1000) - 86400;
@@ -1064,30 +1102,71 @@ class P2pRelaySyncService {
             // ignore: close_sinks
             final ws = await WebSocket.connect(url).timeout(const Duration(seconds: 4));
             tempSockets.add(ws);
-            // ignore: cancel_subscriptions
-            tempSubs.add(
-              ws.listen((dynamic raw) {
-                if (raw is String) {
-                  unawaited(_handleRelayFrame(raw));
-                }
-              }),
-            );
-            final subFrame = json.encode([
-              'REQ',
-              'everything_mailbox_drain',
-              {
-                'authors': roomPubkeys,
-                'kinds': [_replaceableMailboxKind],
-                'since': sinceSec,
-              },
-            ]);
-            ws.add(subFrame);
           } catch (_) {}
         }),
       );
 
-      if (tempSockets.isNotEmpty) {
-        await Future<void>.delayed(const Duration(seconds: 4));
+      if (tempSockets.isEmpty) return 0;
+
+      final expectedSockets = tempSockets.length;
+      final subFrame = json.encode([
+        'REQ',
+        'everything_mailbox_drain',
+        {
+          'authors': roomPubkeys,
+          'kinds': [_replaceableMailboxKind],
+          'since': sinceSec,
+        },
+      ]);
+
+      for (final ws in tempSockets) {
+        // ignore: cancel_subscriptions
+        tempSubs.add(
+          ws.listen(
+            (dynamic raw) {
+              if (raw is! String) return;
+              if (raw.startsWith('["EOSE"') || raw.startsWith('[ "EOSE"')) {
+                try {
+                  final decoded = json.decode(raw);
+                  if (decoded is List &&
+                      decoded.length >= 2 &&
+                      decoded[0] == 'EOSE' &&
+                      decoded[1] == 'everything_mailbox_drain') {
+                    eoseCount++;
+                    if (eoseCount >= expectedSockets && !eoseCompleter.isCompleted) {
+                      eoseCompleter.complete();
+                    }
+                    return;
+                  }
+                } catch (_) {}
+              }
+              final future = _handleRelayFrame(raw);
+              activeFrameFutures.add(future);
+              future.whenComplete(() => activeFrameFutures.remove(future));
+            },
+            onDone: () {
+              eoseCount++;
+              if (eoseCount >= expectedSockets && !eoseCompleter.isCompleted) {
+                eoseCompleter.complete();
+              }
+            },
+            onError: (_) {
+              eoseCount++;
+              if (eoseCount >= expectedSockets && !eoseCompleter.isCompleted) {
+                eoseCompleter.complete();
+              }
+            },
+          ),
+        );
+        try {
+          ws.add(subFrame);
+        } catch (_) {}
+      }
+
+      await eoseCompleter.future.timeout(const Duration(seconds: 4), onTimeout: () {});
+      if (activeFrameFutures.isNotEmpty) {
+        await Future.wait(List<Future<void>>.from(activeFrameFutures))
+            .timeout(const Duration(seconds: 2), onTimeout: () => const []);
       }
       return _mailboxMergedCounter - startMerged;
     } catch (e) {

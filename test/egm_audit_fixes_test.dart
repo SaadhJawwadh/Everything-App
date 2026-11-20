@@ -576,11 +576,12 @@ void main() {
       final encryptedOutput = BackupService.encryptBackupJson(rawJson, passphrase);
       final container = json.decode(encryptedOutput) as Map<String, dynamic>;
 
-      expect(container['version'], 2);
+      expect(container['version'], 3);
       expect(container['encrypted'], isTrue);
       expect(container['salt'], isNotNull);
       expect(container['iv'], isNotNull);
       expect(container['ciphertext'], isNotNull);
+      expect(container['mac'], isNotNull);
 
       // Ciphertext and JSON container must NOT leak plain text
       expect(encryptedOutput.contains('Confidential Note'), isFalse);

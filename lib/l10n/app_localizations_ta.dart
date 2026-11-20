@@ -726,4 +726,264 @@ class AppLocalizationsTa extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get peerToPeerSync => 'நேரடி சாதன ஒத்திசைவு';
+
+  @override
+  String get p2pDeviceSync => 'P2P சாதன ஒத்திசைவு';
+
+  @override
+  String get p2pDeviceSyncSubtitle =>
+      'குறிப்புகள் மற்றும் நிதிப் பதிவுகளுக்கான ஆஃப்லைன் Wi-Fi ஒத்திசைவு';
+
+  @override
+  String get encryptedJsonBackups => 'மறைகுறியாக்கப்பட்ட JSON காப்புப்பிரதிகள்';
+
+  @override
+  String get exportBackup => 'காப்புப்பிரதியை ஏற்றுமதி செய்';
+
+  @override
+  String get exportBackupSubtitle =>
+      'குறிப்புகள் மற்றும் கணக்குகளை மறைகுறியாக்கப்பட்ட கோப்பில் சேமி';
+
+  @override
+  String get importBackup => 'காப்புப்பிரதியை இறக்குமதி செய்';
+
+  @override
+  String get importBackupSubtitle =>
+      'மறைகுறியாக்கப்பட்ட JSON காப்புப்பிரதி கோப்பிலிருந்து மீட்டமை';
+
+  @override
+  String get snapshotsAndRecovery => 'ஸ்னாப்ஷாட்கள் & மீட்பு';
+
+  @override
+  String get snapshotsAndRecoverySubtitle =>
+      'தானியங்கு தரவுத்தள ஸ்னாப்ஷாட்களைப் பார்வையிட்டு மீட்டமை';
+
+  @override
+  String get automatedBackgroundBackups => 'தானியங்கி பின்னணி காப்புப்பிரதிகள்';
+
+  @override
+  String get automaticBackups => 'தானியங்கி காப்புப்பிரதிகள்';
+
+  @override
+  String get automaticBackupsSubtitle =>
+      'வழக்கமான மறைகுறியாக்கப்பட்ட உள்ளூர் காப்புப்பிரதிகளைத் திட்டமிடு';
+
+  @override
+  String get backupFrequency => 'காப்புப்பிரதி இடைவெளி';
+
+  @override
+  String get backupFrequencySubtitle =>
+      'தானியங்கி காப்புப்பிரதி பணிகளின் இடைவெளி';
+
+  @override
+  String get backupLocation => 'காப்புப்பிரதி இடம்';
+
+  @override
+  String get secureAppStorage => 'பாதுகாப்பான ஆப் சேமிப்பகம்';
+
+  @override
+  String get lastAutoBackup => 'கடைசி தானியங்கி காப்புப்பிரதி';
+
+  @override
+  String get lastAutoBackupSubtitle =>
+      'மிக சமீபத்திய வெற்றிகரமான காப்புப்பிரதி';
+
+  @override
+  String get runAutoBackupNow => 'இப்போது காப்புப்பிரதி எடு';
+
+  @override
+  String get runAutoBackupNowSubtitle =>
+      'பின்னணி காப்புப்பிரதியை உடனடியாக இயக்கிச் சரிபார்';
+
+  @override
+  String get masterP2pDeviceSync => 'முதன்மை P2P சாதன ஒத்திசைவு';
+
+  @override
+  String get crossNetworkRelaySettings => 'நெட்வொர்க் ரிலே அமைப்புகள்';
+
+  @override
+  String get syncAuditAndActivity => 'ஒத்திசைவு தணிக்கை & செயல்பாடு';
+
+  @override
+  String get biDirectionalP2pSync => 'இருவழி P2P ஒத்திசைவு';
+
+  @override
+  String get syncingStatus => 'ஒத்திசைக்கிறது...';
+
+  @override
+  String get errorStatus => 'பிழை';
+
+  @override
+  String get unlinkedStatus => 'இணைக்கப்படவில்லை';
+
+  @override
+  String get readyStatus => 'தயார்';
+
+  @override
+  String get p2pUnlinkedSubtitle =>
+      'குறிப்புகள், கணக்குகள் & அமைப்புகளை ஆஃப்லைனில் ஒன்றிணைக்க அருகிலுள்ள சாதனத்தை இணை';
+
+  @override
+  String get p2pReadySubtitle =>
+      'குறிப்புகள், கணக்குகள் & அமைப்புகளைப் பாதுகாப்பாக ஒன்றிணை';
+
+  @override
+  String get pairDevice => 'சாதனத்தை இணை';
+
+  @override
+  String get pairAgain => 'மீண்டும் இணை';
+
+  @override
+  String get myQr => 'என் QR';
+
+  @override
+  String get syncAndMergeNow => 'இப்போது ஒத்திசை & ஒன்றிணை';
+
+  @override
+  String get syncCompletedSuccess => 'ஒத்திசைவு வெற்றிகரமாக முடிந்தது';
+
+  @override
+  String get syncFailed => 'ஒத்திசைவு தோல்வியடைந்தது';
+
+  @override
+  String get retry => 'மீண்டும் முயற்சி';
+
+  @override
+  String get recentSyncEvents => 'சமீபத்திய ஒத்திசைவு நிகழ்வுகள்';
+
+  @override
+  String get noSyncActivityYet => 'இதுவரை ஒத்திசைவு செயல்பாடு இல்லை';
+
+  @override
+  String get noSyncActivitySubtitle =>
+      'இரண்டு சாதனங்கள் தரவைப் பரிமாறும்போது ஒத்திசைவு நிகழ்வுகள் இங்கே தோன்றும்.';
+
+  @override
+  String get searchingWifiSubnet => 'உள்ளூர் Wi-Fi நெட்வொர்க்கைத் தேடுகிறது...';
+
+  @override
+  String get syncAllPairedDevicesNow =>
+      'இணைக்கப்பட்ட அனைத்து சாதனங்களையும் ஒத்திசை';
+
+  @override
+  String get testPing => 'சோதனை பிங்';
+
+  @override
+  String get thisDeviceHostingInfo => 'இந்தச் சாதனத்தின் தகவல்';
+
+  @override
+  String get modularEcosystem => 'கூறுகளின் அமைப்பு';
+
+  @override
+  String get financialManager => 'நிதி மேலாளர்';
+
+  @override
+  String get financialManagerSubtitle =>
+      'செலவு கண்காணிப்பு, வங்கி SMS கணக்கு & பட்ஜெட்கள்';
+
+  @override
+  String get periodTracker => 'மாதவிடாய் கண்காணிப்பு';
+
+  @override
+  String get periodTrackerSubtitle =>
+      'விருப்பமான சுழற்சி கண்காணிப்பு & கணிப்புகள்';
+
+  @override
+  String get ledgerAndBankAutomation => 'கணக்கு & வங்கி தானியக்கம்';
+
+  @override
+  String get currencySubtitle => 'அடிப்படை நாணய குறியீடு';
+
+  @override
+  String get smsBankImport => 'வங்கி SMS இறக்குமதி';
+
+  @override
+  String get smsBankImportSubtitle =>
+      'வங்கி SMS-இலிருந்து பரிவர்த்தனைகளைத் தானாக இறக்குமதி செய்';
+
+  @override
+  String get smsAutomationRules => 'SMS & வங்கி தானியக்க விதிகள்';
+
+  @override
+  String get smsAutomationRulesSubtitle =>
+      'தானியங்கு ஒத்திசைவு, விதிகள், தடுப்புப்பட்டியல் & சோதனை';
+
+  @override
+  String get budgetsAndGoals => 'பட்ஜெட்கள் & நிதி இலக்குகள்';
+
+  @override
+  String get budgetsAndGoalsSubtitle =>
+      'மாதாந்திர செலவு வரம்புகள், பகுப்பாய்வு & இலக்குகள்';
+
+  @override
+  String get categoriesAndBudgets => 'வகைகள் & பட்ஜெட்கள்';
+
+  @override
+  String get categoriesAndBudgetsSubtitle =>
+      'சொற்கள், பட்ஜெட் ஒதுக்கீடுகள் & வண்ணங்களைத் தனிப்பயனாக்கு';
+
+  @override
+  String get onDeviceSmartAi => 'சாதனத்தில் இயங்கும் ஸ்மார்ட் AI';
+
+  @override
+  String get onDeviceSmartAiSubtitle =>
+      'ஸ்மார்ட் பெயர் சுத்திகரிப்பு & தானியங்கு வகைப்படுத்தல்';
+
+  @override
+  String get accountsVaultsAndSplits => 'கணக்குகள், சேமிப்பு & பகிர்வுகள்';
+
+  @override
+  String get recurringRulesTitle => 'தொடர் சந்தாக்கள் & விதிகள்';
+
+  @override
+  String get recurringRulesSubtitle =>
+      'தொடர் பில்கள், சம்பளம் & நினைவூட்டல்களைக் கண்காணி';
+
+  @override
+  String get manageSubscriptions => 'சந்தாக்களை நிர்வகி';
+
+  @override
+  String get manageSubscriptionsSubtitle =>
+      'தொடர் பில்கள், சம்பளம் & தானியக்க விதிகளை நிர்வகி';
+
+  @override
+  String get savingsVaultDualAccounts =>
+      'சேமிப்பு பெட்டகம் & இரட்டைக் கணக்குகள்';
+
+  @override
+  String get savingsVaultDualAccountsSubtitle =>
+      'அன்றாட செலவுகளை நீண்ட கால சேமிப்பிலிருந்து பிரித்து வை';
+
+  @override
+  String get accountNamesAndRouting => 'கணக்குப் பெயர்கள் & வழித்தடம்';
+
+  @override
+  String get splitBillsAndSharedDebts => 'பில் பகிர்வு & கடன்கள்';
+
+  @override
+  String get splitBillsAndSharedDebtsSubtitle =>
+      'குழு பில் பகிர்வு, நண்பர்கள் கணக்கு & ரசீது ஸ்கேனர்';
+
+  @override
+  String get defaultPaymentDetails => 'இயல்புநிலை கட்டண விவரங்கள்';
+
+  @override
+  String get healthAndPeriodTracker => 'ஆரோக்கியம் & சுழற்சி கண்காணிப்பு';
+
+  @override
+  String get discreetPrivacyMode => 'ரகசியத் தனியுரிமை பயன்முறை';
+
+  @override
+  String get discreetPrivacyModeSubtitle =>
+      'முகப்புத் திரையில் சுழற்சி நாட்கள் மற்றும் கட்டங்களைத் தட்டினால் மட்டுமே காட்டு';
+
+  @override
+  String get discreetNotificationText => 'ரகசிய அறிவிப்பு உரை';
+
+  @override
+  String get discreetNotificationTextSubtitle =>
+      'சுழற்சி கணிப்பு விழிப்பூட்டல்களில் காட்டப்படும் உரை';
 }

@@ -7,6 +7,7 @@ import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../core/ui/app_card.dart';
 import '../../../../core/ui/app_chip.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../providers/p2p_sync_provider.dart';
 
 /// Modal bottom sheet displaying recent local Wi-Fi P2P sync logs, audit telemetry,
@@ -16,9 +17,10 @@ class SyncActivitySheet extends StatelessWidget {
 
   /// Displays the sync audit activity sheet.
   static Future<void> show(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AppBottomSheet.show<void>(
       context: context,
-      title: 'P2P Sync Audit & Activity',
+      title: l10n?.syncAuditAndActivity ?? 'P2P Sync Audit & Activity',
       child: const SyncActivitySheet(),
     );
   }
@@ -28,6 +30,7 @@ class SyncActivitySheet extends StatelessWidget {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
     final sync = context.watch<P2pSyncProvider>();
     final activities = sync.recentActivity;
 
@@ -71,7 +74,7 @@ class SyncActivitySheet extends StatelessWidget {
                       Text(
                         sync.localIpAddress != null
                             ? 'Local IP: ${sync.localIpAddress} • Port 8765'
-                            : 'Searching for local Wi-Fi subnet...',
+                            : (l10n?.searchingWifiSubnet ?? 'Searching for local Wi-Fi subnet...'),
                         style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                       ),
                     ],
@@ -79,7 +82,7 @@ class SyncActivitySheet extends StatelessWidget {
                 ),
                 const SizedBox(width: AppLayout.spaceS),
                 AppChip(
-                  label: '${sync.pairedDevices.length} Paired',
+                  label: '${sync.pairedDevices.length}',
                   icon: Icons.devices_rounded,
                   backgroundColor: cs.surfaceContainerHighest,
                   textColor: cs.onSurfaceVariant,
@@ -94,13 +97,13 @@ class SyncActivitySheet extends StatelessWidget {
         Row(
           children: [
             Text(
-              'Recent Sync Events',
+              l10n?.recentSyncEvents ?? 'Recent Sync Events',
               style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const Spacer(),
             if (sync.lastSyncedAt != null)
               Text(
-                'Last: ${DateFormat.jm().format(sync.lastSyncedAt!)}',
+                DateFormat.jm().format(sync.lastSyncedAt!),
                 style: theme.textTheme.bodySmall?.copyWith(color: cs.outline),
               ),
           ],
@@ -118,7 +121,7 @@ class SyncActivitySheet extends StatelessWidget {
                   Icon(Icons.history_rounded, size: 40, color: cs.outlineVariant),
                   const SizedBox(height: AppLayout.spaceS),
                   Text(
-                    'No sync activity recorded yet',
+                    l10n?.noSyncActivityYet ?? 'No sync activity recorded yet',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: cs.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
@@ -126,7 +129,7 @@ class SyncActivitySheet extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Sync events appear here whenever two devices exchange data.',
+                    l10n?.noSyncActivitySubtitle ?? 'Sync events appear here whenever two devices exchange data.',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodySmall?.copyWith(color: cs.outline),
                   ),
@@ -244,7 +247,7 @@ class SyncActivitySheet extends StatelessWidget {
             Navigator.pop(context);
           },
           icon: const Icon(Icons.sync_rounded),
-          label: const Text('Sync All Paired Devices Now'),
+          label: Text(l10n?.syncAllPairedDevicesNow ?? 'Sync All Paired Devices Now'),
           style: FilledButton.styleFrom(
             minimumSize: const Size.fromHeight(48),
             shape: RoundedRectangleBorder(

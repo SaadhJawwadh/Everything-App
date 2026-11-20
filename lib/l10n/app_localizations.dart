@@ -1393,6 +1393,474 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{minutes, plural, =1{1 Minute} other{{minutes} Minutes}}'**
   String timeoutMinutes(int minutes);
+
+  /// No description provided for @peerToPeerSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Peer-to-Peer Sync'**
+  String get peerToPeerSync;
+
+  /// No description provided for @p2pDeviceSync.
+  ///
+  /// In en, this message translates to:
+  /// **'P2P Device Sync'**
+  String get p2pDeviceSync;
+
+  /// No description provided for @p2pDeviceSyncSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Zero-cloud Wi-Fi sync for notes and financial records'**
+  String get p2pDeviceSyncSubtitle;
+
+  /// No description provided for @encryptedJsonBackups.
+  ///
+  /// In en, this message translates to:
+  /// **'Encrypted JSON Backups'**
+  String get encryptedJsonBackups;
+
+  /// No description provided for @exportBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Backup'**
+  String get exportBackup;
+
+  /// No description provided for @exportBackupSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save notes and ledgers to an encrypted file'**
+  String get exportBackupSubtitle;
+
+  /// No description provided for @importBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Import Backup'**
+  String get importBackup;
+
+  /// No description provided for @importBackupSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore from an encrypted JSON backup file'**
+  String get importBackupSubtitle;
+
+  /// No description provided for @snapshotsAndRecovery.
+  ///
+  /// In en, this message translates to:
+  /// **'Snapshots & Recovery'**
+  String get snapshotsAndRecovery;
+
+  /// No description provided for @snapshotsAndRecoverySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Inspect or restore rolling pre-migration & pre-sync snapshots'**
+  String get snapshotsAndRecoverySubtitle;
+
+  /// No description provided for @automatedBackgroundBackups.
+  ///
+  /// In en, this message translates to:
+  /// **'Automated Background Backups'**
+  String get automatedBackgroundBackups;
+
+  /// No description provided for @automaticBackups.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic Backups'**
+  String get automaticBackups;
+
+  /// No description provided for @automaticBackupsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule regular encrypted local backups'**
+  String get automaticBackupsSubtitle;
+
+  /// No description provided for @backupFrequency.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup Frequency'**
+  String get backupFrequency;
+
+  /// No description provided for @backupFrequencySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Frequency of automated backup tasks'**
+  String get backupFrequencySubtitle;
+
+  /// No description provided for @backupLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup Location'**
+  String get backupLocation;
+
+  /// No description provided for @secureAppStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Secure App Storage (Resilient)'**
+  String get secureAppStorage;
+
+  /// No description provided for @lastAutoBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Last Auto Backup'**
+  String get lastAutoBackup;
+
+  /// No description provided for @lastAutoBackupSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Most recent successful backup'**
+  String get lastAutoBackupSubtitle;
+
+  /// No description provided for @runAutoBackupNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Run Auto-Backup Now'**
+  String get runAutoBackupNow;
+
+  /// No description provided for @runAutoBackupNowSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trigger and verify background auto-backup immediately'**
+  String get runAutoBackupNowSubtitle;
+
+  /// No description provided for @masterP2pDeviceSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Master P2P Device Sync'**
+  String get masterP2pDeviceSync;
+
+  /// No description provided for @crossNetworkRelaySettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Cross-Network Relay Settings'**
+  String get crossNetworkRelaySettings;
+
+  /// No description provided for @syncAuditAndActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync Audit & Activity'**
+  String get syncAuditAndActivity;
+
+  /// No description provided for @biDirectionalP2pSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Bi-Directional P2P Sync'**
+  String get biDirectionalP2pSync;
+
+  /// No description provided for @syncingStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing...'**
+  String get syncingStatus;
+
+  /// No description provided for @errorStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get errorStatus;
+
+  /// No description provided for @unlinkedStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlinked'**
+  String get unlinkedStatus;
+
+  /// No description provided for @readyStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get readyStatus;
+
+  /// No description provided for @p2pUnlinkedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Link a nearby phone or tablet to merge notes, ledgers & settings offline'**
+  String get p2pUnlinkedSubtitle;
+
+  /// No description provided for @p2pReadySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Merge notes, ledgers & settings non-destructively'**
+  String get p2pReadySubtitle;
+
+  /// No description provided for @pairDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Pair Device'**
+  String get pairDevice;
+
+  /// No description provided for @pairAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Pair Again'**
+  String get pairAgain;
+
+  /// No description provided for @myQr.
+  ///
+  /// In en, this message translates to:
+  /// **'My QR'**
+  String get myQr;
+
+  /// No description provided for @syncAndMergeNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync & Merge Now'**
+  String get syncAndMergeNow;
+
+  /// No description provided for @syncCompletedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync completed successfully'**
+  String get syncCompletedSuccess;
+
+  /// No description provided for @syncFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync failed'**
+  String get syncFailed;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @recentSyncEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Sync Events'**
+  String get recentSyncEvents;
+
+  /// No description provided for @noSyncActivityYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No sync activity recorded yet'**
+  String get noSyncActivityYet;
+
+  /// No description provided for @noSyncActivitySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync events appear here whenever two devices exchange data.'**
+  String get noSyncActivitySubtitle;
+
+  /// No description provided for @searchingWifiSubnet.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching for local Wi-Fi subnet...'**
+  String get searchingWifiSubnet;
+
+  /// No description provided for @syncAllPairedDevicesNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync All Paired Devices Now'**
+  String get syncAllPairedDevicesNow;
+
+  /// No description provided for @testPing.
+  ///
+  /// In en, this message translates to:
+  /// **'Test Ping'**
+  String get testPing;
+
+  /// No description provided for @thisDeviceHostingInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'This Device Hosting Info'**
+  String get thisDeviceHostingInfo;
+
+  /// No description provided for @modularEcosystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Modular Ecosystem'**
+  String get modularEcosystem;
+
+  /// No description provided for @financialManager.
+  ///
+  /// In en, this message translates to:
+  /// **'Financial Manager'**
+  String get financialManager;
+
+  /// No description provided for @financialManagerSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense tracking, SMS bank ledger & budgets'**
+  String get financialManagerSubtitle;
+
+  /// No description provided for @periodTracker.
+  ///
+  /// In en, this message translates to:
+  /// **'Period Tracker'**
+  String get periodTracker;
+
+  /// No description provided for @periodTrackerSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional cycle tracking & predictions'**
+  String get periodTrackerSubtitle;
+
+  /// No description provided for @ledgerAndBankAutomation.
+  ///
+  /// In en, this message translates to:
+  /// **'Ledger & Bank Automation'**
+  String get ledgerAndBankAutomation;
+
+  /// No description provided for @currencySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Base ledger currency symbol'**
+  String get currencySubtitle;
+
+  /// No description provided for @smsBankImport.
+  ///
+  /// In en, this message translates to:
+  /// **'SMS Bank Import'**
+  String get smsBankImport;
+
+  /// No description provided for @smsBankImportSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatically import and parse transactions from bank SMS'**
+  String get smsBankImportSubtitle;
+
+  /// No description provided for @smsAutomationRules.
+  ///
+  /// In en, this message translates to:
+  /// **'SMS & Bank Automation Rules'**
+  String get smsAutomationRules;
+
+  /// No description provided for @smsAutomationRulesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-sync, import rules, sender blocklist & parser testing'**
+  String get smsAutomationRulesSubtitle;
+
+  /// No description provided for @budgetsAndGoals.
+  ///
+  /// In en, this message translates to:
+  /// **'Budgets & Financial Goals'**
+  String get budgetsAndGoals;
+
+  /// No description provided for @budgetsAndGoalsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly spending limits, analytics chart deck & visual targets'**
+  String get budgetsAndGoalsSubtitle;
+
+  /// No description provided for @categoriesAndBudgets.
+  ///
+  /// In en, this message translates to:
+  /// **'Categories & Budgets'**
+  String get categoriesAndBudgets;
+
+  /// No description provided for @categoriesAndBudgetsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Customise keywords, budget allocations & colors'**
+  String get categoriesAndBudgetsSubtitle;
+
+  /// No description provided for @onDeviceSmartAi.
+  ///
+  /// In en, this message translates to:
+  /// **'On-Device Smart AI'**
+  String get onDeviceSmartAi;
+
+  /// No description provided for @onDeviceSmartAiSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart merchant cleanup & automatic category classification'**
+  String get onDeviceSmartAiSubtitle;
+
+  /// No description provided for @accountsVaultsAndSplits.
+  ///
+  /// In en, this message translates to:
+  /// **'Accounts, Vaults & Splits'**
+  String get accountsVaultsAndSplits;
+
+  /// No description provided for @recurringRulesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recurring Subscriptions & Rules'**
+  String get recurringRulesTitle;
+
+  /// No description provided for @recurringRulesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Track repeated bills, periodic income & salary reminders'**
+  String get recurringRulesSubtitle;
+
+  /// No description provided for @manageSubscriptions.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Subscriptions'**
+  String get manageSubscriptions;
+
+  /// No description provided for @manageSubscriptionsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage repeating bills, salaries & automated rules'**
+  String get manageSubscriptionsSubtitle;
+
+  /// No description provided for @savingsVaultDualAccounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Savings Vault & Dual Accounts'**
+  String get savingsVaultDualAccounts;
+
+  /// No description provided for @savingsVaultDualAccountsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Separate daily operating cash flow from long-term savings'**
+  String get savingsVaultDualAccountsSubtitle;
+
+  /// No description provided for @accountNamesAndRouting.
+  ///
+  /// In en, this message translates to:
+  /// **'Account Names & Routing'**
+  String get accountNamesAndRouting;
+
+  /// No description provided for @splitBillsAndSharedDebts.
+  ///
+  /// In en, this message translates to:
+  /// **'Split Bills & Shared Debts'**
+  String get splitBillsAndSharedDebts;
+
+  /// No description provided for @splitBillsAndSharedDebtsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Group bill splitting, friend balances & receipt scanner'**
+  String get splitBillsAndSharedDebtsSubtitle;
+
+  /// No description provided for @defaultPaymentDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Default Payment Details'**
+  String get defaultPaymentDetails;
+
+  /// No description provided for @healthAndPeriodTracker.
+  ///
+  /// In en, this message translates to:
+  /// **'Health & Period Tracker'**
+  String get healthAndPeriodTracker;
+
+  /// No description provided for @discreetPrivacyMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Discreet Privacy Mode'**
+  String get discreetPrivacyMode;
+
+  /// No description provided for @discreetPrivacyModeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Conceal cycle day numbers and phases on dashboard with tap-to-reveal'**
+  String get discreetPrivacyModeSubtitle;
+
+  /// No description provided for @discreetNotificationText.
+  ///
+  /// In en, this message translates to:
+  /// **'Discreet Notification Text'**
+  String get discreetNotificationText;
+
+  /// No description provided for @discreetNotificationTextSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Text shown in cycle prediction alerts'**
+  String get discreetNotificationTextSubtitle;
 }
 
 class _AppLocalizationsDelegate

@@ -686,4 +686,238 @@ class AppLocalizationsZh extends AppLocalizations {
   String timeoutMinutes(int minutes) {
     return '$minutes 分钟';
   }
+
+  @override
+  String get peerToPeerSync => '点对点同步';
+
+  @override
+  String get p2pDeviceSync => 'P2P 设备同步';
+
+  @override
+  String get p2pDeviceSyncSubtitle => '无云端的本地 Wi-Fi 笔记与账本同步';
+
+  @override
+  String get encryptedJsonBackups => '加密 JSON 备份';
+
+  @override
+  String get exportBackup => '导出备份';
+
+  @override
+  String get exportBackupSubtitle => '将笔记与账本保存到加密文件中';
+
+  @override
+  String get importBackup => '导入备份';
+
+  @override
+  String get importBackupSubtitle => '从加密 JSON 备份文件恢复数据';
+
+  @override
+  String get snapshotsAndRecovery => '快照与恢复';
+
+  @override
+  String get snapshotsAndRecoverySubtitle => '查看或恢复迁移和同步前的自动快照';
+
+  @override
+  String get automatedBackgroundBackups => '自动后台备份';
+
+  @override
+  String get automaticBackups => '自动备份';
+
+  @override
+  String get automaticBackupsSubtitle => '定期执行本地加密备份';
+
+  @override
+  String get backupFrequency => '备份频率';
+
+  @override
+  String get backupFrequencySubtitle => '自动备份任务的执行间隔';
+
+  @override
+  String get backupLocation => '备份位置';
+
+  @override
+  String get secureAppStorage => '安全应用存储（稳定）';
+
+  @override
+  String get lastAutoBackup => '上次自动备份';
+
+  @override
+  String get lastAutoBackupSubtitle => '最近一次成功的备份时间';
+
+  @override
+  String get runAutoBackupNow => '立即执行自动备份';
+
+  @override
+  String get runAutoBackupNowSubtitle => '立刻触发并验证后台自动备份';
+
+  @override
+  String get masterP2pDeviceSync => '主 P2P 设备同步';
+
+  @override
+  String get crossNetworkRelaySettings => '跨网络中继设置';
+
+  @override
+  String get syncAuditAndActivity => '同步审计与动态';
+
+  @override
+  String get biDirectionalP2pSync => '双向 P2P 同步';
+
+  @override
+  String get syncingStatus => '正在同步...';
+
+  @override
+  String get errorStatus => '错误';
+
+  @override
+  String get unlinkedStatus => '未配对';
+
+  @override
+  String get readyStatus => '就绪';
+
+  @override
+  String get p2pUnlinkedSubtitle => '连接附近的手机或平板，离线合并笔记、账本与设置';
+
+  @override
+  String get p2pReadySubtitle => '无损双向合并笔记、账本与设置';
+
+  @override
+  String get pairDevice => '配对设备';
+
+  @override
+  String get pairAgain => '重新配对';
+
+  @override
+  String get myQr => '我的二维码';
+
+  @override
+  String get syncAndMergeNow => '立即同步并合并';
+
+  @override
+  String get syncCompletedSuccess => '同步成功完成';
+
+  @override
+  String get syncFailed => '同步失败';
+
+  @override
+  String get retry => '重试';
+
+  @override
+  String get recentSyncEvents => '近期同步记录';
+
+  @override
+  String get noSyncActivityYet => '暂无同步活动记录';
+
+  @override
+  String get noSyncActivitySubtitle => '当两台设备交换数据时，同步记录会显示在这里。';
+
+  @override
+  String get searchingWifiSubnet => '正在搜索本地 Wi-Fi 子网...';
+
+  @override
+  String get syncAllPairedDevicesNow => '立即同步所有已配对设备';
+
+  @override
+  String get testPing => '测试 Ping';
+
+  @override
+  String get thisDeviceHostingInfo => '本机服务信息';
+
+  @override
+  String get modularEcosystem => '模块化生态';
+
+  @override
+  String get financialManager => '财务管理';
+
+  @override
+  String get financialManagerSubtitle => '支出追踪、银行短信账本与预算管理';
+
+  @override
+  String get periodTracker => '经期追踪';
+
+  @override
+  String get periodTrackerSubtitle => '可选的周期记录与预测功能';
+
+  @override
+  String get ledgerAndBankAutomation => '账本与银行自动化';
+
+  @override
+  String get currencySubtitle => '基础账本货币符号';
+
+  @override
+  String get smsBankImport => '银行短信导入';
+
+  @override
+  String get smsBankImportSubtitle => '自动解析并导入银行交易短信';
+
+  @override
+  String get smsAutomationRules => '短信与银行自动规则';
+
+  @override
+  String get smsAutomationRulesSubtitle => '自动同步、导入规则、屏蔽列表及测试';
+
+  @override
+  String get budgetsAndGoals => '预算与财务目标';
+
+  @override
+  String get budgetsAndGoalsSubtitle => '月度消费上限、分析图表与储蓄目标';
+
+  @override
+  String get categoriesAndBudgets => '分类与预算';
+
+  @override
+  String get categoriesAndBudgetsSubtitle => '自定义关键词、预算限额与颜色';
+
+  @override
+  String get onDeviceSmartAi => '端侧智能 AI';
+
+  @override
+  String get onDeviceSmartAiSubtitle => '智能清理商户名称并自动分类';
+
+  @override
+  String get accountsVaultsAndSplits => '账户、储蓄金库与分账';
+
+  @override
+  String get recurringRulesTitle => '周期订阅与规则';
+
+  @override
+  String get recurringRulesSubtitle => '追踪定期账单、固定收入及发薪提醒';
+
+  @override
+  String get manageSubscriptions => '管理订阅';
+
+  @override
+  String get manageSubscriptionsSubtitle => '管理周期性账单、薪资与自动规则';
+
+  @override
+  String get savingsVaultDualAccounts => '储蓄金库与双账户';
+
+  @override
+  String get savingsVaultDualAccountsSubtitle => '将日常消费资金与长期储蓄分开管理';
+
+  @override
+  String get accountNamesAndRouting => '账户名称与默认路由';
+
+  @override
+  String get splitBillsAndSharedDebts => '分账与共享债务';
+
+  @override
+  String get splitBillsAndSharedDebtsSubtitle => '多人分摊账单、好友欠款及小票识别';
+
+  @override
+  String get defaultPaymentDetails => '默认收款信息';
+
+  @override
+  String get healthAndPeriodTracker => '健康与经期追踪';
+
+  @override
+  String get discreetPrivacyMode => '隐私低调模式';
+
+  @override
+  String get discreetPrivacyModeSubtitle => '隐藏仪表盘上的周期天数和阶段，轻点显示';
+
+  @override
+  String get discreetNotificationText => '隐私通知文本';
+
+  @override
+  String get discreetNotificationTextSubtitle => '经期预测提醒中显示的自定义文本';
 }

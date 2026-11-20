@@ -722,4 +722,259 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get peerToPeerSync => 'Peer-to-Peer Sync';
+
+  @override
+  String get p2pDeviceSync => 'P2P Device Sync';
+
+  @override
+  String get p2pDeviceSyncSubtitle =>
+      'Zero-cloud Wi-Fi sync for notes and financial records';
+
+  @override
+  String get encryptedJsonBackups => 'Encrypted JSON Backups';
+
+  @override
+  String get exportBackup => 'Export Backup';
+
+  @override
+  String get exportBackupSubtitle =>
+      'Save notes and ledgers to an encrypted file';
+
+  @override
+  String get importBackup => 'Import Backup';
+
+  @override
+  String get importBackupSubtitle =>
+      'Restore from an encrypted JSON backup file';
+
+  @override
+  String get snapshotsAndRecovery => 'Snapshots & Recovery';
+
+  @override
+  String get snapshotsAndRecoverySubtitle =>
+      'Inspect or restore rolling pre-migration & pre-sync snapshots';
+
+  @override
+  String get automatedBackgroundBackups => 'Automated Background Backups';
+
+  @override
+  String get automaticBackups => 'Automatic Backups';
+
+  @override
+  String get automaticBackupsSubtitle =>
+      'Schedule regular encrypted local backups';
+
+  @override
+  String get backupFrequency => 'Backup Frequency';
+
+  @override
+  String get backupFrequencySubtitle => 'Frequency of automated backup tasks';
+
+  @override
+  String get backupLocation => 'Backup Location';
+
+  @override
+  String get secureAppStorage => 'Secure App Storage (Resilient)';
+
+  @override
+  String get lastAutoBackup => 'Last Auto Backup';
+
+  @override
+  String get lastAutoBackupSubtitle => 'Most recent successful backup';
+
+  @override
+  String get runAutoBackupNow => 'Run Auto-Backup Now';
+
+  @override
+  String get runAutoBackupNowSubtitle =>
+      'Trigger and verify background auto-backup immediately';
+
+  @override
+  String get masterP2pDeviceSync => 'Master P2P Device Sync';
+
+  @override
+  String get crossNetworkRelaySettings => 'Cross-Network Relay Settings';
+
+  @override
+  String get syncAuditAndActivity => 'Sync Audit & Activity';
+
+  @override
+  String get biDirectionalP2pSync => 'Bi-Directional P2P Sync';
+
+  @override
+  String get syncingStatus => 'Syncing...';
+
+  @override
+  String get errorStatus => 'Error';
+
+  @override
+  String get unlinkedStatus => 'Unlinked';
+
+  @override
+  String get readyStatus => 'Ready';
+
+  @override
+  String get p2pUnlinkedSubtitle =>
+      'Link a nearby phone or tablet to merge notes, ledgers & settings offline';
+
+  @override
+  String get p2pReadySubtitle =>
+      'Merge notes, ledgers & settings non-destructively';
+
+  @override
+  String get pairDevice => 'Pair Device';
+
+  @override
+  String get pairAgain => 'Pair Again';
+
+  @override
+  String get myQr => 'My QR';
+
+  @override
+  String get syncAndMergeNow => 'Sync & Merge Now';
+
+  @override
+  String get syncCompletedSuccess => 'Sync completed successfully';
+
+  @override
+  String get syncFailed => 'Sync failed';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get recentSyncEvents => 'Recent Sync Events';
+
+  @override
+  String get noSyncActivityYet => 'No sync activity recorded yet';
+
+  @override
+  String get noSyncActivitySubtitle =>
+      'Sync events appear here whenever two devices exchange data.';
+
+  @override
+  String get searchingWifiSubnet => 'Searching for local Wi-Fi subnet...';
+
+  @override
+  String get syncAllPairedDevicesNow => 'Sync All Paired Devices Now';
+
+  @override
+  String get testPing => 'Test Ping';
+
+  @override
+  String get thisDeviceHostingInfo => 'This Device Hosting Info';
+
+  @override
+  String get modularEcosystem => 'Modular Ecosystem';
+
+  @override
+  String get financialManager => 'Financial Manager';
+
+  @override
+  String get financialManagerSubtitle =>
+      'Expense tracking, SMS bank ledger & budgets';
+
+  @override
+  String get periodTracker => 'Period Tracker';
+
+  @override
+  String get periodTrackerSubtitle => 'Optional cycle tracking & predictions';
+
+  @override
+  String get ledgerAndBankAutomation => 'Ledger & Bank Automation';
+
+  @override
+  String get currencySubtitle => 'Base ledger currency symbol';
+
+  @override
+  String get smsBankImport => 'SMS Bank Import';
+
+  @override
+  String get smsBankImportSubtitle =>
+      'Automatically import and parse transactions from bank SMS';
+
+  @override
+  String get smsAutomationRules => 'SMS & Bank Automation Rules';
+
+  @override
+  String get smsAutomationRulesSubtitle =>
+      'Auto-sync, import rules, sender blocklist & parser testing';
+
+  @override
+  String get budgetsAndGoals => 'Budgets & Financial Goals';
+
+  @override
+  String get budgetsAndGoalsSubtitle =>
+      'Monthly spending limits, analytics chart deck & visual targets';
+
+  @override
+  String get categoriesAndBudgets => 'Categories & Budgets';
+
+  @override
+  String get categoriesAndBudgetsSubtitle =>
+      'Customise keywords, budget allocations & colors';
+
+  @override
+  String get onDeviceSmartAi => 'On-Device Smart AI';
+
+  @override
+  String get onDeviceSmartAiSubtitle =>
+      'Smart merchant cleanup & automatic category classification';
+
+  @override
+  String get accountsVaultsAndSplits => 'Accounts, Vaults & Splits';
+
+  @override
+  String get recurringRulesTitle => 'Recurring Subscriptions & Rules';
+
+  @override
+  String get recurringRulesSubtitle =>
+      'Track repeated bills, periodic income & salary reminders';
+
+  @override
+  String get manageSubscriptions => 'Manage Subscriptions';
+
+  @override
+  String get manageSubscriptionsSubtitle =>
+      'Manage repeating bills, salaries & automated rules';
+
+  @override
+  String get savingsVaultDualAccounts => 'Savings Vault & Dual Accounts';
+
+  @override
+  String get savingsVaultDualAccountsSubtitle =>
+      'Separate daily operating cash flow from long-term savings';
+
+  @override
+  String get accountNamesAndRouting => 'Account Names & Routing';
+
+  @override
+  String get splitBillsAndSharedDebts => 'Split Bills & Shared Debts';
+
+  @override
+  String get splitBillsAndSharedDebtsSubtitle =>
+      'Group bill splitting, friend balances & receipt scanner';
+
+  @override
+  String get defaultPaymentDetails => 'Default Payment Details';
+
+  @override
+  String get healthAndPeriodTracker => 'Health & Period Tracker';
+
+  @override
+  String get discreetPrivacyMode => 'Discreet Privacy Mode';
+
+  @override
+  String get discreetPrivacyModeSubtitle =>
+      'Conceal cycle day numbers and phases on dashboard with tap-to-reveal';
+
+  @override
+  String get discreetNotificationText => 'Discreet Notification Text';
+
+  @override
+  String get discreetNotificationTextSubtitle =>
+      'Text shown in cycle prediction alerts';
 }

@@ -15,6 +15,7 @@ import 'package:note_taking_app/features/finances/providers/savings_goal_provide
 import 'package:note_taking_app/features/finances/providers/split_bill_provider.dart';
 import 'package:note_taking_app/features/health/providers/period_tracker_provider.dart';
 import 'package:note_taking_app/screens/app_lock_screen.dart';
+import 'package:note_taking_app/l10n/app_localizations.dart';
 import 'package:note_taking_app/services/backup_service.dart';
 import 'package:note_taking_app/services/p2p_sync_service.dart';
 import 'package:note_taking_app/features/sync/providers/p2p_sync_provider.dart';
@@ -111,6 +112,7 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     return Consumer<P2pSyncProvider>(
       builder: (context, syncProvider, child) {
@@ -129,12 +131,12 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
           body: CustomScrollView(
             slivers: [
               ExpressiveSliverAppBar(
-                titleText: 'Master P2P Device Sync',
+                titleText: l10n?.masterP2pDeviceSync ?? 'Master P2P Device Sync',
                 showBackButton: true,
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.hub_rounded),
-                    tooltip: 'Cross-Network Relay Settings',
+                    tooltip: l10n?.crossNetworkRelaySettings ?? 'Cross-Network Relay Settings',
                     onPressed: () {
                       AppHaptics.selectionClick();
                       _showCustomRelayDialog(context, syncProvider);
@@ -142,7 +144,7 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.receipt_long_rounded),
-                    tooltip: 'Sync Audit & Activity',
+                    tooltip: l10n?.syncAuditAndActivity ?? 'Sync Audit & Activity',
                     onPressed: () {
                       AppHaptics.selectionClick();
                       SyncActivitySheet.show(context);
@@ -200,7 +202,7 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                       children: [
                                         Expanded(
                                           child: Text(
-                                            'Bi-Directional P2P Sync',
+                                            l10n?.biDirectionalP2pSync ?? 'Bi-Directional P2P Sync',
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -208,10 +210,12 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                         ),
                                         AppChip(
                                           label: isSyncing
-                                              ? 'Syncing...'
+                                              ? (l10n?.syncingStatus ?? 'Syncing...')
                                               : (syncProvider.status == SyncStatus.error
-                                                  ? 'Error'
-                                                  : (syncProvider.pairedDevices.isEmpty ? 'Unlinked' : 'Ready')),
+                                                  ? (l10n?.errorStatus ?? 'Error')
+                                                  : (syncProvider.pairedDevices.isEmpty
+                                                      ? (l10n?.unlinkedStatus ?? 'Unlinked')
+                                                      : (l10n?.readyStatus ?? 'Ready'))),
                                           isSelected: true,
                                         ),
                                       ],
@@ -220,8 +224,8 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                     Text(
                                       syncProvider.lastMessage ??
                                           (syncProvider.pairedDevices.isEmpty
-                                              ? 'Link a nearby phone or tablet to merge notes, ledgers & settings offline'
-                                              : 'Merge notes, ledgers & settings non-destructively'),
+                                              ? (l10n?.p2pUnlinkedSubtitle ?? 'Link a nearby phone or tablet to merge notes, ledgers & settings offline')
+                                              : (l10n?.p2pReadySubtitle ?? 'Merge notes, ledgers & settings non-destructively')),
                                       style: theme.textTheme.bodySmall?.copyWith(
                                         color: isError ? colorScheme.error : colorScheme.onSurfaceVariant,
                                         height: 1.3,
@@ -230,7 +234,7 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                     if (syncProvider.lastSyncedAt != null) ...[
                                       const SizedBox(height: 4),
                                       Text(
-                                        'Last synced: ${DateFormat.jm().format(syncProvider.lastSyncedAt!)}',
+                                        DateFormat.jm().format(syncProvider.lastSyncedAt!),
                                         style: theme.textTheme.labelSmall?.copyWith(
                                           color: colorScheme.primary,
                                           fontWeight: FontWeight.bold,
@@ -257,7 +261,7 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                             : () => _showPairDeviceDialog(context, syncProvider),
                                         icon: Icon(isError ? Icons.refresh_rounded : Icons.phonelink_ring_rounded),
                                         label: Text(
-                                          isError ? 'Pair Again' : 'Pair Device',
+                                          isError ? (l10n?.pairAgain ?? 'Pair Again') : (l10n?.pairDevice ?? 'Pair Device'),
                                           style: const TextStyle(fontWeight: FontWeight.bold),
                                         ),
                                       ),
@@ -272,8 +276,8 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                     child: OutlinedButton.icon(
                                       onPressed: () => _showQrCodeModal(context, syncProvider),
                                       icon: const Icon(Icons.qr_code_2_rounded, size: 18),
-                                      label: const Text(
-                                        'My QR',
+                                      label: Text(
+                                        l10n?.myQr ?? 'My QR',
                                         maxLines: 1,
                                         softWrap: false,
                                       ),
@@ -314,8 +318,8 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                                     SnackBar(
                                                       content: Text(
                                                         result.success
-                                                            ? 'Sync completed successfully'
-                                                            : (result.errorMessage ?? 'Sync failed'),
+                                                            ? (l10n?.syncCompletedSuccess ?? 'Sync completed successfully')
+                                                            : (result.errorMessage ?? (l10n?.syncFailed ?? 'Sync failed')),
                                                       ),
                                                       backgroundColor: result.success
                                                           ? colorScheme.primary
@@ -324,7 +328,7 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                                       action: result.success
                                                           ? null
                                                           : SnackBarAction(
-                                                              label: 'Retry',
+                                                              label: l10n?.retry ?? 'Retry',
                                                               textColor: colorScheme.onError,
                                                               onPressed: () => syncProvider.syncBiDirectional(
                                                                 onCompleted: () => _refreshAllDomainProviders(
@@ -344,7 +348,7 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                             ? const SizedBox.shrink()
                                             : const Icon(Icons.sync_rounded),
                                         label: Text(
-                                          isSyncing ? 'Syncing...' : 'Sync & Merge Now',
+                                          isSyncing ? (l10n?.syncingStatus ?? 'Syncing...') : (l10n?.syncAndMergeNow ?? 'Sync & Merge Now'),
                                           style: const TextStyle(fontWeight: FontWeight.bold),
                                         ),
                                       ),
@@ -372,7 +376,7 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                               action: success
                                                   ? null
                                                   : SnackBarAction(
-                                                      label: 'Retry',
+                                                      label: l10n?.retry ?? 'Retry',
                                                       textColor: colorScheme.onError,
                                                       onPressed: () => syncProvider.sendTestPing(),
                                                     ),
@@ -381,7 +385,7 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                         }
                                       },
                                       icon: const Icon(Icons.network_ping_rounded, size: 18),
-                                      label: const Text('Test Ping'),
+                                      label: Text(l10n?.testPing ?? 'Test Ping'),
                                     ),
                                   ),
                                 ),
@@ -409,7 +413,7 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                     Expanded(
                                       child: Text(
                                         syncProvider.localDeviceName.isEmpty
-                                            ? 'This Device Hosting Info'
+                                            ? (l10n?.thisDeviceHostingInfo ?? 'This Device Hosting Info')
                                             : syncProvider.localDeviceName,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,

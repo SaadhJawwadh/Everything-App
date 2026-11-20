@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' as math;
+import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart' as enc;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -350,7 +351,36 @@ class BackupService {
     return enc.Key(t);
   }
 
-  /// Encrypts raw JSON string with AES-256-CBC and PBKDF2 key derivation into an encrypted container JSON.
+  static Uint8List _deriveMacKey(Uint8List encKeyBytes) {
+    return Uint8List.fromList(
+      Hmac(sha256, encKeyBytes).convert(utf8.encode('everything_backup_mac_v3')).bytes,
+    );
+  }
+
+  static String _computeBackupMac({
+    required Uint8List macKey,
+    required Uint8List salt,
+    required Uint8List ivBytes,
+    required Uint8List cipherBytes,
+  }) {
+    final macInput = Uint8List(salt.length + ivBytes.length + cipherBytes.length)
+      ..setRange(0, salt.length, salt)
+      ..setRange(salt.length, salt.length + ivBytes.length, ivBytes)
+      ..setRange(salt.length + ivBytes.length, salt.length + ivBytes.length + cipherBytes.length, cipherBytes);
+    return base64.encode(Hmac(sha256, macKey).convert(macInput).bytes);
+  }
+
+  static bool _constantTimeEquals(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    int diff = 0;
+    for (int i = 0; i < a.length; i++) {
+      diff |= a[i] ^ b[i];
+    }
+    return diff == 0;
+  }
+
+  /// Encrypts raw JSON string with AES-256-CBC + Encrypt-then-MAC HMAC-SHA256 (v3)
+  /// using PBKDF2 key derivation into an encrypted container JSON.
   static String encryptBackupJson(String rawJson, String passphrase) {
     final rng = math.Random.secure();
     final salt = Uint8List.fromList(List<int>.generate(16, (_) => rng.nextInt(256)));
@@ -358,13 +388,21 @@ class BackupService {
     final iv = enc.IV.fromSecureRandom(16);
     final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
     final encrypted = encrypter.encrypt(rawJson, iv: iv);
+    final macKey = _deriveMacKey(key.bytes);
+    final mac = _computeBackupMac(
+      macKey: macKey,
+      salt: salt,
+      ivBytes: iv.bytes,
+      cipherBytes: encrypted.bytes,
+    );
 
     final container = {
-      'version': 2,
+      'version': 3,
       'encrypted': true,
       'salt': base64.encode(salt),
       'iv': iv.base64,
       'ciphertext': encrypted.base64,
+      'mac': mac,
       'exportedAt': DateTime.now().toIso8601String(),
     };
     return const JsonEncoder.withIndent('  ').convert(container);
@@ -376,14 +414,38 @@ class BackupService {
   }
 
   /// Decrypts an encrypted container JSON using the provided passphrase back to the raw JSON string.
+  /// Verifies Encrypt-then-MAC HMAC-SHA256 on v3 containers while preserving v2 backward compatibility.
   static String decryptBackupJson(Map<String, dynamic> container, String passphrase) {
     if (container['salt'] == null || container['iv'] == null || container['ciphertext'] == null) {
       throw const FormatException('Invalid encrypted backup container format.');
     }
-    final salt = base64.decode(container['salt'] as String);
+    final salt = Uint8List.fromList(base64.decode(container['salt'] as String));
     final iv = enc.IV.fromBase64(container['iv'] as String);
     final ciphertext = enc.Encrypted.fromBase64(container['ciphertext'] as String);
-    final key = _deriveKey(passphrase, Uint8List.fromList(salt));
+    final key = _deriveKey(passphrase, salt);
+
+    final macField = container['mac'];
+    if (macField is String && macField.isNotEmpty) {
+      final macKey = _deriveMacKey(key.bytes);
+      final expectedMac = _computeBackupMac(
+        macKey: macKey,
+        salt: salt,
+        ivBytes: iv.bytes,
+        cipherBytes: ciphertext.bytes,
+      );
+      try {
+        final expectedBytes = base64.decode(expectedMac);
+        final providedBytes = base64.decode(macField);
+        if (!_constantTimeEquals(expectedBytes, providedBytes)) {
+          throw const FormatException('Invalid backup passphrase or corrupted backup data');
+        }
+      } on FormatException {
+        rethrow;
+      } catch (_) {
+        throw const FormatException('Invalid backup passphrase or corrupted backup data');
+      }
+    }
+
     final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
     final decrypted = encrypter.decrypt(ciphertext, iv: iv);
     try {
@@ -502,6 +564,7 @@ class BackupService {
         final tempDir = await getTemporaryDirectory();
         final file = File('${tempDir.path}/notebook_backup_$dateStr.json');
         await file.writeAsString(exportPayload);
+        AppLockScreen.ignoreNextResumeLock();
         await Share.shareXFiles([XFile(file.path)], text: 'Everything App Backup ($dateStr)');
       }
     } catch (e) {
@@ -913,6 +976,7 @@ class BackupService {
         final tempDir = await getTemporaryDirectory();
         final file = File('${tempDir.path}/transactions_export_$dateStr.csv');
         await file.writeAsString(csvBuffer.toString());
+        AppLockScreen.ignoreNextResumeLock();
         await Share.shareXFiles([XFile(file.path)], text: 'Transaction Ledger Export ($dateStr)');
       }
     } catch (e) {

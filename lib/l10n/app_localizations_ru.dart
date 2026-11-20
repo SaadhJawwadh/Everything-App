@@ -741,4 +741,262 @@ class AppLocalizationsRu extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get peerToPeerSync => 'P2P-синхронизация';
+
+  @override
+  String get p2pDeviceSync => 'Синхронизация устройств (P2P)';
+
+  @override
+  String get p2pDeviceSyncSubtitle =>
+      'Локальная Wi-Fi синхронизация заметок и финансов без облака';
+
+  @override
+  String get encryptedJsonBackups => 'Зашифрованные JSON-копии';
+
+  @override
+  String get exportBackup => 'Экспорт копии';
+
+  @override
+  String get exportBackupSubtitle =>
+      'Сохранить заметки и счета в зашифрованный файл';
+
+  @override
+  String get importBackup => 'Импорт копии';
+
+  @override
+  String get importBackupSubtitle =>
+      'Восстановить из зашифрованного JSON-файла';
+
+  @override
+  String get snapshotsAndRecovery => 'Снимки и восстановление';
+
+  @override
+  String get snapshotsAndRecoverySubtitle =>
+      'Просмотр или восстановление автоматических снимков БД';
+
+  @override
+  String get automatedBackgroundBackups => 'Фоновое резервное копирование';
+
+  @override
+  String get automaticBackups => 'Автоматические копии';
+
+  @override
+  String get automaticBackupsSubtitle =>
+      'Регулярное локальное зашифрованное копирование';
+
+  @override
+  String get backupFrequency => 'Частота копирования';
+
+  @override
+  String get backupFrequencySubtitle =>
+      'Интервал автоматических резервных копий';
+
+  @override
+  String get backupLocation => 'Папка для копий';
+
+  @override
+  String get secureAppStorage => 'Защищённое хранилище приложения';
+
+  @override
+  String get lastAutoBackup => 'Последняя автокопия';
+
+  @override
+  String get lastAutoBackupSubtitle =>
+      'Последнее успешное резервное копирование';
+
+  @override
+  String get runAutoBackupNow => 'Создать автокопию сейчас';
+
+  @override
+  String get runAutoBackupNowSubtitle =>
+      'Запустить и проверить фоновую копию немедленно';
+
+  @override
+  String get masterP2pDeviceSync => 'Основная P2P-синхронизация';
+
+  @override
+  String get crossNetworkRelaySettings => 'Настройки ретранслятора сетей';
+
+  @override
+  String get syncAuditAndActivity => 'Журнал и активность P2P';
+
+  @override
+  String get biDirectionalP2pSync => 'Двусторонняя P2P-синхронизация';
+
+  @override
+  String get syncingStatus => 'Синхронизация...';
+
+  @override
+  String get errorStatus => 'Ошибка';
+
+  @override
+  String get unlinkedStatus => 'Не связано';
+
+  @override
+  String get readyStatus => 'Готово';
+
+  @override
+  String get p2pUnlinkedSubtitle =>
+      'Свяжите телефон или планшет поблизости для офлайн-обмена данными';
+
+  @override
+  String get p2pReadySubtitle =>
+      'Безопасное слияние заметок, счетов и настроек';
+
+  @override
+  String get pairDevice => 'Связать устройство';
+
+  @override
+  String get pairAgain => 'Связать снова';
+
+  @override
+  String get myQr => 'Мой QR';
+
+  @override
+  String get syncAndMergeNow => 'Синхронизировать сейчас';
+
+  @override
+  String get syncCompletedSuccess => 'Синхронизация успешно завершена';
+
+  @override
+  String get syncFailed => 'Ошибка синхронизации';
+
+  @override
+  String get retry => 'Повторить';
+
+  @override
+  String get recentSyncEvents => 'Недавние события';
+
+  @override
+  String get noSyncActivityYet => 'Активности синхронизации пока нет';
+
+  @override
+  String get noSyncActivitySubtitle =>
+      'Здесь отображаются события обмена данными между устройствами.';
+
+  @override
+  String get searchingWifiSubnet => 'Поиск локальной подсети Wi-Fi...';
+
+  @override
+  String get syncAllPairedDevicesNow => 'Синхронизировать все устройства';
+
+  @override
+  String get testPing => 'Тест-пинг';
+
+  @override
+  String get thisDeviceHostingInfo => 'Данные хоста этого устройства';
+
+  @override
+  String get modularEcosystem => 'Модульная экосистема';
+
+  @override
+  String get financialManager => 'Финансовый менеджер';
+
+  @override
+  String get financialManagerSubtitle =>
+      'Учёт расходов, банковские SMS и бюджеты';
+
+  @override
+  String get periodTracker => 'Трекер цикла';
+
+  @override
+  String get periodTrackerSubtitle =>
+      'Опциональное отслеживание цикла и прогнозы';
+
+  @override
+  String get ledgerAndBankAutomation => 'Автоматизация счетов и банков';
+
+  @override
+  String get currencySubtitle => 'Базовый символ валюты';
+
+  @override
+  String get smsBankImport => 'Импорт банковских SMS';
+
+  @override
+  String get smsBankImportSubtitle =>
+      'Автоматически распознавать операции из SMS от банков';
+
+  @override
+  String get smsAutomationRules => 'Правила SMS и банков';
+
+  @override
+  String get smsAutomationRulesSubtitle =>
+      'Автосинхронизация, правила, чёрный список и тест';
+
+  @override
+  String get budgetsAndGoals => 'Бюджеты и финансовые цели';
+
+  @override
+  String get budgetsAndGoalsSubtitle =>
+      'Месячные лимиты, графики и целевые накопления';
+
+  @override
+  String get categoriesAndBudgets => 'Категории и бюджеты';
+
+  @override
+  String get categoriesAndBudgetsSubtitle =>
+      'Настройка ключевых слов, лимитов и цветов';
+
+  @override
+  String get onDeviceSmartAi => 'Умный ИИ на устройстве';
+
+  @override
+  String get onDeviceSmartAiSubtitle =>
+      'Очистка названий и автоопределение категорий';
+
+  @override
+  String get accountsVaultsAndSplits => 'Счета, сейф и разделение чеков';
+
+  @override
+  String get recurringRulesTitle => 'Подписки и регулярные правила';
+
+  @override
+  String get recurringRulesSubtitle =>
+      'Регулярные платежи, зарплата и напоминания';
+
+  @override
+  String get manageSubscriptions => 'Управление подписками';
+
+  @override
+  String get manageSubscriptionsSubtitle =>
+      'Настройка регулярных счетов, доходов и правил';
+
+  @override
+  String get savingsVaultDualAccounts => 'Сейф и двойные счета';
+
+  @override
+  String get savingsVaultDualAccountsSubtitle =>
+      'Отделяйте текущие расходы от долгосрочных сбережений';
+
+  @override
+  String get accountNamesAndRouting => 'Названия счетов и маршрутизация';
+
+  @override
+  String get splitBillsAndSharedDebts => 'Разделение счетов и долги';
+
+  @override
+  String get splitBillsAndSharedDebtsSubtitle =>
+      'Совместные траты, балансы и сканер чеков';
+
+  @override
+  String get defaultPaymentDetails => 'Реквизиты по умолчанию';
+
+  @override
+  String get healthAndPeriodTracker => 'Здоровье и трекер цикла';
+
+  @override
+  String get discreetPrivacyMode => 'Скрытный режим приватности';
+
+  @override
+  String get discreetPrivacyModeSubtitle =>
+      'Скрывать дни и фазы цикла на главном экране до нажатия';
+
+  @override
+  String get discreetNotificationText => 'Скрытный текст уведомлений';
+
+  @override
+  String get discreetNotificationTextSubtitle =>
+      'Текст для напоминаний о прогнозе цикла';
 }

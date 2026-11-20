@@ -727,4 +727,260 @@ class AppLocalizationsFr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get peerToPeerSync => 'Synchronisation pair-à-pair';
+
+  @override
+  String get p2pDeviceSync => 'Sync P2P entre appareils';
+
+  @override
+  String get p2pDeviceSyncSubtitle =>
+      'Synchronisation Wi-Fi sans cloud pour notes et finances';
+
+  @override
+  String get encryptedJsonBackups => 'Sauvegardes JSON chiffrées';
+
+  @override
+  String get exportBackup => 'Exporter la sauvegarde';
+
+  @override
+  String get exportBackupSubtitle =>
+      'Enregistrer notes et finances dans un fichier chiffré';
+
+  @override
+  String get importBackup => 'Importer une sauvegarde';
+
+  @override
+  String get importBackupSubtitle =>
+      'Restaurer depuis une sauvegarde JSON chiffrée';
+
+  @override
+  String get snapshotsAndRecovery => 'Instantanés et récupération';
+
+  @override
+  String get snapshotsAndRecoverySubtitle =>
+      'Inspecter ou restaurer les instantanés automatiques';
+
+  @override
+  String get automatedBackgroundBackups =>
+      'Sauvegardes automatiques en arrière-plan';
+
+  @override
+  String get automaticBackups => 'Sauvegardes automatiques';
+
+  @override
+  String get automaticBackupsSubtitle =>
+      'Planifier des sauvegardes locales chiffrées régulières';
+
+  @override
+  String get backupFrequency => 'Fréquence de sauvegarde';
+
+  @override
+  String get backupFrequencySubtitle => 'Fréquence des tâches de sauvegarde';
+
+  @override
+  String get backupLocation => 'Emplacement de sauvegarde';
+
+  @override
+  String get secureAppStorage => 'Stockage sécurisé de l\'appli';
+
+  @override
+  String get lastAutoBackup => 'Dernière sauvegarde auto';
+
+  @override
+  String get lastAutoBackupSubtitle => 'Sauvegarde réussie la plus récente';
+
+  @override
+  String get runAutoBackupNow => 'Lancer la sauvegarde maintenant';
+
+  @override
+  String get runAutoBackupNowSubtitle =>
+      'Déclencher et vérifier la sauvegarde immédiatement';
+
+  @override
+  String get masterP2pDeviceSync => 'Synchronisation P2P principale';
+
+  @override
+  String get crossNetworkRelaySettings => 'Paramètres du relais inter-réseaux';
+
+  @override
+  String get syncAuditAndActivity => 'Audit et activité de sync';
+
+  @override
+  String get biDirectionalP2pSync => 'Sync P2P bidirectionnelle';
+
+  @override
+  String get syncingStatus => 'Synchronisation...';
+
+  @override
+  String get errorStatus => 'Erreur';
+
+  @override
+  String get unlinkedStatus => 'Non lié';
+
+  @override
+  String get readyStatus => 'Prêt';
+
+  @override
+  String get p2pUnlinkedSubtitle =>
+      'Associez un appareil proche pour fusionner notes, finances et paramètres hors ligne';
+
+  @override
+  String get p2pReadySubtitle =>
+      'Fusionner notes, finances et paramètres sans perte';
+
+  @override
+  String get pairDevice => 'Associer un appareil';
+
+  @override
+  String get pairAgain => 'Réassocier';
+
+  @override
+  String get myQr => 'Mon QR';
+
+  @override
+  String get syncAndMergeNow => 'Synchroniser et fusionner';
+
+  @override
+  String get syncCompletedSuccess => 'Synchronisation terminée avec succès';
+
+  @override
+  String get syncFailed => 'Échec de la synchronisation';
+
+  @override
+  String get retry => 'Réessayer';
+
+  @override
+  String get recentSyncEvents => 'Événements de sync récents';
+
+  @override
+  String get noSyncActivityYet => 'Aucune activité de sync enregistrée';
+
+  @override
+  String get noSyncActivitySubtitle =>
+      'Les événements s\'affichent ici lorsque deux appareils échangent des données.';
+
+  @override
+  String get searchingWifiSubnet => 'Recherche du sous-réseau Wi-Fi local...';
+
+  @override
+  String get syncAllPairedDevicesNow => 'Tout synchroniser maintenant';
+
+  @override
+  String get testPing => 'Ping test';
+
+  @override
+  String get thisDeviceHostingInfo => 'Infos d\'hébergement de l\'appareil';
+
+  @override
+  String get modularEcosystem => 'Écosystème modulaire';
+
+  @override
+  String get financialManager => 'Gestionnaire financier';
+
+  @override
+  String get financialManagerSubtitle =>
+      'Suivi des dépenses, SMS bancaires et budgets';
+
+  @override
+  String get periodTracker => 'Suivi du cycle';
+
+  @override
+  String get periodTrackerSubtitle => 'Suivi optionnel du cycle et prédictions';
+
+  @override
+  String get ledgerAndBankAutomation => 'Automatisation bancaire et comptes';
+
+  @override
+  String get currencySubtitle => 'Symbole de devise de base';
+
+  @override
+  String get smsBankImport => 'Importation bancaire SMS';
+
+  @override
+  String get smsBankImportSubtitle =>
+      'Importer et analyser automatiquement les SMS bancaires';
+
+  @override
+  String get smsAutomationRules => 'Règles SMS et banques';
+
+  @override
+  String get smsAutomationRulesSubtitle =>
+      'Sync auto, règles d\'import, liste bloquée et tests';
+
+  @override
+  String get budgetsAndGoals => 'Budgets et objectifs financiers';
+
+  @override
+  String get budgetsAndGoalsSubtitle =>
+      'Limites mensuelles, graphiques et objectifs';
+
+  @override
+  String get categoriesAndBudgets => 'Catégories et budgets';
+
+  @override
+  String get categoriesAndBudgetsSubtitle =>
+      'Personnaliser mots-clés, budgets et couleurs';
+
+  @override
+  String get onDeviceSmartAi => 'IA intelligente sur l\'appareil';
+
+  @override
+  String get onDeviceSmartAiSubtitle =>
+      'Nettoyage des marchands et catégorisation auto';
+
+  @override
+  String get accountsVaultsAndSplits => 'Comptes, coffre et partages';
+
+  @override
+  String get recurringRulesTitle => 'Abonnements et règles récurrentes';
+
+  @override
+  String get recurringRulesSubtitle =>
+      'Suivre factures régulières, revenus et rappels';
+
+  @override
+  String get manageSubscriptions => 'Gérer les abonnements';
+
+  @override
+  String get manageSubscriptionsSubtitle =>
+      'Gérer factures récurrentes, salaires et règles auto';
+
+  @override
+  String get savingsVaultDualAccounts => 'Coffre d\'épargne et doubles comptes';
+
+  @override
+  String get savingsVaultDualAccountsSubtitle =>
+      'Séparer les dépenses quotidiennes de l\'épargne';
+
+  @override
+  String get accountNamesAndRouting => 'Noms de comptes et routage';
+
+  @override
+  String get splitBillsAndSharedDebts => 'Factures partagées et dettes';
+
+  @override
+  String get splitBillsAndSharedDebtsSubtitle =>
+      'Partage de groupe, soldes amis et scanner de reçus';
+
+  @override
+  String get defaultPaymentDetails => 'Détails de paiement par défaut';
+
+  @override
+  String get healthAndPeriodTracker => 'Santé et suivi du cycle';
+
+  @override
+  String get discreetPrivacyMode => 'Mode confidentialité discret';
+
+  @override
+  String get discreetPrivacyModeSubtitle =>
+      'Masquer les jours et phases du cycle jusqu\'au toucher';
+
+  @override
+  String get discreetNotificationText => 'Texte de notification discret';
+
+  @override
+  String get discreetNotificationTextSubtitle =>
+      'Texte affiché dans les alertes de cycle';
 }

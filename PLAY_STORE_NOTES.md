@@ -1,12 +1,12 @@
 <en-US>
-🌟 Everything App 3.5.3 — Offline Sync & Multi-Slide Stories!
-• Background P2P Sync: Sync requests queue in an encrypted mailbox even when your other phone's app is closed.
-• Multi-Slide Story Cards: Auto-paginated carousels, 1-tap AI Highlights, and saved style presets.
-• Auto-Fetch Smart AI: On-device AI is enabled by default, refines background SMS imports automatically, and shows cycle regularity insights.
+🌟 Everything App 3.6.0 — Safer Backups & Two-Way Sync!
+• Tamper-Proof Backups: Encrypted backups verify integrity before restore while supporting older v2 backups.
+• Crash-Safe Two-Way Sync: Offline sync exchanges updates both ways, finishes faster, and retries safely.
+• 8-Language Polish & Fixes: Localized Sync, Backup, and Finance screens plus smoother App Lock sharing.
 </en-US>
 <ta-IN>
-🌟 Everything App 3.5.3 — பின்னணி ஒத்திசைவு & ஸ்டோரி கார்டுகள்!
-• பின்னணி P2P ஒத்திசைவு: மற்ற போனில் ஆப் மூடியிருந்தாலும் பாதுகாப்பாக ஒத்திசைக்கும்.
-• பல-பக்க ஸ்டோரி கார்டுகள்: நீண்ட குறிப்புகளுக்கு ஸ்லைடுகள் மற்றும் 1-டேப் AI சுருக்கம்.
-• தானியங்கி ஸ்மார்ட் AI: பின்னணி SMS பரிவர்த்தனைகளை தானாக வகைப்படுத்தும்.
+🌟 Everything App 3.6.0 — பாதுகாப்பான பேக்கப் & இருவழி ஒத்திசைவு!
+• பாதுகாப்பான பேக்கப்: சேதமடைந்த கோப்புகளை முன்கூட்டியே கண்டறியும் புதிய பாதுகாப்பு (பழைய பேக்கப்களும் இயங்கும்).
+• இருவழி ஆஃப்லைன் ஒத்திசைவு: இரு சாதனங்களும் வேகமாகவும் பாதுகாப்பாகவும் தகவல்களைப் பரிமாறும்.
+• 8 மொழி மேம்பாடுகள்: ஒத்திசைவு, பேக்கப் மற்றும் நிதி அமைப்புகள் தமிழ் உட்பட 8 மொழிகளில் மேம்படுத்தப்பட்டன.
 </ta-IN>

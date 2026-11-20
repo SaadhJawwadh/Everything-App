@@ -41,15 +41,15 @@ class SyncBackupSettingsScreen extends StatelessWidget {
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
                     SettingsSection(
-                      title: 'Peer-to-Peer Sync',
+                      title: l10n?.peerToPeerSync ?? 'Peer-to-Peer Sync',
                       icon: Icons.devices_rounded,
                       accentColor: const Color(0xFF0EA5E9),
                       children: [
                         SettingsTile(
                           icon: Icons.devices_rounded,
                           iconColor: const Color(0xFF0EA5E9),
-                          title: 'P2P Device Sync',
-                          subtitle: 'Zero-cloud Wi-Fi sync for notes and financial records',
+                          title: l10n?.p2pDeviceSync ?? 'P2P Device Sync',
+                          subtitle: l10n?.p2pDeviceSyncSubtitle ?? 'Zero-cloud Wi-Fi sync for notes and financial records',
                           showArrow: true,
                           onTap: () => AppRoute.push(context, const P2pSyncScreen()),
                         ),
@@ -57,31 +57,31 @@ class SyncBackupSettingsScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppLayout.spaceL),
                     SettingsSection(
-                      title: 'Encrypted JSON Backups',
+                      title: l10n?.encryptedJsonBackups ?? 'Encrypted JSON Backups',
                       icon: Icons.shield_outlined,
                       accentColor: colorScheme.primary,
                       children: [
                         SettingsTile(
                           icon: Icons.download_outlined,
                           iconColor: colorScheme.primary,
-                          title: 'Export Backup',
-                          subtitle: 'Save notes and ledgers to an encrypted file',
+                          title: l10n?.exportBackup ?? 'Export Backup',
+                          subtitle: l10n?.exportBackupSubtitle ?? 'Save notes and ledgers to an encrypted file',
                           showArrow: true,
                           onTap: () => BackupService.exportBackup(context),
                         ),
                         SettingsTile(
                           icon: Icons.upload_outlined,
                           iconColor: colorScheme.secondary,
-                          title: 'Import Backup',
-                          subtitle: 'Restore from an encrypted JSON backup file',
+                          title: l10n?.importBackup ?? 'Import Backup',
+                          subtitle: l10n?.importBackupSubtitle ?? 'Restore from an encrypted JSON backup file',
                           showArrow: true,
                           onTap: () => BackupService.importBackup(context),
                         ),
                         SettingsTile(
                           icon: Icons.restore_rounded,
                           iconColor: colorScheme.tertiary,
-                          title: 'Snapshots & Recovery',
-                          subtitle: 'Inspect or restore rolling pre-migration & pre-sync snapshots',
+                          title: l10n?.snapshotsAndRecovery ?? 'Snapshots & Recovery',
+                          subtitle: l10n?.snapshotsAndRecoverySubtitle ?? 'Inspect or restore rolling pre-migration & pre-sync snapshots',
                           showArrow: true,
                           onTap: () => SettingsDialogs.showDatabaseSnapshotsSheet(context),
                         ),
@@ -90,15 +90,15 @@ class SyncBackupSettingsScreen extends StatelessWidget {
                     if (!kIsWeb && Platform.isAndroid) ...[
                       const SizedBox(height: AppLayout.spaceL),
                       SettingsSection(
-                        title: 'Automated Background Backups',
+                        title: l10n?.automatedBackgroundBackups ?? 'Automated Background Backups',
                         icon: Icons.cloud_sync_outlined,
                         accentColor: const Color(0xFF0EA5E9),
                         children: [
                           SettingsSwitchTile(
                             icon: Icons.cloud_sync_outlined,
                             iconColor: const Color(0xFF0EA5E9),
-                            title: 'Automatic Backups',
-                            subtitle: 'Schedule regular encrypted local backups',
+                            title: l10n?.automaticBackups ?? 'Automatic Backups',
+                            subtitle: l10n?.automaticBackupsSubtitle ?? 'Schedule regular encrypted local backups',
                             value: settings.autoBackupEnabled,
                             onChanged: (value) async {
                               await settings.setAutoBackupEnabled(value);
@@ -115,8 +115,8 @@ class SyncBackupSettingsScreen extends StatelessWidget {
                                       SettingsTile(
                                         icon: Icons.schedule_outlined,
                                         iconColor: colorScheme.primary,
-                                        title: 'Backup Frequency',
-                                        subtitle: 'Frequency of automated backup tasks',
+                                        title: l10n?.backupFrequency ?? 'Backup Frequency',
+                                        subtitle: l10n?.backupFrequencySubtitle ?? 'Frequency of automated backup tasks',
                                         valueBadge: SettingsDialogs.getFrequencyLabel(settings.autoBackupFrequency),
                                         showArrow: true,
                                         onTap: () => SettingsDialogs.showFrequencyPicker(context, settings),
@@ -124,8 +124,8 @@ class SyncBackupSettingsScreen extends StatelessWidget {
                                       SettingsTile(
                                         icon: Icons.folder_outlined,
                                         iconColor: colorScheme.secondary,
-                                        title: 'Backup Location',
-                                        subtitle: settings.autoBackupPath ?? 'Secure App Storage (Resilient)',
+                                        title: l10n?.backupLocation ?? 'Backup Location',
+                                        subtitle: settings.autoBackupPath ?? (l10n?.secureAppStorage ?? 'Secure App Storage (Resilient)'),
                                         showArrow: true,
                                         onTap: () => SettingsDialogs.showBackupLocationPicker(context, settings),
                                       ),
@@ -133,15 +133,15 @@ class SyncBackupSettingsScreen extends StatelessWidget {
                                         SettingsTile(
                                           icon: Icons.history_outlined,
                                           iconColor: colorScheme.tertiary,
-                                          title: 'Last Auto Backup',
-                                          subtitle: 'Most recent successful backup',
+                                          title: l10n?.lastAutoBackup ?? 'Last Auto Backup',
+                                          subtitle: l10n?.lastAutoBackupSubtitle ?? 'Most recent successful backup',
                                           valueBadge: SettingsDialogs.formatLastBackupTime(context, settings.lastAutoBackupTime!),
                                         ),
                                       SettingsTile(
                                         icon: Icons.play_arrow_rounded,
                                         iconColor: colorScheme.primary,
-                                        title: 'Run Auto-Backup Now',
-                                        subtitle: 'Trigger and verify background auto-backup immediately',
+                                        title: l10n?.runAutoBackupNow ?? 'Run Auto-Backup Now',
+                                        subtitle: l10n?.runAutoBackupNowSubtitle ?? 'Trigger and verify background auto-backup immediately',
                                         showArrow: true,
                                         onTap: () async {
                                           AppHaptics.selectionClick();

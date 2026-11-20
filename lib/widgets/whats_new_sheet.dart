@@ -39,39 +39,19 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.psychology_rounded,
-            title: "Universal Smart Categorization",
-            desc: "Offline smart expense categorization, background SMS auto-refinement, and semantic note tag suggestions now work on every Android phone.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.sync_lock_rounded,
-            title: "Offline Mailbox P2P Sync",
-            desc: "Sync requests queue securely in an encrypted mailbox even when your other device is closed, merging automatically in the background.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.auto_stories_rounded,
-            title: "Multi-Slide Story Cards",
-            desc: "Long notes auto-paginate into crisp multi-slide carousels with 1-tap AI Highlights and remembered style preferences.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.widgets_rounded,
-            title: "Interactive Home Screen Widgets",
-            desc: "Check off tasks directly from the Unified widget with larger tap targets and reliable background sync.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.dock_rounded,
-            title: "Keyboard-Smart Editor Action Bars",
-            desc: "Transaction and Split Bill editors now feature a docked Save bar that auto-hides while typing and keeps every form option clear.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.memory_rounded,
-            title: "Native Core & Isolate Acceleration",
-            desc: "Hardware-accelerated processing keeps backups, Takeout imports, and device syncs smooth with zero UI lag.",
+            icon: Icons.verified_user_rounded,
+            title: "Tamper-Proof Encrypted Backups",
+            desc: "Encrypted backups now verify file integrity automatically before restoring while keeping full compatibility with older backups.",
             actionLabel: "View Sync & Backups ➔",
             onAction: () {
               Navigator.pop(context);
               AppRoute.push(context, const SyncBackupSettingsScreen());
             },
+          ),
+          _WhatsNewItem(
+            icon: Icons.sync_lock_rounded,
+            title: "Crash-Safe Two-Way Offline Sync",
+            desc: "Offline device sync now returns updates in both directions, finishes faster once caught up, and retries cleanly if interrupted.",
           ),
         ],
       ),
@@ -82,14 +62,9 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.tertiaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.gradient_rounded,
-            title: "Edge Scroll Fades & Unclipped Charts",
-            desc: "Subtle scroll-edge feathering on Onboarding and filter strips, full month forecast labels on Spending Trend charts, and single-line sync buttons.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.speed_rounded,
-            title: "Streamlined Modular Workspaces",
-            desc: "Refined Onboarding, Transaction, and Split Bill layouts for snappier rendering and cleaner navigation.",
+            icon: Icons.translate_rounded,
+            title: "Expanded 8-Language Localization",
+            desc: "Sync, Backup, and Finance Settings screens are now localized across Tamil, German, Spanish, French, Portuguese, Russian, Chinese, and English.",
           ),
         ],
       ),
@@ -100,9 +75,9 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.secondaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.layers_clear_rounded,
-            title: "Overlap-Free Forms & Clearer Labels",
-            desc: "Fixed button overlaps over repeat schedules and split-bill participant rows, and resolved truncated labels in Sync & Backups.",
+            icon: Icons.lock_open_rounded,
+            title: "Seamless Backup & CSV Sharing",
+            desc: "Sharing encrypted backups or CSV exports no longer triggers an unexpected App Lock prompt when returning to the app.",
           ),
         ],
       ),
