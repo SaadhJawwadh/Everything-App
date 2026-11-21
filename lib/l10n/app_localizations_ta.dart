@@ -986,4 +986,36 @@ class AppLocalizationsTa extends AppLocalizations {
   @override
   String get discreetNotificationTextSubtitle =>
       'சுழற்சி கணிப்பு விழிப்பூட்டல்களில் காட்டப்படும் உரை';
+
+  @override
+  String get autoBackupRecoveryKey => 'தானியங்கி பேக்கப் மீட்பு சாவி';
+
+  @override
+  String get autoBackupRecoveryKeySubtitle =>
+      'மறைகுறியாக்கப்பட்ட பேக்கப்களை மீட்டெடுக்க சாவியை நகலெடுக்கவும் அல்லது இறக்குமதி செய்யவும்';
+
+  @override
+  String get perModulePrivacyLocks => 'தனிப்பகுதி பூட்டு & திரை பாதுகாப்பு';
+
+  @override
+  String get lockFinances => 'நிதி பகுதியை பூட்டு';
+
+  @override
+  String get lockFinancesSubtitle => 'நிதி பகுதியைத் திறக்க அங்கீகாரம் தேவை';
+
+  @override
+  String get lockHealth => 'சுகாதார பகுதியை பூட்டு';
+
+  @override
+  String get lockHealthSubtitle => 'சுகாதார பகுதியைத் திறக்க அங்கீகாரம் தேவை';
+
+  @override
+  String get screenshotShield => 'திரைப்படப் பாதுகாப்பு';
+
+  @override
+  String get screenshotShieldSubtitle =>
+      'Android இல் ஸ்கிரீன்ஷாட் மற்றும் திரைப் பதிவைத் தடுக்கவும்';
+
+  @override
+  String get lockAppNow => 'இப்போதே செயலியைப் பூட்டு';
 }

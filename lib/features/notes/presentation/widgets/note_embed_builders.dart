@@ -7,6 +7,7 @@ import 'package:flutter_quill/flutter_quill.dart';
 
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/services/app_haptics.dart';
+import '../../../../core/services/ocr_service.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../utils/rich_text_utils.dart';
 
@@ -118,6 +119,31 @@ class RoundedImageEmbedBuilder extends EmbedBuilder {
               );
             },
           ),
+          if (!isUrl && file != null)
+            ListTile(
+              leading: const Icon(Icons.document_scanner_outlined),
+              title: const Text('Extract Text (OCR)'),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppLayout.radiusM),
+              ),
+              onTap: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                final offset = node.documentOffset + 1;
+                Navigator.pop(context);
+                final extracted = await OcrService.extractTextFromImage(file.path);
+                if (extracted == null || extracted.isEmpty) {
+                  messenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('No readable text found in image'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                  return;
+                }
+                final insertPos = offset.clamp(0, controller.document.length);
+                controller.replaceText(insertPos, 0, '\n$extracted\n', null);
+              },
+            ),
           ListTile(
             leading: Icon(Icons.delete_outline,
                 color: Theme.of(context).colorScheme.error),

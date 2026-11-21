@@ -12,7 +12,9 @@
   "noteCount": "{count, plural, =0{Нет заметок} one{{count} заметка} few{{count} заметки} many{{count} заметок} other{{count} заметки}}",
   "@noteCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "searchNotes": "Поиск заметок...",
@@ -80,7 +82,9 @@
   "cycleDay": "День цикла {day}",
   "@cycleDay": {
     "placeholders": {
-      "day": {"type": "int"}
+      "day": {
+        "type": "int"
+      }
     }
   },
   "periodLog": "Запись цикла",
@@ -166,7 +170,6 @@
   "restoreDefaults": "Сбросить по умолчанию",
   "restoreDefaultCategoriesTitle": "Восстановить категории по умолчанию?",
   "restoreDefaultCategoriesContent": "Пользовательские категории будут удалены, а встроенные вернутся к исходным цветам и ключевым словам. Существующие транзакции сохранят свои метки категорий.",
-  "restore": "Восстановить",
   "categoriesRestored": "Категории восстановлены по умолчанию",
   "newCategory": "Новая категория",
   "editCategory": "Редактировать категорию",
@@ -302,5 +305,15 @@
   "discreetPrivacyMode": "Скрытный режим приватности",
   "discreetPrivacyModeSubtitle": "Скрывать дни и фазы цикла на главном экране до нажатия",
   "discreetNotificationText": "Скрытный текст уведомлений",
-  "discreetNotificationTextSubtitle": "Текст для напоминаний о прогнозе цикла"
+  "discreetNotificationTextSubtitle": "Текст для напоминаний о прогнозе цикла",
+  "autoBackupRecoveryKey": "Ключ восстановления автокопий",
+  "autoBackupRecoveryKeySubtitle": "Скопируйте или импортируйте ключ для восстановления зашифрованных копий",
+  "perModulePrivacyLocks": "Блокировка разделов и защита экрана",
+  "lockFinances": "Блокировать раздел «Финансы»",
+  "lockFinancesSubtitle": "Требовать вход для открытия «Финансов»",
+  "lockHealth": "Блокировать раздел «Здоровье»",
+  "lockHealthSubtitle": "Требовать вход для открытия «Здоровья»",
+  "screenshotShield": "Защита от скриншотов",
+  "screenshotShieldSubtitle": "Блокировать скриншоты и запись экрана на Android",
+  "lockAppNow": "Заблокировать сейчас"
 }

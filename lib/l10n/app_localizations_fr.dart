@@ -983,4 +983,37 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get discreetNotificationTextSubtitle =>
       'Texte affiché dans les alertes de cycle';
+
+  @override
+  String get autoBackupRecoveryKey => 'Clé de récupération sauvegarde auto';
+
+  @override
+  String get autoBackupRecoveryKeySubtitle =>
+      'Copier ou importer la clé pour restaurer les sauvegardes chiffrées';
+
+  @override
+  String get perModulePrivacyLocks => 'Verrous par module et écran';
+
+  @override
+  String get lockFinances => 'Verrouiller l’onglet Finances';
+
+  @override
+  String get lockFinancesSubtitle =>
+      'Authentification requise pour ouvrir Finances';
+
+  @override
+  String get lockHealth => 'Verrouiller l’onglet Santé';
+
+  @override
+  String get lockHealthSubtitle => 'Authentification requise pour ouvrir Santé';
+
+  @override
+  String get screenshotShield => 'Protection contre les captures';
+
+  @override
+  String get screenshotShieldSubtitle =>
+      'Bloquer les captures et l’enregistrement d’écran sur Android';
+
+  @override
+  String get lockAppNow => 'Verrouiller l’app maintenant';
 }

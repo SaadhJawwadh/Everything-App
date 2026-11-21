@@ -7,6 +7,7 @@ class PeriodLog {
   final String intensity; // e.g., 'Spotting', 'Light', 'Medium', 'Heavy'
   final String notes;
   final List<String> symptoms;
+  final DateTime? updatedAt;
 
   PeriodLog({
     required this.id,
@@ -15,6 +16,7 @@ class PeriodLog {
     required this.intensity,
     this.notes = '',
     this.symptoms = const [],
+    this.updatedAt,
   });
 
   Map<String, dynamic> toMap() {
@@ -25,6 +27,7 @@ class PeriodLog {
       'intensity': intensity,
       'notes': notes,
       'symptoms': jsonEncode(symptoms),
+      'updatedAt': (updatedAt ?? endDate ?? startDate).toIso8601String(),
     };
   }
 
@@ -53,6 +56,9 @@ class PeriodLog {
       intensity: map['intensity'] as String,
       notes: map['notes'] as String? ?? '',
       symptoms: symptomsList,
+      updatedAt: map['updatedAt'] != null
+          ? DateTime.tryParse(map['updatedAt'].toString())
+          : null,
     );
   }
 
@@ -68,6 +74,7 @@ class PeriodLog {
     String? intensity,
     String? notes,
     List<String>? symptoms,
+    DateTime? updatedAt,
   }) {
     return PeriodLog(
       id: id ?? this.id,
@@ -76,6 +83,7 @@ class PeriodLog {
       intensity: intensity ?? this.intensity,
       notes: notes ?? this.notes,
       symptoms: symptoms ?? this.symptoms,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 

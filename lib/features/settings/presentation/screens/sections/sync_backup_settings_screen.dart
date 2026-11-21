@@ -1,11 +1,15 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:provider/provider.dart';
 import '../../../../../core/services/app_haptics.dart';
 import '../../../../../core/theme/app_layout.dart';
+import '../../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../../core/ui/expressive_sliver_app_bar.dart';
 import '../../../../../services/backup_service.dart';
+import '../../../../../services/backup_vault_key_service.dart';
 import '../../../../../utils/app_route.dart';
 import '../../../../../widgets/settings_widgets.dart';
 import '../../../../sync/presentation/screens/p2p_sync_screen.dart';
@@ -150,6 +154,14 @@ class SyncBackupSettingsScreen extends StatelessWidget {
                                           }
                                         },
                                       ),
+                                      SettingsTile(
+                                        icon: Icons.vpn_key_outlined,
+                                        iconColor: colorScheme.secondary,
+                                        title: l10n?.autoBackupRecoveryKey ?? 'Auto-Backup Recovery Key',
+                                        subtitle: l10n?.autoBackupRecoveryKeySubtitle ?? 'Copy or import key to restore encrypted auto-backups',
+                                        showArrow: true,
+                                        onTap: () => _showRecoveryKeySheet(context),
+                                      ),
                                     ],
                                   )
                                 : const SizedBox.shrink(),
@@ -166,5 +178,90 @@ class SyncBackupSettingsScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Future<void> _showRecoveryKeySheet(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final auth = LocalAuthentication();
+    try {
+      final canCheck = await auth.canCheckBiometrics || await auth.isDeviceSupported();
+      if (canCheck) {
+        final didAuth = await auth.authenticate(
+          localizedReason: l10n?.appLockAuthReason ?? 'Authenticate to access your Auto-Backup Recovery Key',
+          options: const AuthenticationOptions(stickyAuth: true, biometricOnly: false),
+        );
+        if (!didAuth) return;
+      }
+    } catch (_) {}
+
+    final currentKey = await BackupVaultKeyService.instance.getOrCreateVaultKey();
+    if (!context.mounted) return;
+    final importController = TextEditingController();
+
+    await AppBottomSheet.show(
+      context: context,
+      title: l10n?.autoBackupRecoveryKey ?? 'Auto-Backup Recovery Key',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Save this key securely outside this phone to decrypt automated backups if you switch or wipe devices.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+          const SizedBox(height: AppLayout.spaceM),
+          if (currentKey != null) ...[
+            FilledButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: currentKey));
+                AppHaptics.mediumImpact();
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Recovery key copied to clipboard'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.copy_rounded),
+              label: const Text('Copy Recovery Key'),
+            ),
+            const SizedBox(height: AppLayout.spaceL),
+          ],
+          TextField(
+            controller: importController,
+            decoration: InputDecoration(
+              labelText: 'Import Recovery Key (New Device)',
+              hintText: 'Paste saved key...',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppLayout.radiusM),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppLayout.spaceM),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final ok = await BackupVaultKeyService.instance.importVaultKey(importController.text);
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(ok ? 'Recovery key imported' : 'Invalid recovery key (must be at least 16 characters)'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            icon: const Icon(Icons.key_rounded),
+            label: const Text('Import Key'),
+          ),
+        ],
+      ),
+    );
+    importController.dispose();
   }
 }

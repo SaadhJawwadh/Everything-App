@@ -20,6 +20,8 @@ class TransactionModel {
   final DateTime? dateModified;
   final String? uuid;
 
+  bool get isTransfer => category.trim().toLowerCase() == 'transfer';
+
   TransactionModel({
     this.id,
     required this.amount,

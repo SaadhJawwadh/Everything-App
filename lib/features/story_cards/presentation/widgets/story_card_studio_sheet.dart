@@ -1,7 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'dart:typed_data';
+import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
 import '../../../../core/services/app_haptics.dart';
 
 import '../../../../core/theme/app_layout.dart';
@@ -174,8 +179,21 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
     );
   }
 
+  bool _isGenAiActive(BuildContext context) {
+    try {
+      return context.watch<SettingsProvider>().isGenAiActive;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _applyAiHighlight() async {
     if (_isSummarizing) return;
+    bool genAiActive = false;
+    try {
+      genAiActive = context.read<SettingsProvider>().isGenAiActive;
+    } catch (_) {}
+    if (!genAiActive) return;
     AppHaptics.selectionClick();
     setState(() => _isSummarizing = true);
     try {
@@ -224,8 +242,93 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
     }
   }
 
-  Future<Uint8List?> _captureCard() async {
-    return await _renderService.capturePng(_repaintKey, pixelRatio: 3.5);
+  Future<Uint8List?> _captureCard({double pixelRatio = 3.5}) async {
+    return await _renderService.capturePng(_repaintKey, pixelRatio: pixelRatio);
+  }
+
+  /// Captures every slide sequentially by switching [currentSlideIndex],
+  /// waiting for endOfFrame (+ an extra frame if still needing paint), writing
+  /// each PNG to a temp file to avoid holding all buffers in RAM, and restoring
+  /// the original slide index in `finally`.
+  Future<List<File>> _captureAllSlideFiles() async {
+    final total = _config.slides.length;
+    final originalIndex = _config.currentSlideIndex;
+    final tempDir = await getTemporaryDirectory();
+    final ts = DateTime.now().millisecondsSinceEpoch;
+    final files = <File>[];
+
+    try {
+      for (int i = 0; i < total; i++) {
+        if (!mounted) break;
+        setState(() => _config = _config.copyWith(currentSlideIndex: i));
+        await WidgetsBinding.instance.endOfFrame;
+        final boundary = _repaintKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+        if (boundary != null && boundary.debugNeedsPaint) {
+          await WidgetsBinding.instance.endOfFrame;
+        }
+        final bytes = await _captureCard(pixelRatio: 2.5);
+        if (bytes != null) {
+          final file = File('${tempDir.path}/story_share_${ts}_s${i + 1}.png');
+          await file.writeAsBytes(bytes, flush: true);
+          files.add(file);
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _config = _config.copyWith(currentSlideIndex: originalIndex));
+      }
+    }
+    return files;
+  }
+
+  Future<void> _shareAllSlides() async {
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
+    AppHaptics.mediumImpact();
+    try {
+      final files = await _captureAllSlideFiles();
+      if (files.isEmpty || !mounted) {
+        if (mounted) AppSnackBar.showError(context, message: 'Could not generate story slides');
+        return;
+      }
+      await _mediaService.shareMultipleImageFiles(
+        files,
+        title: _config.resolvedTitle,
+      );
+    } catch (e) {
+      if (mounted) AppSnackBar.showError(context, message: 'Sharing slides failed: $e');
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
+  Future<void> _saveAllSlidesToGallery() async {
+    if (_isExporting) return;
+    setState(() => _isExporting = true);
+    AppHaptics.mediumImpact();
+    try {
+      final files = await _captureAllSlideFiles();
+      if (files.isEmpty || !mounted) {
+        if (mounted) AppSnackBar.showError(context, message: 'Could not generate story slides');
+        return;
+      }
+      final saved = await _mediaService.saveMultipleImageFilesToGallery(files);
+      if (mounted) {
+        if (saved > 0) {
+          _setFeedback('Saved $saved slides to Gallery');
+          AppSnackBar.showSuccess(
+            context,
+            message: 'Saved $saved of ${files.length} slides to Pictures/EverythingApp',
+          );
+        } else {
+          AppSnackBar.showError(context, message: 'Failed to save slides to gallery');
+        }
+      }
+    } catch (e) {
+      if (mounted) AppSnackBar.showError(context, message: 'Saving slides failed: $e');
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
   }
 
   Future<void> _shareCard() async {
@@ -382,7 +485,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                 ),
               ],
             ),
-            if (_config.totalWordCount > 30) ...[
+            if (_config.totalWordCount > 30 && _isGenAiActive(context)) ...[
               const SizedBox(height: AppLayout.spaceXS),
               Align(
                 alignment: Alignment.centerLeft,
@@ -876,6 +979,28 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                 ),
               ],
             ),
+            if (_config.slides.length > 1) ...[
+              const SizedBox(height: AppLayout.spaceS),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _isExporting ? null : _shareAllSlides,
+                      icon: const Icon(Icons.collections_outlined, size: 18),
+                      label: Text('Share All (${_config.slides.length})'),
+                    ),
+                  ),
+                  const SizedBox(width: AppLayout.spaceS),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _isExporting ? null : _saveAllSlidesToGallery,
+                      icon: const Icon(Icons.download_for_offline_outlined, size: 18),
+                      label: Text('Save All (${_config.slides.length})'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),

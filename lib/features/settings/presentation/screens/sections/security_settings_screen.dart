@@ -1,8 +1,11 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:local_auth/local_auth.dart';
 import '../../../../../core/theme/app_layout.dart';
 import '../../../../../core/ui/expressive_sliver_app_bar.dart';
+import '../../../../../screens/app_lock_screen.dart';
 import '../../../../../widgets/settings_widgets.dart';
 import '../../../../../l10n/app_localizations.dart';
 import '../../../providers/settings_provider.dart';
@@ -96,6 +99,57 @@ class SecuritySettingsScreen extends StatelessWidget {
                                 )
                               : const SizedBox.shrink(),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: AppLayout.spaceL),
+                    SettingsSection(
+                      title: l10n?.perModulePrivacyLocks ?? 'Module Locks & Screen Protection',
+                      icon: Icons.shield_outlined,
+                      accentColor: colorScheme.secondary,
+                      children: [
+                        if (settings.showFinancialManager)
+                          SettingsSwitchTile(
+                            icon: Icons.account_balance_wallet_outlined,
+                            iconColor: colorScheme.primary,
+                            title: l10n?.lockFinances ?? 'Lock Finances Tab',
+                            subtitle: settings.appLockEnabled
+                                ? 'Covered while full App Lock is active'
+                                : (l10n?.lockFinancesSubtitle ?? 'Require authentication to open Finances'),
+                            value: settings.lockFinances,
+                            onChanged: settings.setLockFinances,
+                          ),
+                        if (settings.isPeriodTrackerEnabled)
+                          SettingsSwitchTile(
+                            icon: Icons.favorite_border_rounded,
+                            iconColor: colorScheme.tertiary,
+                            title: l10n?.lockHealth ?? 'Lock Health Tab',
+                            subtitle: settings.appLockEnabled
+                                ? 'Covered while full App Lock is active'
+                                : (l10n?.lockHealthSubtitle ?? 'Require authentication to open Health'),
+                            value: settings.lockHealth,
+                            onChanged: settings.setLockHealth,
+                          ),
+                        if (!kIsWeb && Platform.isAndroid)
+                          SettingsSwitchTile(
+                            icon: Icons.no_photography_outlined,
+                            iconColor: colorScheme.error,
+                            title: l10n?.screenshotShield ?? 'Screenshot Shield',
+                            subtitle: l10n?.screenshotShieldSubtitle ?? 'Block screenshots and screen recording on Android',
+                            value: settings.screenshotShieldEnabled,
+                            onChanged: settings.setScreenshotShieldEnabled,
+                          ),
+                        if (settings.appLockEnabled || settings.hasAnyModuleLockEnabled)
+                          SettingsTile(
+                            icon: Icons.lock_reset_rounded,
+                            iconColor: colorScheme.primary,
+                            title: l10n?.lockAppNow ?? 'Lock App Now',
+                            subtitle: 'Immediately clear unlocked session state',
+                            showArrow: true,
+                            onTap: () {
+                              AppLockScreen.lockNow();
+                              Navigator.of(context).popUntil((route) => route.isFirst);
+                            },
+                          ),
                       ],
                     ),
                     const SizedBox(height: AppLayout.fabBottomPadding),

@@ -96,7 +96,24 @@ class FinancialManagerProvider extends ChangeNotifier {
   Map<String, double> get categoryExpenses {
     final Map<String, double> totals = {};
     for (final t in _allDateFiltered) {
-      if (t.isExpense && t.category.toLowerCase() != 'transfer') {
+      if (t.isExpense && !t.isTransfer && t.category != '__reversal__') {
+        totals[t.category] = (totals[t.category] ?? 0.0) + t.amount;
+      }
+    }
+    return totals;
+  }
+
+  /// Current calendar-month expenses by category (excluding transfers and
+  /// reversals), respecting [selectedAccount] when filtered.
+  Map<String, double> get currentMonthCategoryExpenses {
+    final now = DateTime.now();
+    final Map<String, double> totals = {};
+    for (final t in _allTransactions) {
+      if (t.deletedAt != null || !t.isExpense || t.isTransfer || t.category == '__reversal__') {
+        continue;
+      }
+      if (_selectedAccount != 'all' && t.account != _selectedAccount) continue;
+      if (t.date.year == now.year && t.date.month == now.month) {
         totals[t.category] = (totals[t.category] ?? 0.0) + t.amount;
       }
     }
@@ -104,7 +121,7 @@ class FinancialManagerProvider extends ChangeNotifier {
   }
 
   double get totalDateExpense => _allDateFiltered
-      .where((t) => t.isExpense && t.category.toLowerCase() != 'transfer')
+      .where((t) => t.isExpense && !t.isTransfer && t.category != '__reversal__')
       .fold(0.0, (sum, t) => sum + t.amount);
 
   Future<void> loadTransactions() async {

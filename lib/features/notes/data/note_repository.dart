@@ -101,19 +101,27 @@ class NoteRepository {
     return await _populateNotesTags(result.map((json) => Note.fromMap(json)).toList());
   }
 
+  static String _escapeLikeQuery(String input) {
+    return input
+        .replaceAll(r'\', r'\\')
+        .replaceAll('%', r'\%')
+        .replaceAll('_', r'\_');
+  }
+
   Future<List<Note>> searchNotes(
     String keyword, {
     String? folderId,
     bool isArchived = false,
   }) async {
     final db = await _db;
-    final like = '%$keyword%';
+    final escaped = _escapeLikeQuery(keyword);
+    final like = '%$escaped%';
     final whereParts = <String>[
-      '((${NoteFields.isLocked} = 0 AND ${NoteFields.previewText} LIKE ?) OR ${NoteFields.title} LIKE ? OR ${NoteFields.id} IN (SELECT note_id FROM note_tags WHERE tag_name LIKE ?))',
+      "((${NoteFields.isLocked} = 0 AND (COALESCE(${NoteFields.searchText}, '') LIKE ? ESCAPE '\\' OR ${NoteFields.previewText} LIKE ? ESCAPE '\\')) OR ${NoteFields.title} LIKE ? ESCAPE '\\' OR ${NoteFields.id} IN (SELECT note_id FROM note_tags WHERE tag_name LIKE ? ESCAPE '\\'))",
       '${NoteFields.deletedAt} IS NULL',
       '${NoteFields.isArchived} = ?',
     ];
-    final whereArgs = <dynamic>[like, like, like, isArchived ? 1 : 0];
+    final whereArgs = <dynamic>[like, like, like, like, isArchived ? 1 : 0];
 
     if (folderId != null && folderId != 'All Notes') {
       if (folderId == 'Notes') {
@@ -479,7 +487,8 @@ class NoteRepository {
 
   Note enrichNoteWithPreview(Note note) {
     final preview = RichTextUtils.contentToPlainText(note.content, maxLines: 6);
-    return note.copyWith(previewText: preview);
+    final fullSearchText = RichTextUtils.contentToSearchText(note.content);
+    return note.copyWith(previewText: preview, searchText: fullSearchText);
   }
 
   Future<List<String>> getAllTags() async {

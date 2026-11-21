@@ -14,6 +14,7 @@ import '../../../../data/transaction_category.dart';
 import 'package:note_taking_app/features/notes/providers/note_provider.dart';
 import '../../../../screens/app_lock_screen.dart';
 import '../../../../services/backup_service.dart';
+import '../../../../services/backup_vault_key_service.dart';
 import '../../../finances/providers/financial_manager_provider.dart';
 import '../../../finances/providers/savings_goal_provider.dart';
 import '../../../../utils/widget_helper.dart';
@@ -467,16 +468,23 @@ class SettingsDialogs {
           await targetDir.create(recursive: true);
         }
 
-        // Issue #5: Initialize a clean backup immediately into the target directory.
-        // This guarantees write permissions and ensures an empty directory immediately contains
-        // a valid backup file.
+        // Issue #5: Initialize a clean encrypted backup immediately into the target directory.
+        final vaultKey = await BackupVaultKeyService.instance.getOrCreateVaultKey();
+        if (vaultKey == null || vaultKey.isEmpty) {
+          throw Exception('Backup vault key unavailable');
+        }
         final jsonContent = await generateBackupJson(
           settingsOverride: settings.toBackupMap(),
+        );
+        final encryptedContent = await BackupService.encryptBackupJsonAsync(
+          jsonContent,
+          vaultKey,
+          keySource: 'vault',
         );
         final dateStr = DateTime.now().toString().replaceAll(RegExp(r'[: ]'), '_').split('.')[0];
         final fileName = 'notebook_auto_backup_$dateStr.json';
         final initialFile = File('${targetDir.path}/$fileName');
-        await initialFile.writeAsString(jsonContent);
+        await initialFile.writeAsString(encryptedContent);
 
         AppHaptics.mediumImpact();
         await settings.setAutoBackupPath(selectedDirectory);

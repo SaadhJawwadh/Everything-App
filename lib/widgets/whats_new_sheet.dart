@@ -39,19 +39,29 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.verified_user_rounded,
-            title: "Tamper-Proof Encrypted Backups",
-            desc: "Encrypted backups now verify file integrity automatically before restoring while keeping full compatibility with older backups.",
+            icon: Icons.document_scanner_outlined,
+            title: "Scan Text to Note (Offline OCR)",
+            desc: "Use /scan or the image menu to extract editable text from camera photos and embedded note images on-device.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.notifications_active_outlined,
+            title: "Budget Alerts, Bill Reminders & Digest",
+            desc: "Get 80%/100% category budget warnings, 48h pre-due recurring bill alerts, and an optional Sunday Spend Digest.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.auto_fix_high_rounded,
+            title: "Simplify Group Debts & Batch Story Slides",
+            desc: "Compute minimal transfers for grouped split bills and share or save all Story Card slides in one tap.",
+          ),
+          _WhatsNewItem(
+            icon: Icons.shield_outlined,
+            title: "Encrypted Auto-Backups & Module Locks",
+            desc: "Automated backups are now encrypted with a recovery key, alongside individual Finances & Health tab locks and Screenshot Shield.",
             actionLabel: "View Sync & Backups ➔",
             onAction: () {
               Navigator.pop(context);
               AppRoute.push(context, const SyncBackupSettingsScreen());
             },
-          ),
-          _WhatsNewItem(
-            icon: Icons.sync_lock_rounded,
-            title: "Crash-Safe Two-Way Offline Sync",
-            desc: "Offline device sync now returns updates in both directions, finishes faster once caught up, and retries cleanly if interrupted.",
           ),
         ],
       ),
@@ -62,9 +72,9 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.tertiaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.translate_rounded,
-            title: "Expanded 8-Language Localization",
-            desc: "Sync, Backup, and Finance Settings screens are now localized across Tamil, German, Spanish, French, Portuguese, Russian, Chinese, and English.",
+            icon: Icons.manage_search_rounded,
+            title: "Full-Body Note Search & Period Notes",
+            desc: "Search unlocked notes past the preview limit, add notes to period logs, and jump directly to Health from period alerts.",
           ),
         ],
       ),
@@ -75,9 +85,9 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.secondaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.lock_open_rounded,
-            title: "Seamless Backup & CSV Sharing",
-            desc: "Sharing encrypted backups or CSV exports no longer triggers an unexpected App Lock prompt when returning to the app.",
+            icon: Icons.verified_user_rounded,
+            title: "Cleaner Budgets, Biometrics & Sync Integrity",
+            desc: "Excluded transfers from spending charts, wired Use Biometrics with PIN fallback, and added P2P integrity checks.",
           ),
         ],
       ),

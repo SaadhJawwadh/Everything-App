@@ -1,12 +1,12 @@
 <en-US>
-🌟 Everything App 3.6.0 — Safer Backups & Two-Way Sync!
-• Tamper-Proof Backups: Encrypted backups verify integrity before restore while supporting older v2 backups.
-• Crash-Safe Two-Way Sync: Offline sync exchanges updates both ways, finishes faster, and retries safely.
-• 8-Language Polish & Fixes: Localized Sync, Backup, and Finance screens plus smoother App Lock sharing.
+🌟 Everything App 3.7.0 — OCR, Smart Alerts & Stronger Privacy!
+• Scan Text to Note: Extract text from photos or images offline via /scan.
+• Smart Finance Tools: 80%/100% budget alerts, 48h bill reminders, weekly digest, and Simplify Group Debts.
+• Stronger Security: Encrypted auto-backups, per-module locks, Screenshot Shield, and full-body note search.
 </en-US>
 <ta-IN>
-🌟 Everything App 3.6.0 — பாதுகாப்பான பேக்கப் & இருவழி ஒத்திசைவு!
-• பாதுகாப்பான பேக்கப்: சேதமடைந்த கோப்புகளை முன்கூட்டியே கண்டறியும் புதிய பாதுகாப்பு (பழைய பேக்கப்களும் இயங்கும்).
-• இருவழி ஆஃப்லைன் ஒத்திசைவு: இரு சாதனங்களும் வேகமாகவும் பாதுகாப்பாகவும் தகவல்களைப் பரிமாறும்.
-• 8 மொழி மேம்பாடுகள்: ஒத்திசைவு, பேக்கப் மற்றும் நிதி அமைப்புகள் தமிழ் உட்பட 8 மொழிகளில் மேம்படுத்தப்பட்டன.
+🌟 Everything App 3.7.0 — OCR, ஸ்மார்ட் எச்சரிக்கைகள் & மேம்பட்ட பாதுகாப்பு!
+• Scan Text to Note: புகைப்படங்களில் உள்ள எழுத்துக்களை ஆஃப்லைனில் குறிப்புகளாக மாற்றலாம் (/scan).
+• நிதி கருவிகள்: பட்ஜெட் எச்சரிக்கைகள், பில் நினைவூட்டல்கள் & குழு கடன் எளிமையாக்கல்.
+• பாதுகாப்பு: மறைகுறியாக்கப்பட்ட ஆட்டோ-பேக்கப், தனிப்பகுதி பூட்டு & ஸ்கிரீன்ஷாட் பாதுகாப்பு.
 </ta-IN>

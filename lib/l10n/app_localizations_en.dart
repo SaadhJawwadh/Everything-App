@@ -977,4 +977,36 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get discreetNotificationTextSubtitle =>
       'Text shown in cycle prediction alerts';
+
+  @override
+  String get autoBackupRecoveryKey => 'Auto-Backup Recovery Key';
+
+  @override
+  String get autoBackupRecoveryKeySubtitle =>
+      'Copy or import key to restore encrypted auto-backups';
+
+  @override
+  String get perModulePrivacyLocks => 'Module Locks & Screen Protection';
+
+  @override
+  String get lockFinances => 'Lock Finances Tab';
+
+  @override
+  String get lockFinancesSubtitle => 'Require authentication to open Finances';
+
+  @override
+  String get lockHealth => 'Lock Health Tab';
+
+  @override
+  String get lockHealthSubtitle => 'Require authentication to open Health';
+
+  @override
+  String get screenshotShield => 'Screenshot Shield';
+
+  @override
+  String get screenshotShieldSubtitle =>
+      'Block screenshots and screen recording on Android';
+
+  @override
+  String get lockAppNow => 'Lock App Now';
 }

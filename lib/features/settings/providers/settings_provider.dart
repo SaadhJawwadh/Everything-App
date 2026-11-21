@@ -122,6 +122,26 @@ class SettingsProvider extends ChangeNotifier {
   bool _useBiometrics = false;
   bool get useBiometrics => _useBiometrics;
 
+  bool _lockFinances = false;
+  bool get lockFinances => _lockFinances;
+
+  bool _lockHealth = false;
+  bool get lockHealth => _lockHealth;
+
+  bool _screenshotShieldEnabled = false;
+  bool get screenshotShieldEnabled => _screenshotShieldEnabled;
+
+  bool _budgetAlertsEnabled = true;
+  bool get budgetAlertsEnabled => _budgetAlertsEnabled;
+
+  bool _billRemindersEnabled = true;
+  bool get billRemindersEnabled => _billRemindersEnabled;
+
+  bool _weeklyDigestEnabled = false;
+  bool get weeklyDigestEnabled => _weeklyDigestEnabled;
+
+  bool get hasAnyModuleLockEnabled => _lockFinances || _lockHealth;
+
   // 30s grace so quick app switches (OTP, copy a number) don't re-lock.
   int _appLockTimeout = 30;
   int get appLockTimeout => _appLockTimeout;
@@ -265,6 +285,12 @@ class SettingsProvider extends ChangeNotifier {
     _isDiscreetHealthMode = prefs.getBool('isDiscreetHealthMode') ?? false;
     _appLockEnabled = prefs.getBool('appLockEnabled') ?? false;
     _useBiometrics = prefs.getBool('useBiometrics') ?? false;
+    _lockFinances = prefs.getBool('lockFinances') ?? false;
+    _lockHealth = prefs.getBool('lockHealth') ?? false;
+    _screenshotShieldEnabled = prefs.getBool('screenshotShieldEnabled') ?? false;
+    _budgetAlertsEnabled = prefs.getBool('budgetAlertsEnabled') ?? true;
+    _billRemindersEnabled = prefs.getBool('billRemindersEnabled') ?? true;
+    _weeklyDigestEnabled = prefs.getBool('weeklyDigestEnabled') ?? false;
     _appLockTimeout = prefs.getInt('appLockTimeout') ?? 30;
     _discreetNotificationText =
         prefs.getString('discreetNotificationText') ?? 'Check the app';
@@ -735,6 +761,48 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setLockFinances(bool locked) async {
+    _lockFinances = locked;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('lockFinances', locked);
+    notifyListeners();
+  }
+
+  Future<void> setLockHealth(bool locked) async {
+    _lockHealth = locked;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('lockHealth', locked);
+    notifyListeners();
+  }
+
+  Future<void> setScreenshotShieldEnabled(bool enabled) async {
+    _screenshotShieldEnabled = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('screenshotShieldEnabled', enabled);
+    notifyListeners();
+  }
+
+  Future<void> setBudgetAlertsEnabled(bool enabled) async {
+    _budgetAlertsEnabled = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('budgetAlertsEnabled', enabled);
+    notifyListeners();
+  }
+
+  Future<void> setBillRemindersEnabled(bool enabled) async {
+    _billRemindersEnabled = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('billRemindersEnabled', enabled);
+    notifyListeners();
+  }
+
+  Future<void> setWeeklyDigestEnabled(bool enabled) async {
+    _weeklyDigestEnabled = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('weeklyDigestEnabled', enabled);
+    notifyListeners();
+  }
+
   Future<void> setAppLockTimeout(int timeout) async {
     _appLockTimeout = timeout;
     final prefs = await SharedPreferences.getInstance();
@@ -833,6 +901,17 @@ class SettingsProvider extends ChangeNotifier {
         'enableRecurringRules': _enableRecurringRules,
         'showTagFilterBar': _showTagFilterBar,
         'minimalEditorMode': _minimalEditorMode,
+        'categoryBudgets': _categoryBudgets,
+        'customSmsRules_v2': _customSmsRules.map((r) => r.toJson()).toList(),
+        'enableHaptics': _enableHaptics,
+        'showMilestoneDelight': _showMilestoneDelight,
+        'showClarityMosaic': _showClarityMosaic,
+        'lockFinances': _lockFinances,
+        'lockHealth': _lockHealth,
+        'screenshotShieldEnabled': _screenshotShieldEnabled,
+        'budgetAlertsEnabled': _budgetAlertsEnabled,
+        'billRemindersEnabled': _billRemindersEnabled,
+        'weeklyDigestEnabled': _weeklyDigestEnabled,
       };
 
   Future<void> restoreFromBackupMap(Map<String, dynamic> map) async {
@@ -984,6 +1063,83 @@ class SettingsProvider extends ChangeNotifier {
       if (map.containsKey('minimalEditorMode')) {
         final val = map['minimalEditorMode'];
         if (val is bool) await setMinimalEditorMode(val);
+      }
+      if (map.containsKey('categoryBudgets')) {
+        final rawBudgets = map['categoryBudgets'];
+        if (rawBudgets is Map) {
+          final parsed = <String, double>{};
+          rawBudgets.forEach((k, v) {
+            if (v is num) parsed[k.toString()] = v.toDouble();
+          });
+          _categoryBudgets = parsed;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('categoryBudgets', jsonEncode(_categoryBudgets));
+        }
+      }
+      if (map.containsKey('customSmsRules_v2')) {
+        final rawRules = map['customSmsRules_v2'];
+        if (rawRules is List) {
+          final parsed = <CustomSmsRule>[];
+          for (final item in rawRules) {
+            try {
+              if (item is String) {
+                parsed.add(CustomSmsRule.fromJson(item));
+              }
+            } catch (_) {}
+          }
+          _customSmsRules = parsed;
+          final prefs = await SharedPreferences.getInstance();
+          await _persistCustomSmsRules(prefs);
+        }
+      }
+      if (map.containsKey('enableHaptics')) {
+        final val = map['enableHaptics'];
+        if (val is bool) {
+          _enableHaptics = val;
+          AppHaptics.isEnabled = val;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('enableHaptics', val);
+        }
+      }
+      if (map.containsKey('showMilestoneDelight')) {
+        final val = map['showMilestoneDelight'];
+        if (val is bool) {
+          _showMilestoneDelight = val;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('showMilestoneDelight', val);
+        }
+      }
+      if (map.containsKey('showClarityMosaic')) {
+        final val = map['showClarityMosaic'];
+        if (val is bool) {
+          _showClarityMosaic = val;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('showClarityMosaic', val);
+        }
+      }
+      if (map.containsKey('lockFinances')) {
+        final val = map['lockFinances'];
+        if (val is bool) await setLockFinances(val);
+      }
+      if (map.containsKey('lockHealth')) {
+        final val = map['lockHealth'];
+        if (val is bool) await setLockHealth(val);
+      }
+      if (map.containsKey('screenshotShieldEnabled')) {
+        final val = map['screenshotShieldEnabled'];
+        if (val is bool) await setScreenshotShieldEnabled(val);
+      }
+      if (map.containsKey('budgetAlertsEnabled')) {
+        final val = map['budgetAlertsEnabled'];
+        if (val is bool) await setBudgetAlertsEnabled(val);
+      }
+      if (map.containsKey('billRemindersEnabled')) {
+        final val = map['billRemindersEnabled'];
+        if (val is bool) await setBillRemindersEnabled(val);
+      }
+      if (map.containsKey('weeklyDigestEnabled')) {
+        final val = map['weeklyDigestEnabled'];
+        if (val is bool) await setWeeklyDigestEnabled(val);
       }
       notifyListeners();
     } catch (_) {}

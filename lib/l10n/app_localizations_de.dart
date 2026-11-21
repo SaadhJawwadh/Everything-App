@@ -986,4 +986,38 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get discreetNotificationTextSubtitle =>
       'Text für Zyklus-Vorhersagebenachrichtigungen';
+
+  @override
+  String get autoBackupRecoveryKey => 'Auto-Backup-Wiederherstellungsschlüssel';
+
+  @override
+  String get autoBackupRecoveryKeySubtitle =>
+      'Schlüssel kopieren oder importieren, um verschlüsselte Backups wiederherzustellen';
+
+  @override
+  String get perModulePrivacyLocks => 'Modulsperren & Bildschirmschutz';
+
+  @override
+  String get lockFinances => 'Finanzen-Tab sperren';
+
+  @override
+  String get lockFinancesSubtitle =>
+      'Authentifizierung zum Öffnen von Finanzen erforderlich';
+
+  @override
+  String get lockHealth => 'Gesundheit-Tab sperren';
+
+  @override
+  String get lockHealthSubtitle =>
+      'Authentifizierung zum Öffnen von Gesundheit erforderlich';
+
+  @override
+  String get screenshotShield => 'Screenshot-Schutz';
+
+  @override
+  String get screenshotShieldSubtitle =>
+      'Screenshots und Bildschirmaufnahmen unter Android blockieren';
+
+  @override
+  String get lockAppNow => 'App jetzt sperren';
 }

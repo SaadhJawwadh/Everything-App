@@ -189,6 +189,10 @@ class RichTextUtils {
     return jsonEncode(sanitizeDelta(delta).toJson());
   }
 
+  /// Extracts full uncapped plain text (including completed checklist items) for DB search.
+  static String contentToSearchText(String content) =>
+      contentToPlainText(content, maxLines: 100000, includeChecked: true);
+
   /// Loads content from storage: tries Delta JSON first, falls back to Markdown for old notes.
   static Delta contentToDelta(String content) {
     if (content.isEmpty) return Delta()..insert('\n');
@@ -206,7 +210,11 @@ class RichTextUtils {
   /// For Quill Delta content, detects checklist items from `list` attributes on
   /// newline ops and prepends ☑ / ☐ accordingly. Returns at most [maxLines] lines,
   /// appending "..." when content is truncated.
-  static String contentToPlainText(String content, {int maxLines = 4}) {
+  static String contentToPlainText(
+    String content, {
+    int maxLines = 4,
+    bool includeChecked = false,
+  }) {
     if (content.isEmpty) return '';
     if (content.startsWith('[')) {
       try {
@@ -279,7 +287,7 @@ class RichTextUtils {
                 }
               }
 
-              if (!isChecked) {
+              if (!isChecked || includeChecked) {
                 allLines.add(line);
               }
               lineBuffer.clear();
@@ -320,7 +328,7 @@ class RichTextUtils {
       if (trimmed.startsWith('- [x]') || trimmed.startsWith('* [x]') || trimmed.startsWith('[x]')) {
         mdHasChecklist = true;
         mdHasChecked = true;
-        continue; // Skip completed items
+        if (!includeChecked) continue; // Skip completed items
       }
       if (trimmed.startsWith('- [ ]') || trimmed.startsWith('* [ ]') || trimmed.startsWith('[ ]')) {
         mdHasChecklist = true;

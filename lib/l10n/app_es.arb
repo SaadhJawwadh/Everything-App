@@ -40,7 +40,7 @@
   "emptyNotesSubtitle": "Toca + para capturar tus pensamientos",
   "archive": "Archivar",
   "trash": "Papelera",
-  "restore": "Restaurar",
+  "restore": "Restablecer",
   "deletePermanently": "Eliminar Definitivamente",
   "lockedNote": "Nota bloqueada",
   "appLocked": "Aplicación Bloqueada",
@@ -156,7 +156,6 @@
   "restoreDefaults": "Restablecer valores predeterminados",
   "restoreDefaultCategoriesTitle": "¿Restablecer categorías predeterminadas?",
   "restoreDefaultCategoriesContent": "Se eliminarán las categorías personalizadas y las integradas se restablecerán a sus colores y palabras clave predeterminados. Las transacciones existentes conservarán sus etiquetas.",
-  "restore": "Restablecer",
   "categoriesRestored": "Categorías restablecidas a los valores predeterminados",
   "newCategory": "Nueva categoría",
   "editCategory": "Editar categoría",
@@ -292,5 +291,15 @@
   "discreetPrivacyMode": "Modo de privacidad discreta",
   "discreetPrivacyModeSubtitle": "Oculta días y fases del ciclo en el panel hasta tocar",
   "discreetNotificationText": "Texto de notificación discreta",
-  "discreetNotificationTextSubtitle": "Texto mostrado en alertas de predicción del ciclo"
+  "discreetNotificationTextSubtitle": "Texto mostrado en alertas de predicción del ciclo",
+  "autoBackupRecoveryKey": "Clave de recuperación de copia automática",
+  "autoBackupRecoveryKeySubtitle": "Copia o importa la clave para restaurar copias cifradas",
+  "perModulePrivacyLocks": "Bloqueos por módulo y protección",
+  "lockFinances": "Bloquear pestaña Finanzas",
+  "lockFinancesSubtitle": "Requiere autenticación para abrir Finanzas",
+  "lockHealth": "Bloquear pestaña Salud",
+  "lockHealthSubtitle": "Requiere autenticación para abrir Salud",
+  "screenshotShield": "Escudo contra capturas",
+  "screenshotShieldSubtitle": "Bloquea capturas y grabación de pantalla en Android",
+  "lockAppNow": "Bloquear app ahora"
 }

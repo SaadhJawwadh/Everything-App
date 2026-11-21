@@ -413,6 +413,7 @@ class NoteEditorActions {
     required int slashLineStart,
     required (int, int) selectionRange,
     required VoidCallback onShowAiOptions,
+    VoidCallback? onScanText,
   }) {
     AppHaptics.lightImpact();
     final currentCursor = quillController.selection.baseOffset;
@@ -429,6 +430,9 @@ class NoteEditorActions {
     switch (command) {
       case 'ai':
         onShowAiOptions();
+        break;
+      case 'scan':
+        onScanText?.call();
         break;
       case 'todo':
         quillController.formatSelection(Attribute.unchecked);

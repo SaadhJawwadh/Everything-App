@@ -83,6 +83,7 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
   late String _tempIntensity;
   late List<String> _tempSymptoms;
   late bool _isOngoing;
+  late final TextEditingController _notesController;
 
   @override
   void initState() {
@@ -100,6 +101,13 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
     _tempIntensity = widget.log?.intensity ?? 'Medium';
     _tempSymptoms = List<String>.from(widget.log?.symptoms ?? []);
     _isOngoing = _tempEnd == null;
+    _notesController = TextEditingController(text: widget.log?.notes ?? '');
+  }
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
   }
 
   Future<void> _handleSave() async {
@@ -133,6 +141,7 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
         endDate: _isOngoing ? null : _tempEnd,
         intensity: _tempIntensity,
         symptoms: _tempSymptoms,
+        notes: _notesController.text.trim(),
       );
       await widget.provider.updateLog(updated);
     } else {
@@ -142,6 +151,7 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
         endDate: _isOngoing ? null : _tempEnd,
         intensity: _tempIntensity,
         symptoms: _tempSymptoms,
+        notes: _notesController.text.trim(),
       );
       await widget.provider.createLog(newLog);
     }
@@ -294,6 +304,24 @@ class _PeriodLogEditorSheetState extends State<PeriodLogEditorSheet> {
                   },
                 );
               }).toList(),
+            ),
+
+            const SizedBox(height: 20),
+            Text('Notes', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _notesController,
+              maxLines: 3,
+              minLines: 2,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: 'Add optional cycle notes...',
+                filled: true,
+                fillColor: colorScheme.surfaceContainerLow,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppLayout.radiusM),
+                ),
+              ),
             ),
 
             const SizedBox(height: 24),

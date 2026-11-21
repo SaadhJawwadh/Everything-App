@@ -8,6 +8,7 @@ import '../../../data/database_constants.dart';
 import '../../../data/category_definition.dart';
 import '../../../data/sms_contact.dart';
 import '../../../utils/widget_helper.dart';
+import '../../../services/notification_service.dart';
 import '../../sync/providers/p2p_sync_provider.dart';
 import 'package:note_taking_app/services/hybrid_local_ai_service.dart';
 
@@ -29,6 +30,9 @@ class TransactionRepository {
     final result = transaction.copy(id: id);
     if (updateWidgets) {
       await WidgetHelper.updateWidgetData();
+    }
+    if (result.isExpense && !result.isTransfer) {
+      await NotificationService.checkBudgetThresholdsForCategory(result.category);
     }
     P2pSyncProvider.activeInstance?.triggerEventSync();
     return result;

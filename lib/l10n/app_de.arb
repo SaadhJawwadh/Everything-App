@@ -156,7 +156,6 @@
   "restoreDefaults": "Standard wiederherstellen",
   "restoreDefaultCategoriesTitle": "Standardkategorien wiederherstellen?",
   "restoreDefaultCategoriesContent": "Benutzerdefinierte Kategorien werden entfernt und integrierte Kategorien auf ihre Standardfarben und Schlüsselwörter zurückgesetzt. Bestehende Transaktionen behalten ihre Kategoriebezeichnungen.",
-  "restore": "Wiederherstellen",
   "categoriesRestored": "Kategorien auf Standard zurückgesetzt",
   "newCategory": "Neue Kategorie",
   "editCategory": "Kategorie bearbeiten",
@@ -292,5 +291,15 @@
   "discreetPrivacyMode": "Diskreter Privatmodus",
   "discreetPrivacyModeSubtitle": "Zyklustage und -phasen auf dem Dashboard erst nach Antippen anzeigen",
   "discreetNotificationText": "Diskreter Benachrichtigungstext",
-  "discreetNotificationTextSubtitle": "Text für Zyklus-Vorhersagebenachrichtigungen"
+  "discreetNotificationTextSubtitle": "Text für Zyklus-Vorhersagebenachrichtigungen",
+  "autoBackupRecoveryKey": "Auto-Backup-Wiederherstellungsschlüssel",
+  "autoBackupRecoveryKeySubtitle": "Schlüssel kopieren oder importieren, um verschlüsselte Backups wiederherzustellen",
+  "perModulePrivacyLocks": "Modulsperren & Bildschirmschutz",
+  "lockFinances": "Finanzen-Tab sperren",
+  "lockFinancesSubtitle": "Authentifizierung zum Öffnen von Finanzen erforderlich",
+  "lockHealth": "Gesundheit-Tab sperren",
+  "lockHealthSubtitle": "Authentifizierung zum Öffnen von Gesundheit erforderlich",
+  "screenshotShield": "Screenshot-Schutz",
+  "screenshotShieldSubtitle": "Screenshots und Bildschirmaufnahmen unter Android blockieren",
+  "lockAppNow": "App jetzt sperren"
 }

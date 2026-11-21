@@ -156,7 +156,6 @@
   "restoreDefaults": "Restaurer les valeurs par défaut",
   "restoreDefaultCategoriesTitle": "Restaurer les catégories par défaut ?",
   "restoreDefaultCategoriesContent": "Les catégories personnalisées seront supprimées et les catégories intégrées retrouveront leurs couleurs et mots-clés par défaut. Les transactions existantes conservent leurs étiquettes.",
-  "restore": "Restaurer",
   "categoriesRestored": "Catégories restaurées par défaut",
   "newCategory": "Nouvelle catégorie",
   "editCategory": "Modifier la catégorie",
@@ -292,5 +291,15 @@
   "discreetPrivacyMode": "Mode confidentialité discret",
   "discreetPrivacyModeSubtitle": "Masquer les jours et phases du cycle jusqu'au toucher",
   "discreetNotificationText": "Texte de notification discret",
-  "discreetNotificationTextSubtitle": "Texte affiché dans les alertes de cycle"
+  "discreetNotificationTextSubtitle": "Texte affiché dans les alertes de cycle",
+  "autoBackupRecoveryKey": "Clé de récupération sauvegarde auto",
+  "autoBackupRecoveryKeySubtitle": "Copier ou importer la clé pour restaurer les sauvegardes chiffrées",
+  "perModulePrivacyLocks": "Verrous par module et écran",
+  "lockFinances": "Verrouiller l’onglet Finances",
+  "lockFinancesSubtitle": "Authentification requise pour ouvrir Finances",
+  "lockHealth": "Verrouiller l’onglet Santé",
+  "lockHealthSubtitle": "Authentification requise pour ouvrir Santé",
+  "screenshotShield": "Protection contre les captures",
+  "screenshotShieldSubtitle": "Bloquer les captures et l’enregistrement d’écran sur Android",
+  "lockAppNow": "Verrouiller l’app maintenant"
 }

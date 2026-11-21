@@ -17,6 +17,8 @@ class AppLockScreen extends StatefulWidget {
   const AppLockScreen({super.key, required this.child});
 
   static final ValueNotifier<bool> sessionAuthenticated = ValueNotifier<bool>(false);
+  static final ValueNotifier<int> moduleSessionEpoch = ValueNotifier<int>(0);
+  static final Set<String> unlockedModules = <String>{};
   static bool _ignoreNextResumeLock = false;
   static DateTime? _ignoreNextResumeLockTimestamp;
   static int _ignoreLockCount = 0;
@@ -33,6 +35,20 @@ class AppLockScreen extends StatefulWidget {
   // Static helper to manually unlock the session (useful for sharing)
   static void unlockSession() {
     sessionAuthenticated.value = true;
+  }
+
+  /// Immediately locks both the app and all per-module session unlocks.
+  static void lockNow() {
+    sessionAuthenticated.value = false;
+    unlockedModules.clear();
+    moduleSessionEpoch.value++;
+  }
+
+  static void invalidateModuleSessions() {
+    if (unlockedModules.isNotEmpty) {
+      unlockedModules.clear();
+      moduleSessionEpoch.value++;
+    }
   }
 
   /// Whether the single-resume bypass is still valid (expires after 60 seconds)
@@ -99,6 +115,7 @@ class AppLockScreenState extends State<AppLockScreen>
   String? _authErrorMessage;
   bool _canDisableLockFallback = false;
   bool _wasAuthenticatedBeforePause = false;
+  bool? _lastFlagSecure;
 
   bool get _isSessionAuthenticated => AppLockScreen.sessionAuthenticated.value;
   set _isSessionAuthenticated(bool val) => AppLockScreen.sessionAuthenticated.value = val;
@@ -187,6 +204,7 @@ class AppLockScreenState extends State<AppLockScreen>
         // (notification shade, permission dialogs, split-screen transitions).
         if (settings.appLockTimeout == 0 && state == AppLifecycleState.paused) {
           _isSessionAuthenticated = false;
+          AppLockScreen.invalidateModuleSessions();
         }
       }
     } else {
@@ -203,6 +221,7 @@ class AppLockScreenState extends State<AppLockScreen>
         final elapsed = _backgroundStopwatch!.elapsed.inSeconds;
         if (elapsed >= settings.appLockTimeout) {
           _isSessionAuthenticated = false;
+          AppLockScreen.invalidateModuleSessions();
         }
       }
       _backgroundStopwatch?.stop();
@@ -224,13 +243,14 @@ class AppLockScreenState extends State<AppLockScreen>
       if (!wasOff && !isDeviceLocked) return;
       if (!mounted) return;
       final settings = Provider.of<SettingsProvider>(context, listen: false);
-      if (!settings.appLockEnabled) return;
+      if (!settings.appLockEnabled && !settings.hasAnyModuleLockEnabled) return;
       _backgroundStopwatch?.stop();
       _backgroundStopwatch = null;
       // Screen-off or keyguard lock invalidates any bypass/grace period
       AppLockScreen._ignoreLockCount = 0;
       AppLockScreen.clearIgnoreNextResumeLock();
       _isSessionAuthenticated = false;
+      AppLockScreen.invalidateModuleSessions();
     } catch (e) {
       debugPrint('Error checking screen-off state: $e');
     }
@@ -279,20 +299,49 @@ class AppLockScreenState extends State<AppLockScreen>
     }
 
     if (_isAuthenticating) return;
+    final reason = AppLocalizations.of(context)?.appLockAuthReason ??
+        'Please authenticate to access the app';
 
     setState(() {
       _isAuthenticating = true;
     });
 
     try {
-      final bool didAuthenticate = await auth.authenticate(
-        localizedReason: AppLocalizations.of(context)?.appLockAuthReason ??
-            'Please authenticate to access the app',
-        options: const AuthenticationOptions(
-          stickyAuth: true,
-          biometricOnly: false,
-        ),
-      );
+      bool useBiometricOnly = settings.useBiometrics;
+      if (useBiometricOnly) {
+        final canCheck = await auth.canCheckBiometrics;
+        final available = canCheck ? await auth.getAvailableBiometrics() : <BiometricType>[];
+        if (available.isEmpty) {
+          useBiometricOnly = false;
+        }
+      }
+
+      bool didAuthenticate;
+      try {
+        didAuthenticate = await auth.authenticate(
+          localizedReason: reason,
+          options: AuthenticationOptions(
+            stickyAuth: true,
+            biometricOnly: useBiometricOnly,
+          ),
+        );
+      } on PlatformException catch (e) {
+        if (useBiometricOnly &&
+            (e.code == 'NotEnrolled' ||
+                e.code == 'LockedOut' ||
+                e.code == 'PermanentlyLockedOut' ||
+                e.code == 'NotAvailable')) {
+          didAuthenticate = await auth.authenticate(
+            localizedReason: reason,
+            options: const AuthenticationOptions(
+              stickyAuth: true,
+              biometricOnly: false,
+            ),
+          );
+        } else {
+          rethrow;
+        }
+      }
 
       if (didAuthenticate) {
         if (!kIsWeb && Platform.isAndroid) {
@@ -339,11 +388,27 @@ class AppLockScreenState extends State<AppLockScreen>
     }
   }
 
+  void _syncFlagSecure(bool enabled) {
+    if (_lastFlagSecure == enabled) return;
+    _lastFlagSecure = enabled;
+    if (kIsWeb || !Platform.isAndroid || Platform.environment.containsKey('FLUTTER_TEST')) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        await _channel.invokeMethod('setFlagSecure', {'enabled': enabled});
+      } catch (e) {
+        debugPrint('Error updating FLAG_SECURE: $e');
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = Provider.of<SettingsProvider>(context);
 
     _syncRecentsPrivacy(settings.appLockEnabled);
+    _syncFlagSecure(settings.screenshotShieldEnabled);
 
     if (!settings.appLockEnabled) {
       return widget.child;

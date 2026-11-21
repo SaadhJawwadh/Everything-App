@@ -115,6 +115,8 @@ class SyncMergeService {
 
       // 1. Merge Notes
       if (remoteData.containsKey('notes') && remoteData['notes'] is List) {
+        final noteColsInfo = await txn.rawQuery('PRAGMA table_info(notes)');
+        final allowedNoteCols = noteColsInfo.map((c) => c['name']?.toString()).whereType<String>().toSet();
         final List remoteNotes = remoteData['notes'] as List;
         final localNotesRows = await txn.query('notes');
         final Map<String, Map<String, dynamic>> localNotesMap = {};
@@ -155,6 +157,13 @@ class SyncMergeService {
           }
           if (!remoteRow.containsKey('category') || remoteRow['category'] == null || (remoteRow['category'] as String).isEmpty) {
             remoteRow['category'] = 'Notes';
+          }
+          if (!remoteRow.containsKey('searchText') || remoteRow['searchText'] == null) {
+            final content = remoteRow['content'] as String? ?? '';
+            remoteRow['searchText'] = RichTextUtils.contentToSearchText(content);
+          }
+          if (allowedNoteCols.isNotEmpty) {
+            remoteRow.removeWhere((k, _) => !allowedNoteCols.contains(k));
           }
 
           final localRow = localNotesMap[id];
@@ -437,6 +446,8 @@ class SyncMergeService {
       }
 
       if (remoteData.containsKey('periodLogs') && remoteData['periodLogs'] is List) {
+        final periodColsInfo = await txn.rawQuery('PRAGMA table_info(period_logs)');
+        final allowedPeriodCols = periodColsInfo.map((c) => c['name']?.toString()).whereType<String>().toSet();
         final localLogs = await txn.query('period_logs');
         final localLogMap = {
           for (final l in localLogs)
@@ -446,6 +457,9 @@ class SyncMergeService {
         for (final item in remoteData['periodLogs'] as List) {
           if (item is Map) {
             final map = Map<String, Object?>.from(item);
+            if (allowedPeriodCols.isNotEmpty) {
+              map.removeWhere((k, _) => !allowedPeriodCols.contains(k));
+            }
             final logId = map['id']?.toString();
             if (logId != null && tombstonePeriodLogIds.contains(logId)) {
               continue; // Skip resurrecting deleted period log
@@ -467,8 +481,7 @@ class SyncMergeService {
                   '';
               final localMod = DateTime.tryParse(localModStr) ?? DateTime.fromMillisecondsSinceEpoch(0);
               final remoteMod = DateTime.tryParse(remoteModStr) ?? DateTime.fromMillisecondsSinceEpoch(0);
-              if (remoteMod.isAfter(localMod) ||
-                  remoteMod.difference(localMod).inSeconds.abs() <= 5) {
+              if (remoteMod.isAfter(localMod)) {
                 batch.update('period_logs', map, where: 'id = ?', whereArgs: [logId]);
                 periodLogsMerged++;
               }

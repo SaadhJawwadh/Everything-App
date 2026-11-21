@@ -22,6 +22,7 @@ import '../../data/models/split_bill_model.dart';
 import '../../data/transaction_repository.dart';
 import '../../providers/financial_manager_provider.dart';
 import '../../providers/split_bill_provider.dart';
+import '../../services/debt_simplifier_service.dart';
 import '../../services/split_share_service.dart';
 import '../screens/financial_manager_screen.dart';
 import '../screens/split_bill_editor_screen.dart';
@@ -89,6 +90,79 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
         await Provider.of<FinancialManagerProvider>(context, listen: false).loadTransactions();
       } catch (_) {}
     }
+  }
+
+  Widget _buildSimplifyGroupDebtsCard(
+    BuildContext context,
+    String groupTag,
+    List<SplitBillModel> groupBills,
+    String currency,
+  ) {
+    final transfers = DebtSimplifierService.simplifyGroupDebts(groupBills);
+    if (transfers.isEmpty) return const SizedBox.shrink();
+
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return AppCard(
+      padding: const EdgeInsets.symmetric(horizontal: AppLayout.spaceM, vertical: AppLayout.spaceS),
+      child: Row(
+        children: [
+          Icon(Icons.auto_fix_high_rounded, color: colorScheme.primary, size: 20),
+          const SizedBox(width: AppLayout.spaceS),
+          Expanded(
+            child: Text(
+              'Simplify "$groupTag" (${transfers.length} transfer${transfers.length == 1 ? '' : 's'})',
+              style: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              AppHaptics.selectionClick();
+              AppBottomSheet.show(
+                context: context,
+                title: 'Simplified Plan — $groupTag',
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final t in transfers)
+                      ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.swap_horiz_rounded),
+                        title: Text('${t.from} → ${t.to}'),
+                        trailing: Text(
+                          '$currency ${t.amount.toStringAsFixed(2).replaceAll('.00', '')}',
+                          style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    const SizedBox(height: AppLayout.spaceM),
+                    FilledButton.icon(
+                      onPressed: () async {
+                        final msg = SplitShareService.formatGroupSettlementMessage(
+                          groupTag,
+                          transfers,
+                          currencySymbol: currency,
+                        );
+                        Navigator.pop(context);
+                        await SplitShareService.shareText(
+                          msg,
+                          subject: 'Settlement Plan — $groupTag',
+                        );
+                      },
+                      icon: const Icon(Icons.share_rounded),
+                      label: const Text('Share Plan'),
+                    ),
+                  ],
+                ),
+              );
+            },
+            child: const Text('View'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _confirmUnsettleContact(
@@ -318,6 +392,19 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
 
                 // 3. Filter Chips Bar
                 _buildFilterBar(context, splitProvider),
+
+                if (splitProvider.activeGroupTag != null &&
+                    splitProvider.activeGroupTag!.trim().isNotEmpty) ...[
+                  const SizedBox(height: AppLayout.spaceS),
+                  _buildSimplifyGroupDebtsCard(
+                    context,
+                    splitProvider.activeGroupTag!,
+                    splitProvider.bills
+                        .where((b) => b.deletedAt == null && b.groupTag == splitProvider.activeGroupTag)
+                        .toList(),
+                    currency,
+                  ),
+                ],
 
                 const SizedBox(height: AppLayout.spaceS),
 

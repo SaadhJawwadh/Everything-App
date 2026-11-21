@@ -664,6 +664,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
             return FinancialAnalyticsTab(
               transactions: finProvider.allDateFiltered,
               monthlyData: finProvider.monthlyData,
+              currentMonthCategoryExpenses: finProvider.currentMonthCategoryExpenses,
               currency: currency,
               settings: settings,
               onRefresh: _refreshTransactions,

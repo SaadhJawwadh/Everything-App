@@ -14,6 +14,8 @@ import '../core/services/app_intent_dispatcher.dart';
 import '../core/services/app_function_inbox_service.dart';
 import '../core/ui/app_morphing_fab.dart';
 import '../core/ui/expressive_floating_toolbar.dart';
+import '../core/ui/module_lock_gate.dart';
+import '../utils/app_globals.dart';
 import '../widgets/tag_filter_bar.dart';
 import '../widgets/home/home_app_bar.dart';
 import '../widgets/home/home_tag_folder_dialogs.dart';
@@ -71,6 +73,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     AppLockScreen.sessionAuthenticated.addListener(_handleSessionUnlock);
     AppLockScreen.sharedMediaTick.addListener(_handleSharedMediaTick);
+    AppLockScreen.moduleSessionEpoch.addListener(_onModuleSessionChanged);
+    appTabNavigationRequest.addListener(_handleTabNavigationRequest);
 
     _intentDataStreamSubscription =
         ReceiveSharingIntent.instance.getMediaStream().listen((files) {
@@ -124,6 +128,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void _handleSessionUnlock() {
     if (AppLockScreen.sessionAuthenticated.value && mounted) {
       _checkAndProcessPendingIntents();
+    }
+  }
+
+  void _onModuleSessionChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _handleTabNavigationRequest() {
+    final target = appTabNavigationRequest.value;
+    if (target == null || !mounted) return;
+    appTabNavigationRequest.value = null;
+
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    int? targetIndex;
+    if (target == 'notes') {
+      targetIndex = 0;
+    } else if (target == 'finances' && settings.showFinancialManager) {
+      targetIndex = 1;
+    } else if (target == 'health' && settings.isPeriodTrackerEnabled) {
+      targetIndex = settings.showFinancialManager ? 2 : 1;
+    }
+    if (targetIndex == null) return;
+
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    if (_currentIndex != targetIndex) {
+      setState(() => _currentIndex = targetIndex!);
     }
   }
 
@@ -182,6 +212,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _scrollController.dispose();
     AppLockScreen.sessionAuthenticated.removeListener(_handleSessionUnlock);
     AppLockScreen.sharedMediaTick.removeListener(_handleSharedMediaTick);
+    AppLockScreen.moduleSessionEpoch.removeListener(_onModuleSessionChanged);
+    appTabNavigationRequest.removeListener(_handleTabNavigationRequest);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -329,6 +361,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final bool hasExtraFeatures = settings.showFinancialManager || settings.isPeriodTrackerEnabled;
       
       if (!hasExtraFeatures) {
+        _currentIndex = 0;
         return _wrapWithKeyboardShortcuts(
           context: context,
           settings: settings,
@@ -480,7 +513,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
 
     void openNewTransaction() async {
-      if (!settings.showFinancialManager) return;
+      if (!settings.showFinancialManager ||
+          ModuleLockGate.isModuleCurrentlyLocked(settings, 'finances')) {
+        return;
+      }
       AppHaptics.lightImpact();
       await Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const TransactionEditorScreen()),
@@ -643,10 +679,28 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   List<Widget> _buildFeatureScreens(SettingsProvider settings) {
+    final int financesIndex = settings.showFinancialManager ? 1 : -1;
+    final int trackerIndex = settings.isPeriodTrackerEnabled
+        ? (settings.showFinancialManager ? 2 : 1)
+        : -1;
     return [
       _buildNotesScaffold(context, settings),
-      if (settings.showFinancialManager) const FinancialManagerScreen(),
-      if (settings.isPeriodTrackerEnabled) const PeriodTrackerScreen(),
+      if (settings.showFinancialManager)
+        ModuleLockGate(
+          moduleKey: 'finances',
+          moduleTitle: 'Finances',
+          isLockedSettingEnabled: settings.lockFinances,
+          isActive: _currentIndex == financesIndex,
+          child: const FinancialManagerScreen(),
+        ),
+      if (settings.isPeriodTrackerEnabled)
+        ModuleLockGate(
+          moduleKey: 'health',
+          moduleTitle: 'Health',
+          isLockedSettingEnabled: settings.lockHealth,
+          isActive: _currentIndex == trackerIndex,
+          child: const PeriodTrackerScreen(),
+        ),
     ];
   }
 
@@ -707,10 +761,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
 
     if (_currentIndex == financesIndex) {
+      if (ModuleLockGate.isModuleCurrentlyLocked(settings, 'finances')) return null;
       return _buildFinancesFAB(context);
     }
 
     if (_currentIndex == trackerIndex) {
+      if (ModuleLockGate.isModuleCurrentlyLocked(settings, 'health')) return null;
       return _buildTrackerFAB(context);
     }
 

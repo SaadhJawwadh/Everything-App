@@ -10,7 +10,7 @@ import 'database_constants.dart';
 import 'database_seed.dart';
 
 class DatabaseHelper {
-  static const int _databaseVersion = 26;
+  static const int _databaseVersion = 27;
   static const String _dbName = 'notes.db';
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
@@ -415,7 +415,8 @@ class DatabaseHelper {
         ${NoteFields.previewText} TEXT,
         ${NoteFields.deletedAt} TEXT,
         ${NoteFields.reminderAt} TEXT,
-        ${NoteFields.isLocked} INTEGER NOT NULL DEFAULT 0
+        ${NoteFields.isLocked} INTEGER NOT NULL DEFAULT 0,
+        ${NoteFields.searchText} TEXT
       )
     ''');
 
@@ -491,7 +492,8 @@ class DatabaseHelper {
         ${PeriodLogFields.endDate} TEXT,
         ${PeriodLogFields.intensity} TEXT NOT NULL,
         ${PeriodLogFields.notes} TEXT NOT NULL DEFAULT '',
-        ${PeriodLogFields.symptoms} TEXT NOT NULL DEFAULT '[]'
+        ${PeriodLogFields.symptoms} TEXT NOT NULL DEFAULT '[]',
+        ${PeriodLogFields.updatedAt} TEXT
       )
     ''');
 
@@ -765,6 +767,44 @@ class DatabaseHelper {
         final hasUuid = cols.any((col) => col['name'] == 'uuid');
         if (!hasUuid) {
           await db.execute('ALTER TABLE ${TableNames.transactions} ADD COLUMN uuid TEXT');
+        }
+      }
+    }
+    if (oldVersion < 27) {
+      final periodCols = await db.rawQuery('PRAGMA table_info(${TableNames.periodLogs})');
+      if (periodCols.isNotEmpty) {
+        final hasUpdatedAt = periodCols.any((col) => col['name'] == PeriodLogFields.updatedAt);
+        if (!hasUpdatedAt) {
+          await db.execute('ALTER TABLE ${TableNames.periodLogs} ADD COLUMN ${PeriodLogFields.updatedAt} TEXT');
+          await db.execute(
+            'UPDATE ${TableNames.periodLogs} SET ${PeriodLogFields.updatedAt} = COALESCE(${PeriodLogFields.endDate}, ${PeriodLogFields.startDate}) WHERE ${PeriodLogFields.updatedAt} IS NULL',
+          );
+        }
+      }
+
+      final noteCols = await db.rawQuery('PRAGMA table_info(${TableNames.notes})');
+      if (noteCols.isNotEmpty) {
+        final hasSearchText = noteCols.any((col) => col['name'] == NoteFields.searchText);
+        if (!hasSearchText) {
+          await db.execute('ALTER TABLE ${TableNames.notes} ADD COLUMN ${NoteFields.searchText} TEXT');
+          final noteRows = await db.query(
+            TableNames.notes,
+            columns: [NoteFields.id, NoteFields.content],
+          );
+          final batch = db.batch();
+          for (final row in noteRows) {
+            final id = row[NoteFields.id] as String?;
+            final content = row[NoteFields.content] as String? ?? '';
+            if (id != null) {
+              batch.update(
+                TableNames.notes,
+                {NoteFields.searchText: RichTextUtils.contentToSearchText(content)},
+                where: '${NoteFields.id} = ?',
+                whereArgs: [id],
+              );
+            }
+          }
+          await batch.commit(noResult: true);
         }
       }
     }

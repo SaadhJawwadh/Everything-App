@@ -981,4 +981,36 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get discreetNotificationTextSubtitle =>
       'Texto exibido em alertas de previsão do ciclo';
+
+  @override
+  String get autoBackupRecoveryKey => 'Chave de recuperação de backup auto';
+
+  @override
+  String get autoBackupRecoveryKeySubtitle =>
+      'Copie ou importe a chave para restaurar backups criptografados';
+
+  @override
+  String get perModulePrivacyLocks => 'Bloqueios por módulo e proteção';
+
+  @override
+  String get lockFinances => 'Bloquear aba Finanças';
+
+  @override
+  String get lockFinancesSubtitle => 'Exigir autenticação para abrir Finanças';
+
+  @override
+  String get lockHealth => 'Bloquear aba Saúde';
+
+  @override
+  String get lockHealthSubtitle => 'Exigir autenticação para abrir Saúde';
+
+  @override
+  String get screenshotShield => 'Escudo contra capturas';
+
+  @override
+  String get screenshotShieldSubtitle =>
+      'Bloquear capturas e gravação de tela no Android';
+
+  @override
+  String get lockAppNow => 'Bloquear app agora';
 }

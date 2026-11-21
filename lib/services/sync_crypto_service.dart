@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:isolate';
 import 'dart:typed_data';
+import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart' as enc;
 import 'native_core_bridge.dart';
 
@@ -42,19 +43,52 @@ class SyncCryptoService {
     return enc.Key(digest);
   }
 
+  static Uint8List _deriveMacKey(enc.Key encKey) {
+    final digest = Hmac(sha256, encKey.bytes).convert(utf8.encode('everything_p2p_mac_v3'));
+    return Uint8List.fromList(digest.bytes);
+  }
+
+  static String _computeMacV3(Uint8List macKey, String ivB64, String dataB64) {
+    final macInput = utf8.encode('3|$ivB64|$dataB64');
+    return base64.encode(Hmac(sha256, macKey).convert(macInput).bytes);
+  }
+
+  static bool _constantTimeEquals(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    int diff = 0;
+    for (int i = 0; i < a.length; i++) {
+      diff |= a[i] ^ b[i];
+    }
+    return diff == 0;
+  }
+
   /// Encrypts a raw text string into a base64 ciphertext with IV.
-  /// Set [legacyMode] to true when responding to older legacy clients.
+  /// Emits `v: 3` (AES-256-CBC + Encrypt-then-MAC HMAC-SHA256) by default while
+  /// keeping the `deriveKey` derivation so `v: 2` peers remain wire-compatible.
+  /// Set [legacyMode] to true when responding to older v1 endpoints.
   String? encryptPayload(String rawText, String secretKey, {bool legacyMode = false}) {
     try {
       final key = legacyMode ? deriveLegacyKey(secretKey) : deriveKey(secretKey);
       final iv = enc.IV.fromSecureRandom(16);
       final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
       final encrypted = encrypter.encrypt(rawText, iv: iv);
-      
+
+      if (legacyMode) {
+        final payloadMap = {
+          'v': 1,
+          'iv': iv.base64,
+          'data': encrypted.base64,
+        };
+        return base64.encode(utf8.encode(json.encode(payloadMap)));
+      }
+
+      final macKey = _deriveMacKey(key);
+      final mac = _computeMacV3(macKey, iv.base64, encrypted.base64);
       final payloadMap = {
-        'v': legacyMode ? 1 : 2,
+        'v': 3,
         'iv': iv.base64,
         'data': encrypted.base64,
+        'mac': mac,
       };
       return base64.encode(utf8.encode(json.encode(payloadMap)));
     } catch (_) {
@@ -79,9 +113,34 @@ class SyncCryptoService {
       final decodedJson = utf8.decode(base64.decode(encryptedBase64Payload));
       final map = json.decode(decodedJson) as Map<String, dynamic>;
       
-      final iv = enc.IV.fromBase64(map['iv'] as String);
-      final encryptedData = enc.Encrypted.fromBase64(map['data'] as String);
+      final ivStr = map['iv'] as String;
+      final dataStr = map['data'] as String;
+      final iv = enc.IV.fromBase64(ivStr);
+      final encryptedData = enc.Encrypted.fromBase64(dataStr);
       final version = map['v'] as int? ?? 1;
+
+      // v3: Strict Encrypt-then-MAC (HMAC-SHA256) — fail closed on missing/invalid MAC
+      if (version >= 3) {
+        final macField = map['mac'];
+        if (macField is! String || macField.isEmpty) {
+          return (null, false);
+        }
+        try {
+          final key = deriveKey(secretKey);
+          final macKey = _deriveMacKey(key);
+          final expectedMac = _computeMacV3(macKey, ivStr, dataStr);
+          if (!_constantTimeEquals(base64.decode(expectedMac), base64.decode(macField))) {
+            return (null, false);
+          }
+          final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
+          final decrypted = encrypter.decrypt(encryptedData, iv: iv);
+          if (decrypted.trim().isNotEmpty) {
+            json.decode(decrypted);
+            return (decrypted, false);
+          }
+        } catch (_) {}
+        return (null, false);
+      }
 
       // If version is explicitly 1 (legacy), try legacy first
       if (version == 1) {

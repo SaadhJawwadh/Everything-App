@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import '../../../../core/services/ocr_service.dart';
 import '../../../../services/gemini_nano_service.dart';
 
 class ParsedReceiptResult {
@@ -30,13 +30,10 @@ class ReceiptScannerService {
     final file = File(imagePath);
     if (!await file.exists()) return null;
 
-    final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
     try {
-      final inputImage = InputImage.fromFilePath(imagePath);
-      final RecognizedText recognizedText = await textRecognizer.processImage(inputImage);
-      final rawText = recognizedText.text;
+      final rawText = await OcrService.extractTextFromImage(imagePath) ?? '';
 
-      if (rawText.trim().isEmpty) {
+      if (rawText.isEmpty) {
         return const ParsedReceiptResult(rawText: '');
       }
 
@@ -53,8 +50,6 @@ class ReceiptScannerService {
     } catch (e) {
       debugPrint('[ReceiptScannerService] Error scanning receipt: $e');
       return null;
-    } finally {
-      await textRecognizer.close();
     }
   }
 

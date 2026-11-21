@@ -16,6 +16,7 @@ class Note {
   DateTime? deletedAt;
   DateTime? reminderAt;
   bool isLocked;
+  String? searchText;
 
   Note({
     required this.id,
@@ -33,6 +34,7 @@ class Note {
     this.deletedAt,
     this.reminderAt,
     this.isLocked = false,
+    this.searchText,
   });
 
   Map<String, dynamic> toMap() {
@@ -51,6 +53,7 @@ class Note {
       'deletedAt': deletedAt?.toIso8601String(),
       'reminderAt': reminderAt?.toIso8601String(),
       'isLocked': isLocked ? 1 : 0,
+      'searchText': searchText,
     };
   }
 
@@ -73,6 +76,7 @@ class Note {
       reminderAt:
           map['reminderAt'] != null ? DateTime.tryParse(map['reminderAt'].toString()) : null,
       isLocked: map['isLocked'] == 1 || map['isLocked'] == true,
+      searchText: map['searchText'],
     );
   }
 
@@ -90,6 +94,7 @@ class Note {
     DateTime? deletedAt,
     DateTime? reminderAt,
     bool? isLocked,
+    String? searchText,
   }) {
     return Note(
       id: id,
@@ -107,6 +112,7 @@ class Note {
       deletedAt: deletedAt ?? this.deletedAt,
       reminderAt: reminderAt ?? this.reminderAt,
       isLocked: isLocked ?? this.isLocked,
+      searchText: searchText ?? this.searchText,
     );
   }
 }

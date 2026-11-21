@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import '../data/models/split_bill_model.dart';
+import 'debt_simplifier_service.dart';
 
 import '../../../screens/app_lock_screen.dart';
 
@@ -137,5 +138,24 @@ class SplitShareService {
 
   static Future<void> copyToClipboard(String text) async {
     await Clipboard.setData(ClipboardData(text: text));
+  }
+
+  static String formatGroupSettlementMessage(
+    String groupTag,
+    List<SimplifiedTransfer> transfers, {
+    String currencySymbol = 'Rs.',
+  }) {
+    final buffer = StringBuffer();
+    buffer.writeln('🤝 Simplified Settlement Plan — $groupTag');
+    buffer.writeln('');
+    if (transfers.isEmpty) {
+      buffer.writeln('All balances are settled! ✅');
+    } else {
+      for (final t in transfers) {
+        final formatted = t.amount.toStringAsFixed(2).replaceAll('.00', '');
+        buffer.writeln('• ${t.from} → ${t.to}: $currencySymbol $formatted');
+      }
+    }
+    return buffer.toString().trim();
   }
 }

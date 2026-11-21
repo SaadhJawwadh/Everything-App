@@ -17,6 +17,7 @@
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <uses-feature android:name="android.hardware.wifi" android:required="false" />
 
     <!-- Enable support for all screen sizes including tablets and foldables -->
     <supports-screens

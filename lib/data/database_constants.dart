@@ -81,6 +81,7 @@ class NoteFields {
   static const String deletedAt = 'deletedAt';
   static const String reminderAt = 'reminderAt';
   static const String isLocked = 'isLocked';
+  static const String searchText = 'searchText';
 }
 
 class RecurringRuleFields {
@@ -123,4 +124,5 @@ class PeriodLogFields {
   static const String intensity = 'intensity';
   static const String notes = 'notes';
   static const String symptoms = 'symptoms';
+  static const String updatedAt = 'updatedAt';
 }

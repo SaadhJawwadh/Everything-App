@@ -21,6 +21,8 @@ import '../widgets/note_tag_picker_sheet.dart';
 import '../widgets/note_slash_command_overlay.dart';
 import '../widgets/note_ai_options_sheet.dart';
 import '../../../../core/services/app_haptics.dart';
+import '../../../../core/services/ocr_service.dart';
+import '../../../../core/ui/app_bottom_sheet.dart';
 
 import '../widgets/note_locked_gate.dart';
 import '../widgets/note_editor_top_bar.dart';
@@ -380,6 +382,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       slashLineStart: _slashLineStart,
       selectionRange: _getNormalizedSelectionRange(),
       onShowAiOptions: _showAiOptionsSheet,
+      onScanText: _showScanTextOptions,
     );
   }
 
@@ -456,7 +459,60 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       NoteMediaCoordinator.showImageOptions(
         context: context,
         onPickImage: _pickImage,
+        onScanText: _scanTextFromImage,
       );
+
+  Future<void> _showScanTextOptions() async {
+    await AppBottomSheet.show(
+      context: context,
+      title: 'Scan Text (OCR)',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.camera_alt_outlined),
+            title: const Text('Scan with Camera'),
+            onTap: () {
+              Navigator.pop(context);
+              _scanTextFromImage(ImageSource.camera);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library_outlined),
+            title: const Text('Extract from Gallery'),
+            onTap: () {
+              Navigator.pop(context);
+              _scanTextFromImage(ImageSource.gallery);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _scanTextFromImage(ImageSource source) async {
+    final extracted = await OcrService.pickAndExtractText(source);
+    if (!mounted) return;
+    if (extracted == null || extracted.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No readable text found in image'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    final (index, length) = _getNormalizedSelectionRange();
+    final safeIndex = index >= 0 && index < _quillController.document.length
+        ? index
+        : (_quillController.document.length - 1).clamp(0, _quillController.document.length);
+    _quillController.replaceText(
+      safeIndex,
+      length,
+      '$extracted\n',
+      TextSelection.collapsed(offset: safeIndex + extracted.length + 1),
+    );
+  }
 
   Future<void> saveNote() async {
     if (_isNoteInTrash) return;

@@ -20,6 +20,7 @@ import '../../services/spending_forecast_service.dart';
 class FinancialAnalyticsTab extends StatefulWidget {
   final List<TransactionModel> transactions;
   final List<Map<String, dynamic>> monthlyData;
+  final Map<String, double>? currentMonthCategoryExpenses;
   final String currency;
   final SettingsProvider settings;
   final VoidCallback onRefresh;
@@ -29,6 +30,7 @@ class FinancialAnalyticsTab extends StatefulWidget {
     super.key,
     required this.transactions,
     required this.monthlyData,
+    this.currentMonthCategoryExpenses,
     required this.currency,
     required this.settings,
     required this.onRefresh,
@@ -62,7 +64,25 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
   Map<String, double> _calculateCategoryExpenses() {
     final Map<String, double> totals = {};
     for (final t in widget.transactions) {
-      if (t.isExpense) {
+      if (t.isExpense && !t.isTransfer && t.category != '__reversal__') {
+        totals[t.category] = (totals[t.category] ?? 0.0) + t.amount;
+      }
+    }
+    return totals;
+  }
+
+  Map<String, double> _resolveCurrentMonthBudgetExpenses() {
+    if (widget.currentMonthCategoryExpenses != null) {
+      return widget.currentMonthCategoryExpenses!;
+    }
+    final now = DateTime.now();
+    final Map<String, double> totals = {};
+    for (final t in widget.transactions) {
+      if (t.isExpense &&
+          !t.isTransfer &&
+          t.category != '__reversal__' &&
+          t.date.year == now.year &&
+          t.date.month == now.month) {
         totals[t.category] = (totals[t.category] ?? 0.0) + t.amount;
       }
     }
@@ -71,7 +91,7 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
 
   double _calculateTotalExpense() {
     return widget.transactions
-        .where((t) => t.isExpense)
+        .where((t) => t.isExpense && !t.isTransfer && t.category != '__reversal__')
         .fold(0.0, (sum, t) => sum + t.amount);
   }
 
@@ -179,7 +199,7 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
                       : _activeDeckIndex == 1
                           ? _buildBudgetsSection(
                               forecast,
-                              categoryExpenses,
+                              _resolveCurrentMonthBudgetExpenses(),
                               colorScheme,
                               textTheme,
                             )

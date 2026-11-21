@@ -13,6 +13,7 @@ class NoteMediaCoordinator {
   static void showImageOptions({
     required BuildContext context,
     required Future<void> Function(ImageSource source) onPickImage,
+    Future<void> Function(ImageSource source)? onScanText,
   }) {
     AppBottomSheet.show(
       context: context,
@@ -36,6 +37,31 @@ class NoteMediaCoordinator {
             ),
             onTap: () => onPickImage(ImageSource.camera),
           ),
+          if (onScanText != null) ...[
+            const Divider(height: AppLayout.spaceL),
+            ListTile(
+              leading: const Icon(Icons.document_scanner_outlined),
+              title: const Text('Scan Text (Camera OCR)'),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppLayout.radiusM),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                onScanText(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.image_search_outlined),
+              title: const Text('Extract Text from Photo'),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppLayout.radiusM),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                onScanText(ImageSource.gallery);
+              },
+            ),
+          ],
         ],
       ),
     );

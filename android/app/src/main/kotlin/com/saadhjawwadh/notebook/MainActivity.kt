@@ -53,6 +53,10 @@ class MainActivity: FlutterFragmentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         instance = this
+        val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        if (prefs.getBoolean("flutter.screenshotShieldEnabled", false)) {
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        }
         handleIntent(intent)
         val filter = IntentFilter(Intent.ACTION_SCREEN_OFF)
         receiver = object : BroadcastReceiver() {
@@ -282,10 +286,19 @@ class MainActivity: FlutterFragmentActivity() {
                 result.success(wasOff)
             } else if (call.method == "setSecureRecents") {
                 // Hide app content from the Recents thumbnail while app lock is on (API 33+).
-                // FLAG_SECURE is deliberately avoided so screenshots keep working.
                 val hide = call.argument<Boolean>("hide") ?: false
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     setRecentsScreenshotEnabled(!hide)
+                }
+                result.success(true)
+            } else if (call.method == "setFlagSecure") {
+                val enabled = call.argument<Boolean>("enabled") ?: false
+                runOnUiThread {
+                    if (enabled) {
+                        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                    } else {
+                        window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                    }
                 }
                 result.success(true)
             } else {

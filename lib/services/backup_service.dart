@@ -34,6 +34,7 @@ import 'notification_service.dart';
 import 'p2p_relay_sync_service.dart';
 import 'sms_service.dart';
 import 'native_core_bridge.dart';
+import 'backup_vault_key_service.dart';
 
 const kAutoBackupTaskName = 'com.saadhjawwadh.notebook.autoBackup';
 const kP2pBackgroundSyncTaskName = 'com.saadhjawwadh.notebook.p2pBackgroundSync';
@@ -46,7 +47,11 @@ void callbackDispatcher() {
       WidgetsFlutterBinding.ensureInitialized();
       await NotificationService.initialize(isBackgroundIsolate: true);
       if (task == kAutoBackupTaskName) return await performAutoBackup();
-      if (task == SmsService.kDailySyncTaskName) return await SmsService.performDailyTransactionSync();
+      if (task == SmsService.kDailySyncTaskName) {
+        final ok = await SmsService.performDailyTransactionSync();
+        await NotificationService.checkUpcomingBillsAndDigest();
+        return ok;
+      }
       if (task == kP2pBackgroundSyncTaskName) {
         await P2pRelaySyncService.instance.drainOfflineRelayMailboxes();
         return true;
@@ -172,6 +177,15 @@ Future<String> generateBackupJson({Map<String, dynamic>? settingsOverride}) asyn
       'enableRecurringRules': prefs.getBool('enableRecurringRules') ?? true,
       'showTagFilterBar': prefs.getBool('showTagFilterBar') ?? true,
       'minimalEditorMode': prefs.getBool('minimalEditorMode') ?? false,
+      'enableHaptics': prefs.getBool('enableHaptics') ?? true,
+      'showMilestoneDelight': prefs.getBool('showMilestoneDelight') ?? true,
+      'showClarityMosaic': prefs.getBool('showClarityMosaic') ?? true,
+      'lockFinances': prefs.getBool('lockFinances') ?? false,
+      'lockHealth': prefs.getBool('lockHealth') ?? false,
+      'screenshotShieldEnabled': prefs.getBool('screenshotShieldEnabled') ?? false,
+      'budgetAlertsEnabled': prefs.getBool('budgetAlertsEnabled') ?? true,
+      'billRemindersEnabled': prefs.getBool('billRemindersEnabled') ?? true,
+      'weeklyDigestEnabled': prefs.getBool('weeklyDigestEnabled') ?? false,
     };
   }
 
@@ -212,18 +226,30 @@ Future<bool> performAutoBackup() async {
     final prefs = await SharedPreferences.getInstance();
     if (!(prefs.getBool('autoBackupEnabled') ?? false)) return true;
 
+    // Fail-closed: never fall back to writing plaintext JSON if vault key is unreadable.
+    final vaultKey = await BackupVaultKeyService.instance.getOrCreateVaultKey();
+    if (vaultKey == null || vaultKey.isEmpty) {
+      debugPrint('[AutoBackup] Aborted: Backup vault key unavailable (fail-closed).');
+      return false;
+    }
+
     // Flush any pending widget checkbox changes into notes db before backup
     await WidgetHelper.syncPendingTodoToggles();
 
     final appDir = await getApplicationDocumentsDirectory();
     final jsonContent = await generateBackupJson();
+    final encryptedContent = await BackupService.encryptBackupJsonAsync(
+      jsonContent,
+      vaultKey,
+      keySource: 'vault',
+    );
     final dateStr = DateTime.now().toString().replaceAll(RegExp(r'[: ]'), '_').split('.')[0];
     final fileName = 'notebook_auto_backup_$dateStr.json';
 
     // 1. Primary Invariant: Always maintain internal sandboxed snapshot
     // (Preserved by Android fragile data prompts and Google Drive Cloud Backup)
     final internalFile = File('${appDir.path}/$fileName');
-    await internalFile.writeAsString(jsonContent);
+    await internalFile.writeAsString(encryptedContent);
     await _rotateBackups(appDir.path);
 
     // 2. Dual-Save: Also mirror to user-selected custom external directory if configured
@@ -236,7 +262,7 @@ Future<bool> performAutoBackup() async {
           await targetDir.create(recursive: true);
         }
         final customFile = File('$targetPath/$fileName');
-        await customFile.writeAsString(jsonContent);
+        await customFile.writeAsString(encryptedContent);
         await _rotateBackups(targetPath);
         savedToCustom = true;
       } catch (e) {
@@ -381,7 +407,7 @@ class BackupService {
 
   /// Encrypts raw JSON string with AES-256-CBC + Encrypt-then-MAC HMAC-SHA256 (v3)
   /// using PBKDF2 key derivation into an encrypted container JSON.
-  static String encryptBackupJson(String rawJson, String passphrase) {
+  static String encryptBackupJson(String rawJson, String passphrase, {String? keySource}) {
     final rng = math.Random.secure();
     final salt = Uint8List.fromList(List<int>.generate(16, (_) => rng.nextInt(256)));
     final key = _deriveKey(passphrase, salt);
@@ -396,9 +422,10 @@ class BackupService {
       cipherBytes: encrypted.bytes,
     );
 
-    final container = {
+    final container = <String, dynamic>{
       'version': 3,
       'encrypted': true,
+      if (keySource != null) 'keySource': keySource,
       'salt': base64.encode(salt),
       'iv': iv.base64,
       'ciphertext': encrypted.base64,
@@ -409,8 +436,8 @@ class BackupService {
   }
 
   /// Offloads heavy backup encryption to a background isolate, eliminating UI thread frame drops.
-  static Future<String> encryptBackupJsonAsync(String rawJson, String passphrase) {
-    return Isolate.run(() => encryptBackupJson(rawJson, passphrase));
+  static Future<String> encryptBackupJsonAsync(String rawJson, String passphrase, {String? keySource}) {
+    return Isolate.run(() => encryptBackupJson(rawJson, passphrase, keySource: keySource));
   }
 
   /// Decrypts an encrypted container JSON using the provided passphrase back to the raw JSON string.
@@ -424,7 +451,11 @@ class BackupService {
     final ciphertext = enc.Encrypted.fromBase64(container['ciphertext'] as String);
     final key = _deriveKey(passphrase, salt);
 
+    final containerVersion = (container['version'] as num?)?.toInt() ?? 2;
     final macField = container['mac'];
+    if (containerVersion >= 3 && (macField is! String || macField.isEmpty)) {
+      throw const FormatException('Backup integrity check failed: missing authentication tag');
+    }
     if (macField is String && macField.isNotEmpty) {
       final macKey = _deriveMacKey(key.bytes);
       final expectedMac = _computeBackupMac(
@@ -600,23 +631,35 @@ class BackupService {
 
       // Handle encrypted backup container
       if (data['encrypted'] == true) {
-        if (!context.mounted) return;
-        final passphrase = await _promptPassphrase(context, isExport: false);
-        if (passphrase == null || passphrase.isEmpty) return;
-        try {
-          final decryptedJson = await decryptBackupJsonAsync(data, passphrase);
-          data = Map<String, dynamic>.from(await compute(_decodeJsonIsolate, decryptedJson));
-        } catch (e) {
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Failed to decrypt backup: Incorrect password or corrupted file'),
-                backgroundColor: Theme.of(context).colorScheme.error,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
+        bool decryptedWithVault = false;
+        final vaultKey = await BackupVaultKeyService.instance.readVaultKey();
+        if (vaultKey != null && vaultKey.isNotEmpty) {
+          try {
+            final decryptedJson = await decryptBackupJsonAsync(data, vaultKey);
+            data = Map<String, dynamic>.from(await compute(_decodeJsonIsolate, decryptedJson));
+            decryptedWithVault = true;
+          } catch (_) {}
+        }
+
+        if (!decryptedWithVault) {
+          if (!context.mounted) return;
+          final passphrase = await _promptPassphrase(context, isExport: false);
+          if (passphrase == null || passphrase.isEmpty) return;
+          try {
+            final decryptedJson = await decryptBackupJsonAsync(data, passphrase);
+            data = Map<String, dynamic>.from(await compute(_decodeJsonIsolate, decryptedJson));
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Failed to decrypt backup: Incorrect password or corrupted file'),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+            return;
           }
-          return;
         }
       }
 
@@ -717,6 +760,8 @@ class BackupService {
       }
 
       if (data.containsKey('notes')) {
+        final noteColsInfo = await txn.rawQuery('PRAGMA table_info(notes)');
+        final allowedNoteCols = noteColsInfo.map((c) => c['name']?.toString()).whereType<String>().toSet();
         for (final row in data['notes']) {
           final map = Map<String, Object?>.from(row)..remove('tags');
           if (map['isArchived'] is bool) {
@@ -732,8 +777,15 @@ class BackupService {
             final content = map['content'] as String? ?? '';
             map['previewText'] = RichTextUtils.contentToPlainText(content, maxLines: 6);
           }
+          if (!map.containsKey('searchText') || map['searchText'] == null) {
+            final content = map['content'] as String? ?? '';
+            map['searchText'] = RichTextUtils.contentToSearchText(content);
+          }
           if (!map.containsKey('category') || map['category'] == null || (map['category'] as String).isEmpty) {
             map['category'] = 'Notes';
+          }
+          if (allowedNoteCols.isNotEmpty) {
+            map.removeWhere((k, _) => !allowedNoteCols.contains(k));
           }
           batch.insert('notes', map, conflictAlgorithm: ConflictAlgorithm.replace);
         }
@@ -816,8 +868,14 @@ class BackupService {
         }
       }
       if (data.containsKey('periodLogs')) {
+        final periodColsInfo = await txn.rawQuery('PRAGMA table_info(period_logs)');
+        final allowedPeriodCols = periodColsInfo.map((c) => c['name']?.toString()).whereType<String>().toSet();
         for (final row in data['periodLogs']) {
-          batch.insert('period_logs', Map<String, Object?>.from(row), conflictAlgorithm: ConflictAlgorithm.replace);
+          final map = Map<String, Object?>.from(row);
+          if (allowedPeriodCols.isNotEmpty) {
+            map.removeWhere((k, _) => !allowedPeriodCols.contains(k));
+          }
+          batch.insert('period_logs', map, conflictAlgorithm: ConflictAlgorithm.replace);
         }
       }
       if (data.containsKey('splitBills') && data['splitBills'] is List) {

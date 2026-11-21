@@ -156,7 +156,6 @@
   "restoreDefaults": "Restaurar padrões",
   "restoreDefaultCategoriesTitle": "Restaurar categorias padrão?",
   "restoreDefaultCategoriesContent": "As categorias personalizadas serão removidas e as integradas redefinidas para as cores e palavras-chave padrão. As transações existentes mantêm seus rótulos.",
-  "restore": "Restaurar",
   "categoriesRestored": "Categorias restauradas para os padrões",
   "newCategory": "Nova categoria",
   "editCategory": "Editar categoria",
@@ -292,5 +291,15 @@
   "discreetPrivacyMode": "Modo de privacidade discreto",
   "discreetPrivacyModeSubtitle": "Ocultar dias e fases do ciclo no painel até tocar",
   "discreetNotificationText": "Texto de notificação discreta",
-  "discreetNotificationTextSubtitle": "Texto exibido em alertas de previsão do ciclo"
+  "discreetNotificationTextSubtitle": "Texto exibido em alertas de previsão do ciclo",
+  "autoBackupRecoveryKey": "Chave de recuperação de backup auto",
+  "autoBackupRecoveryKeySubtitle": "Copie ou importe a chave para restaurar backups criptografados",
+  "perModulePrivacyLocks": "Bloqueios por módulo e proteção",
+  "lockFinances": "Bloquear aba Finanças",
+  "lockFinancesSubtitle": "Exigir autenticação para abrir Finanças",
+  "lockHealth": "Bloquear aba Saúde",
+  "lockHealthSubtitle": "Exigir autenticação para abrir Saúde",
+  "screenshotShield": "Escudo contra capturas",
+  "screenshotShieldSubtitle": "Bloquear capturas e gravação de tela no Android",
+  "lockAppNow": "Bloquear app agora"
 }

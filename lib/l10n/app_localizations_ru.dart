@@ -999,4 +999,36 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get discreetNotificationTextSubtitle =>
       'Текст для напоминаний о прогнозе цикла';
+
+  @override
+  String get autoBackupRecoveryKey => 'Ключ восстановления автокопий';
+
+  @override
+  String get autoBackupRecoveryKeySubtitle =>
+      'Скопируйте или импортируйте ключ для восстановления зашифрованных копий';
+
+  @override
+  String get perModulePrivacyLocks => 'Блокировка разделов и защита экрана';
+
+  @override
+  String get lockFinances => 'Блокировать раздел «Финансы»';
+
+  @override
+  String get lockFinancesSubtitle => 'Требовать вход для открытия «Финансов»';
+
+  @override
+  String get lockHealth => 'Блокировать раздел «Здоровье»';
+
+  @override
+  String get lockHealthSubtitle => 'Требовать вход для открытия «Здоровья»';
+
+  @override
+  String get screenshotShield => 'Защита от скриншотов';
+
+  @override
+  String get screenshotShieldSubtitle =>
+      'Блокировать скриншоты и запись экрана на Android';
+
+  @override
+  String get lockAppNow => 'Заблокировать сейчас';
 }

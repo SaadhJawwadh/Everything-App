@@ -1861,6 +1861,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Text shown in cycle prediction alerts'**
   String get discreetNotificationTextSubtitle;
+
+  /// No description provided for @autoBackupRecoveryKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-Backup Recovery Key'**
+  String get autoBackupRecoveryKey;
+
+  /// No description provided for @autoBackupRecoveryKeySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy or import key to restore encrypted auto-backups'**
+  String get autoBackupRecoveryKeySubtitle;
+
+  /// No description provided for @perModulePrivacyLocks.
+  ///
+  /// In en, this message translates to:
+  /// **'Module Locks & Screen Protection'**
+  String get perModulePrivacyLocks;
+
+  /// No description provided for @lockFinances.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock Finances Tab'**
+  String get lockFinances;
+
+  /// No description provided for @lockFinancesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Require authentication to open Finances'**
+  String get lockFinancesSubtitle;
+
+  /// No description provided for @lockHealth.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock Health Tab'**
+  String get lockHealth;
+
+  /// No description provided for @lockHealthSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Require authentication to open Health'**
+  String get lockHealthSubtitle;
+
+  /// No description provided for @screenshotShield.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshot Shield'**
+  String get screenshotShield;
+
+  /// No description provided for @screenshotShieldSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Block screenshots and screen recording on Android'**
+  String get screenshotShieldSubtitle;
+
+  /// No description provided for @lockAppNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock App Now'**
+  String get lockAppNow;
 }
 
 class _AppLocalizationsDelegate

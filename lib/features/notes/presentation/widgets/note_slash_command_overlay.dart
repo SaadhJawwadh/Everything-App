@@ -12,6 +12,7 @@ class NoteSlashCommandOverlay extends StatelessWidget {
 
   static const List<SlashCommandItem> defaultCommands = [
     (label: 'AI Assist', command: 'ai', icon: Icons.auto_awesome, description: 'Launch Gemini AI tools'),
+    (label: 'Scan Text (OCR)', command: 'scan', icon: Icons.document_scanner_outlined, description: 'Extract text from photo'),
     (label: 'Checklist', command: 'todo', icon: Icons.check_box_outlined, description: 'Interactive to-do checkbox'),
     (label: 'Table', command: 'table', icon: Icons.table_chart_outlined, description: 'Insert 3x3 data grid'),
     (label: 'Code Block', command: 'code', icon: Icons.code, description: 'Monospace code container'),
@@ -86,8 +87,10 @@ class NoteSlashCommandOverlay extends StatelessWidget {
           ),
           const SizedBox(height: 6.0),
           Flexible(
-            child: ListView.builder(
-              shrinkWrap: true,
+            child: Material(
+              type: MaterialType.transparency,
+              child: ListView.builder(
+                shrinkWrap: true,
               padding: const EdgeInsets.symmetric(vertical: 4),
               itemCount: filteredCommands.length,
               itemBuilder: (context, index) {
@@ -137,6 +140,7 @@ class NoteSlashCommandOverlay extends StatelessWidget {
                   onTap: () => onCommandSelected(cmd.command),
                 );
               },
+            ),
             ),
           ),
         ],

@@ -156,7 +156,6 @@
   "restoreDefaults": "恢复默认",
   "restoreDefaultCategoriesTitle": "恢复默认分类？",
   "restoreDefaultCategoriesContent": "自定义分类将被移除，内置分类将重置为默认颜色和关键字。现有交易将保留其分类标签。",
-  "restore": "恢复",
   "categoriesRestored": "分类已恢复为默认值",
   "newCategory": "新建分类",
   "editCategory": "编辑分类",
@@ -292,5 +291,15 @@
   "discreetPrivacyMode": "隐私低调模式",
   "discreetPrivacyModeSubtitle": "隐藏仪表盘上的周期天数和阶段，轻点显示",
   "discreetNotificationText": "隐私通知文本",
-  "discreetNotificationTextSubtitle": "经期预测提醒中显示的自定义文本"
+  "discreetNotificationTextSubtitle": "经期预测提醒中显示的自定义文本",
+  "autoBackupRecoveryKey": "自动备份恢复密钥",
+  "autoBackupRecoveryKeySubtitle": "复制或导入密钥以恢复加密的自动备份",
+  "perModulePrivacyLocks": "模块锁与屏幕保护",
+  "lockFinances": "锁定财务标签页",
+  "lockFinancesSubtitle": "打开财务需要身份验证",
+  "lockHealth": "锁定健康标签页",
+  "lockHealthSubtitle": "打开健康需要身份验证",
+  "screenshotShield": "防截屏保护",
+  "screenshotShieldSubtitle": "在 Android 上禁止截屏和录屏",
+  "lockAppNow": "立即锁定应用"
 }

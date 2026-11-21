@@ -17,15 +17,16 @@ class PeriodRepository {
 
   Future<PeriodLog> createPeriodLog(PeriodLog log) async {
     final db = await _db;
-    await db.delete(TableNames.deletedPeriodLogs, where: 'id = ?', whereArgs: [log.id]);
-    await db.insert(TableNames.periodLogs, log.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+    final stamped = log.copyWith(updatedAt: log.updatedAt ?? DateTime.now());
+    await db.delete(TableNames.deletedPeriodLogs, where: 'id = ?', whereArgs: [stamped.id]);
+    await db.insert(TableNames.periodLogs, stamped.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
     if (!kIsWeb) {
       try {
         await NotificationService.schedulePeriodNotifications();
       } catch (_) {}
     }
     P2pSyncProvider.activeInstance?.triggerEventSync();
-    return log;
+    return stamped;
   }
 
   Future<PeriodLog?> readPeriodLog(String id) async {
@@ -42,7 +43,8 @@ class PeriodRepository {
 
   Future<int> updatePeriodLog(PeriodLog log) async {
     final db = await _db;
-    final res = await db.update(TableNames.periodLogs, log.toMap(), where: '${PeriodLogFields.id} = ?', whereArgs: [log.id]);
+    final stamped = log.copyWith(updatedAt: DateTime.now());
+    final res = await db.update(TableNames.periodLogs, stamped.toMap(), where: '${PeriodLogFields.id} = ?', whereArgs: [stamped.id]);
     if (!kIsWeb) {
       try {
         await NotificationService.schedulePeriodNotifications();

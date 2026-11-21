@@ -40,7 +40,7 @@
   "emptyNotesSubtitle": "உங்கள் எண்ணங்களை எழுத + தட்டவும்",
   "archive": "காப்பகம்",
   "trash": "குப்பைத்தொட்டி",
-  "restore": "மீட்டெடு",
+  "restore": "மீட்டமை",
   "deletePermanently": "நிரந்தரமாக நீக்கு",
   "lockedNote": "பூட்டிய குறிப்பு",
   "appLocked": "செயலி பூட்டப்பட்டுள்ளது",
@@ -156,7 +156,6 @@
   "restoreDefaults": "இயல்புநிலையை மீட்டமை",
   "restoreDefaultCategoriesTitle": "இயல்புநிலை வகைகளை மீட்டமைக்கவா?",
   "restoreDefaultCategoriesContent": "தனிப்பயன் வகைகள் நீக்கப்படும், மேலும் உள்ளமைக்கப்பட்ட வகைகள் அவற்றின் இயல்புநிலை நிறங்கள் மற்றும் முக்கிய சொற்களுக்கு மீட்டமைக்கப்படும். ஏற்கனவே உள்ள பரிவர்த்தனைகள் அவற்றின் வகை லேபிள்களைத் தக்க வைத்துக் கொள்ளும்.",
-  "restore": "மீட்டமை",
   "categoriesRestored": "வகைகள் இயல்புநிலைக்கு மீட்டமைக்கப்பட்டன",
   "newCategory": "புதிய வகை",
   "editCategory": "வகையைத் திருத்து",
@@ -292,5 +291,15 @@
   "discreetPrivacyMode": "ரகசியத் தனியுரிமை பயன்முறை",
   "discreetPrivacyModeSubtitle": "முகப்புத் திரையில் சுழற்சி நாட்கள் மற்றும் கட்டங்களைத் தட்டினால் மட்டுமே காட்டு",
   "discreetNotificationText": "ரகசிய அறிவிப்பு உரை",
-  "discreetNotificationTextSubtitle": "சுழற்சி கணிப்பு விழிப்பூட்டல்களில் காட்டப்படும் உரை"
+  "discreetNotificationTextSubtitle": "சுழற்சி கணிப்பு விழிப்பூட்டல்களில் காட்டப்படும் உரை",
+  "autoBackupRecoveryKey": "தானியங்கி பேக்கப் மீட்பு சாவி",
+  "autoBackupRecoveryKeySubtitle": "மறைகுறியாக்கப்பட்ட பேக்கப்களை மீட்டெடுக்க சாவியை நகலெடுக்கவும் அல்லது இறக்குமதி செய்யவும்",
+  "perModulePrivacyLocks": "தனிப்பகுதி பூட்டு & திரை பாதுகாப்பு",
+  "lockFinances": "நிதி பகுதியை பூட்டு",
+  "lockFinancesSubtitle": "நிதி பகுதியைத் திறக்க அங்கீகாரம் தேவை",
+  "lockHealth": "சுகாதார பகுதியை பூட்டு",
+  "lockHealthSubtitle": "சுகாதார பகுதியைத் திறக்க அங்கீகாரம் தேவை",
+  "screenshotShield": "திரைப்படப் பாதுகாப்பு",
+  "screenshotShieldSubtitle": "Android இல் ஸ்கிரீன்ஷாட் மற்றும் திரைப் பதிவைத் தடுக்கவும்",
+  "lockAppNow": "இப்போதே செயலியைப் பூட்டு"
 }

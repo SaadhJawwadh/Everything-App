@@ -109,6 +109,9 @@ class SmsService {
         title: inserted.isExpense ? '💳 Expense Auto-Imported' : '💰 Income Auto-Imported',
         body: '${inserted.isExpense ? "Spent" : "Received"} ${inserted.amount.toStringAsFixed(0)} • ${inserted.description}',
       );
+      if (inserted.isExpense && !inserted.isTransfer) {
+        await NotificationService.checkBudgetThresholdsForCategory(inserted.category);
+      }
       return inserted;
     }
   }

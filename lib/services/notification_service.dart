@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'period_prediction_service.dart';
+import '../data/repositories/recurring_rule_repository.dart';
+import '../features/finances/data/transaction_repository.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -61,9 +64,18 @@ class NotificationService {
     }
   }
 
-  /// Opens the note a reminder notification points at (`note:` payload).
+  /// Routes notification taps (`note:`, `period_tracker`, `finance:*`) to the right destination.
   static Future<void> _handleNotificationTap(String? payload) async {
-    if (payload == null || !payload.startsWith('note:')) return;
+    if (payload == null) return;
+    if (payload == 'period_tracker') {
+      appTabNavigationRequest.value = 'health';
+      return;
+    }
+    if (payload == 'finance:budgets' || payload == 'finance:ledger') {
+      appTabNavigationRequest.value = 'finances';
+      return;
+    }
+    if (!payload.startsWith('note:')) return;
     final noteId = payload.substring(5);
     try {
       final note = await NoteRepository.instance.readNote(noteId);
@@ -431,5 +443,171 @@ class NotificationService {
     try {
       await _notificationsPlugin.cancel(kProTipNotificationId);
     } catch (_) {}
+  }
+
+  /// Deterministic 24-bit FNV-1a hash (stable across isolates & restarts).
+  static int fnv1a24(String input) {
+    int hash = 0x811c9dc5;
+    for (final byte in utf8.encode(input)) {
+      hash ^= byte;
+      hash = (hash * 0x01000193) & 0xFFFFFFFF;
+    }
+    return hash & 0x00FFFFFF;
+  }
+
+  static int budgetNotificationId(String category, int threshold) =>
+      0x46000000 | fnv1a24('${category.trim().toLowerCase()}:$threshold');
+
+  static int billNotificationId(String ruleId) =>
+      0x47000000 | fnv1a24(ruleId);
+
+  static String isoWeekKey(DateTime date) {
+    final dayOfYear = int.parse(
+      '${date.difference(DateTime(date.year, 1, 1)).inDays + 1}',
+    );
+    final woy = ((dayOfYear - date.weekday + 10) ~/ 7).clamp(1, 53);
+    return '${date.year}-W${woy.toString().padLeft(2, '0')}';
+  }
+
+  /// Fires an 80% or 100% category budget threshold alert (deduped once per
+  /// category/threshold/month) after a new expense is logged.
+  static Future<void> checkBudgetThresholdsForCategory(String category) async {
+    if (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST')) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (!(prefs.getBool('showFinancialManager') ?? false)) return;
+      if (!(prefs.getBool('budgetAlertsEnabled') ?? true)) return;
+
+      final budgetsRaw = prefs.getString('categoryBudgets');
+      if (budgetsRaw == null || budgetsRaw.isEmpty) return;
+      final budgetsMap = jsonDecode(budgetsRaw) as Map<String, dynamic>;
+      final limit = (budgetsMap[category] as num?)?.toDouble();
+      if (limit == null || limit <= 0) return;
+
+      final now = DateTime.now();
+      final allTxs = await TransactionRepository.instance.readAllTransactions();
+      final monthSpend = allTxs
+          .where((t) =>
+              t.deletedAt == null &&
+              t.isExpense &&
+              !t.isTransfer &&
+              t.category == category &&
+              t.date.year == now.year &&
+              t.date.month == now.month)
+          .fold<double>(0.0, (sum, t) => sum + t.amount);
+
+      final pct = (monthSpend / limit) * 100.0;
+      final threshold = pct >= 100.0 ? 100 : (pct >= 80.0 ? 80 : 0);
+      if (threshold == 0) return;
+
+      final monthKey = '${now.year}-${now.month.toString().padLeft(2, '0')}';
+      final dedupKey = 'budget_alert_${monthKey}_${category.toLowerCase()}_$threshold';
+      if (prefs.getBool(dedupKey) ?? false) return;
+
+      await prefs.setBool(dedupKey, true);
+      final currency = prefs.getString('currency') ?? 'LKR';
+      await _notificationsPlugin.show(
+        budgetNotificationId(category, threshold),
+        threshold == 100
+            ? '$category Budget Reached (100%)'
+            : '$category Budget at ${pct.round()}%',
+        'Spent $currency ${monthSpend.toStringAsFixed(0)} of $currency ${limit.toStringAsFixed(0)} this month.',
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'finance_budget_alerts_channel',
+            'Budget Alerts',
+            channelDescription: 'Warnings when monthly category budgets reach 80% or 100%',
+            importance: Importance.high,
+            priority: Priority.high,
+            icon: 'ic_notification',
+            largeIcon: DrawableResourceAndroidBitmap('launcher_icon'),
+          ),
+        ),
+        payload: 'finance:budgets',
+      );
+    } catch (e) {
+      debugPrint('[NotificationService] checkBudgetThresholdsForCategory error: $e');
+    }
+  }
+
+  /// Checks 48h upcoming recurring bills and optional Sunday Weekly Spend Digest.
+  static Future<void> checkUpcomingBillsAndDigest() async {
+    if (!kIsWeb && Platform.environment.containsKey('FLUTTER_TEST')) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (!(prefs.getBool('showFinancialManager') ?? false)) return;
+      final currency = prefs.getString('currency') ?? 'LKR';
+      final now = DateTime.now();
+
+      if (prefs.getBool('billRemindersEnabled') ?? true) {
+        final rules = await RecurringRuleRepository.instance.readAllRules();
+        final horizon = now.add(const Duration(hours: 48));
+        for (final rule in rules) {
+          if (!rule.isExpense) continue;
+          if (rule.nextDue.isAfter(now) && !rule.nextDue.isAfter(horizon)) {
+            final dueIso = rule.nextDue.toIso8601String().split('T').first;
+            final dedupKey = 'bill_alert_${rule.id}_$dueIso';
+            if (prefs.getBool(dedupKey) ?? false) continue;
+            await prefs.setBool(dedupKey, true);
+            await _notificationsPlugin.show(
+              billNotificationId(rule.id),
+              'Upcoming Bill: ${rule.description}',
+              'Due $dueIso • $currency ${rule.amount.toStringAsFixed(0)} (${rule.category})',
+              const NotificationDetails(
+                android: AndroidNotificationDetails(
+                  'finance_bill_reminders_channel',
+                  'Bill Reminders',
+                  channelDescription: 'Reminders 48 hours before recurring bills are due',
+                  importance: Importance.defaultImportance,
+                  priority: Priority.defaultPriority,
+                  icon: 'ic_notification',
+                  largeIcon: DrawableResourceAndroidBitmap('launcher_icon'),
+                ),
+              ),
+              payload: 'finance:ledger',
+            );
+          }
+        }
+      }
+
+      if ((prefs.getBool('weeklyDigestEnabled') ?? false) && now.weekday == DateTime.sunday) {
+        final weekKey = isoWeekKey(now);
+        final dedupKey = 'weekly_digest_$weekKey';
+        if (!(prefs.getBool(dedupKey) ?? false)) {
+          await prefs.setBool(dedupKey, true);
+          final weekAgo = now.subtract(const Duration(days: 7));
+          final allTxs = await TransactionRepository.instance.readAllTransactions();
+          double weekExpense = 0;
+          double weekIncome = 0;
+          for (final t in allTxs) {
+            if (t.deletedAt != null || t.isTransfer || t.date.isBefore(weekAgo)) continue;
+            if (t.isExpense) {
+              weekExpense += t.amount;
+            } else {
+              weekIncome += t.amount;
+            }
+          }
+          await _notificationsPlugin.show(
+            0x48000001,
+            'Weekly Spend Digest ($weekKey)',
+            'Spent $currency ${weekExpense.toStringAsFixed(0)} • Income $currency ${weekIncome.toStringAsFixed(0)} over the last 7 days.',
+            const NotificationDetails(
+              android: AndroidNotificationDetails(
+                'finance_weekly_digest_channel',
+                'Weekly Spend Digest',
+                channelDescription: 'Optional Sunday summary of weekly cash flow',
+                importance: Importance.defaultImportance,
+                priority: Priority.defaultPriority,
+                icon: 'ic_notification',
+                largeIcon: DrawableResourceAndroidBitmap('launcher_icon'),
+              ),
+            ),
+            payload: 'finance:ledger',
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('[NotificationService] checkUpcomingBillsAndDigest error: $e');
+    }
   }
 }

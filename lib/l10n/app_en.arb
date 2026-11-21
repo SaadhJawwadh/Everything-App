@@ -12,7 +12,9 @@
   "noteCount": "{count, plural, =1{1 note} other{{count} notes}}",
   "@noteCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "searchNotes": "Search notes...",
@@ -80,7 +82,9 @@
   "cycleDay": "Cycle Day {day}",
   "@cycleDay": {
     "placeholders": {
-      "day": {"type": "int"}
+      "day": {
+        "type": "int"
+      }
     }
   },
   "periodLog": "Period Log",
@@ -131,7 +135,9 @@
   "noSettingsFound": "No settings matching \"{query}\"",
   "@noSettingsFound": {
     "placeholders": {
-      "query": {"type": "String"}
+      "query": {
+        "type": "String"
+      }
     }
   },
   "quickSuggestions": "Quick suggestions:",
@@ -139,7 +145,9 @@
   "selectedCount": "{count, plural, =1{1 selected} other{{count} selected}}",
   "@selectedCount": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "selectAll": "Select all",
@@ -173,20 +181,23 @@
   "allTasksCompleted": "{count, plural, =1{All 1 task completed} other{All {count} tasks completed}}",
   "@allTasksCompleted": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "moreItems": "+{count, plural, =1{1 more item} other{{count} more items}}",
   "@moreItems": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "manageCategories": "Manage Categories",
   "restoreDefaults": "Restore defaults",
   "restoreDefaultCategoriesTitle": "Restore default categories?",
   "restoreDefaultCategoriesContent": "Custom categories will be removed and built-in categories reset to their default colors and keywords. Existing transactions keep their category labels.",
-  "restore": "Restore",
   "categoriesRestored": "Categories restored to defaults",
   "newCategory": "New Category",
   "editCategory": "Edit Category",
@@ -204,7 +215,9 @@
   "deleteCategoryTitle": "Delete \"{name}\"?",
   "@deleteCategoryTitle": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "deleteCategoryContent": "Existing transactions with this category will be reassigned to \"Other\" so your history stays intact.",
@@ -238,7 +251,9 @@
   "notesMovedToTrash": "{count, plural, =1{Note moved to Trash} other{{count} notes moved to Trash}}",
   "@notesMovedToTrash": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "lockedNoteDescription": "This note is protected with a password or biometrics.",
@@ -247,13 +262,17 @@
   "timeMinutesAgo": "{minutes}m ago",
   "@timeMinutesAgo": {
     "placeholders": {
-      "minutes": {"type": "int"}
+      "minutes": {
+        "type": "int"
+      }
     }
   },
   "timeHoursAgo": "{hours}h ago",
   "@timeHoursAgo": {
     "placeholders": {
-      "hours": {"type": "int"}
+      "hours": {
+        "type": "int"
+      }
     }
   },
   "appLockSubtitle": "Authentication required to access content",
@@ -266,13 +285,17 @@
   "timeoutSeconds": "{seconds} Seconds",
   "@timeoutSeconds": {
     "placeholders": {
-      "seconds": {"type": "int"}
+      "seconds": {
+        "type": "int"
+      }
     }
   },
   "timeoutMinutes": "{minutes, plural, =1{1 Minute} other{{minutes} Minutes}}",
   "@timeoutMinutes": {
     "placeholders": {
-      "minutes": {"type": "int"}
+      "minutes": {
+        "type": "int"
+      }
     }
   },
   "peerToPeerSync": "Peer-to-Peer Sync",
@@ -352,5 +375,15 @@
   "discreetPrivacyMode": "Discreet Privacy Mode",
   "discreetPrivacyModeSubtitle": "Conceal cycle day numbers and phases on dashboard with tap-to-reveal",
   "discreetNotificationText": "Discreet Notification Text",
-  "discreetNotificationTextSubtitle": "Text shown in cycle prediction alerts"
+  "discreetNotificationTextSubtitle": "Text shown in cycle prediction alerts",
+  "autoBackupRecoveryKey": "Auto-Backup Recovery Key",
+  "autoBackupRecoveryKeySubtitle": "Copy or import key to restore encrypted auto-backups",
+  "perModulePrivacyLocks": "Module Locks & Screen Protection",
+  "lockFinances": "Lock Finances Tab",
+  "lockFinancesSubtitle": "Require authentication to open Finances",
+  "lockHealth": "Lock Health Tab",
+  "lockHealthSubtitle": "Require authentication to open Health",
+  "screenshotShield": "Screenshot Shield",
+  "screenshotShieldSubtitle": "Block screenshots and screen recording on Android",
+  "lockAppNow": "Lock App Now"
 }

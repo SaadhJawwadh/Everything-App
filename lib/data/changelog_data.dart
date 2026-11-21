@@ -49,29 +49,30 @@ class ChangelogRelease {
 
 /// Latest release kept in Dart for synchronous rendering.
 final ChangelogRelease kLatestChangelog = ChangelogRelease(
-  version: 'v3.6.0',
-  date: 'November 20, 2026',
+  version: 'v3.7.0',
+  date: 'November 21, 2026',
   isLatest: true,
   categories: [
     ChangelogCategory(
       title: "What's New",
       items: [
-        'Tamper-Proof Encrypted Backups (v3): Encrypted backups now include automatic integrity verification so corrupted or modified files are detected safely before restore, while older v2 backups remain fully supported.',
-        'Reliable Two-Way Offline Sync: Offline device-to-device mailbox sync now automatically returns updates in both directions and only marks snapshots as processed after your data merges safely.',
+        'Scan Text to Note (Offline OCR): Extract editable text directly from camera photos or embedded note images using /scan or the image menu.',
+        'Proactive Budget Alerts, Bill Reminders & Weekly Digest: Get notified at 80% and 100% of monthly category budgets, 48 hours before recurring bills, and with an optional Sunday digest.',
+        'Group Simplify Debts & Batch Story Slides: Calculate minimal transfers for grouped split bills and export all Story Card slides in one tap.',
+        'Encrypted Auto-Backups, Per-Module Locks & Screenshot Shield: Automated backups are now encrypted with a recovery key, Finances and Health tabs lock individually, and Android screenshot protection is configurable in Security.',
       ],
     ),
     ChangelogCategory(
       title: 'Improvements',
       items: [
-        'Expanded Multilingual Support: Translated Sync, Backup, and Finance Settings screens across all 8 supported languages.',
-        'Faster Background Mailbox Sync: Offline sync now finishes immediately once pending updates are received instead of waiting for extra timeouts.',
+        'Full-Body Note Search & Period Notes: Search unlocked notes across their full body, add optional notes to period logs, and jump straight to Health from period notifications.',
+        'Cleaner Finance Analytics & Broader Compatibility: Excluded account transfers from spending breakdowns, scoped budgets to the current month, and marked Wi-Fi hardware optional for more devices.',
       ],
     ),
     ChangelogCategory(
       title: 'Fixes',
       items: [
-        'Smooth Backup & CSV Sharing with App Lock: Prevented sharing a backup or CSV export from unexpectedly locking the app on return.',
-        'Crash-Safe Sync Retries: Prevented interrupted offline sync merges from dropping pending updates on the next sync attempt.',
+        'Biometrics & P2P Authentication: Wired the Use Biometrics toggle with PIN fallback, added integrity checks to P2P sync, and gated Story Card AI Highlights on supported devices.',
       ],
     ),
   ],

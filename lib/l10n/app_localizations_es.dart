@@ -984,4 +984,38 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get discreetNotificationTextSubtitle =>
       'Texto mostrado en alertas de predicción del ciclo';
+
+  @override
+  String get autoBackupRecoveryKey =>
+      'Clave de recuperación de copia automática';
+
+  @override
+  String get autoBackupRecoveryKeySubtitle =>
+      'Copia o importa la clave para restaurar copias cifradas';
+
+  @override
+  String get perModulePrivacyLocks => 'Bloqueos por módulo y protección';
+
+  @override
+  String get lockFinances => 'Bloquear pestaña Finanzas';
+
+  @override
+  String get lockFinancesSubtitle =>
+      'Requiere autenticación para abrir Finanzas';
+
+  @override
+  String get lockHealth => 'Bloquear pestaña Salud';
+
+  @override
+  String get lockHealthSubtitle => 'Requiere autenticación para abrir Salud';
+
+  @override
+  String get screenshotShield => 'Escudo contra capturas';
+
+  @override
+  String get screenshotShieldSubtitle =>
+      'Bloquea capturas y grabación de pantalla en Android';
+
+  @override
+  String get lockAppNow => 'Bloquear app ahora';
 }

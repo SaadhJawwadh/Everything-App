@@ -19,8 +19,12 @@ class StoryCardRenderService {
       final boundary = repaintKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return null;
       final image = await boundary.toImage(pixelRatio: pixelRatio);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      return byteData?.buffer.asUint8List();
+      try {
+        final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+        return byteData?.buffer.asUint8List();
+      } finally {
+        image.dispose();
+      }
     } catch (e) {
       debugPrint('StoryCardRenderService: capture failed: $e');
       return null;

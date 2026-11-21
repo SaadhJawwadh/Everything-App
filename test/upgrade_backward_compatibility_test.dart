@@ -288,14 +288,14 @@ void main() {
       expect(settings.trashAutoPurgeDays, 30);
     });
 
-    testWidgets('WhatsNewSheet renders v3.6.0 cards and records version on dismiss', (tester) async {
+    testWidgets('WhatsNewSheet renders v3.7.0 cards and records version on dismiss', (tester) async {
       tester.view.physicalSize = const Size(1080, 3200);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
       SharedPreferences.setMockInitialValues({
-        'lastSeenVersion': '3.5.3',
+        'lastSeenVersion': '3.6.0',
       });
       final settings = SettingsProvider();
       await settings.loadSettings();
@@ -305,7 +305,7 @@ void main() {
           value: settings,
           child: const MaterialApp(
             home: Scaffold(
-              body: WhatsNewSheet(currentVersion: '3.6.0'),
+              body: WhatsNewSheet(currentVersion: '3.7.0'),
             ),
           ),
         ),
@@ -317,11 +317,13 @@ void main() {
       expect(find.text("Improvements"), findsOneWidget);
       expect(find.text("Fixes"), findsOneWidget);
 
-      // Check marquee items for v3.6.0
-      expect(find.text("Tamper-Proof Encrypted Backups"), findsOneWidget);
-      expect(find.text("Crash-Safe Two-Way Offline Sync"), findsOneWidget);
-      expect(find.text("Expanded 8-Language Localization"), findsOneWidget);
-      expect(find.text("Seamless Backup & CSV Sharing"), findsOneWidget);
+      // Check marquee items for v3.7.0
+      expect(find.text("Scan Text to Note (Offline OCR)"), findsOneWidget);
+      expect(find.text("Budget Alerts, Bill Reminders & Digest"), findsOneWidget);
+      expect(find.text("Simplify Group Debts & Batch Story Slides"), findsOneWidget);
+      expect(find.text("Encrypted Auto-Backups & Module Locks"), findsOneWidget);
+      expect(find.text("Full-Body Note Search & Period Notes"), findsOneWidget);
+      expect(find.text("Cleaner Budgets, Biometrics & Sync Integrity"), findsOneWidget);
 
       // Tap "Awesome, Got It!" to finish
       await tester.runAsync(() async {
@@ -330,7 +332,7 @@ void main() {
       });
       await tester.pumpAndSettle();
 
-      expect(settings.lastSeenVersion, '3.6.0');
+      expect(settings.lastSeenVersion, '3.7.0');
     });
   });
 }

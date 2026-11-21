@@ -920,4 +920,34 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get discreetNotificationTextSubtitle => '经期预测提醒中显示的自定义文本';
+
+  @override
+  String get autoBackupRecoveryKey => '自动备份恢复密钥';
+
+  @override
+  String get autoBackupRecoveryKeySubtitle => '复制或导入密钥以恢复加密的自动备份';
+
+  @override
+  String get perModulePrivacyLocks => '模块锁与屏幕保护';
+
+  @override
+  String get lockFinances => '锁定财务标签页';
+
+  @override
+  String get lockFinancesSubtitle => '打开财务需要身份验证';
+
+  @override
+  String get lockHealth => '锁定健康标签页';
+
+  @override
+  String get lockHealthSubtitle => '打开健康需要身份验证';
+
+  @override
+  String get screenshotShield => '防截屏保护';
+
+  @override
+  String get screenshotShieldSubtitle => '在 Android 上禁止截屏和录屏';
+
+  @override
+  String get lockAppNow => '立即锁定应用';
 }

@@ -129,4 +129,40 @@ class StoryCardMediaService {
       return false;
     }
   }
+
+  /// Shares multiple pre-rendered story slide PNG files in one OS share sheet.
+  Future<bool> shareMultipleImageFiles(
+    List<File> files, {
+    required String title,
+  }) async {
+    if (files.isEmpty) return false;
+    try {
+      return await AppLockScreen.withLockIgnored(() async {
+        final result = await Share.shareXFiles(
+          files.map((f) => XFile(f.path)).toList(),
+          text: title.isNotEmpty ? title : 'Story Note',
+        );
+        return result.status == ShareResultStatus.success;
+      });
+    } catch (e) {
+      debugPrint('StoryCardMediaService: shareMultipleImageFiles failed: $e');
+      return false;
+    }
+  }
+
+  /// Saves multiple pre-rendered story slide PNG files sequentially to gallery.
+  Future<int> saveMultipleImageFilesToGallery(List<File> files) async {
+    int savedCount = 0;
+    for (int i = 0; i < files.length; i++) {
+      try {
+        final bytes = await files[i].readAsBytes();
+        final path = await saveImageToGallery(
+          bytes,
+          filename: 'story_${DateTime.now().millisecondsSinceEpoch}_slide${i + 1}.png',
+        );
+        if (path != null) savedCount++;
+      } catch (_) {}
+    }
+    return savedCount;
+  }
 }

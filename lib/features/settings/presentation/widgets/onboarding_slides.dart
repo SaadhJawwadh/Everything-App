@@ -781,7 +781,7 @@ class OnboardingModulesSlide extends StatelessWidget {
                       style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                      'Monthly category spending limits and interactive visual analytics.',
+                      'Monthly category limits, 80%/100% budget alerts, and visual analytics.',
                       style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     ),
                     value: settings.enableBudgetsAndAnalytics,
@@ -810,7 +810,7 @@ class OnboardingModulesSlide extends StatelessWidget {
                       style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                      'Track repeating bills, periodic income & payment reminders.',
+                      'Track repeating bills, periodic income, and 48h pre-due reminders.',
                       style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     ),
                     value: settings.enableRecurringRules,
@@ -868,7 +868,7 @@ class OnboardingModulesSlide extends StatelessWidget {
                       style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                      'Split expenses, balance pennies, scan receipts with OCR, and track settlements.',
+                      'Split expenses, simplify group debts, scan receipts with OCR, and track settlements.',
                       style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     ),
                     value: settings.showSplitBills,
@@ -1287,7 +1287,7 @@ class OnboardingTipsSlide extends StatelessWidget {
             theme,
             icon: Icons.photo_library_outlined,
             title: 'Story Card Studio & Article Reader',
-            desc: 'Turn quotes, full notes, or multi-item checklists into high-resolution social media cards with dedicated Reader & Quote layouts and 1-tap sharing.',
+            desc: 'Turn quotes, notes, or checklists into high-res multi-slide carousels and share or save all slides at once.',
           ),
           const SizedBox(height: AppLayout.spaceM),
           _buildOnboardingFeatureCard(
@@ -1301,7 +1301,7 @@ class OnboardingTipsSlide extends StatelessWidget {
             theme,
             icon: Icons.sync_lock_rounded,
             title: 'P2P Device Sync & Backups',
-            desc: 'Bi-directional P2P sync across Wi-Fi, Personal Hotspots, and Cross-Network E2EE Relay, plus background SMS auto-parsing and AES-256 backups.',
+            desc: 'Bi-directional P2P sync across Wi-Fi and E2EE Relay, plus encrypted background auto-backups and recovery key support.',
             actionLabel: 'Configure P2P Sync ➔',
             onAction: () {
               Navigator.push(
@@ -1333,7 +1333,7 @@ class OnboardingTipsSlide extends StatelessWidget {
             theme,
             icon: Icons.lock_outline_rounded,
             title: 'App Lock & Resilient Security',
-            desc: 'Protect private notes, financial ledgers, and health logs with biometric authentication and built-in graceful recovery.',
+            desc: 'Protect the full app or individual Finances & Health tabs with biometrics, optional screenshot protection, and built-in recovery.',
           ),
           const SizedBox(height: AppLayout.spaceM),
           _buildOnboardingFeatureCard(
