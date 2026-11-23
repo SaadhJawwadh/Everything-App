@@ -7,7 +7,7 @@ import '../../../../../core/ui/expressive_sliver_app_bar.dart';
 import '../../../../../screens/changelog_screen.dart';
 import '../../../../../services/notification_service.dart';
 import '../../../../../utils/app_constants.dart';
-import '../../../../../utils/app_route.dart';
+import '../../../../../core/routes/app_router.dart';
 import '../../../../../widgets/home/home_tip_card.dart';
 import '../../../../../widgets/settings_widgets.dart';
 import '../../../../../l10n/app_localizations.dart';
@@ -65,7 +65,7 @@ class AboutSettingsScreen extends StatelessWidget {
                       title: 'Changelog',
                       subtitle: 'View version release logs',
                       showArrow: true,
-                      onTap: () => AppRoute.push(context, const ChangelogScreen()),
+                      onTap: () => AppRouter.push(context, const ChangelogScreen()),
                     ),
                   ],
                 ),
@@ -103,11 +103,7 @@ class AboutSettingsScreen extends StatelessWidget {
                       subtitle: 'Configure theme, modules, and AI assistant',
                       showArrow: true,
                       onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => const OnboardingScreen(isReplay: true),
-                          ),
-                        );
+                        AppRouter.push(context, const OnboardingScreen(isReplay: true));
                       },
                     ),
                     SettingsTile(

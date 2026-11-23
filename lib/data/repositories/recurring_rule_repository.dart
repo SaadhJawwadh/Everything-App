@@ -12,10 +12,14 @@ class RecurringRuleRepository {
   RecurringRuleRepository._init();
 
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+  Database? _ensuredDb;
 
   Future<Database> get _db async {
     final db = await _dbHelper.database;
-    await DatabaseHelper.ensureRecurringRulesColumns(db);
+    if (!identical(_ensuredDb, db)) {
+      await DatabaseHelper.ensureRecurringRulesColumns(db);
+      _ensuredDb = db;
+    }
     return db;
   }
 

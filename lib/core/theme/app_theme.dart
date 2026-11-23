@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:animations/animations.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'app_layout.dart';
 
 /// Semantic color roles not covered by [ColorScheme] (success/income,
@@ -127,8 +126,32 @@ class AppTheme {
     Color(0xFF758596), // Slate Blue
   ];
 
+  static final Map<(int, Brightness), ColorScheme> _seedSchemeCache = {};
+  static final Map<(ColorScheme?, Brightness), ThemeData> _themeCache = {};
+
+  /// Returns a memoized [ColorScheme.fromSeed] for [colorValue] and [brightness]
+  /// so scrolling note cards and tag chips avoid repeated HCT palette generation.
+  static ColorScheme cachedSeedScheme(int colorValue, Brightness brightness) {
+    final key = (colorValue, brightness);
+    final cached = _seedSchemeCache[key];
+    if (cached != null) return cached;
+    if (_seedSchemeCache.length >= 64) {
+      _seedSchemeCache.remove(_seedSchemeCache.keys.first);
+    }
+    final scheme = ColorScheme.fromSeed(
+      seedColor: Color(colorValue),
+      brightness: brightness,
+    );
+    _seedSchemeCache[key] = scheme;
+    return scheme;
+  }
+
   static ThemeData createTheme(
       ColorScheme? dynamicColorScheme, Brightness brightness) {
+    final cacheKey = (dynamicColorScheme, brightness);
+    final cachedTheme = _themeCache[cacheKey];
+    if (cachedTheme != null) return cachedTheme;
+
     ColorScheme scheme;
 
     if (dynamicColorScheme != null) {
@@ -161,9 +184,9 @@ class AppTheme {
             : ThemeData.light())
         .textTheme;
 
-    GoogleFonts.config.allowRuntimeFetching = false;
-
-    final baseTextTheme = GoogleFonts.interTextTheme(rawBaseTextTheme).apply(
+    final baseTextTheme = rawBaseTextTheme.apply(
+      fontFamily: fontInter,
+      fontFamilyFallback: fontFallbacks,
       bodyColor: scheme.onSurface,
       displayColor: scheme.onSurface,
     );
@@ -216,7 +239,7 @@ class AppTheme {
       ),
     );
 
-    return ThemeData(
+    final builtTheme = ThemeData(
       useMaterial3: true,
       splashFactory: InkSparkle.splashFactory,
       splashColor: scheme.primary.withValues(alpha: 0.12),
@@ -482,5 +505,10 @@ class AppTheme {
         brightness == Brightness.dark ? AppSemanticColors.dark : AppSemanticColors.light,
       ],
     );
+    if (_themeCache.length >= 8) {
+      _themeCache.remove(_themeCache.keys.first);
+    }
+    _themeCache[cacheKey] = builtTheme;
+    return builtTheme;
   }
 }

@@ -13,6 +13,7 @@ import 'package:timezone/timezone.dart' as tz;
 import '../features/notes/data/note_repository.dart';
 import 'package:note_taking_app/features/notes/presentation/screens/note_editor_screen.dart';
 import '../utils/app_globals.dart';
+import '../core/routes/app_router.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
@@ -81,7 +82,7 @@ class NotificationService {
       final note = await NoteRepository.instance.readNote(noteId);
       if (note == null) return;
       await appNavigatorKey.currentState?.push(
-        MaterialPageRoute(builder: (_) => NoteEditorScreen(note: note)),
+        AppRouter.pageRoute(NoteEditorScreen(note: note)),
       );
     } catch (e) {
       debugPrint('Error opening note from notification: $e');

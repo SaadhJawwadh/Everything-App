@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -27,6 +28,7 @@ import '../../services/split_share_service.dart';
 import '../screens/financial_manager_screen.dart';
 import '../screens/split_bill_editor_screen.dart';
 import 'settle_up_sheet.dart';
+import '../../../../core/routes/app_router.dart';
 
 class SplitBillsTab extends StatefulWidget {
   const SplitBillsTab({super.key});
@@ -61,11 +63,8 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
   ) async {
     final removedTxId = await splitProvider.toggleParticipantPaid(p.id, false);
 
-    // If a linked settlement transaction ID was stored, delete that exact ledger transaction
-    if (removedTxId != null) {
-      await TransactionRepository.instance.deleteTransaction(removedTxId);
-    } else {
-      // Legacy fallback for records before schema v25
+    // Fallback for legacy records before schema v25 that lack a linked settlementTransactionId.
+    if (removedTxId == null) {
       final contactName = p.contactName.trim().toLowerCase() == 'you' ? bill.payerName.trim() : p.contactName.trim();
       try {
         final db = await DatabaseHelper.instance.database;
@@ -84,7 +83,6 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
       } catch (_) {}
     }
 
-    FinancialManagerScreen.refreshNotifier.value++;
     if (context.mounted) {
       try {
         await Provider.of<FinancialManagerProvider>(context, listen: false).loadTransactions();
@@ -181,13 +179,8 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
 
     final removedTxIds = await splitProvider.unsettleAllForContact(contactName);
 
-    // Delete matching settlement transactions from ledger
-    if (removedTxIds.isNotEmpty) {
-      for (final txId in removedTxIds) {
-        await TransactionRepository.instance.deleteTransaction(txId);
-      }
-    } else {
-      // Legacy fallback for records before schema v25
+    // Legacy fallback for records before schema v25 when no linked transaction IDs were stored.
+    if (removedTxIds.isEmpty) {
       try {
         final db = await DatabaseHelper.instance.database;
         final settlementRows = await db.query(
@@ -205,7 +198,6 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
       } catch (_) {}
     }
 
-    FinancialManagerScreen.refreshNotifier.value++;
     if (!context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     try {
@@ -299,8 +291,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final splitProvider = Provider.of<SplitBillProvider>(context);
-    final settings = Provider.of<SettingsProvider>(context);
-    final currency = settings.currencySymbol;
+    final currency = context.select<SettingsProvider, String>((s) => s.currencySymbol);
 
     final bills = splitProvider.filteredBills.where((b) {
       if (_searchQuery.isEmpty) return true;
@@ -320,107 +311,123 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
         children: [
           RefreshIndicator(
             onRefresh: () => splitProvider.loadSplitBills(showLoading: false),
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(AppLayout.spaceM, AppLayout.spaceS, AppLayout.spaceM, AppLayout.fabBottomPadding),
-              children: [
-                // 1. Dynamic Split Summary Hero Card
-                _buildHeroSummaryCard(context, splitProvider, isDark, currency),
+            child: AnimationLimiter(
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                scrollCacheExtent: const ScrollCacheExtent.pixels(600.0),
+                slivers: [
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(AppLayout.spaceM, AppLayout.spaceS, AppLayout.spaceM, 0),
+                    sliver: SliverToBoxAdapter(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // 1. Dynamic Split Summary Hero Card
+                          _buildHeroSummaryCard(context, splitProvider, isDark, currency),
 
-                const SizedBox(height: AppLayout.spaceM),
+                          const SizedBox(height: AppLayout.spaceM),
 
-                // 2. View Mode Selector (People vs Bills)
-                Center(
-                  child: SegmentedButton<int>(
-                    showSelectedIcon: false,
-                    segments: [
-                      ButtonSegment<int>(
-                        value: 0,
-                        label: Text('People (${splitProvider.contactBalances.length})'),
-                        icon: const Icon(Icons.people_alt_outlined, size: 18),
+                          // 2. View Mode Selector (People vs Bills)
+                          Center(
+                            child: SegmentedButton<int>(
+                              showSelectedIcon: false,
+                              segments: [
+                                ButtonSegment<int>(
+                                  value: 0,
+                                  label: Text('People (${splitProvider.contactBalances.length})'),
+                                  icon: const Icon(Icons.people_alt_outlined, size: 18),
+                                ),
+                                ButtonSegment<int>(
+                                  value: 1,
+                                  label: Text('Bills (${splitProvider.bills.length})'),
+                                  icon: const Icon(Icons.receipt_long_outlined, size: 18),
+                                ),
+                              ],
+                              selected: {splitProvider.activeViewMode},
+                              onSelectionChanged: (set) {
+                                if (_isSelectionMode) _clearSelection();
+                                splitProvider.setViewMode(set.first);
+                              },
+                              style: SegmentedButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                                selectedBackgroundColor: colorScheme.secondaryContainer,
+                                selectedForegroundColor: colorScheme.onSecondaryContainer,
+                                backgroundColor: colorScheme.surfaceContainerLow,
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: AppLayout.spaceM),
+
+                          // Search Field (Material 3 SearchBar)
+                          SearchBar(
+                            controller: _searchController,
+                            hintText: 'Search friends or bills...',
+                            leading: const Icon(Icons.search_rounded, size: 20),
+                            trailing: [
+                              if (_searchQuery.isNotEmpty)
+                                IconButton(
+                                  icon: const Icon(Icons.clear_rounded, size: 18),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() => _searchQuery = '');
+                                  },
+                                ),
+                            ],
+                            elevation: const WidgetStatePropertyAll(0),
+                            backgroundColor: WidgetStatePropertyAll(colorScheme.surfaceContainerHigh),
+                            shape: WidgetStatePropertyAll(
+                              RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppLayout.radiusMAX)),
+                            ),
+                            constraints: const BoxConstraints(minHeight: 48, maxHeight: 48),
+                            padding: const WidgetStatePropertyAll(
+                              EdgeInsets.symmetric(horizontal: 16),
+                            ),
+                            onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                          ),
+
+                          const SizedBox(height: AppLayout.spaceM),
+
+                          // 3. Filter Chips Bar
+                          _buildFilterBar(context, splitProvider),
+
+                          if (splitProvider.activeGroupTag != null &&
+                              splitProvider.activeGroupTag!.trim().isNotEmpty) ...[
+                            const SizedBox(height: AppLayout.spaceS),
+                            _buildSimplifyGroupDebtsCard(
+                              context,
+                              splitProvider.activeGroupTag!,
+                              splitProvider.bills
+                                  .where((b) => b.deletedAt == null && b.groupTag == splitProvider.activeGroupTag)
+                                  .toList(),
+                              currency,
+                            ),
+                          ],
+
+                          const SizedBox(height: AppLayout.spaceS),
+                        ],
                       ),
-                      ButtonSegment<int>(
-                        value: 1,
-                        label: Text('Bills (${splitProvider.bills.length})'),
-                        icon: const Icon(Icons.receipt_long_outlined, size: 18),
-                      ),
-                    ],
-                    selected: {splitProvider.activeViewMode},
-                    onSelectionChanged: (set) {
-                      if (_isSelectionMode) _clearSelection();
-                      splitProvider.setViewMode(set.first);
-                    },
-                    style: SegmentedButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      selectedBackgroundColor: colorScheme.secondaryContainer,
-                      selectedForegroundColor: colorScheme.onSecondaryContainer,
-                      backgroundColor: colorScheme.surfaceContainerLow,
                     ),
                   ),
-                ),
 
-                const SizedBox(height: AppLayout.spaceM),
-
-                // Search Field (Material 3 SearchBar)
-                SearchBar(
-                  controller: _searchController,
-                  hintText: 'Search friends or bills...',
-                  leading: const Icon(Icons.search_rounded, size: 20),
-                  trailing: [
-                    if (_searchQuery.isNotEmpty)
-                      IconButton(
-                        icon: const Icon(Icons.clear_rounded, size: 18),
-                        onPressed: () {
-                          _searchController.clear();
-                          setState(() => _searchQuery = '');
-                        },
+                  // 4. Content Section (People View vs Bills View)
+                  if (splitProvider.isLoading && splitProvider.bills.isEmpty)
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 40),
+                        child: Center(child: ExpressiveShapeMorphIndicator(size: 42)),
                       ),
-                  ],
-                  elevation: const WidgetStatePropertyAll(0),
-                  backgroundColor: WidgetStatePropertyAll(colorScheme.surfaceContainerHigh),
-                  shape: WidgetStatePropertyAll(
-                    RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppLayout.radiusMAX)),
-                  ),
-                  constraints: const BoxConstraints(minHeight: 48, maxHeight: 48),
-                  padding: const WidgetStatePropertyAll(
-                    EdgeInsets.symmetric(horizontal: 16),
-                  ),
-                  onChanged: (val) => setState(() => _searchQuery = val.trim()),
-                ),
+                    )
+                  else if (splitProvider.activeViewMode == 0)
+                    _buildPeopleSliver(context, splitProvider)
+                  else
+                    _buildBillsSliver(context, bills, splitProvider),
 
-                const SizedBox(height: AppLayout.spaceM),
-
-                // 3. Filter Chips Bar
-                _buildFilterBar(context, splitProvider),
-
-                if (splitProvider.activeGroupTag != null &&
-                    splitProvider.activeGroupTag!.trim().isNotEmpty) ...[
-                  const SizedBox(height: AppLayout.spaceS),
-                  _buildSimplifyGroupDebtsCard(
-                    context,
-                    splitProvider.activeGroupTag!,
-                    splitProvider.bills
-                        .where((b) => b.deletedAt == null && b.groupTag == splitProvider.activeGroupTag)
-                        .toList(),
-                    currency,
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: AppLayout.fabBottomPadding + 96),
                   ),
                 ],
-
-                const SizedBox(height: AppLayout.spaceS),
-
-                // 4. Content Section (People View vs Bills View)
-                if (splitProvider.isLoading && splitProvider.bills.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 40),
-                    child: Center(child: ExpressiveShapeMorphIndicator(size: 42)),
-                  )
-                else if (splitProvider.activeViewMode == 0)
-                  _buildPeopleView(context, splitProvider)
-                else
-                  _buildBillsView(context, bills, splitProvider, settings),
-
-                const SizedBox(height: 96), // Clearance for morphing FAB
-              ],
+              ),
             ),
           ),
           Positioned(
@@ -428,10 +435,13 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
             left: 0,
             right: 0,
             child: AnimatedSwitcher(
-              duration: AppLayout.animDefault,
-              switchInCurve: AppLayout.curveEmphasizedDecelerate,
+              duration: AppLayout.shouldReduceMotion(context) ? Duration.zero : AppLayout.animFast,
+              switchInCurve: AppLayout.curveStrongEaseOut,
               switchOutCurve: AppLayout.curveEmphasizedAccelerate,
               transitionBuilder: (child, animation) {
+                if (AppLayout.shouldReduceMotion(context)) {
+                  return FadeTransition(opacity: animation, child: child);
+                }
                 return SlideTransition(
                   position: Tween<Offset>(
                     begin: const Offset(0.0, 1.0),
@@ -442,10 +452,10 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
               },
               child: _isSelectionMode
                   ? SafeArea(
+                      key: const ValueKey('split_bills_selection_toolbar'),
                       top: false,
                       child: Center(
                         child: ExpressiveFloatingToolbar(
-                          key: const ValueKey('split_bills_selection_toolbar'),
                           isVibrant: true,
                           mainAxisSize: MainAxisSize.min,
                           margin: EdgeInsets.zero,
@@ -655,6 +665,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
     return EdgeFadeMask(
       axis: EdgeFadeAxis.horizontalRight,
       fadeStop: 0.92,
+      fadeColor: Theme.of(context).colorScheme.surface,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.only(right: AppLayout.spaceM),
@@ -701,41 +712,41 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
     );
   }
 
-  Widget _buildPeopleView(BuildContext context, SplitBillProvider splitProvider) {
+  Widget _buildPeopleSliver(BuildContext context, SplitBillProvider splitProvider) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final balances = splitProvider.contactBalances;
     final contacts = splitProvider.recentContacts;
 
     if (balances.isEmpty && contacts.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Center(
-          child: Column(
-            children: [
-              Icon(Icons.people_outline_rounded, size: 48, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
-              const SizedBox(height: AppLayout.spaceM),
-              Text(
-                'No friend balances yet',
-                style: theme.textTheme.titleMedium?.copyWith(color: colorScheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: AppLayout.spaceXS),
-              Text(
-                'Create a split bill to track who owes you and who you owe.',
-                style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppLayout.spaceM),
-              FilledButton.icon(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const SplitBillEditorScreen()),
-                  );
-                },
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Split a New Bill'),
-              ),
-            ],
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 40),
+          child: Center(
+            child: Column(
+              children: [
+                Icon(Icons.people_outline_rounded, size: 48, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
+                const SizedBox(height: AppLayout.spaceM),
+                Text(
+                  'No friend balances yet',
+                  style: theme.textTheme.titleMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: AppLayout.spaceXS),
+                Text(
+                  'Create a split bill to track who owes you and who you owe.',
+                  style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppLayout.spaceM),
+                FilledButton.icon(
+                  onPressed: () {
+                    AppRouter.push(context, const SplitBillEditorScreen());
+                  },
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Split a New Bill'),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -782,24 +793,26 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
     }).toList();
 
     if (personNames.isEmpty && _searchQuery.isNotEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Center(
-          child: Column(
-            children: [
-              Icon(Icons.person_search_rounded, size: 48, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
-              const SizedBox(height: AppLayout.spaceM),
-              Text(
-                'No friends match "$_searchQuery"',
-                style: theme.textTheme.titleMedium?.copyWith(color: colorScheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: AppLayout.spaceXS),
-              Text(
-                'Try searching with a different name or clear the search filter.',
-                style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
-                textAlign: TextAlign.center,
-              ),
-            ],
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 40),
+          child: Center(
+            child: Column(
+              children: [
+                Icon(Icons.person_search_rounded, size: 48, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
+                const SizedBox(height: AppLayout.spaceM),
+                Text(
+                  'No friends match "$_searchQuery"',
+                  style: theme.textTheme.titleMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: AppLayout.spaceXS),
+                Text(
+                  'Try searching with a different name or clear the search filter.',
+                  style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -810,11 +823,9 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
     final debtColor = colorScheme.error;
     final currency = Provider.of<SettingsProvider>(context, listen: false).currencySymbol;
 
-    return AnimationLimiter(
-      child: ListView.separated(
-        padding: EdgeInsets.zero,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: AppLayout.spaceM),
+      sliver: SliverList.separated(
         itemCount: personNames.length,
         separatorBuilder: (_, __) => const SizedBox(height: AppLayout.spaceS),
         itemBuilder: (context, index) {
@@ -824,22 +835,17 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
           final owes = netBalance < 0;
           final isSettled = netBalance == 0;
 
-          // Find open bills for this person
-          final openBills = splitProvider.bills.where((b) {
-            if (b.isFullySettled) return false;
-            if (b.isPayerUser) {
-              return b.participants.any((p) => p.contactName.trim().toLowerCase() == name.trim().toLowerCase() && !p.hasPaid);
-            } else {
-              return b.payerName.trim().toLowerCase() == name.trim().toLowerCase() && !b.isUserSharePaid;
-            }
-          }).toList();
+          final openBills = splitProvider.openBillsForContact(name);
 
           return AnimationConfiguration.staggeredList(
-            position: index,
-            duration: AppLayout.animModal,
+            key: ValueKey('split_person_$name'),
+            position: index.clamp(0, 8),
+            duration: AppLayout.animShort,
             child: SlideAnimation(
-              verticalOffset: 20.0,
+              verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
+              curve: AppLayout.curveStrongEaseOut,
               child: FadeInAnimation(
+                curve: AppLayout.curveStrongEaseOut,
                 child: AppCard(
                   onTap: () => _showContactBillsHistorySheet(
                     context,
@@ -960,11 +966,9 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                           ] else ...[
                             Builder(
                               builder: (ctx) {
-                                final hasSettledBills = splitProvider.bills.any((b) =>
-                                  (b.isPayerUser && b.participants.any((p) => p.contactName.trim().toLowerCase() == name.trim().toLowerCase() && p.hasPaid)) ||
-                                  (!b.isPayerUser && b.payerName.trim().toLowerCase() == name.trim().toLowerCase() && b.isUserSharePaid)
-                                );
-                                if (!hasSettledBills) return const SizedBox.shrink();
+                                if (!splitProvider.contactHasSettledBills(name)) {
+                                  return const SizedBox.shrink();
+                                }
                                 return Padding(
                                   padding: const EdgeInsets.only(top: AppLayout.spaceXS),
                                   child: TextButton.icon(
@@ -993,11 +997,10 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
     );
   }
 
-  Widget _buildBillsView(
+  Widget _buildBillsSliver(
     BuildContext context,
     List<SplitBillModel> bills,
     SplitBillProvider splitProvider,
-    SettingsProvider settings,
   ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -1008,38 +1011,36 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
     final currency = Provider.of<SettingsProvider>(context, listen: false).currencySymbol;
 
     if (bills.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Center(
-          child: Column(
-            children: [
-              Icon(Icons.receipt_long_outlined, size: 48, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
-              const SizedBox(height: AppLayout.spaceM),
-              Text(
-                'No split bills found',
-                style: theme.textTheme.titleMedium?.copyWith(color: colorScheme.onSurfaceVariant),
-              ),
-              const SizedBox(height: AppLayout.spaceM),
-              FilledButton.icon(
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const SplitBillEditorScreen()),
-                  );
-                },
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Split a New Bill'),
-              ),
-            ],
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 40),
+          child: Center(
+            child: Column(
+              children: [
+                Icon(Icons.receipt_long_outlined, size: 48, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
+                const SizedBox(height: AppLayout.spaceM),
+                Text(
+                  'No split bills found',
+                  style: theme.textTheme.titleMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: AppLayout.spaceM),
+                FilledButton.icon(
+                  onPressed: () {
+                    AppRouter.push(context, const SplitBillEditorScreen());
+                  },
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Split a New Bill'),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
-    return AnimationLimiter(
-      child: ListView.separated(
-        padding: EdgeInsets.zero,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: AppLayout.spaceM),
+      sliver: SliverList.separated(
         itemCount: bills.length,
         separatorBuilder: (_, __) => const SizedBox(height: AppLayout.spaceS),
         itemBuilder: (context, index) {
@@ -1052,19 +1053,20 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
           final isSelected = _selectedBillIds.contains(bill.id);
 
           return AnimationConfiguration.staggeredList(
-            position: index,
-            duration: AppLayout.animModal,
+            key: ValueKey('split_bill_${bill.id}'),
+            position: index.clamp(0, 8),
+            duration: AppLayout.animShort,
             child: SlideAnimation(
-              verticalOffset: 20.0,
+              verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
+              curve: AppLayout.curveStrongEaseOut,
               child: FadeInAnimation(
+                curve: AppLayout.curveStrongEaseOut,
                 child: InkWell(
                   onTap: () {
                     if (_isSelectionMode) {
                       _toggleSelection(bill.id);
                     } else {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => SplitBillEditorScreen(existingBill: bill)),
-                      );
+                      AppRouter.push(context, SplitBillEditorScreen(existingBill: bill));
                     }
                   },
                   onLongPress: () {
@@ -1456,7 +1458,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                                   tooltip: 'Share on WhatsApp',
                                   onPressed: () => SplitShareService.shareToWhatsAppOrSystem(
                                     bill,
-                                    defaultPaymentInfo: settings.defaultPaymentInfo,
+                                    defaultPaymentInfo: context.read<SettingsProvider>().defaultPaymentInfo,
                                     currencySymbol: currency,
                                   ),
                                 ),
@@ -1473,7 +1475,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                                   onPressed: () {
                                     final summary = SplitShareService.formatBillSummary(
                                       bill,
-                                      defaultPaymentInfo: settings.defaultPaymentInfo,
+                                      defaultPaymentInfo: context.read<SettingsProvider>().defaultPaymentInfo,
                                       currencySymbol: currency,
                                     );
                                     SplitShareService.copyToClipboard(summary);
@@ -1606,14 +1608,9 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                         FilledButton.icon(
                           onPressed: () {
                             Navigator.pop(context);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => SplitBillEditorScreen(
+                            AppRouter.push(context, SplitBillEditorScreen(
                                   initialTitle: 'Bill with $contactName',
-                                ),
-                              ),
-                            );
+                                ));
                           },
                           icon: const Icon(Icons.add_rounded, size: 18),
                           label: const Text('New Split'),
@@ -1785,12 +1782,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                         ),
                         onTap: () {
                           Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => SplitBillEditorScreen(existingBill: b),
-                            ),
-                          );
+                          AppRouter.push(context, SplitBillEditorScreen(existingBill: b));
                         },
                       );
                     },

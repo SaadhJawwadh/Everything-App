@@ -13,7 +13,7 @@ import 'package:note_taking_app/widgets/calculator_dialog.dart';
 import 'package:note_taking_app/features/finances/presentation/screens/category_management_screen.dart';
 import 'package:note_taking_app/services/sms_service.dart';
 import 'package:note_taking_app/services/hybrid_local_ai_service.dart';
-import 'package:note_taking_app/utils/app_route.dart';
+import 'package:note_taking_app/core/routes/app_router.dart';
 import 'package:uuid/uuid.dart';
 import 'package:note_taking_app/core/theme/app_layout.dart';
 import 'package:note_taking_app/core/ui/editor_bottom_action_bar.dart';
@@ -449,10 +449,20 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
   Future<void> _openCalculator() async {
     if (!mounted) return;
     final double? currentVal = double.tryParse(_amountController.text);
+    final reduceMotion = AppLayout.shouldReduceMotion(context);
     final result = await showModalBottomSheet<double>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       showDragHandle: true,
+      sheetAnimationStyle: reduceMotion
+          ? AnimationStyle.noAnimation
+          : const AnimationStyle(
+              duration: AppLayout.animModal,
+              reverseDuration: AppLayout.animFast,
+              curve: AppLayout.curveSheet,
+              reverseCurve: AppLayout.curveEmphasizedAccelerate,
+            ),
       builder: (context) => CalculatorDialog(initialValue: currentVal),
     );
 
@@ -669,7 +679,7 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
                         const Spacer(),
                         TextButton.icon(
                           onPressed: () async {
-                            await AppRoute.push(context, const CategoryManagementScreen());
+                            await AppRouter.push(context, const CategoryManagementScreen());
                             await TransactionCategory.reload();
                             if (!TransactionCategory.allNames.contains(_category)) {
                               _category = TransactionCategory.other;
@@ -925,17 +935,13 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
                         onPressed: () async {
                           final title = _descriptionController.text.trim();
                           final amount = double.tryParse(_amountController.text.trim());
-                          await Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => SplitBillEditorScreen(
+                          await AppRouter.push(context, SplitBillEditorScreen(
                                 existingBill: _linkedSplitBill,
                                 prelinkedTransactionId: widget.transaction?.id,
                                 initialTitle: title.isNotEmpty ? title : null,
                                 initialAmount: amount,
                                 initialDate: _selectedDate,
-                              ),
-                            ),
-                          );
+                              ));
                           if (mounted) {
                             await _checkExistingSplitBill();
                           }
@@ -967,7 +973,7 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             icon: Icon(Icons.category_outlined, color: colorScheme.onSecondaryContainer, size: 20),
             onPressed: () {
-              AppRoute.push(context, const CategoryManagementScreen());
+              AppRouter.push(context, const CategoryManagementScreen());
             },
           ),
         ),

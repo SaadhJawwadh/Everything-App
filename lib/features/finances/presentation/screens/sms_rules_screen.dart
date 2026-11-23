@@ -13,10 +13,11 @@ import 'package:note_taking_app/core/theme/app_layout.dart';
 import 'package:note_taking_app/core/ui/expressive_sliver_app_bar.dart';
 import 'package:note_taking_app/data/custom_sms_rule.dart';
 import 'package:note_taking_app/features/finances/presentation/widgets/teach_sms_rule_sheet.dart';
-import 'package:note_taking_app/utils/app_route.dart';
+import 'package:note_taking_app/core/routes/app_router.dart';
 import 'package:note_taking_app/features/finances/presentation/screens/category_management_screen.dart';
 import 'package:note_taking_app/features/finances/presentation/screens/sms_contacts_screen.dart';
 import '../widgets/sms_import_sheet.dart';
+import '../../../../core/ui/app_dialog.dart';
 
 class SmsRulesScreen extends StatefulWidget {
   const SmsRulesScreen({super.key});
@@ -49,7 +50,7 @@ class _SmsRulesScreenState extends State<SmsRulesScreen> {
   }
 
   Future<void> _confirmRestoreDefaults() async {
-    final confirm = await showDialog<bool>(
+    final confirm = await AppDialog.show<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Restore default rules?'),
@@ -165,7 +166,7 @@ class _SmsRulesScreenState extends State<SmsRulesScreen> {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => AppRoute.push(context, const SmsContactsScreen()),
+                      onPressed: () => AppRouter.push(context, const SmsContactsScreen()),
                       icon: const Icon(Icons.contacts_outlined, size: 18),
                       label: const Text('Senders & Blocklist'),
                       style: OutlinedButton.styleFrom(
@@ -791,7 +792,7 @@ class _SmsRulesScreenState extends State<SmsRulesScreen> {
                   subtitle: const Text('Edit category names, icons, colors, and auto-matching rules'),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () {
-                    AppRoute.push(context, const CategoryManagementScreen());
+                    AppRouter.push(context, const CategoryManagementScreen());
                   },
                 ),
               ),
@@ -809,7 +810,9 @@ class _SmsRulesScreenState extends State<SmsRulesScreen> {
                   duration: AppLayout.animShort,
                   child: SlideAnimation(
                     verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
+                    curve: AppLayout.curveStrongEaseOut,
                     child: FadeInAnimation(
+                      curve: AppLayout.curveStrongEaseOut,
                       child: items[index],
                     ),
                   ),

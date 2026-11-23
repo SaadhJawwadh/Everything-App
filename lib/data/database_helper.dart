@@ -12,6 +12,8 @@ import 'database_seed.dart';
 class DatabaseHelper {
   static const int _databaseVersion = 27;
   static const String _dbName = 'notes.db';
+  static const String _prefLastOpenedDbVersion = 'db_last_opened_version';
+  static final Set<String> _ddlInitializedPaths = {};
   static final DatabaseHelper instance = DatabaseHelper._init();
   static Database? _database;
   static Future<Database>? _databaseFuture;
@@ -119,7 +121,14 @@ class DatabaseHelper {
       if (await _isUnencryptedDb(path)) {
         await _migrateToEncrypted(path, password);
       }
-      await _checkAndCreatePreMigrationSnapshot(path, password, _databaseVersion);
+      int? cachedVersion;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        cachedVersion = prefs.getInt(_prefLastOpenedDbVersion);
+      } catch (_) {}
+      if (cachedVersion != _databaseVersion) {
+        await _checkAndCreatePreMigrationSnapshot(path, password, _databaseVersion);
+      }
     }
 
     int attempts = 0;
@@ -127,7 +136,7 @@ class DatabaseHelper {
     while (true) {
       attempts++;
       try {
-        return await openDatabase(
+        final db = await openDatabase(
           path,
           password: password,
           version: _databaseVersion,
@@ -135,6 +144,11 @@ class DatabaseHelper {
           onUpgrade: _upgradeDB,
           onOpen: _onOpenDB,
         );
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setInt(_prefLastOpenedDbVersion, _databaseVersion);
+        } catch (_) {}
+        return db;
       } catch (e) {
         if (_isTransientLockError(e)) {
           debugPrint('[DatabaseHelper] Database busy or locked on attempt $attempts of $maxAttempts: $e');
@@ -283,8 +297,11 @@ class DatabaseHelper {
         }
       }
       if (files.isEmpty) return false;
-      files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
-      final latest = files.first;
+      final withStats = await Future.wait(
+        files.map((f) async => (file: f, modified: (await f.stat()).modified)),
+      );
+      withStats.sort((a, b) => b.modified.compareTo(a.modified));
+      final latest = withStats.first.file;
       await latest.copy(targetDbPath);
       final walFile = File('$targetDbPath-wal');
       final shmFile = File('$targetDbPath-shm');
@@ -304,11 +321,27 @@ class DatabaseHelper {
       await db.rawQuery('PRAGMA synchronous = NORMAL;');
       await db.rawQuery('PRAGMA busy_timeout = 5000;');
 
+      if (_ddlInitializedPaths.contains(db.path)) {
+        return;
+      }
+
+      int? cachedVersion;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        cachedVersion = prefs.getInt(_prefLastOpenedDbVersion);
+      } catch (_) {}
+
+      if (cachedVersion == _databaseVersion) {
+        _ddlInitializedPaths.add(db.path);
+        return;
+      }
+
       // Performance Indexes
       await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_deleted ON notes(deletedAt);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_modified ON notes(dateModified);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_modified_deleted ON notes(dateModified, deletedAt);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_category_deleted ON notes(category, deletedAt, isArchived);');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_notes_list_sort ON notes(deletedAt, isArchived, isPinned DESC, dateModified DESC);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_note_tags_tag ON note_tags(tag_name);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_transactions_smsid ON transactions(smsId);');
@@ -318,9 +351,12 @@ class DatabaseHelper {
       await db.execute('CREATE INDEX IF NOT EXISTS idx_transactions_date_account ON transactions(date, account);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_tombstones_smsid ON deleted_transaction_sms_ids(smsId);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_recurring_rules_nextdue ON recurring_rules(nextDue);');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_savings_goals_active ON savings_goals(deletedAt, isCompleted, createdAt DESC);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_split_bills_deleted ON ${TableNames.splitBills}(${SplitBillFields.deletedAt});');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_split_bills_txid ON ${TableNames.splitBills}(${SplitBillFields.transactionId});');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_split_bills_active ON ${TableNames.splitBills}(${SplitBillFields.deletedAt}, ${SplitBillFields.status});');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_split_bills_date ON ${TableNames.splitBills}(${SplitBillFields.deletedAt}, ${SplitBillFields.date} DESC);');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_split_contacts_recent ON ${TableNames.splitContacts}(${SplitContactFields.lastUsed} DESC);');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_split_participants_bill ON ${TableNames.splitParticipants}(${SplitParticipantFields.billId});');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_split_participants_contact ON ${TableNames.splitParticipants}(${SplitParticipantFields.contactName});');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_split_participants_settletx ON ${TableNames.splitParticipants}(${SplitParticipantFields.settlementTransactionId});');
@@ -345,6 +381,7 @@ class DatabaseHelper {
       }
 
       await ensureRecurringRulesColumns(db);
+      _ddlInitializedPaths.add(db.path);
     } catch (e) {
       debugPrint('[DatabaseHelper] PRAGMA & Index creation onOpen warning: $e');
     }
@@ -914,10 +951,13 @@ class DatabaseHelper {
         }
       }
       if (files.length > 5) {
-        files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
-        for (final old in files.skip(5)) {
+        final withStats = await Future.wait(
+          files.map((f) async => (file: f, modified: (await f.stat()).modified)),
+        );
+        withStats.sort((a, b) => b.modified.compareTo(a.modified));
+        for (final entry in withStats.skip(5)) {
           try {
-            await old.delete();
+            await entry.file.delete();
           } catch (_) {}
         }
       }

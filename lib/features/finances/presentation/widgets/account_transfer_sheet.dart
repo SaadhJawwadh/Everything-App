@@ -183,7 +183,9 @@ class _AccountTransferSheetState extends State<AccountTransferSheet> {
                             ),
                             child: AnimatedRotation(
                               turns: _swapTurns,
-                              duration: AppLayout.animModal,
+                              duration: AppLayout.shouldReduceMotion(context)
+                                  ? Duration.zero
+                                  : AppLayout.animModal,
                               curve: AppLayout.curveExpressiveBouncy,
                               child: Icon(
                                 Icons.swap_vert_rounded,

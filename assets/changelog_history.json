@@ -1,5 +1,34 @@
 [
   {
+    "version": "v3.7.0",
+    "date": "November 21, 2026",
+    "isLatest": false,
+    "categories": [
+      {
+        "title": "What's New",
+        "items": [
+          "Scan Text to Note (Offline OCR): Extract editable text directly from camera photos or embedded note images using /scan or the image menu.",
+          "Proactive Budget Alerts, Bill Reminders & Weekly Digest: Get notified at 80% and 100% of monthly category budgets, 48 hours before recurring bills, and with an optional Sunday digest.",
+          "Group Simplify Debts & Batch Story Slides: Calculate minimal transfers for grouped split bills and export all Story Card slides in one tap.",
+          "Encrypted Auto-Backups, Per-Module Locks & Screenshot Shield: Automated backups are now encrypted with a recovery key, Finances and Health tabs lock individually, and Android screenshot protection is configurable in Security."
+        ]
+      },
+      {
+        "title": "Improvements",
+        "items": [
+          "Full-Body Note Search & Period Notes: Search unlocked notes across their full body, add optional notes to period logs, and jump straight to Health from period notifications.",
+          "Cleaner Finance Analytics & Broader Compatibility: Excluded account transfers from spending breakdowns, scoped budgets to the current month, and marked Wi-Fi hardware optional for more devices."
+        ]
+      },
+      {
+        "title": "Fixes",
+        "items": [
+          "Biometrics & P2P Authentication: Wired the Use Biometrics toggle with PIN fallback, added integrity checks to P2P sync, and gated Story Card AI Highlights on supported devices."
+        ]
+      }
+    ]
+  },
+  {
     "version": "v3.6.0",
     "date": "November 20, 2026",
     "isLatest": false,

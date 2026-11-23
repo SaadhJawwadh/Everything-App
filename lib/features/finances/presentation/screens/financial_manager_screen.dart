@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/utils/app_formatters.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
 import '../../../../data/transaction_model.dart';
 import '../../../../data/transaction_category.dart';
@@ -24,6 +25,7 @@ import '../widgets/finance_hero_summary_card.dart';
 import '../widgets/finance_sms_sync_banner.dart';
 import '../widgets/finance_top_bar.dart';
 import '../../services/spending_forecast_service.dart';
+import '../../../../core/routes/app_router.dart';
 
 
 class FinancialManagerScreen extends StatefulWidget {
@@ -45,6 +47,9 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
   int _analyticsSubView = 0; // 0: Breakdown, 1: Budgets
   bool _isSearching = false;
   DateTime? _lastResumeReload;
+  List<TransactionModel>? _lastGroupedSource;
+  String? _lastGroupedCurrency;
+  List<dynamic> _cachedGroupedTransactions = const [];
 
   @override
   void initState() {
@@ -113,7 +118,16 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
     List<TransactionModel> transactions,
     String currency,
   ) {
-    if (transactions.isEmpty) return [];
+    if (identical(transactions, _lastGroupedSource) &&
+        currency == _lastGroupedCurrency) {
+      return _cachedGroupedTransactions;
+    }
+    if (transactions.isEmpty) {
+      _lastGroupedSource = transactions;
+      _lastGroupedCurrency = currency;
+      _cachedGroupedTransactions = const [];
+      return _cachedGroupedTransactions;
+    }
     final items = <dynamic>[];
     DateTime? lastDate;
     final now = DateTime.now();
@@ -129,8 +143,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
       dailyNetMap[tDate] = (dailyNetMap[tDate] ?? 0) + delta;
     }
 
-    final numFormat = NumberFormat('#,##0.##');
-
     for (final t in transactions) {
       final tDate = DateTime(t.date.year, t.date.month, t.date.day);
       if (lastDate == null || tDate != lastDate) {
@@ -140,13 +152,13 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
         } else if (tDate == yesterday) {
           header = 'Yesterday';
         } else {
-          header = DateFormat.MMMd().format(tDate);
+          header = AppFormatters.formatMonthDay(tDate);
         }
 
         final dailyNet = dailyNetMap[tDate];
         if (dailyNet != null && dailyNet != 0) {
           final sign = dailyNet < 0 ? '-' : '+';
-          final formattedAmount = numFormat.format(dailyNet.abs());
+          final formattedAmount = AppFormatters.formatAmountCompactDec(dailyNet.abs());
           header = '$header • $sign$currency $formattedAmount';
         }
 
@@ -155,6 +167,9 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
       }
       items.add(t);
     }
+    _lastGroupedSource = transactions;
+    _lastGroupedCurrency = currency;
+    _cachedGroupedTransactions = items;
     return items;
   }
 
@@ -266,6 +281,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
         body: AnimationLimiter(
           child: CustomScrollView(
             controller: _scrollController,
+            scrollCacheExtent: const ScrollCacheExtent.pixels(600.0),
             slivers: _buildSlivers(colorScheme, textTheme, currency, settings, finProvider),
           ),
         ),
@@ -294,12 +310,12 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
               primary: false,
               backgroundColor: Colors.transparent,
               elevation: 0,
-              toolbarHeight: MediaQuery.of(context).padding.top + 72.0,
+              toolbarHeight: MediaQuery.paddingOf(context).top + 72.0,
               titleSpacing: 0,
               automaticallyImplyLeading: false,
               flexibleSpace: Container(
                 padding: EdgeInsets.only(
-                  top: MediaQuery.of(context).padding.top + 6,
+                  top: MediaQuery.paddingOf(context).top + 6,
                   left: 16,
                   right: 16,
                   bottom: 6,
@@ -354,8 +370,10 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                   position: 2,
                   duration: AppLayout.animShort,
                   child: SlideAnimation(
-                    verticalOffset: 24.0,
+                    verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
+                    curve: AppLayout.curveStrongEaseOut,
                     child: FadeInAnimation(
+                      curve: AppLayout.curveStrongEaseOut,
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                         child: _buildHeroSummaryCard(
@@ -371,7 +389,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: _buildTabSelector(colorScheme),
+                  child: _buildTabSelector(colorScheme, settings),
                 ),
               )
             else
@@ -386,12 +404,14 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
               position: 3,
               duration: AppLayout.animShort,
               child: SlideAnimation(
-                verticalOffset: 24.0,
+                verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
+                curve: AppLayout.curveStrongEaseOut,
                 child: FadeInAnimation(
+                  curve: AppLayout.curveStrongEaseOut,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                    child: Consumer<SettingsProvider>(
-                      builder: (context, settings, _) {
+                    child: Builder(
+                      builder: (context) {
                         final forecast =
                             SpendingForecastService.calculateMonthlyForecast(
                           transactions: finProvider.allDateFiltered,
@@ -528,8 +548,10 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
               position: 5,
               duration: AppLayout.animShort,
               child: SlideAnimation(
-                verticalOffset: 24.0,
+                verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
+                curve: AppLayout.curveStrongEaseOut,
                 child: FadeInAnimation(
+                  curve: AppLayout.curveStrongEaseOut,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                     child: SingleChildScrollView(
@@ -648,29 +670,20 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                 },
                 onAddFirstTransaction: () async {
                   if (!mounted) return;
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const TransactionEditorScreen(),
-                    ),
-                  );
+                  await AppRouter.push(context, const TransactionEditorScreen());
                   await _refreshTransactions();
                 },
               ),
       ] else if (effectiveTab == 'Budgets') ...[
         // ── Tab 2: Budgets & Intelligence Dashboard ────────────────────
-        Consumer<SettingsProvider>(
-          builder: (context, settings, child) {
-            return FinancialAnalyticsTab(
-              transactions: finProvider.allDateFiltered,
-              monthlyData: finProvider.monthlyData,
-              currentMonthCategoryExpenses: finProvider.currentMonthCategoryExpenses,
-              currency: currency,
-              settings: settings,
-              onRefresh: _refreshTransactions,
-              initialDeckIndex: _analyticsSubView,
-            );
-          },
+        FinancialAnalyticsTab(
+          transactions: finProvider.allDateFiltered,
+          monthlyData: finProvider.monthlyData,
+          currentMonthCategoryExpenses: finProvider.currentMonthCategoryExpenses,
+          currency: currency,
+          settings: settings,
+          onRefresh: _refreshTransactions,
+          initialDeckIndex: _analyticsSubView,
         ),
       ] else if (effectiveTab == 'Split Bills') ...[
         // ── Tab 3: Split Bills & Shared Liabilities ──────────────────
@@ -683,8 +696,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
   }
 
   // Helper tab selector: 2 or 3-segment toggle for Ledger, Budgets & Split Bills
-  Widget _buildTabSelector(ColorScheme colorScheme) {
-    final settings = Provider.of<SettingsProvider>(context);
+  Widget _buildTabSelector(ColorScheme colorScheme, SettingsProvider settings) {
     final showBudgets = settings.enableBudgetsAndAnalytics;
     final showSplitBills = settings.showSplitBills;
 

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import '../../../../core/services/app_haptics.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
-import '../../../../utils/app_route.dart';
+import '../../../../core/routes/app_router.dart';
 import '../../../../widgets/skeleton_card.dart';
 import 'package:note_taking_app/features/settings/presentation/screens/settings_screen.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
@@ -234,8 +235,8 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
         final colorScheme = theme.colorScheme;
         final isDark = theme.brightness == Brightness.dark;
         final phaseColor = _resolvePhaseColor(context, provider.currentPhase);
-        final settings = context.watch<SettingsProvider>();
-        final isDiscreet = settings.isDiscreetHealthMode;
+        final isDiscreet = context.select<SettingsProvider, bool>((s) => s.isDiscreetHealthMode);
+        final reduceMotion = AppLayout.shouldReduceMotion(context);
 
         final daysUntilNext = provider.daysUntilNext;
         final predictionStatus = provider.isPeriodActive
@@ -251,6 +252,7 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
           body: AnimationLimiter(
             child: CustomScrollView(
               controller: _scrollController,
+              scrollCacheExtent: const ScrollCacheExtent.pixels(600.0),
               slivers: [
                 // ── Seamless Borderless Top Bar ────────────────────────────
                 SliverAppBar(
@@ -260,12 +262,12 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                   primary: false,
                   backgroundColor: Colors.transparent,
                   elevation: 0,
-                  toolbarHeight: MediaQuery.of(context).padding.top + 72.0,
+                  toolbarHeight: MediaQuery.paddingOf(context).top + 72.0,
                   titleSpacing: 0,
                   automaticallyImplyLeading: false,
                   flexibleSpace: Container(
                     padding: EdgeInsets.only(
-                      top: MediaQuery.of(context).padding.top + 6,
+                      top: MediaQuery.paddingOf(context).top + 6,
                       left: 16,
                       right: 16,
                       bottom: 6,
@@ -382,7 +384,7 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                                 visualDensity: VisualDensity.compact,
                                 onPressed: () {
                                   AppHaptics.lightImpact();
-                                  settings.setIsDiscreetHealthMode(!isDiscreet);
+                                  context.read<SettingsProvider>().setIsDiscreetHealthMode(!isDiscreet);
                                 },
                               ),
                               PopupMenuButton<String>(
@@ -403,7 +405,7 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                                 onSelected: (value) {
                                   if (value == 'toggle_discreet') {
                                     AppHaptics.lightImpact();
-                                    settings.setIsDiscreetHealthMode(!isDiscreet);
+                                    context.read<SettingsProvider>().setIsDiscreetHealthMode(!isDiscreet);
                                   } else if (value == 'log_period') {
                                     PeriodLogEditorSheet.show(
                                       context: context,
@@ -413,7 +415,7 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                                   } else if (value == 'phase_guide') {
                                     _showPhaseGuideDialog(context);
                                   } else if (value == 'cycle_settings') {
-                                    AppRoute.push(context, const SettingsScreen())
+                                    AppRouter.push(context, const SettingsScreen())
                                         .then((_) => provider.loadData());
                                   }
                                 },
@@ -481,7 +483,7 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                                 constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                                 visualDensity: VisualDensity.compact,
                                 onPressed: () {
-                                  AppRoute.push(context, const SettingsScreen())
+                                  AppRouter.push(context, const SettingsScreen())
                                       .then((_) => provider.loadData());
                                 },
                               ),
@@ -496,8 +498,10 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                     position: 0,
                     duration: AppLayout.animShort,
                     child: SlideAnimation(
-                      verticalOffset: 24.0,
+                      verticalOffset: reduceMotion ? 0.0 : 16.0,
+                      curve: AppLayout.curveStrongEaseOut,
                       child: FadeInAnimation(
+                        curve: AppLayout.curveStrongEaseOut,
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                           child: CyclePhaseHeroCard(
@@ -521,8 +525,10 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                     position: 1,
                     duration: AppLayout.animShort,
                     child: SlideAnimation(
-                      verticalOffset: 24.0,
+                      verticalOffset: reduceMotion ? 0.0 : 16.0,
+                      curve: AppLayout.curveStrongEaseOut,
                       child: FadeInAnimation(
+                        curve: AppLayout.curveStrongEaseOut,
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                           child: Column(
@@ -545,8 +551,10 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                     position: 2,
                     duration: AppLayout.animShort,
                     child: SlideAnimation(
-                      verticalOffset: 24.0,
+                      verticalOffset: reduceMotion ? 0.0 : 16.0,
+                      curve: AppLayout.curveStrongEaseOut,
                       child: FadeInAnimation(
+                        curve: AppLayout.curveStrongEaseOut,
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                           child: PeriodLogDashboardCard(
@@ -565,8 +573,10 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                     position: 3,
                     duration: AppLayout.animShort,
                     child: SlideAnimation(
-                      verticalOffset: 24.0,
+                      verticalOffset: reduceMotion ? 0.0 : 16.0,
+                      curve: AppLayout.curveStrongEaseOut,
                       child: FadeInAnimation(
+                        curve: AppLayout.curveStrongEaseOut,
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(16, 12, 16, AppLayout.fabBottomPadding),
                           child: PeriodCalendarCard(

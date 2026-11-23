@@ -109,6 +109,10 @@ flutter analyze && ./deploy.sh <version>
 ## Gradle & Build Configuration Guidelines
 
 * **JVM Targets**: Always ensure a consistent `jvmTarget = "17"` across all Android subprojects in `build.gradle.kts` to prevent compiler mismatch failures.
+* **Play Console Hardware Feature Declarations (`<uses-feature android:required="false" />`)**:
+  * Permissions such as `ACCESS_WIFI_STATE`, `CHANGE_WIFI_STATE`, `NEARBY_WIFI_DEVICES`, `CAMERA`, or `BLUETOOTH` can cause Google Play Console to infer required hardware features and block availability on Tablets, Desktops, Chromebooks, or Android XR.
+  * For any non-essential hardware capability (including Wi-Fi P2P sync), explicitly declare `<uses-feature android:name="..." android:required="false" />` in `android/app/src/main/AndroidManifest.xml`.
+  * After building a release APK (`flutter build apk --release`), verify the merged manifest at `build/app/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml` confirms `android:required="false"` for those features.
 * **R8 Code & Resource Shrinking**: Release builds use `isMinifyEnabled = true` and `isShrinkResources = true`. When adding any new third-party Flutter plugin that uses native Android code, reflection, or native channels:
   1. Add a corresponding `-keep class <package_name>.** { *; }` rule to `android/app/proguard-rules.pro`.
   2. Always build a local release APK (`flutter build apk --release`) to verify R8 compiles without class-stripping errors.

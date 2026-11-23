@@ -21,8 +21,8 @@ class TagFilterBar extends StatelessWidget {
         final itemCount = allTags.length + (showChecklistChip ? 1 : 0);
 
         return Container(
-          height: 40,
-          margin: const EdgeInsets.symmetric(vertical: 4),
+          height: 48,
+          margin: const EdgeInsets.symmetric(vertical: 2),
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -57,7 +57,6 @@ class TagFilterBar extends StatelessWidget {
                     textColor: fg,
                     border: border,
                     onTap: () {
-                      AppHaptics.selectionClick();
                       noteProvider.setFilterChecklistsOnly(!isChecklistFiltered);
                     },
                   ),
@@ -88,7 +87,6 @@ class TagFilterBar extends StatelessWidget {
                     textColor: chipColors.fg,
                     border: chipColors.border,
                     onTap: () {
-                      AppHaptics.selectionClick();
                       noteProvider.toggleTag(tag);
                     },
                   ),

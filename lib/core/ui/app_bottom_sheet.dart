@@ -27,17 +27,20 @@ class AppBottomSheet extends StatelessWidget {
     bool isScrollControlled = true,
     bool showDragHandle = true,
   }) {
+    final reduceMotion = AppLayout.shouldReduceMotion(context);
     return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: isScrollControlled,
       useSafeArea: true,
       backgroundColor: Colors.transparent,
-      sheetAnimationStyle: const AnimationStyle(
-        duration: AppLayout.animModal,
-        reverseDuration: AppLayout.animFast,
-        curve: AppLayout.curveSheet,
-        reverseCurve: AppLayout.curveEmphasizedAccelerate,
-      ),
+      sheetAnimationStyle: reduceMotion
+          ? AnimationStyle.noAnimation
+          : const AnimationStyle(
+              duration: AppLayout.animModal,
+              reverseDuration: AppLayout.animFast,
+              curve: AppLayout.curveSheet,
+              reverseCurve: AppLayout.curveEmphasizedAccelerate,
+            ),
       builder: (context) => AppBottomSheet(
         title: title,
         actions: actions,

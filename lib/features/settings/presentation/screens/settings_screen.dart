@@ -9,7 +9,7 @@ import '../../../../core/ui/app_card.dart';
 import '../../../../core/ui/app_chip.dart';
 import '../../../../core/ui/expressive_sliver_app_bar.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../utils/app_route.dart';
+import '../../../../core/routes/app_router.dart';
 import '../../../../widgets/bouncing_widget.dart';
 import '../../../../widgets/settings_widgets.dart';
 import '../../../finances/presentation/screens/category_management_screen.dart';
@@ -274,8 +274,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           : AnimationConfiguration.toStaggeredList(
                               duration: AppLayout.animShort,
                               childAnimationBuilder: (widget) => SlideAnimation(
-                                verticalOffset: 24.0,
-                                child: FadeInAnimation(child: widget),
+                                verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
+                                curve: AppLayout.curveStrongEaseOut,
+                                child: FadeInAnimation(
+                                  curve: AppLayout.curveStrongEaseOut,
+                                  child: widget,
+                                ),
                               ),
                               children: [
                                 // 0. Top Hero Dashboard Status Card
@@ -292,23 +296,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   onThemeModeChanged: settings.setThemeMode,
                                   onAppLockTap: () {
                                     AppHaptics.selectionClick();
-                                    AppRoute.push(context, const SecuritySettingsScreen());
+                                    AppRouter.push(context, const SecuritySettingsScreen());
                                   },
                                   onFinancesTap: () {
                                     AppHaptics.selectionClick();
-                                    AppRoute.push(context, const FinancesSettingsScreen());
+                                    AppRouter.push(context, const FinancesSettingsScreen());
                                   },
                                   onHealthTap: () {
                                     AppHaptics.selectionClick();
-                                    AppRoute.push(context, const FinancesSettingsScreen());
+                                    AppRouter.push(context, const FinancesSettingsScreen());
                                   },
                                   onAiTap: () {
                                     AppHaptics.selectionClick();
-                                    AppRoute.push(context, const NotesSettingsScreen());
+                                    AppRouter.push(context, const NotesSettingsScreen());
                                   },
                                   onBackupTap: () {
                                     AppHaptics.selectionClick();
-                                    AppRoute.push(context, const SyncBackupSettingsScreen());
+                                    AppRouter.push(context, const SyncBackupSettingsScreen());
                                   },
                                 ),
                                 const SizedBox(height: AppLayout.spaceL),
@@ -345,7 +349,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   }(),
                                   icon: Icons.palette_outlined,
                                   accentColor: colorScheme.primary,
-                                  onTap: () => AppRoute.push(context, const AppearanceSettingsScreen()),
+                                  onTap: () => AppRouter.push(context, const AppearanceSettingsScreen()),
                                 ),
                                 const SizedBox(height: AppLayout.spaceM),
 
@@ -356,7 +360,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   subtitle: '${settings.minimalEditorMode ? 'Minimal Toolbar' : 'Standard Writing'} • ${settings.showTagFilterBar ? 'Tags Active' : 'Clean List'} • ${settings.trashAutoPurgeDays <= 0 ? 'Purge Off' : '${settings.trashAutoPurgeDays}d Auto-Purge'}',
                                   icon: Icons.edit_note_rounded,
                                   accentColor: const Color(0xFFF59E0B),
-                                  onTap: () => AppRoute.push(context, const NotesSettingsScreen()),
+                                  onTap: () => AppRouter.push(context, const NotesSettingsScreen()),
                                 ),
                                 const SizedBox(height: AppLayout.spaceM),
 
@@ -367,7 +371,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   subtitle: 'Finances ${settings.showFinancialManager ? 'Active (${settings.currencySymbol})' : 'Disabled'} • Period Tracker ${settings.isPeriodTrackerEnabled ? 'Active' : 'Disabled'}',
                                   icon: Icons.apps_rounded,
                                   accentColor: const Color(0xFF10B981),
-                                  onTap: () => AppRoute.push(context, const FinancesSettingsScreen()),
+                                  onTap: () => AppRouter.push(context, const FinancesSettingsScreen()),
                                 ),
                                 const SizedBox(height: AppLayout.spaceM),
 
@@ -378,7 +382,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   subtitle: 'App Lock ${settings.appLockEnabled ? 'Active (${SettingsDialogs.getTimeoutLabel(context, settings.appLockTimeout)})' : 'Disabled'} • ${settings.useBiometrics ? 'Biometrics' : 'PIN / Passcode'}',
                                   icon: Icons.security_outlined,
                                   accentColor: colorScheme.primary,
-                                  onTap: () => AppRoute.push(context, const SecuritySettingsScreen()),
+                                  onTap: () => AppRouter.push(context, const SecuritySettingsScreen()),
                                 ),
                                 const SizedBox(height: AppLayout.spaceM),
 
@@ -389,7 +393,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   subtitle: 'P2P Device Sync • Encrypted JSON • ${settings.autoBackupEnabled ? 'Auto-Backup (${SettingsDialogs.getFrequencyLabel(settings.autoBackupFrequency)})' : 'Manual Backup'}',
                                   icon: Icons.cloud_sync_outlined,
                                   accentColor: const Color(0xFF0EA5E9),
-                                  onTap: () => AppRoute.push(context, const SyncBackupSettingsScreen()),
+                                  onTap: () => AppRouter.push(context, const SyncBackupSettingsScreen()),
                                 ),
                                 const SizedBox(height: AppLayout.spaceM),
 
@@ -402,7 +406,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       : 'Changelog • Diagnostics & Setup Guides',
                                   icon: Icons.info_outline_rounded,
                                   accentColor: colorScheme.onSurfaceVariant,
-                                  onTap: () => AppRoute.push(context, const AboutSettingsScreen()),
+                                  onTap: () => AppRouter.push(context, const AboutSettingsScreen()),
                                 ),
 
                                 const SizedBox(height: AppLayout.fabBottomPadding),
@@ -568,39 +572,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
     AppHaptics.selectionClick();
     switch (item.section.toLowerCase()) {
       case 'appearance':
-        AppRoute.push(context, const AppearanceSettingsScreen());
+        AppRouter.push(context, const AppearanceSettingsScreen());
         break;
       case 'features':
         if (item.id == 'manage_tags') {
-          AppRoute.push(context, const ManageTagsScreen());
+          AppRouter.push(context, const ManageTagsScreen());
         } else {
-          AppRoute.push(context, const NotesSettingsScreen());
+          AppRouter.push(context, const NotesSettingsScreen());
         }
         break;
       case 'finances':
         if (item.id == 'sms_rules') {
-          AppRoute.push(context, const SmsRulesScreen());
+          AppRouter.push(context, const SmsRulesScreen());
         } else if (item.id == 'categories') {
-          AppRoute.push(context, const CategoryManagementScreen());
+          AppRouter.push(context, const CategoryManagementScreen());
         } else {
-          AppRoute.push(context, const FinancesSettingsScreen());
+          AppRouter.push(context, const FinancesSettingsScreen());
         }
         break;
       case 'security':
-        AppRoute.push(context, const SecuritySettingsScreen());
+        AppRouter.push(context, const SecuritySettingsScreen());
         break;
       case 'data':
         if (item.id == 'p2p_sync') {
-          AppRoute.push(context, const P2pSyncScreen());
+          AppRouter.push(context, const P2pSyncScreen());
         } else {
-          AppRoute.push(context, const SyncBackupSettingsScreen());
+          AppRouter.push(context, const SyncBackupSettingsScreen());
         }
         break;
       case 'about':
         if (item.id == 'onboarding_replay') {
-          AppRoute.push(context, const OnboardingScreen());
+          AppRouter.push(context, const OnboardingScreen());
         } else {
-          AppRoute.push(context, const AboutSettingsScreen());
+          AppRouter.push(context, const AboutSettingsScreen());
         }
         break;
       default:

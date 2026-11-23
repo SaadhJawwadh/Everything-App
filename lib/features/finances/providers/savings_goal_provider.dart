@@ -24,23 +24,43 @@ class SavingsGoalProvider extends ChangeNotifier {
   }
 
   List<SavingsGoalModel> _goals = [];
+  List<SavingsGoalModel> _activeGoals = const [];
+  List<SavingsGoalModel> _completedGoals = const [];
+  double _totalTargetAmount = 0.0;
+  double _totalCurrentAmount = 0.0;
   bool _isLoading = false;
 
   List<SavingsGoalModel> get goals => _goals;
-  List<SavingsGoalModel> get activeGoals => _goals.where((g) => !g.isCompleted).toList();
-  List<SavingsGoalModel> get completedGoals => _goals.where((g) => g.isCompleted).toList();
+  List<SavingsGoalModel> get activeGoals => _activeGoals;
+  List<SavingsGoalModel> get completedGoals => _completedGoals;
   bool get isLoading => _isLoading;
 
-  double get totalTargetAmount => _goals.fold(0.0, (sum, g) => sum + g.targetAmount);
-  double get totalCurrentAmount => _goals.fold(0.0, (sum, g) => sum + g.currentAmount);
-  double get overallProgressRatio => totalTargetAmount > 0 ? (totalCurrentAmount / totalTargetAmount).clamp(0.0, 1.0) : 0.0;
+  double get totalTargetAmount => _totalTargetAmount;
+  double get totalCurrentAmount => _totalCurrentAmount;
+  double get overallProgressRatio => _totalTargetAmount > 0 ? (_totalCurrentAmount / _totalTargetAmount).clamp(0.0, 1.0) : 0.0;
   int get overallProgressPercent => (overallProgressRatio * 100).round();
 
+  void _rebuildGoalCache() {
+    _activeGoals = List.unmodifiable(_goals.where((g) => !g.isCompleted));
+    _completedGoals = List.unmodifiable(_goals.where((g) => g.isCompleted));
+    double target = 0.0;
+    double current = 0.0;
+    for (final g in _goals) {
+      target += g.targetAmount;
+      current += g.currentAmount;
+    }
+    _totalTargetAmount = target;
+    _totalCurrentAmount = current;
+  }
+
   Future<void> loadGoals() async {
-    _isLoading = true;
-    notifyListeners();
+    if (_goals.isEmpty) {
+      _isLoading = true;
+      notifyListeners();
+    }
 
     _goals = await _repository.getGoals(includeCompleted: true);
+    _rebuildGoalCache();
 
     _isLoading = false;
     notifyListeners();

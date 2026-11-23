@@ -49,8 +49,8 @@ class AppCard extends StatelessWidget {
     this.isSelected = false,
     this.isStadium = false,
     this.animate = false,
-    this.animationDuration = AppLayout.animDefault,
-    this.animationCurve = AppLayout.curveExpressiveSpatial,
+    this.animationDuration = AppLayout.animFast,
+    this.animationCurve = AppLayout.curveStrongEaseOut,
   })  : isFrosted = false,
         blurSigma = 0.0;
 
@@ -72,8 +72,8 @@ class AppCard extends StatelessWidget {
     bool isSelected = false,
     bool isStadium = false,
     bool animate = false,
-    Duration animationDuration = AppLayout.animDefault,
-    Curve animationCurve = AppLayout.curveExpressiveSpatial,
+    Duration animationDuration = AppLayout.animFast,
+    Curve animationCurve = AppLayout.curveStrongEaseOut,
   }) {
     return AppCard(
       key: key,
@@ -118,8 +118,8 @@ class AppCard extends StatelessWidget {
     this.isSelected = false,
     this.isStadium = false,
     this.animate = false,
-    this.animationDuration = AppLayout.animDefault,
-    this.animationCurve = AppLayout.curveExpressiveSpatial,
+    this.animationDuration = AppLayout.animFast,
+    this.animationCurve = AppLayout.curveStrongEaseOut,
     this.blurSigma = 0.0,
   }) : isFrosted = true;
 
@@ -212,6 +212,9 @@ class AppCard extends StatelessWidget {
             child: cardPadding,
           );
 
+    final effectiveDuration =
+        AppLayout.shouldReduceMotion(context) ? Duration.zero : animationDuration;
+
     Widget containerWidget;
     if (shape != null) {
       final decoration = ShapeDecoration(
@@ -221,7 +224,7 @@ class AppCard extends StatelessWidget {
       );
       containerWidget = shouldAnimate
           ? AnimatedContainer(
-              duration: animationDuration,
+              duration: effectiveDuration,
               curve: animationCurve,
               decoration: decoration,
               child: innerInk,
@@ -239,7 +242,7 @@ class AppCard extends StatelessWidget {
       );
       containerWidget = shouldAnimate
           ? AnimatedContainer(
-              duration: animationDuration,
+              duration: effectiveDuration,
               curve: animationCurve,
               decoration: decoration,
               child: innerInk,

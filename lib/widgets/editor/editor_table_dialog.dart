@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:note_taking_app/core/theme/app_layout.dart';
+import '../../core/ui/app_dialog.dart';
 
 /// A Material 3 dialog for choosing dimensions (rows/columns) when inserting a table.
 class EditorTableDialog extends StatefulWidget {
@@ -18,7 +19,7 @@ class EditorTableDialog extends StatefulWidget {
     int initialRows = 3,
     int initialCols = 3,
   }) async {
-    return showDialog<({int rows, int cols})>(
+    return AppDialog.show<({int rows, int cols})>(
       context: context,
       builder: (ctx) => EditorTableDialog(
         initialRows: initialRows,

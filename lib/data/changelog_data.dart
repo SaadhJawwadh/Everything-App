@@ -49,30 +49,24 @@ class ChangelogRelease {
 
 /// Latest release kept in Dart for synchronous rendering.
 final ChangelogRelease kLatestChangelog = ChangelogRelease(
-  version: 'v3.7.0',
-  date: 'November 21, 2026',
+  version: 'v3.7.1',
+  date: 'November 23, 2026',
   isLatest: true,
   categories: [
     ChangelogCategory(
-      title: "What's New",
-      items: [
-        'Scan Text to Note (Offline OCR): Extract editable text directly from camera photos or embedded note images using /scan or the image menu.',
-        'Proactive Budget Alerts, Bill Reminders & Weekly Digest: Get notified at 80% and 100% of monthly category budgets, 48 hours before recurring bills, and with an optional Sunday digest.',
-        'Group Simplify Debts & Batch Story Slides: Calculate minimal transfers for grouped split bills and export all Story Card slides in one tap.',
-        'Encrypted Auto-Backups, Per-Module Locks & Screenshot Shield: Automated backups are now encrypted with a recovery key, Finances and Health tabs lock individually, and Android screenshot protection is configurable in Security.',
-      ],
-    ),
-    ChangelogCategory(
       title: 'Improvements',
       items: [
-        'Full-Body Note Search & Period Notes: Search unlocked notes across their full body, add optional notes to period logs, and jump straight to Health from period notifications.',
-        'Cleaner Finance Analytics & Broader Compatibility: Excluded account transfers from spending breakdowns, scoped budgets to the current month, and marked Wi-Fi hardware optional for more devices.',
+        'Smoother, Snappier Animations: Refined spring motion across cards, sheets, dialogs, and buttons for crisp, responsive feedback.',
+        'Faster Startup & Scrolling: Deferred non-critical background startup work and optimized notes, finances, split bills, and calendars for fluid 120Hz scrolling.',
+        'Instant Search, Filters & Actions: Made search toggles, account and tag filter switches, and swipe actions respond immediately.',
+        'Reduce Motion Accessibility: Honored your system Reduce Motion setting across loaders, cards, sheets, dialogs, and list entrances.',
       ],
     ),
     ChangelogCategory(
       title: 'Fixes',
       items: [
-        'Biometrics & P2P Authentication: Wired the Use Biometrics toggle with PIN fallback, added integrity checks to P2P sync, and gated Story Card AI Highlights on supported devices.',
+        'Typing & Keyboard Fluidity: Eliminated keyboard animation stutter in the rich note editor.',
+        'Smoother Charts & Battery Efficiency: Stopped idle animations at rest, prevented redundant data reloads, and kept spending charts smooth while scrubbing.',
       ],
     ),
   ],

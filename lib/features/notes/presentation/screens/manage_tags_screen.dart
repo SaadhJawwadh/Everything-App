@@ -29,7 +29,9 @@ class _ManageTagsScreenState extends State<ManageTagsScreen> {
   }
 
   Future<void> _loadTags() async {
-    setState(() => _isLoading = true);
+    if (_tags.isEmpty) {
+      setState(() => _isLoading = true);
+    }
     final tags = await NoteRepository.instance.getAllTags();
     final col = await NoteRepository.instance.getAllTagColors();
     setState(() {
@@ -43,7 +45,7 @@ class _ManageTagsScreenState extends State<ManageTagsScreen> {
     final controller = TextEditingController(text: tag);
     int selectedColor = _tagColors[tag] ?? 0;
 
-    await showDialog(
+    await AppDialog.show(
       context: context,
       builder: (dialogContext) => StatefulBuilder(builder: (dialogContext, setDialogState) {
         return AppDialog(
@@ -82,7 +84,10 @@ class _ManageTagsScreenState extends State<ManageTagsScreen> {
                       height: 48,
                       child: Center(
                         child: AnimatedContainer(
-                          duration: AppLayout.animShort,
+                          duration: AppLayout.shouldReduceMotion(dialogContext)
+                              ? Duration.zero
+                              : AppLayout.animShort,
+                          curve: AppLayout.curveStrongEaseOut,
                           width: isSelected ? 36 : 32,
                           height: isSelected ? 36 : 32,
                           decoration: BoxDecoration(
@@ -215,7 +220,9 @@ class _ManageTagsScreenState extends State<ManageTagsScreen> {
                         duration: AppLayout.animShort,
                         child: SlideAnimation(
                           verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
+                          curve: AppLayout.curveStrongEaseOut,
                           child: FadeInAnimation(
+                            curve: AppLayout.curveStrongEaseOut,
                             child: Semantics(
                               label: 'Tag: $tag',
                               child: Card(

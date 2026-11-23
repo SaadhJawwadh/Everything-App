@@ -225,21 +225,23 @@ class TransactionRepository {
     final now = DateTime.now().toIso8601String();
     int total = 0;
     await db.transaction((txn) async {
-      for (final id in ids) {
+      for (int i = 0; i < ids.length; i += 500) {
+        final chunk = ids.sublist(i, (i + 500).clamp(0, ids.length));
+        final placeholders = List.filled(chunk.length, '?').join(',');
         total += await txn.update(
           TableNames.transactions,
           {
             TransactionFields.deletedAt: now,
             TransactionFields.dateModified: now,
           },
-          where: '${TransactionFields.id} = ?',
-          whereArgs: [id],
+          where: '${TransactionFields.id} IN ($placeholders)',
+          whereArgs: chunk,
         );
         await txn.update(
           TableNames.splitBills,
           {SplitBillFields.deletedAt: now},
-          where: '${SplitBillFields.transactionId} = ? AND ${SplitBillFields.deletedAt} IS NULL',
-          whereArgs: [id],
+          where: '${SplitBillFields.transactionId} IN ($placeholders) AND ${SplitBillFields.deletedAt} IS NULL',
+          whereArgs: chunk,
         );
       }
     });
@@ -256,14 +258,16 @@ class TransactionRepository {
     final now = DateTime.now().toIso8601String();
     int total = 0;
     await db.transaction((txn) async {
-      for (final id in ids) {
+      for (int i = 0; i < ids.length; i += 500) {
+        final chunk = ids.sublist(i, (i + 500).clamp(0, ids.length));
+        final placeholders = List.filled(chunk.length, '?').join(',');
         total += await txn.rawUpdate(
-          'UPDATE ${TableNames.transactions} SET ${TransactionFields.deletedAt} = NULL, ${TransactionFields.dateModified} = ? WHERE ${TransactionFields.id} = ?',
-          [now, id],
+          'UPDATE ${TableNames.transactions} SET ${TransactionFields.deletedAt} = NULL, ${TransactionFields.dateModified} = ? WHERE ${TransactionFields.id} IN ($placeholders)',
+          [now, ...chunk],
         );
         await txn.rawUpdate(
-          'UPDATE ${TableNames.splitBills} SET ${SplitBillFields.deletedAt} = NULL WHERE ${SplitBillFields.transactionId} = ?',
-          [id],
+          'UPDATE ${TableNames.splitBills} SET ${SplitBillFields.deletedAt} = NULL WHERE ${SplitBillFields.transactionId} IN ($placeholders)',
+          chunk,
         );
       }
     });
@@ -280,15 +284,17 @@ class TransactionRepository {
     final now = DateTime.now().toIso8601String();
     int total = 0;
     await db.transaction((txn) async {
-      for (final id in ids) {
+      for (int i = 0; i < ids.length; i += 500) {
+        final chunk = ids.sublist(i, (i + 500).clamp(0, ids.length));
+        final placeholders = List.filled(chunk.length, '?').join(',');
         total += await txn.update(
           TableNames.transactions,
           {
             TransactionFields.category: category,
             TransactionFields.dateModified: now,
           },
-          where: '${TransactionFields.id} = ? AND ${TransactionFields.deletedAt} IS NULL',
-          whereArgs: [id],
+          where: '${TransactionFields.id} IN ($placeholders) AND ${TransactionFields.deletedAt} IS NULL',
+          whereArgs: chunk,
         );
       }
     });
@@ -306,15 +312,17 @@ class TransactionRepository {
     final now = DateTime.now().toIso8601String();
     int total = 0;
     await db.transaction((txn) async {
-      for (final id in ids) {
+      for (int i = 0; i < ids.length; i += 500) {
+        final chunk = ids.sublist(i, (i + 500).clamp(0, ids.length));
+        final placeholders = List.filled(chunk.length, '?').join(',');
         total += await txn.update(
           TableNames.transactions,
           {
             TransactionFields.account: account,
             TransactionFields.dateModified: now,
           },
-          where: '${TransactionFields.id} = ? AND ${TransactionFields.deletedAt} IS NULL',
-          whereArgs: [id],
+          where: '${TransactionFields.id} IN ($placeholders) AND ${TransactionFields.deletedAt} IS NULL',
+          whereArgs: chunk,
         );
       }
     });
@@ -361,22 +369,27 @@ class TransactionRepository {
   Future<int> emptyTrash() async {
     final db = await _db;
     final trashed = await readTrashedTransactions();
-    for (final t in trashed) {
-      if (t.smsId != null && t.smsId!.isNotEmpty) {
-        await db.insert(
-          TableNames.deletedTransactionSmsIds,
-          {
-            'smsId': t.smsId,
-            'deletedAt': DateTime.now().toIso8601String(),
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
+    final now = DateTime.now().toIso8601String();
+    final count = await db.transaction((txn) async {
+      final batch = txn.batch();
+      for (final t in trashed) {
+        if (t.smsId != null && t.smsId!.isNotEmpty) {
+          batch.insert(
+            TableNames.deletedTransactionSmsIds,
+            {
+              'smsId': t.smsId,
+              'deletedAt': now,
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
       }
-    }
-    final count = await db.delete(
-      TableNames.transactions,
-      where: '${TransactionFields.deletedAt} IS NOT NULL',
-    );
+      await batch.commit(noResult: true);
+      return await txn.delete(
+        TableNames.transactions,
+        where: '${TransactionFields.deletedAt} IS NOT NULL',
+      );
+    });
     if (count > 0) {
       await WidgetHelper.updateWidgetData();
       P2pSyncProvider.activeInstance?.triggerEventSync();
@@ -392,24 +405,29 @@ class TransactionRepository {
       where: '${TransactionFields.deletedAt} IS NOT NULL AND ${TransactionFields.deletedAt} < ?',
       whereArgs: [cutoff],
     );
-    for (final row in oldRows) {
-      final smsId = row[TransactionFields.smsId] as String?;
-      if (smsId != null && smsId.isNotEmpty) {
-        await db.insert(
-          TableNames.deletedTransactionSmsIds,
-          {
-            'smsId': smsId,
-            'deletedAt': DateTime.now().toIso8601String(),
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
+    final now = DateTime.now().toIso8601String();
+    final count = await db.transaction((txn) async {
+      final batch = txn.batch();
+      for (final row in oldRows) {
+        final smsId = row[TransactionFields.smsId] as String?;
+        if (smsId != null && smsId.isNotEmpty) {
+          batch.insert(
+            TableNames.deletedTransactionSmsIds,
+            {
+              'smsId': smsId,
+              'deletedAt': now,
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
       }
-    }
-    final count = await db.delete(
-      TableNames.transactions,
-      where: '${TransactionFields.deletedAt} IS NOT NULL AND ${TransactionFields.deletedAt} < ?',
-      whereArgs: [cutoff],
-    );
+      await batch.commit(noResult: true);
+      return await txn.delete(
+        TableNames.transactions,
+        where: '${TransactionFields.deletedAt} IS NOT NULL AND ${TransactionFields.deletedAt} < ?',
+        whereArgs: [cutoff],
+      );
+    });
     if (count > 0) {
       await WidgetHelper.updateWidgetData();
       P2pSyncProvider.activeInstance?.triggerEventSync();

@@ -327,7 +327,7 @@ class NoteEditorActions {
     required String noteId,
     required bool isNoteInTrash,
   }) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await AppDialog.show<bool>(
       context: context,
       builder: (context) => AppDialog(
         title: isNoteInTrash ? 'Delete Permanently?' : 'Move to Trash?',

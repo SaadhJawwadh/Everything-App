@@ -288,10 +288,20 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
   Future<void> _openCalculator([TextEditingController? targetController]) async {
     final ctrl = targetController ?? _amountController;
     final currentVal = double.tryParse(ctrl.text) ?? 0.0;
+    final reduceMotion = AppLayout.shouldReduceMotion(context);
     final result = await showModalBottomSheet<double>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       showDragHandle: true,
+      sheetAnimationStyle: reduceMotion
+          ? AnimationStyle.noAnimation
+          : const AnimationStyle(
+              duration: AppLayout.animModal,
+              reverseDuration: AppLayout.animFast,
+              curve: AppLayout.curveSheet,
+              reverseCurve: AppLayout.curveEmphasizedAccelerate,
+            ),
       builder: (context) => CalculatorDialog(initialValue: currentVal),
     );
     if (result != null) {

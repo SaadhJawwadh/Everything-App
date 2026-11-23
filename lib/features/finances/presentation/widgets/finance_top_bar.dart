@@ -1,10 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/services/app_haptics.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../utils/app_route.dart';
+import '../../../../core/routes/app_router.dart';
 import '../../../../widgets/bouncing_widget.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
 import '../../../settings/providers/settings_provider.dart';
@@ -17,7 +18,7 @@ import 'recurring_rules_sheet.dart';
 import 'savings_goal_editor_sheet.dart';
 import 'sms_import_sheet.dart';
 
-class FinanceTopBar extends StatelessWidget {
+class FinanceTopBar extends StatefulWidget {
   final bool isSearching;
   final TextEditingController searchController;
   final String currency;
@@ -42,6 +43,19 @@ class FinanceTopBar extends StatelessWidget {
   });
 
   @override
+  State<FinanceTopBar> createState() => _FinanceTopBarState();
+}
+
+class _FinanceTopBarState extends State<FinanceTopBar> {
+  Timer? _debounceTimer;
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -51,7 +65,7 @@ class FinanceTopBar extends StatelessWidget {
     if (finProvider.isSelectionMode) {
       return _buildSelectionModeHeader(context, colorScheme, textTheme, finProvider);
     }
-    if (isSearching) {
+    if (widget.isSearching) {
       return _buildSearchModeHeader(context, colorScheme, textTheme, finProvider);
     }
     return _buildNormalHeader(context, colorScheme, textTheme, isDark, finProvider);
@@ -71,11 +85,11 @@ class FinanceTopBar extends StatelessWidget {
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           visualDensity: VisualDensity.compact,
-          onPressed: onExitSearch,
+          onPressed: widget.onExitSearch,
         ),
         Expanded(
           child: TextField(
-            controller: searchController,
+            controller: widget.searchController,
             autofocus: true,
             style: textTheme.titleMedium,
             enableInteractiveSelection: true,
@@ -94,7 +108,17 @@ class FinanceTopBar extends StatelessWidget {
               contentPadding: const EdgeInsets.symmetric(horizontal: 4),
             ),
             onChanged: (val) {
-              context.read<FinancialManagerProvider>().setSearchQuery(val.trim().toLowerCase());
+              final q = val.trim().toLowerCase();
+              _debounceTimer?.cancel();
+              if (q.isEmpty) {
+                context.read<FinancialManagerProvider>().setSearchQuery('');
+              } else {
+                _debounceTimer = Timer(const Duration(milliseconds: 150), () {
+                  if (mounted) {
+                    context.read<FinancialManagerProvider>().setSearchQuery(q);
+                  }
+                });
+              }
             },
             onSubmitted: (_) {
               FocusScope.of(context).unfocus();
@@ -109,7 +133,8 @@ class FinanceTopBar extends StatelessWidget {
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             visualDensity: VisualDensity.compact,
             onPressed: () {
-              searchController.clear();
+              _debounceTimer?.cancel();
+              widget.searchController.clear();
               context.read<FinancialManagerProvider>().setSearchQuery('');
             },
           ),
@@ -161,7 +186,7 @@ class FinanceTopBar extends StatelessWidget {
                     'Selected date range: ${selectedRange.duration.inDays == 0 ? DateFormat.MMMd().format(selectedRange.start) : '${DateFormat.MMMd().format(selectedRange.start)} to ${DateFormat.MMMd().format(selectedRange.end)}'}. Tap to change filter',
                 child: InkWell(
                   borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                  onTap: onSelectDateRange,
+                  onTap: widget.onSelectDateRange,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
                     decoration: BoxDecoration(
@@ -215,7 +240,7 @@ class FinanceTopBar extends StatelessWidget {
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           visualDensity: VisualDensity.compact,
-          onPressed: onStartSearch,
+          onPressed: widget.onStartSearch,
         ),
         if (settings.enableSmsImport)
           Semantics(
@@ -227,7 +252,7 @@ class FinanceTopBar extends StatelessWidget {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                 child: BouncingWidget(
-                  onTap: onQuickImportRecentSms,
+                  onTap: widget.onQuickImportRecentSms,
                   onLongPress: () {
                     AppHaptics.mediumImpact();
                     SmsImportSheet.show(context);
@@ -270,31 +295,31 @@ class FinanceTopBar extends StatelessWidget {
           color: colorScheme.surfaceContainerHigh,
           onSelected: (value) {
             if (value == 'savings_goals') {
-              onOpenSavingsGoals();
+              widget.onOpenSavingsGoals();
               SavingsGoalEditorSheet.show(context).then((_) {
-                if (context.mounted) onRefreshTransactions();
+                if (context.mounted) widget.onRefreshTransactions();
               });
             } else if (value == 'sms_rules') {
-              AppRoute.push(context, const SmsRulesScreen());
+              AppRouter.push(context, const SmsRulesScreen());
             } else if (value == 'recurring') {
               RecurringRulesSheet.show(
                 context: context,
-                currency: currency,
-                onRulesUpdated: onRefreshTransactions,
+                currency: widget.currency,
+                onRulesUpdated: widget.onRefreshTransactions,
               );
             } else if (value == 'export') {
               FinancialExportService.showExportSheet(
                 context,
                 context.read<FinancialManagerProvider>().transactions,
-                currency: currency,
+                currency: widget.currency,
               );
             } else if (value == 'transfer') {
               AccountTransferSheet.show(context).then((_) {
-                if (context.mounted) onRefreshTransactions();
+                if (context.mounted) widget.onRefreshTransactions();
               });
             } else if (value == 'trash') {
               FinancialTrashSheet.show(context).then((_) {
-                if (context.mounted) onRefreshTransactions();
+                if (context.mounted) widget.onRefreshTransactions();
               });
             }
           },
@@ -425,8 +450,8 @@ class FinanceTopBar extends StatelessWidget {
           constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           visualDensity: VisualDensity.compact,
           onPressed: () {
-            AppRoute.push(context, const SettingsScreen())
-                .then((_) => onRefreshTransactions());
+            AppRouter.push(context, const SettingsScreen())
+                .then((_) => widget.onRefreshTransactions());
           },
         ),
       ],

@@ -405,12 +405,17 @@ class AppLockScreenState extends State<AppLockScreen>
 
   @override
   Widget build(BuildContext context) {
-    final settings = Provider.of<SettingsProvider>(context);
+    final lockPrefs = context.select<SettingsProvider, ({bool appLockEnabled, bool screenshotShieldEnabled})>(
+      (s) => (
+        appLockEnabled: s.appLockEnabled,
+        screenshotShieldEnabled: s.screenshotShieldEnabled,
+      ),
+    );
 
-    _syncRecentsPrivacy(settings.appLockEnabled);
-    _syncFlagSecure(settings.screenshotShieldEnabled);
+    _syncRecentsPrivacy(lockPrefs.appLockEnabled);
+    _syncFlagSecure(lockPrefs.screenshotShieldEnabled);
 
-    if (!settings.appLockEnabled) {
+    if (!lockPrefs.appLockEnabled) {
       return widget.child;
     }
 

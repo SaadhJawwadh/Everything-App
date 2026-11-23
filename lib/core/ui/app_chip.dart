@@ -45,11 +45,7 @@ class AppChip extends StatelessWidget {
     final theme = Theme.of(context);
 
     if (tagColorVal != null && tagColorVal != 0) {
-      final seedColor = Color(tagColorVal);
-      final scheme = ColorScheme.fromSeed(
-        seedColor: seedColor,
-        brightness: theme.brightness,
-      );
+      final scheme = AppTheme.cachedSeedScheme(tagColorVal, theme.brightness);
 
       if (isSelected) {
         return (
@@ -113,9 +109,10 @@ class AppChip extends StatelessWidget {
     final effectiveRadius = borderRadiusGeometry ??
         BorderRadius.circular(borderRadius ?? AppLayout.radiusStadium);
 
+    final reduceMotion = AppLayout.shouldReduceMotion(context);
     final chipWidget = AnimatedContainer(
-      duration: AppLayout.animShort,
-      curve: AppLayout.curveExpressiveSpatial,
+      duration: reduceMotion ? Duration.zero : AppLayout.animMicro,
+      curve: AppLayout.curveStrongEaseOut,
       decoration: BoxDecoration(
         color: effectiveBg,
         borderRadius: effectiveRadius,

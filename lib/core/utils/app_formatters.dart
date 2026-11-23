@@ -9,6 +9,31 @@ import '../../features/settings/providers/settings_provider.dart';
 class AppFormatters {
   AppFormatters._();
 
+  static final Map<String, NumberFormat> _numCache = {};
+  static final Map<String, DateFormat> _dateCache = {};
+
+  static final NumberFormat _amountFixedFmt = NumberFormat('#,##0.00');
+  static final NumberFormat _amountCompactDecFmt = NumberFormat('#,##0.##');
+  static final NumberFormat _amountIntFmt = NumberFormat('#,##0');
+  static final DateFormat _time12hFmt = DateFormat('hh:mm a');
+  static final DateFormat _monthDayFmt = DateFormat.MMMd();
+
+  static String formatAmountFixed(double amount) => _amountFixedFmt.format(amount);
+  static String formatAmountCompactDec(double amount) => _amountCompactDecFmt.format(amount);
+  static String formatAmountInt(double amount) => _amountIntFmt.format(amount);
+  static String formatTime12h(DateTime dt) => _time12hFmt.format(dt);
+  static String formatMonthDay(DateTime dt) => _monthDayFmt.format(dt);
+
+  static NumberFormat _cachedNum(String key, NumberFormat Function() builder) {
+    if (_numCache.length >= 32) _numCache.clear();
+    return _numCache.putIfAbsent(key, builder);
+  }
+
+  static DateFormat _cachedDate(String key, DateFormat Function() builder) {
+    if (_dateCache.length >= 32) _dateCache.clear();
+    return _dateCache.putIfAbsent(key, builder);
+  }
+
   /// Formats a financial currency [amount] according to the active [BuildContext] locale.
   /// 
   /// If [currency] is omitted, falls back to the user's preferred currency in [SettingsProvider].
@@ -33,7 +58,7 @@ class AppFormatters {
     }
 
     if (compact) {
-      final compactFormat = NumberFormat.compact(locale: locale);
+      final compactFormat = _cachedNum('compact_$locale', () => NumberFormat.compact(locale: locale));
       final formattedNumber = compactFormat.format(amount);
       return activeCurrency.isNotEmpty
           ? '$activeCurrency$formattedNumber'
@@ -41,15 +66,19 @@ class AppFormatters {
     }
 
     try {
-      final formatter = NumberFormat.currency(
-        locale: locale,
-        symbol: activeCurrency,
-        decimalDigits: showDecimals ? (amount.truncateToDouble() == amount && !showDecimals ? 0 : 2) : 0,
+      final digits = showDecimals ? (amount.truncateToDouble() == amount && !showDecimals ? 0 : 2) : 0;
+      final formatter = _cachedNum(
+        'curr_${locale}_${activeCurrency}_$digits',
+        () => NumberFormat.currency(
+          locale: locale,
+          symbol: activeCurrency,
+          decimalDigits: digits,
+        ),
       );
       return formatter.format(amount).trim();
     } catch (_) {
       // Fallback in case of unknown locale or malformed symbol
-      final numFormat = NumberFormat(showDecimals ? '#,##0.00' : '#,##0');
+      final numFormat = showDecimals ? _amountFixedFmt : _amountIntFmt;
       return activeCurrency.isNotEmpty
           ? '$activeCurrency ${numFormat.format(amount)}'
           : numFormat.format(amount);
@@ -60,9 +89,9 @@ class AppFormatters {
   static String formatDate(BuildContext context, DateTime date) {
     final locale = Localizations.localeOf(context).toString();
     try {
-      return DateFormat.yMMMd(locale).format(date);
+      return _cachedDate('yMMMd_$locale', () => DateFormat.yMMMd(locale)).format(date);
     } catch (_) {
-      return DateFormat.yMMMd().format(date);
+      return _cachedDate('yMMMd_default', () => DateFormat.yMMMd()).format(date);
     }
   }
 
@@ -70,9 +99,9 @@ class AppFormatters {
   static String formatShortDate(BuildContext context, DateTime date) {
     final locale = Localizations.localeOf(context).toString();
     try {
-      return DateFormat.MMMd(locale).format(date);
+      return _cachedDate('MMMd_$locale', () => DateFormat.MMMd(locale)).format(date);
     } catch (_) {
-      return DateFormat.MMMd().format(date);
+      return _monthDayFmt.format(date);
     }
   }
 
@@ -80,9 +109,9 @@ class AppFormatters {
   static String formatTime(BuildContext context, DateTime time) {
     final locale = Localizations.localeOf(context).toString();
     try {
-      return DateFormat.jm(locale).format(time);
+      return _cachedDate('jm_$locale', () => DateFormat.jm(locale)).format(time);
     } catch (_) {
-      return DateFormat.jm().format(time);
+      return _cachedDate('jm_default', () => DateFormat.jm()).format(time);
     }
   }
 
@@ -90,9 +119,9 @@ class AppFormatters {
   static String formatDateTime(BuildContext context, DateTime dateTime) {
     final locale = Localizations.localeOf(context).toString();
     try {
-      return '${DateFormat.yMMMd(locale).format(dateTime)}, ${DateFormat.jm(locale).format(dateTime)}';
+      return '${_cachedDate('yMMMd_$locale', () => DateFormat.yMMMd(locale)).format(dateTime)}, ${_cachedDate('jm_$locale', () => DateFormat.jm(locale)).format(dateTime)}';
     } catch (_) {
-      return '${DateFormat.yMMMd().format(dateTime)}, ${DateFormat.jm().format(dateTime)}';
+      return '${_cachedDate('yMMMd_default', () => DateFormat.yMMMd()).format(dateTime)}, ${_cachedDate('jm_default', () => DateFormat.jm()).format(dateTime)}';
     }
   }
 
@@ -101,8 +130,8 @@ class AppFormatters {
     final locale = Localizations.localeOf(context).toString();
     try {
       final formatter = decimalDigits != null
-          ? NumberFormat.decimalPatternDigits(locale: locale, decimalDigits: decimalDigits)
-          : NumberFormat.decimalPattern(locale);
+          ? _cachedNum('dec_${locale}_$decimalDigits', () => NumberFormat.decimalPatternDigits(locale: locale, decimalDigits: decimalDigits))
+          : _cachedNum('dec_$locale', () => NumberFormat.decimalPattern(locale));
       return formatter.format(number);
     } catch (_) {
       return number.toString();

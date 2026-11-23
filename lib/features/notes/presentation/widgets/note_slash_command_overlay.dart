@@ -45,8 +45,7 @@ class NoteSlashCommandOverlay extends StatelessWidget {
 
     if (filteredCommands.isEmpty) return const SizedBox.shrink();
 
-    return AnimatedContainer(
-      duration: AppLayout.animShort,
+    return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       constraints: const BoxConstraints(maxHeight: 240),
       decoration: BoxDecoration(

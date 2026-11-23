@@ -10,7 +10,7 @@ class NoteFolderDialog {
   }) async {
     final controller = TextEditingController();
 
-    return showDialog<String>(
+    return AppDialog.show<String>(
       context: context,
       builder: (ctx) => AppDialog(
         title: 'Move to folder',

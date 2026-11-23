@@ -72,8 +72,10 @@ class SecuritySettingsScreen extends StatelessWidget {
                           },
                         ),
                         AnimatedSize(
-                          duration: AppLayout.animModal,
-                          curve: AppLayout.curveEmphasizedDecelerate,
+                          duration: AppLayout.shouldReduceMotion(context)
+                              ? Duration.zero
+                              : AppLayout.animShort,
+                          curve: AppLayout.curveStrongEaseOut,
                           child: settings.appLockEnabled
                               ? Column(
                                   mainAxisSize: MainAxisSize.min,

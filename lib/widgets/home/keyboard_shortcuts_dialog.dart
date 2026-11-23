@@ -11,7 +11,7 @@ class KeyboardShortcutsDialog extends StatelessWidget {
   const KeyboardShortcutsDialog({super.key});
 
   static Future<void> show(BuildContext context) {
-    return showDialog<void>(
+    return AppDialog.show<void>(
       context: context,
       builder: (_) => const KeyboardShortcutsDialog(),
     );

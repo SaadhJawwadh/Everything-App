@@ -914,7 +914,17 @@ class SettingsProvider extends ChangeNotifier {
         'weeklyDigestEnabled': _weeklyDigestEnabled,
       };
 
+  bool _suppressNotifications = false;
+
+  @override
+  void notifyListeners() {
+    if (!_suppressNotifications) {
+      super.notifyListeners();
+    }
+  }
+
   Future<void> restoreFromBackupMap(Map<String, dynamic> map) async {
+    _suppressNotifications = true;
     try {
       if (map.containsKey('moveCompletedChecklistsToBottom')) {
         _moveCompletedChecklistsToBottom = map['moveCompletedChecklistsToBottom'] == true;
@@ -1141,8 +1151,10 @@ class SettingsProvider extends ChangeNotifier {
         final val = map['weeklyDigestEnabled'];
         if (val is bool) await setWeeklyDigestEnabled(val);
       }
+    } catch (_) {} finally {
+      _suppressNotifications = false;
       notifyListeners();
-    } catch (_) {}
+    }
   }
 
   Future<void> checkAiCoreSupport(LocalAiService aiService) async {

@@ -12,6 +12,7 @@ import '../../features/notes/data/note_repository.dart';
 import '../../core/theme/app_layout.dart';
 import '../../l10n/app_localizations.dart';
 import '../skeleton_card.dart';
+import '../../core/routes/app_router.dart';
 
 class NoteViewBuilder extends StatelessWidget {
   final Future<void> Function({bool scrollOnModified}) onRefresh;
@@ -28,7 +29,7 @@ class NoteViewBuilder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final noteProvider = context.watch<NoteProvider>();
-    final settings = context.watch<SettingsProvider>();
+    final noteViewMode = context.select<SettingsProvider, NoteViewMode>((s) => s.noteViewMode);
 
     if (noteProvider.isLoading) {
       // Skeleton cards instead of a bare spinner — mirrors the grid the
@@ -86,14 +87,9 @@ class NoteViewBuilder extends StatelessWidget {
         emptySubtitle = 'No notes in folder "$selectedFolder" yet';
         actionButton = FilledButton.icon(
           onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => NoteEditorScreen(
+            AppRouter.push(context, NoteEditorScreen(
                   initialFolder: selectedFolder,
-                ),
-              ),
-            ).then((_) => onRefresh());
+                )).then((_) => onRefresh());
           },
           icon: const Icon(Icons.add),
           label: Text('Create Note in $selectedFolder'),
@@ -103,14 +99,9 @@ class NoteViewBuilder extends StatelessWidget {
         emptySubtitle = l10n?.emptyNotesSubtitle ?? 'Tap + to create your first note';
         actionButton = FilledButton.icon(
           onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => NoteEditorScreen(
+            AppRouter.push(context, NoteEditorScreen(
                   initialFolder: noteProvider.selectedFolder,
-                ),
-              ),
-            ).then((_) => onRefresh());
+                )).then((_) => onRefresh());
           },
           icon: const Icon(Icons.add),
           label: Text(l10n?.newNote ?? 'Create My First Note'),
@@ -163,22 +154,26 @@ class NoteViewBuilder extends StatelessWidget {
 
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, AppLayout.fabBottomPadding),
-      sliver: _buildSliverLayout(context, settings, noteProvider),
+      sliver: _buildSliverLayout(context, noteViewMode, noteProvider),
     );
   }
 
-  Widget _buildSliverLayout(BuildContext context, SettingsProvider settings, NoteProvider noteProvider) {
-    if (settings.noteViewMode == NoteViewMode.list) {
+  Widget _buildSliverLayout(BuildContext context, NoteViewMode noteViewMode, NoteProvider noteProvider) {
+    final reduceMotion = AppLayout.shouldReduceMotion(context);
+    if (noteViewMode == NoteViewMode.list) {
       return SliverList(
         delegate: SliverChildBuilderDelegate(
           (context, index) {
             final note = noteProvider.filteredNotes[index];
             return AnimationConfiguration.staggeredList(
+              key: ValueKey(note.id),
               position: index.clamp(0, 8),
               duration: AppLayout.animShort,
               child: SlideAnimation(
-                verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
+                verticalOffset: reduceMotion ? 0.0 : 16.0,
+                curve: AppLayout.curveStrongEaseOut,
                 child: FadeInAnimation(
+                  curve: AppLayout.curveStrongEaseOut,
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _buildDismissibleNoteCard(context, note, onRefresh, noteProvider),
@@ -203,11 +198,12 @@ class NoteViewBuilder extends StatelessWidget {
         itemBuilder: (context, index) {
           final note = noteProvider.filteredNotes[index];
           return AnimationConfiguration.staggeredGrid(
+            key: ValueKey(note.id),
             position: index.clamp(0, 8),
             duration: AppLayout.animShort,
             columnCount: columnCount,
             child: ScaleAnimation(
-              scale: AppLayout.shouldReduceMotion(context) ? 1.0 : 0.95,
+              scale: reduceMotion ? 1.0 : 0.95,
               curve: AppLayout.curveStrongEaseOut,
               child: FadeInAnimation(
                 curve: AppLayout.curveStrongEaseOut,
@@ -244,6 +240,9 @@ class NoteViewBuilder extends StatelessWidget {
         child: Icon(Icons.delete, color: colorScheme.onErrorContainer),
       ),
       onDismissed: (direction) async {
+        // Optimistically remove from the list in 0ms so Dismissible never stays
+        // in the widget tree while SQLite writes execute.
+        noteProvider.removeNoteOptimistically(note.id);
         if (direction == DismissDirection.endToStart) {
           await NoteRepository.instance.softDeleteNote(note.id);
           if (!context.mounted) return;
@@ -296,6 +295,8 @@ class NoteViewBuilder extends StatelessWidget {
   Widget _buildOpenContainer(BuildContext context, Note note, Future<void> Function({bool scrollOnModified}) refresh, NoteProvider noteProvider) {
     int? targetLineIndex;
     String? targetChecklistText;
+    final theme = Theme.of(context);
+    final cardBg = NoteCard.resolveCardBackground(note, theme);
 
     return OpenContainer<bool>(
       transitionType: ContainerTransitionType.fadeThrough,
@@ -307,11 +308,11 @@ class NoteViewBuilder extends StatelessWidget {
       ),
       closedElevation: 0,
       openElevation: 0,
-      closedColor: Theme.of(context).colorScheme.surfaceContainer,
-      openColor: Theme.of(context).colorScheme.surface,
+      closedColor: cardBg,
+      openColor: cardBg,
       closedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppLayout.radiusL)),
-      onClosed: (returned) async {
-        await refresh(scrollOnModified: returned == true);
+      onClosed: (returned) {
+        // NoteEditorScreen.PopScope already refreshes NoteProvider; avoid a second full DB reload.
       },
       closedBuilder: (context, openContainer) {
         return NoteCard(

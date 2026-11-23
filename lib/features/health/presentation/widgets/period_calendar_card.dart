@@ -67,7 +67,8 @@ class PeriodCalendarCard extends StatelessWidget {
       border: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.3)),
       borderRadius: AppLayout.radiusXL,
       padding: const EdgeInsets.all(8.0),
-      child: TableCalendar(
+      child: RepaintBoundary(
+        child: TableCalendar(
         firstDay: DateTime.utc(2020, 1, 1),
         lastDay: DateTime.utc(2030, 12, 31),
         focusedDay: focusedDay,
@@ -124,6 +125,7 @@ class PeriodCalendarCard extends StatelessWidget {
           },
         ),
       ),
+    ),
     );
   }
 }

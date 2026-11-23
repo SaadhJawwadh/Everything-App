@@ -174,7 +174,9 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
   }
 
   Future refreshNotes() async {
-    setState(() => isLoading = true);
+    if (displayedNotes.isEmpty) {
+      setState(() => isLoading = true);
+    }
     final colors = await NoteRepository.instance.getAllTagColors();
     _tagColors = colors;
 
@@ -370,22 +372,26 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
                             final note = displayedNotes[index];
                             final isSelected = _selectedNoteIds.contains(note.id);
 
+                            final cardBg = NoteCard.resolveCardBackground(note, Theme.of(context));
                             return AnimationConfiguration.staggeredList(
+                              key: ValueKey(note.id),
                               position: index.clamp(0, 8),
                               duration: AppLayout.animShort,
                               child: SlideAnimation(
                                 verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
+                                curve: AppLayout.curveStrongEaseOut,
                                 child: FadeInAnimation(
+                                  curve: AppLayout.curveStrongEaseOut,
                                   child: Padding(
                                     padding: const EdgeInsets.only(bottom: 12.0),
                                     child: OpenContainer<bool>(
                                       transitionType: ContainerTransitionType.fadeThrough,
                                       transitionDuration: AppLayout.shouldReduceMotion(context) ? Duration.zero : AppLayout.animModal,
                                       openElevation: 0,
-                                      openColor: colorScheme.surface,
+                                      openColor: cardBg,
                                       openBuilder: (context, _) => NoteEditorScreen(note: note),
                                       closedElevation: 0,
-                                      closedColor: colorScheme.surfaceContainer,
+                                      closedColor: cardBg,
                                       closedShape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(AppLayout.radiusL),
                                       ),
@@ -429,10 +435,13 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
                 left: 0,
                 right: 0,
                 child: AnimatedSwitcher(
-                  duration: AppLayout.animDefault,
-                  switchInCurve: AppLayout.curveExpressiveSpatial,
+                  duration: AppLayout.shouldReduceMotion(context) ? Duration.zero : AppLayout.animFast,
+                  switchInCurve: AppLayout.curveStrongEaseOut,
                   switchOutCurve: AppLayout.curveEmphasizedAccelerate,
                   transitionBuilder: (child, animation) {
+                    if (AppLayout.shouldReduceMotion(context)) {
+                      return FadeTransition(opacity: animation, child: child);
+                    }
                     return SlideTransition(
                       position: Tween<Offset>(
                         begin: const Offset(0.0, 1.0),

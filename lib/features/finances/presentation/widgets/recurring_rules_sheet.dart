@@ -127,7 +127,7 @@ class _RecurringRulesSheetState extends State<RecurringRulesSheet> {
     var selectedFreq = RecurringFrequency.monthly;
     var selectedDate = DateTime.now();
 
-    final created = await showDialog<bool>(
+    final created = await AppDialog.show<bool>(
       context: context,
       builder: (dialogCtx) => StatefulBuilder(
         builder: (context, setDialogState) {
@@ -313,7 +313,7 @@ class _RecurringRulesSheetState extends State<RecurringRulesSheet> {
     var selectedFreq = rule.frequency;
     var selectedDate = rule.nextDue;
 
-    final updated = await showDialog<bool>(
+    final updated = await AppDialog.show<bool>(
       context: context,
       builder: (dialogCtx) => StatefulBuilder(
         builder: (context, setDialogState) {

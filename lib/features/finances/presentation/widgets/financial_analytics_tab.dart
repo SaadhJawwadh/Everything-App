@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:intl/intl.dart';
 import '../../../../data/transaction_model.dart';
 import '../../../../data/transaction_category.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
@@ -8,6 +7,7 @@ import '../../../../core/services/app_haptics.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/app_card.dart';
+import '../../../../core/utils/app_formatters.dart';
 import 'burn_rate_forecast_card.dart';
 import 'category_budgets_card.dart';
 import 'savings_goals_card.dart';
@@ -43,32 +43,62 @@ class FinancialAnalyticsTab extends StatefulWidget {
 
 class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
   late int _activeDeckIndex; // 0: Breakdown, 1: Budgets
-  int? _touchedPieIndex;
+  final ValueNotifier<int?> _touchedPieIndex = ValueNotifier<int?>(null);
+
+  Map<String, double> _categoryExpenses = const {};
+  Map<String, int> _categoryCounts = const {};
+  List<MapEntry<String, double>> _sortedEntries = const [];
+  double _totalExpense = 0.0;
+  MonthlySpendingForecast? _forecast;
+  Map<String, double>? _lastBudgets;
 
   @override
   void initState() {
     super.initState();
     _activeDeckIndex = widget.initialDeckIndex;
+    _recomputeMetrics();
   }
 
   @override
   void didUpdateWidget(covariant FinancialAnalyticsTab oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.initialDeckIndex != oldWidget.initialDeckIndex) {
-      setState(() {
-        _activeDeckIndex = widget.initialDeckIndex;
-      });
+      _activeDeckIndex = widget.initialDeckIndex;
+    }
+    if (!identical(widget.transactions, oldWidget.transactions) ||
+        !identical(widget.settings.categoryBudgets, _lastBudgets)) {
+      _recomputeMetrics();
     }
   }
 
-  Map<String, double> _calculateCategoryExpenses() {
-    final Map<String, double> totals = {};
+  @override
+  void dispose() {
+    _touchedPieIndex.dispose();
+    super.dispose();
+  }
+
+  void _recomputeMetrics() {
+    _lastBudgets = widget.settings.categoryBudgets;
+    final totals = <String, double>{};
+    final counts = <String, int>{};
+    double total = 0.0;
     for (final t in widget.transactions) {
       if (t.isExpense && !t.isTransfer && t.category != '__reversal__') {
         totals[t.category] = (totals[t.category] ?? 0.0) + t.amount;
+        counts[t.category] = (counts[t.category] ?? 0) + 1;
+        total += t.amount;
       }
     }
-    return totals;
+    final sorted = totals.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    _categoryExpenses = totals;
+    _categoryCounts = counts;
+    _sortedEntries = sorted;
+    _totalExpense = total;
+    _forecast = SpendingForecastService.calculateMonthlyForecast(
+      transactions: widget.transactions,
+      categoryBudgets: widget.settings.categoryBudgets,
+    );
   }
 
   Map<String, double> _resolveCurrentMonthBudgetExpenses() {
@@ -87,12 +117,6 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
       }
     }
     return totals;
-  }
-
-  double _calculateTotalExpense() {
-    return widget.transactions
-        .where((t) => t.isExpense && !t.isTransfer && t.category != '__reversal__')
-        .fold(0.0, (sum, t) => sum + t.amount);
   }
 
   @override
@@ -134,13 +158,14 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
       );
     }
 
-    final forecast = SpendingForecastService.calculateMonthlyForecast(
-      transactions: widget.transactions,
-      categoryBudgets: widget.settings.categoryBudgets,
-    );
+    final forecast = _forecast ??
+        SpendingForecastService.calculateMonthlyForecast(
+          transactions: widget.transactions,
+          categoryBudgets: widget.settings.categoryBudgets,
+        );
 
-    final categoryExpenses = _calculateCategoryExpenses();
-    final totalExpense = _calculateTotalExpense();
+    final categoryExpenses = _categoryExpenses;
+    final totalExpense = _totalExpense;
 
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, AppLayout.fabBottomPadding),
@@ -469,186 +494,185 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
       );
     }
 
-    final sortedEntries = categoryExpenses.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+    final sortedEntries = _sortedEntries;
+    final reduceMotion = AppLayout.shouldReduceMotion(context);
 
-    final touched = _touchedPieIndex != null &&
-        _touchedPieIndex! >= 0 &&
-        _touchedPieIndex! < sortedEntries.length;
+    return ValueListenableBuilder<int?>(
+      valueListenable: _touchedPieIndex,
+      builder: (context, touchedPieIndex, _) {
+        final touched = touchedPieIndex != null &&
+            touchedPieIndex >= 0 &&
+            touchedPieIndex < sortedEntries.length;
 
-    final selectedEntry = touched ? sortedEntries[_touchedPieIndex!] : null;
-    final selectedCat = selectedEntry?.key;
-    final selectedAmount = selectedEntry?.value ?? totalExpense;
-    final selectedPct = totalExpense > 0
-        ? ((selectedAmount / totalExpense) * 100).toStringAsFixed(1)
-        : '0.0';
+        final selectedEntry = touched ? sortedEntries[touchedPieIndex] : null;
+        final selectedCat = selectedEntry?.key;
+        final selectedAmount = selectedEntry?.value ?? totalExpense;
+        final selectedPct = totalExpense > 0
+            ? ((selectedAmount / totalExpense) * 100).toStringAsFixed(1)
+            : '0.0';
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── Interactive Centered Donut Chart ──────────────────────────
-        Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: SizedBox(
-            height: 145,
-            child: Semantics(
-              label: 'Category spending breakdown donut chart. Total spent: ${widget.currency} ${NumberFormat('#,##0').format(totalExpense)}. Top category: ${sortedEntries.isNotEmpty ? sortedEntries.first.key : 'None'}',
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  PieChart(
-                    PieChartData(
-                      pieTouchData: PieTouchData(
-                        touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                          setState(() {
-                            if (!event.isInterestedForInteractions ||
-                                pieTouchResponse == null ||
-                                pieTouchResponse.touchedSection == null) {
-                              _touchedPieIndex = null;
-                              return;
-                            }
-                            final idx = pieTouchResponse
-                                .touchedSection!.touchedSectionIndex;
-                            if (idx >= 0 && idx < sortedEntries.length) {
-                              if (_touchedPieIndex != idx) {
-                                AppHaptics.selectionClick();
-                                _touchedPieIndex = idx;
-                              }
-                            } else {
-                              _touchedPieIndex = null;
-                            }
-                          });
-                        },
-                      ),
-                      borderData: FlBorderData(show: false),
-                      sectionsSpace: 2.5,
-                      centerSpaceRadius: 42,
-                      sections: List.generate(sortedEntries.length, (i) {
-                        final isTouched = i == _touchedPieIndex;
-                        final entry = sortedEntries[i];
-                        final catColor = TransactionCategory.colorFor(entry.key);
-                        final radius = isTouched ? 22.0 : 16.0;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Interactive Centered Donut Chart ──────────────────────────
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: SizedBox(
+                height: 145,
+                child: Semantics(
+                  label: 'Category spending breakdown donut chart. Total spent: ${widget.currency} ${AppFormatters.formatAmountInt(totalExpense)}. Top category: ${sortedEntries.isNotEmpty ? sortedEntries.first.key : 'None'}',
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      RepaintBoundary(
+                        child: PieChart(
+                          PieChartData(
+                            pieTouchData: PieTouchData(
+                              touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                                if (!event.isInterestedForInteractions ||
+                                    pieTouchResponse == null ||
+                                    pieTouchResponse.touchedSection == null) {
+                                  _touchedPieIndex.value = null;
+                                  return;
+                                }
+                                final idx = pieTouchResponse
+                                    .touchedSection!.touchedSectionIndex;
+                                if (idx >= 0 && idx < sortedEntries.length) {
+                                  if (_touchedPieIndex.value != idx) {
+                                    AppHaptics.selectionClick();
+                                    _touchedPieIndex.value = idx;
+                                  }
+                                } else {
+                                  _touchedPieIndex.value = null;
+                                }
+                              },
+                            ),
+                            borderData: FlBorderData(show: false),
+                            sectionsSpace: 2.5,
+                            centerSpaceRadius: 42,
+                            sections: List.generate(sortedEntries.length, (i) {
+                              final isTouched = i == touchedPieIndex;
+                              final entry = sortedEntries[i];
+                              final catColor = TransactionCategory.colorFor(entry.key);
+                              final radius = isTouched ? 22.0 : 16.0;
 
-                        // Enforce a minimum 1.5% visual angle floor so micro-slivers remain visible and crisp
-                        final safeVal = totalExpense > 0
-                            ? entry.value.clamp(totalExpense * 0.015, double.infinity)
-                            : entry.value;
+                              // Enforce a minimum 1.5% visual angle floor so micro-slivers remain visible and crisp
+                              final safeVal = totalExpense > 0
+                                  ? entry.value.clamp(totalExpense * 0.015, double.infinity)
+                                  : entry.value;
 
-                        return PieChartSectionData(
-                          color: catColor,
-                          value: safeVal,
-                          title: '',
-                          radius: radius,
-                        );
-                      }),
-                    ),
-                  ),
-
-                  // Center Hole Label (Total or Selected Category)
-                  GestureDetector(
-                    onTap: () {
-                      if (_touchedPieIndex != null) {
-                        setState(() => _touchedPieIndex = null);
-                      }
-                    },
-                    child: SizedBox(
-                      width: 72,
-                      height: 72,
-                      child: Center(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                selectedCat ?? 'Total Spent',
-                                style: textTheme.labelSmall?.copyWith(
-                                  color: selectedCat != null
-                                      ? TransactionCategory.colorFor(selectedCat)
-                                      : colorScheme.onSurfaceVariant,
-                                  fontWeight: selectedCat != null
-                                      ? FontWeight.bold
-                                      : FontWeight.w500,
-                                  fontSize: 10,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 1),
-                              Text(
-                                '${widget.currency} ${NumberFormat('#,##0').format(selectedAmount)}',
-                                style: textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  fontFeatures: const [FontFeature.tabularFigures()],
-                                  fontSize: 13,
-                                ),
-                              ),
-                              Text(
-                                selectedCat != null
-                                    ? '$selectedPct%'
-                                    : '${sortedEntries.length} categories',
-                                style: textTheme.labelSmall?.copyWith(
-                                  fontSize: 9,
-                                  color: colorScheme.onSurfaceVariant,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
+                              return PieChartSectionData(
+                                color: catColor,
+                                value: safeVal,
+                                title: '',
+                                radius: radius,
+                              );
+                            }),
                           ),
                         ),
                       ),
-                    ),
+
+                      // Center Hole Label (Total or Selected Category)
+                      GestureDetector(
+                        onTap: () {
+                          if (_touchedPieIndex.value != null) {
+                            _touchedPieIndex.value = null;
+                          }
+                        },
+                        child: SizedBox(
+                          width: 72,
+                          height: 72,
+                          child: Center(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    selectedCat ?? 'Total Spent',
+                                    style: textTheme.labelSmall?.copyWith(
+                                      color: selectedCat != null
+                                          ? TransactionCategory.colorFor(selectedCat)
+                                          : colorScheme.onSurfaceVariant,
+                                      fontWeight: selectedCat != null
+                                          ? FontWeight.bold
+                                          : FontWeight.w500,
+                                      fontSize: 10,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 1),
+                                  Text(
+                                    '${widget.currency} ${AppFormatters.formatAmountInt(selectedAmount)}',
+                                    style: textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      fontFeatures: const [FontFeature.tabularFigures()],
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  Text(
+                                    selectedCat != null
+                                        ? '$selectedPct%'
+                                        : '${sortedEntries.length} categories',
+                                    style: textTheme.labelSmall?.copyWith(
+                                      fontSize: 9,
+                                      color: colorScheme.onSurfaceVariant,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
 
-        // ── Ranked Category Spend List ────────────────────────────────
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Ranked Category Spend',
-              style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+            // ── Ranked Category Spend List ────────────────────────────────
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Ranked Category Spend',
+                  style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  '${(totalExpense > 0 ? 100 : 0)}% of total',
+                  style: textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
-            Text(
-              '${(totalExpense > 0 ? 100 : 0)}% of total',
-              style: textTheme.labelSmall?.copyWith(
-                color: colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        ...sortedEntries.asMap().entries.map((item) {
-          final i = item.key;
-          final entry = item.value;
-          final isSelected = i == _touchedPieIndex;
-          final cat = entry.key;
-          final amount = entry.value;
-          final pct = totalExpense > 0 ? (amount / totalExpense) : 0.0;
-          final catColor = TransactionCategory.colorFor(cat);
-          final catIcon = TransactionCategory.iconFor(cat);
+            const SizedBox(height: 10),
+            ...sortedEntries.asMap().entries.map((item) {
+              final i = item.key;
+              final entry = item.value;
+              final isSelected = i == touchedPieIndex;
+              final cat = entry.key;
+              final amount = entry.value;
+              final pct = totalExpense > 0 ? (amount / totalExpense) : 0.0;
+              final catColor = TransactionCategory.colorFor(cat);
+              final catIcon = TransactionCategory.iconFor(cat);
 
-          final txCount = widget.transactions
-              .where((t) => t.isExpense && t.category == cat)
-              .length;
+              final txCount = _categoryCounts[cat] ?? 0;
 
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              AppHaptics.selectionClick();
-              setState(() {
-                _touchedPieIndex = isSelected ? null : i;
-              });
-            },
-            child: AnimatedContainer(
-              duration: AppLayout.animShort,
-              curve: Curves.easeOutCubic,
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  AppHaptics.selectionClick();
+                  _touchedPieIndex.value = isSelected ? null : i;
+                },
+                child: AnimatedContainer(
+                  duration: reduceMotion ? Duration.zero : AppLayout.animFast,
+                  curve: AppLayout.curveStrongEaseOut,
               margin: const EdgeInsets.symmetric(vertical: 2.0),
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
               decoration: BoxDecoration(
@@ -700,7 +724,7 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '${widget.currency} ${NumberFormat('#,##0.00').format(amount)}',
+                            '${widget.currency} ${AppFormatters.formatAmountFixed(amount)}',
                             style: textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                               fontFeatures: const [FontFeature.tabularFigures()],
@@ -732,6 +756,8 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
           );
         }),
       ],
+    );
+      },
     );
   }
 }

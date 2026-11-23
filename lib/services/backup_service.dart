@@ -35,6 +35,7 @@ import 'p2p_relay_sync_service.dart';
 import 'sms_service.dart';
 import 'native_core_bridge.dart';
 import 'backup_vault_key_service.dart';
+import '../core/ui/app_dialog.dart';
 
 const kAutoBackupTaskName = 'com.saadhjawwadh.notebook.autoBackup';
 const kP2pBackgroundSyncTaskName = 'com.saadhjawwadh.notebook.p2pBackgroundSync';
@@ -294,9 +295,12 @@ Future<void> _rotateBackups(String directoryPath) async {
       if (entity is File && entity.path.contains('notebook_auto_backup_') && entity.path.endsWith('.json')) files.add(entity);
     }
     if (files.length > 5) {
-      files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
-      for (final old in files.skip(5)) {
-        try { await old.delete(); } catch (_) {}
+      final withStats = await Future.wait(
+        files.map((f) async => (file: f, modified: (await f.stat()).modified)),
+      );
+      withStats.sort((a, b) => b.modified.compareTo(a.modified));
+      for (final entry in withStats.skip(5)) {
+        try { await entry.file.delete(); } catch (_) {}
       }
     }
   }
@@ -307,9 +311,11 @@ Future<void> _rotateBackups(String directoryPath) async {
       final cutoff = DateTime.now().subtract(const Duration(hours: 24));
       await for (final entity in tempDir.list()) {
         if (entity is File &&
-            (entity.path.contains('notebook_backup_') || entity.path.contains('transactions_export_')) &&
-            entity.lastModifiedSync().isBefore(cutoff)) {
-          try { await entity.delete(); } catch (_) {}
+            (entity.path.contains('notebook_backup_') || entity.path.contains('transactions_export_'))) {
+          final modified = (await entity.stat()).modified;
+          if (modified.isBefore(cutoff)) {
+            try { await entity.delete(); } catch (_) {}
+          }
         }
       }
     }
@@ -500,7 +506,7 @@ class BackupService {
   static Future<String?> _promptPassphrase(BuildContext context, {required bool isExport}) async {
     final controller = TextEditingController();
     bool obscure = true;
-    return showDialog<String>(
+    return AppDialog.show<String>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
@@ -664,7 +670,7 @@ class BackupService {
       }
 
       if (context.mounted) {
-        final confirmed = await showDialog<bool>(
+        final confirmed = await AppDialog.show<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
             title: const Text('Import Backup?'),

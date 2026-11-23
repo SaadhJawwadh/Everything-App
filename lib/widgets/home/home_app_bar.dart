@@ -14,7 +14,7 @@ import '../../core/theme/app_layout.dart';
 import '../../core/ui/app_chip.dart';
 import '../../core/ui/app_dialog.dart';
 import '../../core/ui/app_bottom_sheet.dart';
-import '../../utils/app_route.dart';
+import '../../core/routes/app_router.dart';
 import '../bouncing_widget.dart';
 import 'package:note_taking_app/l10n/app_localizations.dart';
 
@@ -80,8 +80,8 @@ class _HomeAppBarState extends State<HomeAppBar> {
   @override
   Widget build(BuildContext context) {
     final noteProvider = context.watch<NoteProvider>();
-    final settings = context.watch<SettingsProvider>();
-    final statusBarHeight = MediaQuery.of(context).padding.top;
+    final noteViewMode = context.select<SettingsProvider, NoteViewMode>((s) => s.noteViewMode);
+    final statusBarHeight = MediaQuery.paddingOf(context).top;
 
     final totalHeight = statusBarHeight + 72.0;
 
@@ -111,7 +111,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
           child: SizedBox(
             height: 60,
             child: AnimatedSwitcher(
-              duration: (_skipNextSearchAnimation || AppLayout.shouldReduceMotion(context))
+              duration: (_skipNextSearchAnimation || _isSearching || AppLayout.shouldReduceMotion(context))
                   ? Duration.zero
                   : AppLayout.animFast,
               switchInCurve: AppLayout.curveStrongEaseOut,
@@ -145,7 +145,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
                         )
                       : KeyedSubtree(
                           key: const ValueKey('normal_mode'),
-                          child: _buildNormalMode(context, settings)),
+                          child: _buildNormalMode(context, noteViewMode)),
             ),
           ),
         ),
@@ -213,7 +213,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
           onPressed: () {
             context.read<NoteProvider>().setSearchQuery('');
             setState(() {
-              _skipNextSearchAnimation = false;
+              _skipNextSearchAnimation = true;
               _isSearching = false;
               _searchController.clear();
             });
@@ -278,7 +278,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
   void _showCreateFolderDialog(BuildContext context, NoteProvider noteProvider) {
     final l10n = AppLocalizations.of(context);
     final controller = TextEditingController();
-    showDialog(
+    AppDialog.show(
       context: context,
       builder: (ctx) => AppDialog(
         title: l10n?.createNewFolder ?? 'Create New Folder',
@@ -427,7 +427,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
                 : null,
             onTap: () {
               Navigator.pop(context);
-              AppRoute.push(context, const FilteredNotesScreen(filterType: FilterType.archived))
+              AppRouter.push(context, const FilteredNotesScreen(filterType: FilterType.archived))
                   .then((_) => widget.onRefresh());
             },
           ),
@@ -443,7 +443,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
                 : null,
             onTap: () {
               Navigator.pop(context);
-              AppRoute.push(context, const FilteredNotesScreen(filterType: FilterType.trash))
+              AppRouter.push(context, const FilteredNotesScreen(filterType: FilterType.trash))
                   .then((_) => widget.onRefresh());
             },
           ),
@@ -452,12 +452,12 @@ class _HomeAppBarState extends State<HomeAppBar> {
     );
   }
 
-  Widget _buildNormalMode(BuildContext context, SettingsProvider settings) {
+  Widget _buildNormalMode(BuildContext context, NoteViewMode noteViewMode) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
-    final noteProvider = context.watch<NoteProvider>();
+    final noteProvider = context.read<NoteProvider>();
     final isChecklistsView = noteProvider.filterChecklistsOnly;
     final displayFolder = noteProvider.selectedFolder ?? 'Notes';
     final count = isChecklistsView
@@ -557,6 +557,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
           visualDensity: VisualDensity.compact,
           onPressed: () {
             setState(() {
+              _skipNextSearchAnimation = true;
               _isSearching = true;
             });
           },
@@ -663,7 +664,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
                         },
                   onLongPress: () {
                     AppHaptics.mediumImpact();
-                    AppRoute.push(context, const P2pSyncScreen());
+                    AppRouter.push(context, const P2pSyncScreen());
                   },
                   child: Center(
                     child: isSyncing
@@ -701,15 +702,15 @@ class _HomeAppBarState extends State<HomeAppBar> {
             if (action == 'view_mode') {
               widget.onCycleViewMode();
             } else if (action == 'manage_tags') {
-              AppRoute.push(context, const ManageTagsScreen())
+              AppRouter.push(context, const ManageTagsScreen())
                   .then((_) => widget.onRefresh());
             } else if (action == 'import_notes') {
               NoteMigrationSheet.show(context);
             } else if (action == 'archived') {
-              AppRoute.push(context, const FilteredNotesScreen(filterType: FilterType.archived))
+              AppRouter.push(context, const FilteredNotesScreen(filterType: FilterType.archived))
                   .then((_) => widget.onRefresh());
             } else if (action == 'trash') {
-              AppRoute.push(context, const FilteredNotesScreen(filterType: FilterType.trash))
+              AppRouter.push(context, const FilteredNotesScreen(filterType: FilterType.trash))
                   .then((_) => widget.onRefresh());
             }
           },
@@ -723,14 +724,14 @@ class _HomeAppBarState extends State<HomeAppBar> {
                 child: Row(
                   children: [
                     Icon(
-                      _getIconForMode(settings.noteViewMode),
+                      _getIconForMode(noteViewMode),
                       size: 20,
                       color: colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        _getTooltipForMode(settings.noteViewMode, l10n),
+                        _getTooltipForMode(noteViewMode, l10n),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w500,
                               color: colorScheme.onSurface,
@@ -818,7 +819,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
           constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           visualDensity: VisualDensity.compact,
           onPressed: () {
-            AppRoute.push(context, const SettingsScreen())
+            AppRouter.push(context, const SettingsScreen())
                 .then((_) => widget.onRefresh());
           },
         ),

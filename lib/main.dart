@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:provider/provider.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
-import 'data/transaction_category.dart';
 import 'services/sms_service.dart';
 import 'package:note_taking_app/core/theme/app_theme.dart';
 import 'screens/home_screen.dart';
@@ -43,6 +42,48 @@ Future<void> _unlockHighRefreshRate() async {
   }
 }
 
+Future<void> _initializeBackgroundServices() async {
+  try {
+    await _unlockHighRefreshRate();
+    await Future.wait([
+      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS))
+        Workmanager().initialize(backup.callbackDispatcher).catchError((e) => debugPrint('Workmanager error: $e')),
+      SmsService.init().catchError((e) => debugPrint('SmsService init error: $e')),
+      RecurringRuleRepository.instance.materializeDueRules().catchError((e) {
+        debugPrint('Materialize rules error: $e');
+        return 0;
+      }),
+      if (!kIsWeb)
+        NotificationService.initialize().catchError((e) => debugPrint('NotificationService error: $e')),
+    ]).timeout(const Duration(seconds: 10), onTimeout: () {
+      debugPrint('Background startup init timed out');
+      return const [];
+    });
+
+    // Keep the finance widget's TODAY figure fresh across midnight even when
+    // the app isn't opened; the widget redraws from prefs on its own cycle.
+    // initialDelay keeps the task's first run (which opens the encrypted DB in
+    // a background isolate) from racing the main isolate's DB open at cold
+    // start — without it the two opens can deadlock before the first frame.
+    if (!kIsWeb && Platform.isAndroid) {
+      unawaited(
+        Workmanager()
+            .registerPeriodicTask(
+              kWidgetRefreshTaskName,
+              kWidgetRefreshTaskName,
+              frequency: const Duration(hours: 4),
+              initialDelay: const Duration(hours: 1),
+              constraints: Constraints(networkType: NetworkType.notRequired),
+              existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
+            )
+            .catchError((e) => debugPrint('Widget refresh task error: $e')),
+      );
+    }
+  } catch (e) {
+    debugPrint('Background initialization error: $e');
+  }
+}
+
 Future<void> main() async {
   try {
     WidgetsFlutterBinding.ensureInitialized();
@@ -65,50 +106,14 @@ Future<void> main() async {
           systemStatusBarContrastEnforced: false,
         ),
       );
-      unawaited(_unlockHighRefreshRate());
     }
-
-    // Initialize services but don't let them block the app if they fail —
-    // or hang: the timeout guarantees the first frame always renders and
-    // stragglers finish in the background.
-    await Future.wait([
-      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS))
-        Workmanager().initialize(backup.callbackDispatcher).catchError((e) => debugPrint('Workmanager error: $e')),
-      TransactionCategory.reload().catchError((e) => debugPrint('Category reload error: $e')),
-      SmsService.init().catchError((e) => debugPrint('SmsService init error: $e')),
-      RecurringRuleRepository.instance.materializeDueRules().catchError((e) {
-        debugPrint('Materialize rules error: $e');
-        return 0;
-      }),
-      if (!kIsWeb)
-        NotificationService.initialize().catchError((e) => debugPrint('NotificationService error: $e')),
-    ]).timeout(const Duration(seconds: 10), onTimeout: () {
-      debugPrint('Startup init timed out; continuing to first frame');
-      return const [];
-    });
   } catch (e) {
     debugPrint('Critical initialization error: $e');
   }
 
-  // Keep the finance widget's TODAY figure fresh across midnight even when
-  // the app isn't opened; the widget redraws from prefs on its own cycle.
-  // initialDelay keeps the task's first run (which opens the encrypted DB in
-  // a background isolate) from racing the main isolate's DB open at cold
-  // start — without it the two opens can deadlock before the first frame.
-  if (!kIsWeb && Platform.isAndroid) {
-    unawaited(
-      Workmanager()
-          .registerPeriodicTask(
-            kWidgetRefreshTaskName,
-            kWidgetRefreshTaskName,
-            frequency: const Duration(hours: 4),
-            initialDelay: const Duration(hours: 1),
-            constraints: Constraints(networkType: NetworkType.notRequired),
-            existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
-          )
-          .catchError((e) => debugPrint('Widget refresh task error: $e')),
-    );
-  }
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(_initializeBackgroundServices());
+  });
 
   runApp(
     MultiProvider(
@@ -128,15 +133,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => SavingsGoalProvider()..loadGoals()),
         ChangeNotifierProvider(create: (_) => PeriodTrackerProvider()),
         ChangeNotifierProvider(
-          create: (context) => P2pSyncProvider(
-            onInboundSyncMerged: () {
-              context.read<NoteProvider>().refreshNotes();
-              context.read<FinancialManagerProvider>().refresh();
-              context.read<SplitBillProvider>().loadSplitBills();
-              context.read<SavingsGoalProvider>().loadGoals();
-              context.read<PeriodTrackerProvider>().loadData();
-            },
-          ),
+          create: (_) => P2pSyncProvider(),
         ),
       ],
       child: const NoteApp(),
@@ -182,13 +179,18 @@ class NoteApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appConfig = context.select<SettingsProvider,
+        ({ThemeMode themeMode, bool useDynamicColor, Locale? currentLocale, double textSize})>(
+      (s) => (
+        themeMode: s.themeMode,
+        useDynamicColor: s.useDynamicColor,
+        currentLocale: s.currentLocale,
+        textSize: s.textSize,
+      ),
+    );
+
     return DynamicColorBuilder(
       builder: (lightDynamic, darkDynamic) {
-        final settings = Provider.of<SettingsProvider>(context);
-        
-        // Log for diagnostics in case of blank screen
-        debugPrint('NoteApp Build: Dynamic Scheme: ${lightDynamic != null}, ThemeMode: ${settings.themeMode}');
-
         return MaterialApp(
           title: 'Everything App',
           debugShowCheckedModeBanner: false,
@@ -196,18 +198,18 @@ class NoteApp extends StatelessWidget {
           scaffoldMessengerKey: appScaffoldMessengerKey,
           scrollBehavior: const AppScrollBehavior(),
           theme: AppTheme.createTheme(
-              settings.useDynamicColor ? lightDynamic : null, Brightness.light),
+              appConfig.useDynamicColor ? lightDynamic : null, Brightness.light),
           darkTheme: AppTheme.createTheme(
-              settings.useDynamicColor ? darkDynamic : null, Brightness.dark),
-          themeMode: settings.themeMode,
-          locale: settings.currentLocale,
+              appConfig.useDynamicColor ? darkDynamic : null, Brightness.dark),
+          themeMode: appConfig.themeMode,
+          locale: appConfig.currentLocale,
           home: const HomeScreen(),
           builder: (context, child) {
             final mediaQueryData = MediaQuery.of(context);
             final deviceFontScale = mediaQueryData.textScaler.scale(1.0);
             return MediaQuery(
               data: mediaQueryData.copyWith(
-                textScaler: TextScaler.linear(deviceFontScale * (settings.textSize / 16.0)),
+                textScaler: TextScaler.linear(deviceFontScale * (appConfig.textSize / 16.0)),
               ),
               child: AppLockScreen(child: child!),
             );
@@ -221,9 +223,9 @@ class NoteApp extends StatelessWidget {
           ],
           supportedLocales: AppLocalizations.supportedLocales,
           localeResolutionCallback: (deviceLocale, supportedLocales) {
-            if (settings.currentLocale != null) {
-              Intl.defaultLocale = settings.currentLocale!.languageCode;
-              return settings.currentLocale;
+            if (appConfig.currentLocale != null) {
+              Intl.defaultLocale = appConfig.currentLocale!.languageCode;
+              return appConfig.currentLocale;
             }
             if (deviceLocale != null) {
               Intl.defaultLocale = deviceLocale.languageCode;

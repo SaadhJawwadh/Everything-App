@@ -36,9 +36,11 @@ class TransactionCategory {
   }
 
   static List<CategoryDefinition> _cache = [];
+  static Map<String, CategoryDefinition> _cacheByName = {};
 
   static Future<void> reload() async {
     _cache = await TransactionRepository.instance.getAllCategoryDefinitions();
+    _cacheByName = {for (final def in _cache) def.name: def};
   }
 
   static List<String> get allNames => _cache.isNotEmpty ? _cache.map((c) => c.name).toList() : all;
@@ -65,11 +67,8 @@ class TransactionCategory {
   }
 
   static Color colorFor(String category) {
-    if (_cache.isNotEmpty) {
-      for (final def in _cache) {
-        if (def.name == category) return Color(def.colorValue);
-      }
-    }
+    final def = _cacheByName[category];
+    if (def != null) return Color(def.colorValue);
     return badgeColors[category] ?? const Color(0xFF9E9E9E);
   }
 
@@ -149,13 +148,10 @@ class TransactionCategory {
   }
 
   static IconData iconFor(String category) {
-    if (_cache.isNotEmpty) {
-      for (final def in _cache) {
-        if (def.name == category && def.iconCodePoint != null) {
-          final known = _knownIcons[def.iconCodePoint!];
-          if (known != null) return known;
-        }
-      }
+    final def = _cacheByName[category];
+    if (def != null && def.iconCodePoint != null) {
+      final known = _knownIcons[def.iconCodePoint!];
+      if (known != null) return known;
     }
     switch (category.toLowerCase()) {
       case 'transport':

@@ -3,7 +3,7 @@ import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:provider/provider.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
 import 'package:note_taking_app/features/settings/presentation/screens/sections/sync_backup_settings_screen.dart';
-import 'package:note_taking_app/utils/app_route.dart';
+import 'package:note_taking_app/core/routes/app_router.dart';
 import '../core/services/app_haptics.dart';
 import '../core/theme/app_layout.dart';
 import '../core/ui/app_card.dart';
@@ -60,7 +60,7 @@ class WhatsNewSheet extends StatelessWidget {
             actionLabel: "View Sync & Backups ➔",
             onAction: () {
               Navigator.pop(context);
-              AppRoute.push(context, const SyncBackupSettingsScreen());
+              AppRouter.push(context, const SyncBackupSettingsScreen());
             },
           ),
         ],
@@ -71,6 +71,11 @@ class WhatsNewSheet extends StatelessWidget {
         categoryColor: theme.colorScheme.tertiary,
         bgColor: theme.colorScheme.tertiaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
+          _WhatsNewItem(
+            icon: Icons.bolt_rounded,
+            title: "Smoother Animations & Faster Performance",
+            desc: "Snappier launch, fluid 120Hz scrolling across notes, finances & calendars, instant search and filters, and full Reduce Motion support.",
+          ),
           _WhatsNewItem(
             icon: Icons.manage_search_rounded,
             title: "Full-Body Note Search & Period Notes",
@@ -84,6 +89,11 @@ class WhatsNewSheet extends StatelessWidget {
         categoryColor: theme.colorScheme.secondary,
         bgColor: theme.colorScheme.secondaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
+          _WhatsNewItem(
+            icon: Icons.tune_rounded,
+            title: "Smoother Typing, Charts & Battery Life",
+            desc: "Removed keyboard stutter in the note editor, stopped idle animations at rest, and eliminated redundant refreshes.",
+          ),
           _WhatsNewItem(
             icon: Icons.verified_user_rounded,
             title: "Cleaner Budgets, Biometrics & Sync Integrity",
@@ -181,11 +191,13 @@ class WhatsNewSheet extends StatelessWidget {
                         itemBuilder: (context, catIndex) {
                           final category = categories[catIndex];
                           return AnimationConfiguration.staggeredList(
-                            position: catIndex,
-                            duration: AppLayout.animDefault,
+                            position: catIndex.clamp(0, 8),
+                            duration: AppLayout.animShort,
                             child: SlideAnimation(
-                              verticalOffset: 24.0,
+                              verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
+                              curve: AppLayout.curveStrongEaseOut,
                               child: FadeInAnimation(
+                                curve: AppLayout.curveStrongEaseOut,
                                 child: Padding(
                                   padding: const EdgeInsets.only(bottom: AppLayout.spaceL),
                                   child: Column(

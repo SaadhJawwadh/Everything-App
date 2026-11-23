@@ -102,8 +102,7 @@ class FinanceDateRangeSheet extends StatelessWidget {
           Navigator.pop(context, range);
         },
         borderRadius: BorderRadius.circular(AppLayout.radiusM),
-        child: AnimatedContainer(
-          duration: AppLayout.animFast,
+        child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           decoration: BoxDecoration(
             color: isSelected

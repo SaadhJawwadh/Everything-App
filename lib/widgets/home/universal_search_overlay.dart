@@ -24,7 +24,7 @@ import '../../features/sync/presentation/screens/p2p_sync_screen.dart';
 import '../../features/finances/presentation/widgets/recurring_rules_sheet.dart';
 import '../../services/backup_service.dart';
 import '../../services/sms_service.dart';
-import '../../utils/app_route.dart';
+import '../../core/routes/app_router.dart';
 import '../../core/theme/app_layout.dart';
 import '../../core/theme/app_theme.dart';
 import 'a2ui_smart_action_card.dart';
@@ -151,6 +151,8 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
     }
   }
 
+  static final RegExp _whitespaceRegex = RegExp(r'\s+');
+
   bool _fuzzyMatch(String text, String search) {
     if (search.isEmpty) return false;
     final t = text.toLowerCase();
@@ -162,7 +164,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
     // Fast path 2: Fuzzy match only for queries >= 4 chars to prevent CPU matrix churn
     if (q.length < 4) return false;
 
-    final words = t.split(RegExp(r'\s+'));
+    final words = t.split(_whitespaceRegex);
     for (final word in words) {
       if ((word.length - q.length).abs() > 2) continue;
       if (_fastLevenshtein(word, q) <= 1) return true;
@@ -219,7 +221,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           'fingerprint',
           'face unlock',
         ],
-        onTap: () => AppRoute.push(context, const SettingsScreen(initialQuery: 'App Lock')),
+        onTap: () => AppRouter.push(context, const SettingsScreen(initialQuery: 'App Lock')),
         trailingWidget: Switch.adaptive(
           value: settings.appLockEnabled,
           onChanged: (val) async {
@@ -244,7 +246,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           'telephony',
           'bank parser',
         ],
-        onTap: () => AppRoute.push(context, const SettingsScreen(initialQuery: 'SMS')),
+        onTap: () => AppRouter.push(context, const SettingsScreen(initialQuery: 'SMS')),
         trailingWidget: _isTestingSync
             ? const SizedBox(
                 width: 20,
@@ -276,7 +278,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         section: 'Finances',
         icon: Icons.monetization_on_outlined,
         keywords: ['currency', 'symbol', 'usd', 'lkr', 'eur', 'gbp', 'inr', 'rupee', 'dollar', 'money'],
-        onTap: () => AppRoute.push(context, const SettingsScreen(initialQuery: 'Currency')),
+        onTap: () => AppRouter.push(context, const SettingsScreen(initialQuery: 'Currency')),
       ),
       SettingsSearchResult(
         title: 'Manage Categories',
@@ -291,7 +293,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           'keywords',
           'ledger'
         ],
-        onTap: () => AppRoute.push(context, const CategoryManagementScreen()),
+        onTap: () => AppRouter.push(context, const CategoryManagementScreen()),
       ),
       SettingsSearchResult(
         title: 'Savings Goals & Vault',
@@ -299,7 +301,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         section: 'Finances',
         icon: Icons.savings_outlined,
         keywords: ['savings', 'savings goals', 'vault', 'pocket', 'piggy bank', 'deposit', 'emergency fund'],
-        onTap: () => AppRoute.push(context, const SettingsScreen(initialQuery: 'Savings')),
+        onTap: () => AppRouter.push(context, const SettingsScreen(initialQuery: 'Savings')),
       ),
       SettingsSearchResult(
         title: 'Split Bills & Shared Debts',
@@ -307,7 +309,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         section: 'Finances',
         icon: Icons.call_split_rounded,
         keywords: ['split bills', 'split', 'iou', 'shared debt', 'group expense', 'friends', 'settle up', 'whatsapp'],
-        onTap: () => AppRoute.push(context, const SettingsScreen(initialQuery: 'Split Bills')),
+        onTap: () => AppRouter.push(context, const SettingsScreen(initialQuery: 'Split Bills')),
       ),
       SettingsSearchResult(
         title: 'SMS Contacts',
@@ -315,7 +317,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         section: 'Finances',
         icon: Icons.contacts_outlined,
         keywords: ['sms contacts', 'contacts', 'senders', 'bank', 'phone', 'whitelist', 'blacklist'],
-        onTap: () => AppRoute.push(context, const SmsContactsScreen()),
+        onTap: () => AppRouter.push(context, const SmsContactsScreen()),
       ),
       SettingsSearchResult(
         title: 'SMS Import Rules',
@@ -329,7 +331,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           'expense rules',
           'train parser',
         ],
-        onTap: () => AppRoute.push(context, const SmsRulesScreen()),
+        onTap: () => AppRouter.push(context, const SmsRulesScreen()),
       ),
       SettingsSearchResult(
         title: 'Recurring Transactions',
@@ -377,7 +379,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           'saf',
           'storage',
         ],
-        onTap: () => AppRoute.push(context, const SettingsScreen(initialQuery: 'Backup')),
+        onTap: () => AppRouter.push(context, const SettingsScreen(initialQuery: 'Backup')),
       ),
       SettingsSearchResult(
         title: 'Import Transactions (CSV)',
@@ -409,7 +411,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           'paired devices',
           'p2p sync',
         ],
-        onTap: () => AppRoute.push(context, const P2pSyncScreen()),
+        onTap: () => AppRouter.push(context, const P2pSyncScreen()),
       ),
       SettingsSearchResult(
         title: 'Google Keep Import',
@@ -417,7 +419,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         section: 'Data',
         icon: Icons.archive_outlined,
         keywords: ['google keep', 'takeout', 'import notes', 'keep notes', 'migration', 'zip import'],
-        onTap: () => AppRoute.push(context, const SettingsScreen(initialQuery: 'Google Keep')),
+        onTap: () => AppRouter.push(context, const SettingsScreen(initialQuery: 'Google Keep')),
       ),
 
       // Features
@@ -436,7 +438,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           'menstrual',
           'lunar',
         ],
-        onTap: () => AppRoute.push(context, const PeriodTrackerScreen()),
+        onTap: () => AppRouter.push(context, const PeriodTrackerScreen()),
       ),
       SettingsSearchResult(
         title: 'Gemini Nano AI',
@@ -452,7 +454,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           'smart sms',
           'on device ai',
         ],
-        onTap: () => AppRoute.push(context, const SettingsScreen(initialQuery: 'Gemini')),
+        onTap: () => AppRouter.push(context, const SettingsScreen(initialQuery: 'Gemini')),
       ),
       SettingsSearchResult(
         title: 'Manage Tags',
@@ -461,7 +463,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         icon: Icons.label_outlined,
         keywords: ['tags', 'manage tags', 'labels', 'tag colors', 'rename tag'],
         onTap: () {
-          AppRoute.push(context, const ManageTagsScreen()).then((_) {
+          AppRouter.push(context, const ManageTagsScreen()).then((_) {
             if (context.mounted) {
               context.read<NoteProvider>().refreshNotes();
             }
@@ -475,7 +477,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         icon: Icons.archive_outlined,
         keywords: ['archive', 'archived', 'hidden notes'],
         onTap: () {
-          AppRoute.push(
+          AppRouter.push(
             context,
             const FilteredNotesScreen(filterType: FilterType.archived),
           ).then((_) {
@@ -492,7 +494,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         icon: Icons.delete_outline,
         keywords: ['trash', 'deleted', 'restore deleted', 'bin', 'purge'],
         onTap: () {
-          AppRoute.push(
+          AppRouter.push(
             context,
             const FilteredNotesScreen(filterType: FilterType.trash),
           ).then((_) {
@@ -516,7 +518,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           'move note',
           'create folder',
         ],
-        onTap: () => AppRoute.push(context, const SettingsScreen(initialQuery: 'Folders')),
+        onTap: () => AppRouter.push(context, const SettingsScreen(initialQuery: 'Folders')),
       ),
 
       // Appearance
@@ -538,7 +540,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           'light',
           'oled',
         ],
-        onTap: () => AppRoute.push(context, const SettingsScreen(initialQuery: 'Theme')),
+        onTap: () => AppRouter.push(context, const SettingsScreen(initialQuery: 'Theme')),
       ),
       SettingsSearchResult(
         title: 'Text Size',
@@ -555,7 +557,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           'small text',
           'text scale',
         ],
-        onTap: () => AppRoute.push(context, const SettingsScreen(initialQuery: 'Text Size')),
+        onTap: () => AppRouter.push(context, const SettingsScreen(initialQuery: 'Text Size')),
       ),
 
       // About
@@ -565,7 +567,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         section: 'About',
         icon: Icons.new_releases_outlined,
         keywords: ['changelog', 'whats new', 'updates', 'version', 'release notes', 'history'],
-        onTap: () => AppRoute.push(context, const SettingsScreen(initialQuery: 'Changelog')),
+        onTap: () => AppRouter.push(context, const SettingsScreen(initialQuery: 'Changelog')),
       ),
       SettingsSearchResult(
         title: 'Replay Onboarding',
@@ -573,7 +575,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         section: 'About',
         icon: Icons.explore_outlined,
         keywords: ['onboarding', 'tutorial', 'tour', 'setup wizard', 'welcome', 'guide'],
-        onTap: () => AppRoute.push(context, const SettingsScreen(initialQuery: 'Onboarding')),
+        onTap: () => AppRouter.push(context, const SettingsScreen(initialQuery: 'Onboarding')),
       ),
       SettingsSearchResult(
         title: 'Keyboard Shortcuts',
@@ -932,7 +934,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         subtitle: Text("${t.category} • ${DateFormat.yMMMd().format(t.date)}",
             style: const TextStyle(fontSize: 12)),
         trailing: Text(
-          "${t.isExpense ? '-' : '+'}${context.watch<SettingsProvider>().currencySymbol} ${t.amount.toStringAsFixed(2)}",
+          "${t.isExpense ? '-' : '+'}${context.select<SettingsProvider, String>((s) => s.currencySymbol)} ${t.amount.toStringAsFixed(2)}",
           style: TextStyle(
             color: t.isExpense
                 ? theme.colorScheme.error
@@ -941,13 +943,12 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           ),
         ),
         onTap: () {
-          AppRoute.push(context, TransactionEditorScreen(transaction: t)).then((_) {
+          AppRouter.push(context, TransactionEditorScreen(transaction: t)).then((_) {
             if (!mounted || !context.mounted) return;
             setState(() {
               _updateSearchFuture();
             });
             context.read<FinancialManagerProvider?>()?.loadTransactions();
-            FinancialManagerScreen.refreshNotifier.value++;
           });
         },
       ),
@@ -997,7 +998,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         ),
         subtitle: Text("Started: ${DateFormat.yMMMd().format(log.startDate)}",
             style: const TextStyle(fontSize: 12)),
-        onTap: () => AppRoute.push(context, const PeriodTrackerScreen()),
+        onTap: () => AppRouter.push(context, const PeriodTrackerScreen()),
       ),
     ),
   );
@@ -1085,7 +1086,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
             color: theme.colorScheme.onSurfaceVariant,
           ),
           onTap: () {
-            AppRoute.push(context, NoteEditorScreen(note: note)).then((_) {
+            AppRouter.push(context, NoteEditorScreen(note: note)).then((_) {
               if (context.mounted) {
                 context.read<NoteProvider>().refreshNotes();
               }

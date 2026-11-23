@@ -16,6 +16,7 @@ import '../../../sync/presentation/screens/p2p_sync_screen.dart';
 import '../../../sync/presentation/widgets/qr_scanner_dialog.dart';
 import '../../../sync/providers/p2p_sync_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../../../core/routes/app_router.dart';
 
 /// Page 1: Welcome & Vision slide for [OnboardingScreen].
 class OnboardingWelcomeSlide extends StatelessWidget {
@@ -121,10 +122,7 @@ class OnboardingWelcomeSlide extends StatelessWidget {
           const SizedBox(height: AppLayout.spaceS),
           BouncingWidget(
             onTap: () async {
-              final scanned = await Navigator.push<String>(
-                context,
-                MaterialPageRoute(builder: (_) => const QrScannerScreen()),
-              );
+              final scanned = await AppRouter.push<String>(context, const QrScannerScreen());
               if (scanned != null && scanned.isNotEmpty && context.mounted) {
                 try {
                   final map = json.decode(scanned) as Map<String, dynamic>;
@@ -415,6 +413,7 @@ class OnboardingPersonalizationSlide extends StatelessWidget {
                     EdgeFadeMask(
                       axis: EdgeFadeAxis.horizontalRight,
                       fadeStop: 0.90,
+                      fadeColor: theme.colorScheme.surfaceContainerHigh,
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         physics: const BouncingScrollPhysics(),
@@ -461,6 +460,7 @@ class OnboardingPersonalizationSlide extends StatelessWidget {
                     EdgeFadeMask(
                       axis: EdgeFadeAxis.horizontalRight,
                       fadeStop: 0.90,
+                      fadeColor: theme.colorScheme.surfaceContainerHigh,
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         physics: const BouncingScrollPhysics(),
@@ -911,10 +911,7 @@ class OnboardingModulesSlide extends StatelessWidget {
                       TextButton(
                         onPressed: () {
                           AppHaptics.selectionClick();
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const SmsRulesScreen()),
-                          );
+                          AppRouter.push(context, const SmsRulesScreen());
                         },
                         child: const Text('Configure'),
                       ),
@@ -1304,10 +1301,7 @@ class OnboardingTipsSlide extends StatelessWidget {
             desc: 'Bi-directional P2P sync across Wi-Fi and E2EE Relay, plus encrypted background auto-backups and recovery key support.',
             actionLabel: 'Configure P2P Sync ➔',
             onAction: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const P2pSyncScreen()),
-              );
+              AppRouter.push(context, const P2pSyncScreen());
             },
           ),
           const SizedBox(height: AppLayout.spaceM),

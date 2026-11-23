@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../../core/theme/app_layout.dart';
 import '../../../../../core/ui/expressive_sliver_app_bar.dart';
-import '../../../../../utils/app_route.dart';
+import '../../../../../core/routes/app_router.dart';
 import '../../../../../widgets/settings_widgets.dart';
 import '../../../../notes/presentation/screens/manage_tags_screen.dart';
 import '../../../../notes/presentation/widgets/note_migration_sheet.dart';
@@ -48,7 +48,7 @@ class NotesSettingsScreen extends StatelessWidget {
                           title: l10n?.manageTags ?? 'Manage Tags',
                           subtitle: 'Rename or delete note tags',
                           showArrow: true,
-                          onTap: () => AppRoute.push(context, const ManageTagsScreen()),
+                          onTap: () => AppRouter.push(context, const ManageTagsScreen()),
                         ),
                         SettingsSwitchTile(
                           icon: Icons.tag_rounded,

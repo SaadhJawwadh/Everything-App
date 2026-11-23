@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
@@ -32,7 +33,7 @@ import 'app_lock_screen.dart';
 import 'package:note_taking_app/features/finances/presentation/screens/category_management_screen.dart';
 import 'package:note_taking_app/features/finances/presentation/screens/transaction_editor_screen.dart';
 import 'package:note_taking_app/features/finances/presentation/screens/split_bill_editor_screen.dart';
-import '../utils/app_route.dart';
+import '../core/routes/app_router.dart';
 import '../features/notes/data/note_repository.dart';
 import '../features/settings/presentation/screens/onboarding_screen.dart';
 import '../utils/widget_helper.dart';
@@ -51,16 +52,17 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int _currentIndex = 0;
   final ScrollController _scrollController = ScrollController();
-  bool _isFabExpanded = true;
+  final ValueNotifier<bool> _isFabExpanded = ValueNotifier<bool>(true);
   bool _onboardingChecked = false;
   bool _whatsNewChecked = false;
   StreamSubscription? _intentDataStreamSubscription;
 
   bool _onScrollNotification(UserScrollNotification notification) {
-    if (notification.direction == ScrollDirection.reverse && _isFabExpanded) {
-      setState(() => _isFabExpanded = false);
-    } else if (notification.direction == ScrollDirection.forward && !_isFabExpanded) {
-      setState(() => _isFabExpanded = true);
+    if (notification.metrics.axis != Axis.vertical) return false;
+    if (notification.direction == ScrollDirection.reverse && _isFabExpanded.value) {
+      _isFabExpanded.value = false;
+    } else if (notification.direction == ScrollDirection.forward && !_isFabExpanded.value) {
+      _isFabExpanded.value = true;
     }
     return false;
   }
@@ -195,7 +197,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           await context.read<NoteProvider>().refreshNotes();
         }
       }());
-      FinancialManagerScreen.refreshNotifier.value++;
       final settings = Provider.of<SettingsProvider>(context, listen: false);
       final bool isLocked = settings.appLockEnabled && !AppLockScreen.sessionAuthenticated.value;
       if (!isLocked) {
@@ -210,6 +211,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void dispose() {
     unawaited(_intentDataStreamSubscription?.cancel());
     _scrollController.dispose();
+    _isFabExpanded.dispose();
     AppLockScreen.sessionAuthenticated.removeListener(_handleSessionUnlock);
     AppLockScreen.sharedMediaTick.removeListener(_handleSharedMediaTick);
     AppLockScreen.moduleSessionEpoch.removeListener(_onModuleSessionChanged);
@@ -290,11 +292,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _showOnboardingSheet() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const OnboardingScreen(),
-      ),
-    );
+    AppRouter.push(context, const OnboardingScreen());
   }
 
   /// Shows the What's New sheet once per version after an update, and kicks
@@ -315,11 +313,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
 
     if (!mounted) return;
+    final reduceMotion = AppLayout.shouldReduceMotion(context);
     unawaited(
       showModalBottomSheet(
         context: context,
         isScrollControlled: true,
+        useSafeArea: true,
         backgroundColor: Colors.transparent,
+        sheetAnimationStyle: reduceMotion
+            ? AnimationStyle.noAnimation
+            : const AnimationStyle(
+                duration: AppLayout.animModal,
+                reverseDuration: AppLayout.animFast,
+                curve: AppLayout.curveSheet,
+                reverseCurve: AppLayout.curveEmphasizedAccelerate,
+              ),
         builder: (context) => WhatsNewSheet(currentVersion: currentVersion),
       ),
     );
@@ -327,171 +335,198 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<SettingsProvider>(builder: (context, settings, child) {
-      if (settings.isInitialized && !settings.hasSeenOnboarding && !_onboardingChecked) {
-        _onboardingChecked = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showOnboardingSheet();
-        });
-      }
+    return Selector<
+        SettingsProvider,
+        ({
+          bool isInitialized,
+          bool hasSeenOnboarding,
+          bool showFinancialManager,
+          bool isPeriodTrackerEnabled,
+          bool lockFinances,
+          bool lockHealth,
+        })>(
+      selector: (_, s) => (
+        isInitialized: s.isInitialized,
+        hasSeenOnboarding: s.hasSeenOnboarding,
+        showFinancialManager: s.showFinancialManager,
+        isPeriodTrackerEnabled: s.isPeriodTrackerEnabled,
+        lockFinances: s.lockFinances,
+        lockHealth: s.lockHealth,
+      ),
+      builder: (context, shell, child) {
+        final settings = context.read<SettingsProvider>();
+        if (shell.isInitialized && !shell.hasSeenOnboarding && !_onboardingChecked) {
+          _onboardingChecked = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showOnboardingSheet();
+          });
+        }
 
-      if (settings.isInitialized && !_whatsNewChecked) {
-        _whatsNewChecked = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _maybeShowWhatsNew(settings);
-        });
-      }
+        if (shell.isInitialized && !_whatsNewChecked) {
+          _whatsNewChecked = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _maybeShowWhatsNew(settings);
+          });
+        }
 
-      final isNotesSelection = _currentIndex == 0 &&
-          context.select<NoteProvider, bool>((p) => p.isSelectionMode);
-      final isFinancesSelection = settings.showFinancialManager &&
-          _currentIndex == 1 &&
-          context.select<FinancialManagerProvider, bool>((p) => p.isSelectionMode);
-      final isSelectionMode = isNotesSelection || isFinancesSelection;
+        final isNotesSelection = _currentIndex == 0 &&
+            context.select<NoteProvider, bool>((p) => p.isSelectionMode);
+        final isFinancesSelection = shell.showFinancialManager &&
+            _currentIndex == 1 &&
+            context.select<FinancialManagerProvider, bool>((p) => p.isSelectionMode);
+        final isSelectionMode = isNotesSelection || isFinancesSelection;
 
-      Widget? activeToolbar;
-      if (isNotesSelection) {
-        activeToolbar = _buildSelectionToolbar(context, context.read<NoteProvider>());
-      } else if (isFinancesSelection) {
-        activeToolbar = LedgerFloatingToolbar(
-          onActionCompleted: () => FinancialManagerScreen.refreshNotifier.value++,
-        );
-      }
+        Widget? activeToolbar;
+        if (isNotesSelection) {
+          activeToolbar = _buildSelectionToolbar(context, context.read<NoteProvider>());
+        } else if (isFinancesSelection) {
+          activeToolbar = LedgerFloatingToolbar(
+            onActionCompleted: () => context.read<FinancialManagerProvider>().loadTransactions(),
+          );
+        }
 
-      final bool hasExtraFeatures = settings.showFinancialManager || settings.isPeriodTrackerEnabled;
-      
-      if (!hasExtraFeatures) {
-        _currentIndex = 0;
-        return _wrapWithKeyboardShortcuts(
-          context: context,
-          settings: settings,
-          destinationsCount: 1,
-          child: Scaffold(
-            extendBody: true,
-            body: _buildNotesScaffold(context, settings),
-            floatingActionButton: isSelectionMode ? null : _buildFAB(context),
-            bottomNavigationBar: isSelectionMode
-                ? activeToolbar
-                : null,
-          ),
-        );
-      }
+        final bool hasExtraFeatures = shell.showFinancialManager || shell.isPeriodTrackerEnabled;
 
-      final List<Widget> destinations = _buildDestinations(settings);
-      _currentIndex = _currentIndex.clamp(0, destinations.length - 1);
+        if (!hasExtraFeatures) {
+          _currentIndex = 0;
+          return _wrapWithKeyboardShortcuts(
+            context: context,
+            settings: settings,
+            destinationsCount: 1,
+            child: Scaffold(
+              extendBody: true,
+              body: NotificationListener<UserScrollNotification>(
+                onNotification: _onScrollNotification,
+                child: _buildNotesScaffold(context, settings),
+              ),
+              floatingActionButton: isSelectionMode ? null : _buildFAB(context),
+              bottomNavigationBar: isSelectionMode
+                  ? activeToolbar
+                  : null,
+            ),
+          );
+        }
 
-      final bool isTablet = AppLayout.isDualPane(context);
+        final List<Widget> destinations = _buildDestinations(settings);
+        _currentIndex = _currentIndex.clamp(0, destinations.length - 1);
 
-      if (isTablet) {
+        final bool isTablet = AppLayout.isDualPane(context);
+
+        if (isTablet) {
+          return _wrapWithKeyboardShortcuts(
+            context: context,
+            settings: settings,
+            destinationsCount: destinations.length,
+            child: Scaffold(
+              extendBody: true,
+              body: Row(
+                children: [
+                  NavigationRail(
+                    selectedIndex: _currentIndex,
+                    onDestinationSelected: (index) {
+                      AppHaptics.selectionClick();
+                      final nProvider = context.read<NoteProvider>();
+                      if (nProvider.isSelectionMode) nProvider.clearSelection();
+                      final fProvider = context.read<FinancialManagerProvider>();
+                      if (fProvider.isSelectionMode) fProvider.clearSelection();
+                      setState(() => _currentIndex = index);
+                    },
+                    labelType: NavigationRailLabelType.all,
+                    destinations: _buildNavRailDestinations(settings),
+                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+                    trailing: Expanded(
+                      child: Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: AppLayout.spaceM),
+                          child: IconButton(
+                            key: const ValueKey('keyboard_shortcuts_rail_button'),
+                            tooltip: 'Keyboard Shortcuts (Ctrl + /)',
+                            icon: const Icon(Icons.keyboard_alt_outlined),
+                            onPressed: () => KeyboardShortcutsDialog.show(context),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: NotificationListener<UserScrollNotification>(
+                      onNotification: _onScrollNotification,
+                      child: IndexedStack(
+                        index: _currentIndex,
+                        children: _buildFeatureScreens(settings),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              floatingActionButton: isSelectionMode ? null : _buildCurrentFAB(context, settings),
+              bottomNavigationBar: isSelectionMode
+                  ? activeToolbar
+                  : null,
+            ),
+          );
+        }
+
+        final reduceMotion = AppLayout.shouldReduceMotion(context);
         return _wrapWithKeyboardShortcuts(
           context: context,
           settings: settings,
           destinationsCount: destinations.length,
           child: Scaffold(
             extendBody: true,
-            body: Row(
-              children: [
-                NavigationRail(
-                  selectedIndex: _currentIndex,
-                  onDestinationSelected: (index) {
-                    AppHaptics.selectionClick();
-                    final nProvider = context.read<NoteProvider>();
-                    if (nProvider.isSelectionMode) nProvider.clearSelection();
-                    final fProvider = context.read<FinancialManagerProvider>();
-                    if (fProvider.isSelectionMode) fProvider.clearSelection();
-                    setState(() => _currentIndex = index);
-                  },
-                  labelType: NavigationRailLabelType.all,
-                  destinations: _buildNavRailDestinations(settings),
-                  backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
-                  trailing: Expanded(
-                    child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: AppLayout.spaceM),
-                        child: IconButton(
-                          key: const ValueKey('keyboard_shortcuts_rail_button'),
-                          tooltip: 'Keyboard Shortcuts (Ctrl + /)',
-                          icon: const Icon(Icons.keyboard_alt_outlined),
-                          onPressed: () => KeyboardShortcutsDialog.show(context),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: NotificationListener<UserScrollNotification>(
-                    onNotification: _onScrollNotification,
-                    child: IndexedStack(
-                      index: _currentIndex,
-                      children: _buildFeatureScreens(settings),
-                    ),
-                  ),
-                ),
-              ],
+            body: NotificationListener<UserScrollNotification>(
+              onNotification: _onScrollNotification,
+              child: IndexedStack(
+                index: _currentIndex,
+                children: _buildFeatureScreens(settings),
+              ),
             ),
             floatingActionButton: isSelectionMode ? null : _buildCurrentFAB(context, settings),
-            bottomNavigationBar: isSelectionMode
-                ? activeToolbar
-                : null,
-          ),
-        );
-      }
-
-      return _wrapWithKeyboardShortcuts(
-        context: context,
-        settings: settings,
-        destinationsCount: destinations.length,
-        child: Scaffold(
-          extendBody: true,
-          body: NotificationListener<UserScrollNotification>(
-            onNotification: _onScrollNotification,
-            child: IndexedStack(
-              index: _currentIndex,
-              children: _buildFeatureScreens(settings),
+            bottomNavigationBar: AnimatedSwitcher(
+              duration: reduceMotion ? Duration.zero : AppLayout.animFast,
+              switchInCurve: AppLayout.curveStrongEaseOut,
+              switchOutCurve: AppLayout.curveEmphasizedAccelerate,
+              transitionBuilder: (child, animation) {
+                if (reduceMotion) {
+                  return FadeTransition(opacity: animation, child: child);
+                }
+                return SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0.0, 1.0),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                );
+              },
+              child: isSelectionMode
+                  ? (activeToolbar ?? const SizedBox.shrink())
+                  : Container(
+                      key: const ValueKey('navigation_bar'),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surfaceContainerLow,
+                        border: null,
+                      ),
+                      child: NavigationBar(
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        selectedIndex: _currentIndex,
+                        onDestinationSelected: (index) {
+                          AppHaptics.selectionClick();
+                          final nProvider = context.read<NoteProvider>();
+                          if (nProvider.isSelectionMode) nProvider.clearSelection();
+                          final fProvider = context.read<FinancialManagerProvider>();
+                          if (fProvider.isSelectionMode) fProvider.clearSelection();
+                          setState(() => _currentIndex = index);
+                        },
+                        destinations: _buildNavDestinations(settings),
+                      ),
+                    ),
             ),
           ),
-          floatingActionButton: isSelectionMode ? null : _buildCurrentFAB(context, settings),
-          bottomNavigationBar: AnimatedSwitcher(
-            duration: AppLayout.animDefault,
-            switchInCurve: AppLayout.curveExpressiveSpatial,
-            switchOutCurve: AppLayout.curveEmphasizedAccelerate,
-            transitionBuilder: (child, animation) {
-              return SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0.0, 1.0),
-                  end: Offset.zero,
-                ).animate(animation),
-                child: child,
-              );
-            },
-            child: isSelectionMode
-                ? (activeToolbar ?? const SizedBox.shrink())
-                : Container(
-                    key: const ValueKey('navigation_bar'),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerLow,
-                      border: null,
-                    ),
-                    child: NavigationBar(
-                      backgroundColor: Colors.transparent,
-                      elevation: 0,
-                      selectedIndex: _currentIndex,
-                      onDestinationSelected: (index) {
-                        AppHaptics.selectionClick();
-                        final nProvider = context.read<NoteProvider>();
-                        if (nProvider.isSelectionMode) nProvider.clearSelection();
-                        final fProvider = context.read<FinancialManagerProvider>();
-                        if (fProvider.isSelectionMode) fProvider.clearSelection();
-                        setState(() => _currentIndex = index);
-                      },
-                      destinations: _buildNavDestinations(settings),
-                    ),
-                  ),
-          ),
-        ),
-      );
-    });
+        );
+      },
+    );
   }
 
   Widget _wrapWithKeyboardShortcuts({
@@ -503,12 +538,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     void openNewNote() async {
       AppHaptics.lightImpact();
       final nProvider = context.read<NoteProvider>();
-      final returned = await Navigator.of(context).push<bool>(
-        MaterialPageRoute(
-          builder: (_) =>
-              NoteEditorScreen(initialFolder: nProvider.selectedFolder),
-        ),
-      );
+      final returned = await AppRouter.push<bool>(context, NoteEditorScreen(initialFolder: nProvider.selectedFolder));
       if (returned == true) await refreshNotes(scrollOnModified: true);
     }
 
@@ -518,12 +548,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         return;
       }
       AppHaptics.lightImpact();
-      await Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const TransactionEditorScreen()),
-      );
+      await AppRouter.push(context, const TransactionEditorScreen());
       if (context.mounted) {
         await context.read<FinancialManagerProvider>().loadTransactions();
-        FinancialManagerScreen.refreshNotifier.value++;
       }
     }
 
@@ -684,66 +711,48 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ? (settings.showFinancialManager ? 2 : 1)
         : -1;
     return [
-      _buildNotesScaffold(context, settings),
+      TickerMode(
+        enabled: _currentIndex == 0,
+        child: _buildNotesScaffold(context, settings),
+      ),
       if (settings.showFinancialManager)
-        ModuleLockGate(
-          moduleKey: 'finances',
-          moduleTitle: 'Finances',
-          isLockedSettingEnabled: settings.lockFinances,
-          isActive: _currentIndex == financesIndex,
-          child: const FinancialManagerScreen(),
+        TickerMode(
+          enabled: _currentIndex == financesIndex,
+          child: ModuleLockGate(
+            moduleKey: 'finances',
+            moduleTitle: 'Finances',
+            isLockedSettingEnabled: settings.lockFinances,
+            isActive: _currentIndex == financesIndex,
+            child: const FinancialManagerScreen(),
+          ),
         ),
       if (settings.isPeriodTrackerEnabled)
-        ModuleLockGate(
-          moduleKey: 'health',
-          moduleTitle: 'Health',
-          isLockedSettingEnabled: settings.lockHealth,
-          isActive: _currentIndex == trackerIndex,
-          child: const PeriodTrackerScreen(),
+        TickerMode(
+          enabled: _currentIndex == trackerIndex,
+          child: ModuleLockGate(
+            moduleKey: 'health',
+            moduleTitle: 'Health',
+            isLockedSettingEnabled: settings.lockHealth,
+            isActive: _currentIndex == trackerIndex,
+            child: const PeriodTrackerScreen(),
+          ),
         ),
     ];
   }
 
   Widget _buildNotesScaffold(BuildContext context, SettingsProvider settings) {
-    final noteProvider = context.watch<NoteProvider>();
-    return PopScope(
-      canPop: noteProvider.searchQuery.isEmpty,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (noteProvider.searchQuery.isNotEmpty) {
-          noteProvider.setSearchQuery('');
-        }
-      },
-      child: NotificationListener<UserScrollNotification>(
-        onNotification: _onScrollNotification,
-        child: CustomScrollView(
-          key: const PageStorageKey<String>('home_notes_scroll_view'),
-          controller: _scrollController,
-          slivers: [
-            HomeAppBar(
-              onClearSelection: () => noteProvider.clearSelection(),
-              onBulkArchive: () => noteProvider.bulkArchive(),
-              onBulkDelete: () => _bulkDeleteWithUndo(noteProvider),
-              onBulkTag: bulkTag,
-              onBulkMoveToFolder: bulkMoveToFolder,
-              onCycleViewMode: () => _cycleViewMode(settings),
-              onRefresh: refreshNotes,
-            ),
-            if (noteProvider.searchQuery.isNotEmpty)
-              SliverToBoxAdapter(
-                child: UniversalSearchOverlay(query: noteProvider.searchQuery),
-              ),
-            if (settings.showTagFilterBar && noteProvider.searchQuery.isEmpty)
-              SliverToBoxAdapter(child: TagFilterBar(onTagLongPress: _showTagOptions)),
-            if (noteProvider.searchQuery.isEmpty)
-              NoteViewBuilder(
-                onRefresh: refreshNotes,
-                onNoteTap: onNoteTap,
-                onNoteLongPress: onNoteLongPress,
-              ),
-          ],
-        ),
-      ),
+    return _NotesTabBody(
+      scrollController: _scrollController,
+      onClearSelection: () => context.read<NoteProvider>().clearSelection(),
+      onBulkArchive: () => context.read<NoteProvider>().bulkArchive(),
+      onBulkDelete: () => _bulkDeleteWithUndo(context.read<NoteProvider>()),
+      onBulkTag: bulkTag,
+      onBulkMoveToFolder: bulkMoveToFolder,
+      onCycleViewMode: () => _cycleViewMode(settings),
+      onRefresh: refreshNotes,
+      onTagLongPress: _showTagOptions,
+      onNoteTap: onNoteTap,
+      onNoteLongPress: onNoteLongPress,
     );
   }
 
@@ -775,45 +784,44 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Widget _buildFinancesFAB(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return ValueListenableBuilder<String>(
-      valueListenable: FinancialManagerScreen.activeTabNotifier,
-      builder: (context, activeTab, _) {
-        final isSplitTab = activeTab == 'Split Bills';
-        final l10n = AppLocalizations.of(context);
-        return AppMorphingFab(
-          isExpanded: _isFabExpanded,
-          icon: isSplitTab ? Icons.pie_chart_outline_rounded : Icons.add,
-          label: isSplitTab
-              ? (l10n?.splitBillsTitle ?? 'New Split Bill')
-              : (l10n?.newTransaction ?? 'New Transaction'),
-          onPressed: () async {
-            if (isSplitTab) {
-              await Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const SplitBillEditorScreen()),
-              );
-              if (context.mounted) {
-                await context.read<FinancialManagerProvider>().loadTransactions();
-                FinancialManagerScreen.refreshNotifier.value++;
-              }
-            } else {
-              await Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const TransactionEditorScreen()),
-              );
-              if (context.mounted) {
-                await context.read<FinancialManagerProvider>().loadTransactions();
-                FinancialManagerScreen.refreshNotifier.value++;
-              }
-            }
+    return ValueListenableBuilder<bool>(
+      valueListenable: _isFabExpanded,
+      builder: (context, isExpanded, _) {
+        return ValueListenableBuilder<String>(
+          valueListenable: FinancialManagerScreen.activeTabNotifier,
+          builder: (context, activeTab, _) {
+            final isSplitTab = activeTab == 'Split Bills';
+            final l10n = AppLocalizations.of(context);
+            return AppMorphingFab(
+              isExpanded: isExpanded,
+              icon: isSplitTab ? Icons.pie_chart_outline_rounded : Icons.add,
+              label: isSplitTab
+                  ? (l10n?.splitBillsTitle ?? 'New Split Bill')
+                  : (l10n?.newTransaction ?? 'New Transaction'),
+              onPressed: () async {
+                if (isSplitTab) {
+                  await AppRouter.push(context, const SplitBillEditorScreen());
+                  if (context.mounted) {
+                    await context.read<FinancialManagerProvider>().loadTransactions();
+                  }
+                } else {
+                  await AppRouter.push(context, const TransactionEditorScreen());
+                  if (context.mounted) {
+                    await context.read<FinancialManagerProvider>().loadTransactions();
+                  }
+                }
+              },
+              secondaryAction: isSplitTab
+                  ? null
+                  : IconButton(
+                      tooltip: l10n?.categories ?? 'Categories',
+                      icon: Icon(Icons.category_outlined, color: colorScheme.onPrimaryContainer, size: 20),
+                      onPressed: () {
+                        AppRouter.push(context, const CategoryManagementScreen());
+                      },
+                    ),
+            );
           },
-          secondaryAction: isSplitTab
-              ? null
-              : IconButton(
-                  tooltip: l10n?.categories ?? 'Categories',
-                  icon: Icon(Icons.category_outlined, color: colorScheme.onPrimaryContainer, size: 20),
-                  onPressed: () {
-                    AppRoute.push(context, const CategoryManagementScreen());
-                  },
-                ),
         );
       },
     );
@@ -822,22 +830,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _buildTrackerFAB(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
-    return AppMorphingFab(
-      isExpanded: _isFabExpanded,
-      icon: Icons.add,
-      label: l10n?.periodLog ?? 'Log Period',
-      backgroundColor: colorScheme.tertiaryContainer,
-      foregroundColor: colorScheme.onTertiaryContainer,
-      onPressed: () {
-        PeriodTrackerScreen.openLogEditorNotifier.value = DateTime.now();
+    return ValueListenableBuilder<bool>(
+      valueListenable: _isFabExpanded,
+      builder: (context, isExpanded, _) {
+        return AppMorphingFab(
+          isExpanded: isExpanded,
+          icon: Icons.add,
+          label: l10n?.periodLog ?? 'Log Period',
+          backgroundColor: colorScheme.tertiaryContainer,
+          foregroundColor: colorScheme.onTertiaryContainer,
+          onPressed: () {
+            PeriodTrackerScreen.openLogEditorNotifier.value = DateTime.now();
+          },
+          secondaryAction: IconButton(
+            tooltip: 'Jump to Today',
+            icon: Icon(Icons.today, color: colorScheme.onTertiaryContainer, size: 20),
+            onPressed: () async {
+              PeriodTrackerScreen.selectTodayNotifier.value++;
+            },
+          ),
+        );
       },
-      secondaryAction: IconButton(
-        tooltip: 'Jump to Today',
-        icon: Icon(Icons.today, color: colorScheme.onTertiaryContainer, size: 20),
-        onPressed: () async {
-          PeriodTrackerScreen.selectTodayNotifier.value++;
-        },
-      ),
     );
   }
 
@@ -845,25 +858,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final noteProvider = Provider.of<NoteProvider>(context, listen: false);
     final colorScheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
-    return AppMorphingFab(
-      isExpanded: _isFabExpanded,
-      icon: Icons.add,
-      label: l10n?.newNote ?? 'New Note',
-      onPressed: () async {
-        final returned = await Navigator.of(context).push<bool>(
-          MaterialPageRoute(
-            builder: (context) => NoteEditorScreen(initialFolder: noteProvider.selectedFolder),
+    return ValueListenableBuilder<bool>(
+      valueListenable: _isFabExpanded,
+      builder: (context, isExpanded, _) {
+        return AppMorphingFab(
+          isExpanded: isExpanded,
+          icon: Icons.add,
+          label: l10n?.newNote ?? 'New Note',
+          onPressed: () async {
+            final returned = await AppRouter.push<bool>(context, NoteEditorScreen(initialFolder: noteProvider.selectedFolder));
+            if (returned == true) await refreshNotes(scrollOnModified: true);
+          },
+          secondaryAction: IconButton(
+            tooltip: AppLocalizations.of(context)?.startFromTemplate ?? 'Templates',
+            icon: Icon(Icons.style_outlined, color: colorScheme.onPrimaryContainer, size: 20),
+            onPressed: () {
+              _showTemplateSheet();
+            },
           ),
         );
-        if (returned == true) await refreshNotes(scrollOnModified: true);
       },
-      secondaryAction: IconButton(
-        tooltip: AppLocalizations.of(context)?.startFromTemplate ?? 'Templates',
-        icon: Icon(Icons.style_outlined, color: colorScheme.onPrimaryContainer, size: 20),
-        onPressed: () {
-          _showTemplateSheet();
-        },
-      ),
     );
   }
 
@@ -871,5 +885,80 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         context: context,
         onRefreshNotes: refreshNotes,
       );
+}
+
+class _NotesTabBody extends StatelessWidget {
+  final ScrollController scrollController;
+  final VoidCallback onClearSelection;
+  final VoidCallback onBulkArchive;
+  final VoidCallback onBulkDelete;
+  final VoidCallback onBulkTag;
+  final VoidCallback onBulkMoveToFolder;
+  final VoidCallback onCycleViewMode;
+  final Future<void> Function({bool scrollOnModified}) onRefresh;
+  final void Function(String) onTagLongPress;
+  final void Function(Note, VoidCallback) onNoteTap;
+  final void Function(Note) onNoteLongPress;
+
+  const _NotesTabBody({
+    required this.scrollController,
+    required this.onClearSelection,
+    required this.onBulkArchive,
+    required this.onBulkDelete,
+    required this.onBulkTag,
+    required this.onBulkMoveToFolder,
+    required this.onCycleViewMode,
+    required this.onRefresh,
+    required this.onTagLongPress,
+    required this.onNoteTap,
+    required this.onNoteLongPress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final searchQuery = context.select<NoteProvider, String>((p) => p.searchQuery);
+    final showTagFilterBar = context.select<SettingsProvider, bool>((s) => s.showTagFilterBar);
+    final isSearching = searchQuery.isNotEmpty;
+
+    return PopScope(
+      canPop: !isSearching,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (isSearching) {
+          context.read<NoteProvider>().setSearchQuery('');
+        }
+      },
+      child: AnimationLimiter(
+        child: CustomScrollView(
+          key: const PageStorageKey<String>('home_notes_scroll_view'),
+          controller: scrollController,
+          scrollCacheExtent: const ScrollCacheExtent.pixels(600.0),
+          slivers: [
+            HomeAppBar(
+              onClearSelection: onClearSelection,
+              onBulkArchive: onBulkArchive,
+              onBulkDelete: onBulkDelete,
+              onBulkTag: onBulkTag,
+              onBulkMoveToFolder: onBulkMoveToFolder,
+              onCycleViewMode: onCycleViewMode,
+              onRefresh: onRefresh,
+            ),
+            if (isSearching)
+              SliverToBoxAdapter(
+                child: UniversalSearchOverlay(query: searchQuery),
+              ),
+            if (showTagFilterBar && !isSearching)
+              SliverToBoxAdapter(child: TagFilterBar(onTagLongPress: onTagLongPress)),
+            if (!isSearching)
+              NoteViewBuilder(
+                onRefresh: onRefresh,
+                onNoteTap: onNoteTap,
+                onNoteLongPress: onNoteLongPress,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 

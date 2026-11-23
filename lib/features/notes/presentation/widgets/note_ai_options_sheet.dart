@@ -30,13 +30,23 @@ class NoteAiOptionsSheet {
     bool isLoading = false;
     String? statusText;
 
+    final reduceMotion = AppLayout.shouldReduceMotion(context);
     await showModalBottomSheet(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+      sheetAnimationStyle: reduceMotion
+          ? AnimationStyle.noAnimation
+          : const AnimationStyle(
+              duration: AppLayout.animModal,
+              reverseDuration: AppLayout.animFast,
+              curve: AppLayout.curveSheet,
+              reverseCurve: AppLayout.curveEmphasizedAccelerate,
+            ),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppLayout.radiusXXL)),
       ),
       builder: (sheetContext) {
         return StatefulBuilder(
@@ -68,7 +78,7 @@ class NoteAiOptionsSheet {
             return SafeArea(
               child: Padding(
                 padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                  bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
                 ),
                 child: SingleChildScrollView(
                   child: Padding(
@@ -565,12 +575,22 @@ class NoteAiOptionsSheet {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    final reduceMotion = AppLayout.shouldReduceMotion(context);
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: colorScheme.surfaceContainerHigh,
+      sheetAnimationStyle: reduceMotion
+          ? AnimationStyle.noAnimation
+          : const AnimationStyle(
+              duration: AppLayout.animModal,
+              reverseDuration: AppLayout.animFast,
+              curve: AppLayout.curveSheet,
+              reverseCurve: AppLayout.curveEmphasizedAccelerate,
+            ),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppLayout.radiusXXL)),
       ),
       builder: (ctx) {
         return SafeArea(
@@ -580,7 +600,7 @@ class NoteAiOptionsSheet {
               left: 20,
               right: 20,
               top: 16,
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
+              bottom: MediaQuery.viewInsetsOf(ctx).bottom + 20,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,

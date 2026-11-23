@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../../core/theme/app_layout.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/ui/expressive_sliver_app_bar.dart';
-import '../../../../../utils/app_route.dart';
+import '../../../../../core/routes/app_router.dart';
 import '../../../../../widgets/settings_widgets.dart';
 import '../../../../finances/presentation/screens/category_management_screen.dart';
 import '../../../../finances/presentation/screens/sms_rules_screen.dart';
@@ -91,8 +91,10 @@ class FinancesSettingsScreen extends StatelessWidget {
                             onChanged: settings.setEnableSmsImport,
                           ),
                           AnimatedSize(
-                            duration: AppLayout.animModal,
-                            curve: AppLayout.curveEmphasizedDecelerate,
+                            duration: AppLayout.shouldReduceMotion(context)
+                                ? Duration.zero
+                                : AppLayout.animShort,
+                            curve: AppLayout.curveStrongEaseOut,
                             child: settings.enableSmsImport
                                 ? SettingsTile(
                                     icon: Icons.mark_chat_unread_outlined,
@@ -100,7 +102,7 @@ class FinancesSettingsScreen extends StatelessWidget {
                                     title: l10n?.smsAutomationRules ?? 'SMS & Bank Automation Rules',
                                     subtitle: l10n?.smsAutomationRulesSubtitle ?? 'Auto-sync, import rules, sender blocklist & parser testing',
                                     showArrow: true,
-                                    onTap: () => AppRoute.push(context, const SmsRulesScreen()),
+                                    onTap: () => AppRouter.push(context, const SmsRulesScreen()),
                                   )
                                 : const SizedBox.shrink(),
                           ),
@@ -118,7 +120,7 @@ class FinancesSettingsScreen extends StatelessWidget {
                             title: l10n?.categoriesAndBudgets ?? 'Categories & Budgets',
                             subtitle: l10n?.categoriesAndBudgetsSubtitle ?? 'Customise keywords, budget allocations & colors',
                             showArrow: true,
-                            onTap: () => AppRoute.push(context, const CategoryManagementScreen()),
+                            onTap: () => AppRouter.push(context, const CategoryManagementScreen()),
                           ),
                           if (settings.isDeviceAiSupported)
                             SettingsSwitchTile(
@@ -146,8 +148,10 @@ class FinancesSettingsScreen extends StatelessWidget {
                             onChanged: settings.setEnableRecurringRules,
                           ),
                           AnimatedSize(
-                            duration: AppLayout.animModal,
-                            curve: AppLayout.curveEmphasizedDecelerate,
+                            duration: AppLayout.shouldReduceMotion(context)
+                                ? Duration.zero
+                                : AppLayout.animShort,
+                            curve: AppLayout.curveStrongEaseOut,
                             child: settings.enableRecurringRules
                                 ? SettingsTile(
                                     icon: Icons.edit_calendar_outlined,
@@ -197,8 +201,10 @@ class FinancesSettingsScreen extends StatelessWidget {
                             onChanged: settings.setEnableSavingsVault,
                           ),
                           AnimatedSize(
-                            duration: AppLayout.animModal,
-                            curve: AppLayout.curveEmphasizedDecelerate,
+                            duration: AppLayout.shouldReduceMotion(context)
+                                ? Duration.zero
+                                : AppLayout.animShort,
+                            curve: AppLayout.curveStrongEaseOut,
                             child: settings.enableSavingsVault
                                 ? SettingsTile(
                                     icon: Icons.drive_file_rename_outline_rounded,
@@ -220,8 +226,10 @@ class FinancesSettingsScreen extends StatelessWidget {
                             onChanged: settings.setShowSplitBills,
                           ),
                           AnimatedSize(
-                            duration: AppLayout.animModal,
-                            curve: AppLayout.curveEmphasizedDecelerate,
+                            duration: AppLayout.shouldReduceMotion(context)
+                                ? Duration.zero
+                                : AppLayout.animShort,
+                            curve: AppLayout.curveStrongEaseOut,
                             child: settings.showSplitBills
                                 ? SettingsTile(
                                     icon: Icons.account_balance_outlined,

@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -31,6 +32,49 @@ class NoteCard extends StatelessWidget {
     this.onChecklistTap,
   });
 
+  static final RegExp _checkedFallbackRegex = RegExp(r'"list"\s*:\s*"checked"');
+  static final RegExp _uncheckedFallbackRegex = RegExp(r'"list"\s*:\s*"unchecked"');
+
+  static final LinkedHashMap<String, ({List<ChecklistItemData> items, int checked, int unchecked})>
+      _checklistCache = LinkedHashMap();
+
+  /// Resolves the exact card background color so [OpenContainer.closedColor]
+  /// matches [NoteCard] without surface flashes during expansion.
+  static Color resolveCardBackground(Note note, ThemeData theme) {
+    if (note.color == 0) return theme.colorScheme.surface;
+    return AppTheme.cachedSeedScheme(note.color, theme.brightness).surfaceContainerLow;
+  }
+
+  static ({List<ChecklistItemData> items, int checked, int unchecked}) _getCachedChecklist(Note note) {
+    final key = '${note.id}_${note.dateModified.microsecondsSinceEpoch}_${note.content.length}_${note.content.hashCode}';
+    final cached = _checklistCache.remove(key);
+    if (cached != null) {
+      _checklistCache[key] = cached; // refresh LRU order
+      return cached;
+    }
+
+    List<ChecklistItemData> checklistItems = const [];
+    int checkedCount = 0;
+    int uncheckedCount = 0;
+    try {
+      final delta = RichTextUtils.contentToDelta(note.content);
+      final doc = Document.fromDelta(delta);
+      checklistItems = QuillChecklistHelper.extractChecklistData(doc);
+      checkedCount = checklistItems.where((i) => i.isDone).length;
+      uncheckedCount = checklistItems.where((i) => !i.isDone).length;
+    } catch (_) {
+      checkedCount = _checkedFallbackRegex.allMatches(note.content).length;
+      uncheckedCount = _uncheckedFallbackRegex.allMatches(note.content).length;
+    }
+
+    final entry = (items: checklistItems, checked: checkedCount, unchecked: uncheckedCount);
+    if (_checklistCache.length >= 200) {
+      _checklistCache.remove(_checklistCache.keys.first);
+    }
+    _checklistCache[key] = entry;
+    return entry;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isSystemDefault = note.color == 0;
@@ -42,7 +86,7 @@ class NoteCard extends StatelessWidget {
       backgroundColor = theme.colorScheme.surface;
       borderColor = theme.colorScheme.outlineVariant.withValues(alpha: 0.3);
     } else {
-      final scheme = ColorScheme.fromSeed(seedColor: Color(note.color), brightness: theme.brightness);
+      final scheme = AppTheme.cachedSeedScheme(note.color, theme.brightness);
       backgroundColor = scheme.surfaceContainerLow;
       borderColor = scheme.outline.withValues(alpha: 0.2);
     }
@@ -54,16 +98,10 @@ class NoteCard extends StatelessWidget {
     int uncheckedCount = 0;
     if (!note.isLocked &&
         (note.content.contains('"checked"') || note.content.contains('"unchecked"'))) {
-      try {
-        final delta = RichTextUtils.contentToDelta(note.content);
-        final doc = Document.fromDelta(delta);
-        checklistItems = QuillChecklistHelper.extractChecklistData(doc);
-        checkedCount = checklistItems.where((i) => i.isDone).length;
-        uncheckedCount = checklistItems.where((i) => !i.isDone).length;
-      } catch (_) {
-        checkedCount = RegExp(r'"list"\s*:\s*"checked"').allMatches(note.content).length;
-        uncheckedCount = RegExp(r'"list"\s*:\s*"unchecked"').allMatches(note.content).length;
-      }
+      final parsed = _getCachedChecklist(note);
+      checklistItems = parsed.items;
+      checkedCount = parsed.checked;
+      uncheckedCount = parsed.unchecked;
     }
     final totalChecklistItems = checkedCount + uncheckedCount;
 
@@ -188,7 +226,7 @@ class NoteCard extends StatelessWidget {
                         Color bg = theme.colorScheme.secondaryContainer.withValues(alpha: 0.5);
                         Color fg = theme.colorScheme.onSecondaryContainer;
                         if (colorVal != null && colorVal != 0) {
-                          final scheme = ColorScheme.fromSeed(seedColor: Color(colorVal), brightness: theme.brightness);
+                          final scheme = AppTheme.cachedSeedScheme(colorVal, theme.brightness);
                           bg = scheme.primaryContainer;
                           fg = scheme.onPrimaryContainer;
                         }

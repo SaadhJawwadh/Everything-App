@@ -78,7 +78,7 @@ class _BouncingWidgetState extends State<BouncingWidget>
             return child!;
           }
           final curved = _controller.status == AnimationStatus.reverse
-              ? AppLayout.curveExpressiveEffects.transform(_controller.value)
+              ? 1.0 - AppLayout.curveStrongEaseOut.transform(1.0 - _controller.value)
               : AppLayout.curveStrongEaseOut.transform(_controller.value);
           final scale = 1.0 - (curved * shrinkDelta);
           return Transform.scale(

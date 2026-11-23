@@ -10,7 +10,7 @@ import '../../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../../core/ui/expressive_sliver_app_bar.dart';
 import '../../../../../services/backup_service.dart';
 import '../../../../../services/backup_vault_key_service.dart';
-import '../../../../../utils/app_route.dart';
+import '../../../../../core/routes/app_router.dart';
 import '../../../../../widgets/settings_widgets.dart';
 import '../../../../sync/presentation/screens/p2p_sync_screen.dart';
 import '../../../../../l10n/app_localizations.dart';
@@ -55,7 +55,7 @@ class SyncBackupSettingsScreen extends StatelessWidget {
                           title: l10n?.p2pDeviceSync ?? 'P2P Device Sync',
                           subtitle: l10n?.p2pDeviceSyncSubtitle ?? 'Zero-cloud Wi-Fi sync for notes and financial records',
                           showArrow: true,
-                          onTap: () => AppRoute.push(context, const P2pSyncScreen()),
+                          onTap: () => AppRouter.push(context, const P2pSyncScreen()),
                         ),
                       ],
                     ),
@@ -110,8 +110,10 @@ class SyncBackupSettingsScreen extends StatelessWidget {
                             },
                           ),
                           AnimatedSize(
-                            duration: AppLayout.animModal,
-                            curve: AppLayout.curveEmphasizedDecelerate,
+                            duration: AppLayout.shouldReduceMotion(context)
+                                ? Duration.zero
+                                : AppLayout.animShort,
+                            curve: AppLayout.curveStrongEaseOut,
                             child: settings.autoBackupEnabled
                                 ? Column(
                                     mainAxisSize: MainAxisSize.min,

@@ -66,7 +66,8 @@ class NoteEditorScreen extends StatefulWidget {
   State<NoteEditorScreen> createState() => _NoteEditorScreenState();
 }
 
-class _NoteEditorScreenState extends State<NoteEditorScreen> {
+class _NoteEditorScreenState extends State<NoteEditorScreen>
+    with WidgetsBindingObserver {
   late TextEditingController _titleController;
   late QuillController _quillController;
   bool isPinned = false;
@@ -120,7 +121,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   List<int> _searchOffsets = [];
   int _currentSearchIndex = -1;
   bool _isEditingTableCell = false;
-  bool _wasKeyboardOpen = false;
+  bool _isKeyboardOpen = false;
 
   // Slash commands & checklist collapse state
   bool _showSlashMenu = false;
@@ -135,6 +136,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _searchController = TextEditingController();
     _searchFocusNode = FocusNode();
     _lastSavedNote = widget.note;
@@ -389,7 +391,25 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
 
 
   @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    if (!mounted) return;
+    final view = View.of(context);
+    final bottomInset = view.viewInsets.bottom / view.devicePixelRatio;
+    final nowOpen = bottomInset > 100;
+    if (nowOpen != _isKeyboardOpen) {
+      setState(() => _isKeyboardOpen = nowOpen);
+      if (nowOpen) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _scrollToCursorIfNeeded();
+        });
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _titleController.removeListener(_onContentChanged);
     _quillController.removeListener(_onSelectionChanged);
     _docSubscription?.cancel();
@@ -820,51 +840,46 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
       );
     }
 
-    return Consumer<SettingsProvider>(builder: (context, settings, child) {
-      final theme = Theme.of(context);
-      final isSystemDefault = color == 0;
-      final (noteScheme, backgroundColor, onBackground) =
-          NoteEditorCanvas.resolveNoteTheme(theme, color);
+    final editorSettings = context.select<SettingsProvider, ({bool minimalEditorMode, bool isAiActive})>(
+      (s) => (minimalEditorMode: s.minimalEditorMode, isAiActive: s.isAiActive),
+    );
+    final theme = Theme.of(context);
+    final isSystemDefault = color == 0;
+    final (noteScheme, backgroundColor, onBackground) =
+        NoteEditorCanvas.resolveNoteTheme(theme, color);
 
-      final textColor = onBackground;
-      final hintColor = onBackground.withValues(alpha: 0.6);
-      final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 100;
-      if (isKeyboardOpen && !_wasKeyboardOpen) {
-        _wasKeyboardOpen = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _scrollToCursorIfNeeded();
-        });
-      } else if (!isKeyboardOpen && _wasKeyboardOpen) {
-        _wasKeyboardOpen = false;
-      }
+    final textColor = onBackground;
+    final hintColor = onBackground.withValues(alpha: 0.6);
+    final isKeyboardOpen = _isKeyboardOpen;
+    final reduceMotion = AppLayout.shouldReduceMotion(context);
 
-      return PopScope(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, result) async {
-          if (didPop) return;
-          try {
-            _debounce?.cancel();
-            if (!_isNoteInTrash) {
-              await saveNote();
-            }
-            if (context.mounted) {
-              await context.read<NoteProvider>().refreshNotes();
-            }
-          } catch (e) {
-            debugPrint('Error saving note on pop: $e');
-          } finally {
-            unawaited(WidgetHelper.updateTodoWidgetData());
-            if (context.mounted) Navigator.pop(context, _hasChanges);
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        try {
+          _debounce?.cancel();
+          if (!_isNoteInTrash) {
+            await saveNote();
           }
-        },
-        child: Scaffold(
-          // The AnimatedContainer below owns the color so switching note
-          // colors eases instead of snapping.
-          backgroundColor: Colors.transparent,
-          body: AnimatedContainer(
-            duration: AppLayout.animLong,
-            curve: Curves.easeOutCubic,
-            color: backgroundColor,
+          if (context.mounted) {
+            await context.read<NoteProvider>().refreshNotes();
+          }
+        } catch (e) {
+          debugPrint('Error saving note on pop: $e');
+        } finally {
+          unawaited(WidgetHelper.updateTodoWidgetData());
+          if (context.mounted) Navigator.pop(context, _hasChanges);
+        }
+      },
+      child: Scaffold(
+        // The AnimatedContainer below owns the color so switching note
+        // colors eases instead of snapping.
+        backgroundColor: Colors.transparent,
+        body: AnimatedContainer(
+          duration: reduceMotion ? Duration.zero : AppLayout.animShort,
+          curve: AppLayout.curveStrongEaseOut,
+          color: backgroundColor,
             child: SafeArea(
               bottom: false,
               child: Stack(
@@ -892,7 +907,7 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                         reminderAt: _reminderAt,
                         isNoteLocked: _isNoteLocked,
                         isNoteInTrash: _isNoteInTrash,
-                        minimalEditorMode: settings.minimalEditorMode,
+                        minimalEditorMode: editorSettings.minimalEditorMode,
                         onMenuSelected: (value) =>
                             NoteEditorActions.handleTopBarMenuSelection(
                           value: value,
@@ -1031,8 +1046,8 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
                         textColor: textColor,
                         noteScheme: noteScheme,
                         isKeyboardOpen: isKeyboardOpen,
-                        isAiActive: settings.isAiActive,
-                        minimalEditorMode: settings.minimalEditorMode,
+                        isAiActive: editorSettings.isAiActive,
+                        minimalEditorMode: editorSettings.minimalEditorMode,
                         onToggleFormattingBar: () {
                           setState(() {
                             _isFormattingBarPinnedManually = !_isFormattingBarPinnedManually;
@@ -1077,7 +1092,6 @@ class _NoteEditorScreenState extends State<NoteEditorScreen> {
           ),
         ),
       );
-    });
   }
 }
 

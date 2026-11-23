@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/services/app_haptics.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_card.dart';
+import '../../../../core/utils/app_formatters.dart';
 import '../../../../data/transaction_category.dart';
 import '../../../../services/financial_regression_engine.dart';
 import '../../services/spending_forecast_service.dart';
@@ -43,6 +44,8 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
   late final PageController _pageController;
   int? _lastTouchedSpotIndex;
   int? _lastTouchedPieIndex;
+  RegressionForecastResult? _cachedRegressionForecast;
+  List<MapEntry<String, double>> _cachedSortedCategories = const [];
 
   bool get _hasBudget =>
       widget.forecast != null && widget.forecast!.totalBudget > 0;
@@ -52,6 +55,38 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
   void initState() {
     super.initState();
     _pageController = PageController();
+    _recomputeMonthlyCache();
+    _recomputeSortedCategories();
+  }
+
+  @override
+  void didUpdateWidget(covariant MinimalChartDeck oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(widget.monthlyData, oldWidget.monthlyData)) {
+      _recomputeMonthlyCache();
+    }
+    if (!identical(widget.categoryExpenses, oldWidget.categoryExpenses)) {
+      _recomputeSortedCategories();
+    }
+  }
+
+  void _recomputeMonthlyCache() {
+    final expenses = <double>[];
+    for (final d in widget.monthlyData) {
+      final exp = (d['totalExpense'] as num?)?.toDouble() ??
+          (d['expense'] as num?)?.toDouble() ??
+          0.0;
+      expenses.add(exp);
+    }
+    _cachedRegressionForecast = expenses.length >= 2
+        ? FinancialRegressionEngine.computeForecast(expenses)
+        : null;
+  }
+
+  void _recomputeSortedCategories() {
+    final sorted = widget.categoryExpenses.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    _cachedSortedCategories = sorted;
   }
 
   @override
@@ -128,25 +163,28 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                 child: InkWell(
                   onTap: _handleDetailsTap,
                   borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Details',
-                          style: textTheme.labelSmall?.copyWith(
-                            color: colorScheme.primary,
-                            fontWeight: FontWeight.bold,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Details',
+                            style: textTheme.labelSmall?.copyWith(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 2),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          size: 16,
-                          color: colorScheme.primary,
-                        ),
-                      ],
+                          const SizedBox(width: 2),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            size: 16,
+                            color: colorScheme.primary,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -195,11 +233,15 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () {
-                      _pageController.animateToPage(
-                        index,
-                        duration: AppLayout.animModal,
-                        curve: AppLayout.curveStrongEaseOut,
-                      );
+                      if (AppLayout.shouldReduceMotion(context)) {
+                        _pageController.jumpToPage(index);
+                      } else {
+                        _pageController.animateToPage(
+                          index,
+                          duration: AppLayout.animModal,
+                          curve: AppLayout.curveStrongEaseInOut,
+                        );
+                      }
                       setState(() => _currentPage = index);
                     },
                     child: ConstrainedBox(
@@ -251,8 +293,7 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
         ? '${(avg / 1000).toStringAsFixed(1)}k'
         : avg.toStringAsFixed(0);
 
-    final regressionForecast =
-        expenses.length >= 2 ? FinancialRegressionEngine.computeForecast(expenses) : null;
+    final regressionForecast = _cachedRegressionForecast;
     final projectedSpend = widget.forecast != null && widget.forecast!.projectedMonthEndSpend > 0
         ? widget.forecast!.projectedMonthEndSpend
         : (regressionForecast?.projectedExpense);
@@ -356,8 +397,7 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
       spots.add(FlSpot(i.toDouble(), exp));
     }
 
-    final regressionForecast =
-        expenses.length >= 2 ? FinancialRegressionEngine.computeForecast(expenses) : null;
+    final regressionForecast = _cachedRegressionForecast;
     final projectedSpend = widget.forecast != null && widget.forecast!.projectedMonthEndSpend > 0
         ? widget.forecast!.projectedMonthEndSpend
         : (regressionForecast?.projectedExpense);
@@ -443,10 +483,11 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
 
     return Semantics(
       label:
-          'Spending trajectory line chart showing monthly spending trends and projected month-end total of ~${widget.currency} ${NumberFormat('#,##0').format(projectedSpend ?? 0)}',
+          'Spending trajectory line chart showing monthly spending trends and projected month-end total of ~${widget.currency} ${AppFormatters.formatAmountInt(projectedSpend ?? 0)}',
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 28, 0),
-        child: LineChart(
+        child: RepaintBoundary(
+          child: LineChart(
           LineChartData(
             lineTouchData: LineTouchData(
               enabled: true,
@@ -626,6 +667,7 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
         ),
       ),
     ),
+    ),
   );
 }
 
@@ -640,8 +682,7 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
       );
     }
 
-    final sorted = widget.categoryExpenses.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+    final sorted = _cachedSortedCategories;
 
     final topCategories = sorted.take(3).toList();
 
@@ -651,12 +692,13 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
         Expanded(
           flex: 4,
           child: Semantics(
-            label: 'Category spending donut chart. Total spent: ${widget.currency} ${NumberFormat('#,##0').format(widget.totalExpense)}. Top category: ${topCategories.isNotEmpty ? topCategories.first.key : 'None'}',
+            label: 'Category spending donut chart. Total spent: ${widget.currency} ${AppFormatters.formatAmountInt(widget.totalExpense)}. Top category: ${topCategories.isNotEmpty ? topCategories.first.key : 'None'}',
             child: Stack(
               alignment: Alignment.center,
               children: [
-                PieChart(
-                  PieChartData(
+                RepaintBoundary(
+                  child: PieChart(
+                    PieChartData(
                     pieTouchData: PieTouchData(
                       touchCallback: (FlTouchEvent event, pieTouchResponse) {
                         if (!event.isInterestedForInteractions ||
@@ -691,6 +733,7 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                       );
                     }).toList(),
                   ),
+                ),
                 ),
                 SizedBox(
                   width: 52,

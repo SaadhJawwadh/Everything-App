@@ -865,7 +865,11 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
 
             // In-Sheet Live Feedback Banner
             AnimatedSwitcher(
-              duration: AppLayout.animModal,
+              duration: AppLayout.shouldReduceMotion(context)
+                  ? Duration.zero
+                  : AppLayout.animModal,
+              switchInCurve: AppLayout.curveStrongEaseOut,
+              switchOutCurve: AppLayout.curveEmphasizedAccelerate,
               transitionBuilder: (child, animation) => FadeTransition(
                 opacity: animation,
                 child: SizeTransition(sizeFactor: animation, child: child),

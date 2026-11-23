@@ -10,6 +10,7 @@ import '../../../../services/p2p_sync_service.dart';
 import '../../data/p2p_pairing_model.dart';
 import '../../providers/p2p_sync_provider.dart';
 import 'qr_scanner_dialog.dart';
+import '../../../../core/routes/app_router.dart';
 
 /// Encapsulates P2P Sync modal sheets and dialogs (Pair Device, Host QR Code,
 /// Rename Device, and Cross-Network E2EE Relay Configuration).
@@ -37,7 +38,7 @@ class P2pSyncModals {
       scannedCandidateIps = [initialPeer.ipAddress];
     }
 
-    showDialog(
+    AppDialog.show(
       context: context,
       barrierDismissible: false,
       builder: (dialogCtx) {
@@ -166,10 +167,7 @@ class P2pSyncModals {
                             ? null
                             : () async {
                                 AppLockScreen.ignoreNextResumeLock();
-                                final scanned = await Navigator.push<String>(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const QrScannerScreen()),
-                                );
+                                final scanned = await AppRouter.push<String>(context, const QrScannerScreen());
                                 if (scanned != null && scanned.isNotEmpty) {
                                   try {
                                     final map = json.decode(scanned) as Map<String, dynamic>;
@@ -334,7 +332,7 @@ class P2pSyncModals {
     required Future<void> Function(String name) onSave,
   }) {
     final controller = TextEditingController(text: currentName);
-    showDialog(
+    AppDialog.show(
       context: context,
       builder: (dialogContext) => AppDialog(
         title: 'Rename Device',
@@ -359,7 +357,7 @@ class P2pSyncModals {
 
   static void showCustomRelayDialog(BuildContext context, P2pSyncProvider syncProvider) {
     final controller = TextEditingController(text: syncProvider.customRelayUrl ?? '');
-    showDialog(
+    AppDialog.show(
       context: context,
       builder: (dialogContext) => AppDialog(
         title: 'Cross-Network E2EE Relay',

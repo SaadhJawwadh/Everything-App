@@ -21,13 +21,33 @@ class AppRouter {
   static const String changelog = '/changelog';
   static const String p2pSync = '/p2p-sync';
 
+  /// Builds a platform-adaptive [MaterialPageRoute] respecting native transitions
+  /// (PredictiveBack on Android 14+, Cupertino swipe-to-pop on iOS).
+  static Route<T> pageRoute<T>(
+    Widget page, {
+    RouteSettings? settings,
+    bool fullscreenDialog = false,
+  }) {
+    return MaterialPageRoute<T>(
+      builder: (_) => page,
+      settings: settings,
+      fullscreenDialog: fullscreenDialog,
+    );
+  }
+
   /// Pushes [page] respecting the platform's native page transition theme
   /// (PredictiveBack on Android 14+, Cupertino swipe-to-pop on iOS).
-  static Future<T?> push<T>(BuildContext context, Widget page, {RouteSettings? settings}) {
+  static Future<T?> push<T>(
+    BuildContext context,
+    Widget page, {
+    RouteSettings? settings,
+    bool fullscreenDialog = false,
+  }) {
     return Navigator.of(context).push<T>(
-      MaterialPageRoute<T>(
-        builder: (_) => page,
+      pageRoute<T>(
+        page,
         settings: settings,
+        fullscreenDialog: fullscreenDialog,
       ),
     );
   }

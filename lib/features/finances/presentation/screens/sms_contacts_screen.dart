@@ -5,6 +5,7 @@ import 'package:note_taking_app/data/sms_contact.dart';
 import 'package:note_taking_app/services/sms_service.dart';
 import 'package:note_taking_app/core/theme/app_layout.dart';
 import 'package:note_taking_app/core/ui/expressive_sliver_app_bar.dart';
+import '../../../../core/ui/app_dialog.dart';
 
 class SmsContactsScreen extends StatefulWidget {
   const SmsContactsScreen({super.key});
@@ -199,7 +200,11 @@ class _SmsContactsScreenState extends State<SmsContactsScreen> {
                       duration: AppLayout.animShort,
                       child: SlideAnimation(
                         verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
-                        child: FadeInAnimation(child: items[i]),
+                        curve: AppLayout.curveStrongEaseOut,
+                        child: FadeInAnimation(
+                          curve: AppLayout.curveStrongEaseOut,
+                          child: items[i],
+                        ),
                       ),
                     );
                   },
@@ -278,7 +283,7 @@ class _SmsContactsScreenState extends State<SmsContactsScreen> {
   }
 
   void _confirmDelete(SmsContact contact) {
-    showDialog<bool>(
+    AppDialog.show<bool>(
       context: context,
       builder: (dctx) => AlertDialog(
         title: const Text('Remove sender?'),

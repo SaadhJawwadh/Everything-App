@@ -129,11 +129,14 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+    return SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           // Display
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -270,6 +273,7 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
             ],
           ),
         ],
+      ),
       ),
     );
   }

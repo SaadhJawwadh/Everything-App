@@ -29,10 +29,15 @@ class NoteProvider extends ChangeNotifier {
   String? _selectedFolder = 'Notes'; // default view = Notes folder
   List<String> _folders = [];
   final List<String> _emptyFolders = [];
+  List<String>? _cachedSortedFolders;
 
   Map<String, int> _folderCounts = {};
   int _archivedCount = 0;
   int _trashCount = 0;
+  bool _hasLoadedChecklistCount = false;
+  bool _hasPurgedTrashThisSession = false;
+
+  static final RegExp _checklistContentRegex = RegExp(r'"list"\s*:\s*"(checked|unchecked)"');
 
   // Getters
   List<Note> get notes => _notes;
@@ -51,7 +56,8 @@ class NoteProvider extends ChangeNotifier {
   String get sortMode => _sortMode;
   Map<String, int> get tagCounts => _tagCounts;
   String? get selectedFolder => _selectedFolder;
-  List<String> get folders => [..._folders, ..._emptyFolders]..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  List<String> get folders => _cachedSortedFolders ??=
+      ([..._folders, ..._emptyFolders]..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase())));
   Map<String, int> get folderCounts => _folderCounts;
   int get archivedCount => _archivedCount;
   int get trashCount => _trashCount;
@@ -59,22 +65,33 @@ class NoteProvider extends ChangeNotifier {
   bool get filterChecklistsOnly => _filterChecklistsOnly;
   int _checklistNotesCount = 0;
   int get checklistNotesCount {
-    if (_checklistNotesCount > 0) return _checklistNotesCount;
+    if (_hasLoadedChecklistCount || _checklistNotesCount > 0) return _checklistNotesCount;
     return _notes.where((n) =>
-        RegExp(r'"list"\s*:\s*"(checked|unchecked)"').hasMatch(n.content) ||
+        _checklistContentRegex.hasMatch(n.content) ||
         n.content.contains('- [ ]') ||
         n.content.contains('- [x]')).length;
+  }
+
+  /// Synchronously removes [noteId] from in-memory lists for 0ms Dismissible feedback.
+  void removeNoteOptimistically(String noteId) {
+    _notes.removeWhere((n) => n.id == noteId);
+    _filteredNotes.removeWhere((n) => n.id == noteId);
+    _selectedNoteIds.remove(noteId);
+    _isSelectionMode = _selectedNoteIds.isNotEmpty;
+    notifyListeners();
   }
 
   void setFilterChecklistsOnly(bool value) {
     if (_filterChecklistsOnly == value) return;
     _filterChecklistsOnly = value;
+    notifyListeners();
     refreshNotes();
   }
 
   void setFolder(String? folder) {
     _filterChecklistsOnly = false;
     _selectedFolder = folder;
+    notifyListeners();
     SharedPreferences.getInstance().then((prefs) {
       if (folder == null) {
         prefs.remove('lastActiveFolder');
@@ -158,11 +175,14 @@ class NoteProvider extends ChangeNotifier {
     final targetLimit = preserveLoadedCount ? math.max(_pageSize, _notes.length) : _pageSize;
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final purgeDays = prefs.getInt('trashAutoPurgeDays') ?? 30;
-      final purgedCount = await _noteRepository.clearOldTrash(purgeDays);
-      if (purgedCount > 0) {
-        await NotificationService.showAutoPurgeNotification(purgedCount, purgeDays);
+      if (!_hasPurgedTrashThisSession) {
+        _hasPurgedTrashThisSession = true;
+        final prefs = await SharedPreferences.getInstance();
+        final purgeDays = prefs.getInt('trashAutoPurgeDays') ?? 30;
+        final purgedCount = await _noteRepository.clearOldTrash(purgeDays);
+        if (purgedCount > 0) {
+          await NotificationService.showAutoPurgeNotification(purgedCount, purgeDays);
+        }
       }
       final results = await Future.wait<dynamic>([
         _noteRepository.getAllTags(),
@@ -192,6 +212,7 @@ class NoteProvider extends ChangeNotifier {
       _archivedCount = results[5] as int;
       _trashCount = results[6] as int;
       _checklistNotesCount = results[7] as int;
+      _hasLoadedChecklistCount = true;
       _folders = results[8] as List<String>;
       _emptyFolders.removeWhere((f) => _folders.contains(f));
       if (_selectedFolder != null &&
@@ -201,6 +222,7 @@ class NoteProvider extends ChangeNotifier {
           !_emptyFolders.contains(_selectedFolder)) {
         _emptyFolders.add(_selectedFolder!);
       }
+      _cachedSortedFolders = null;
 
       _allTags = ['All', ...tags];
       final prevTagCount = _selectedTags.length;
@@ -352,6 +374,7 @@ class NoteProvider extends ChangeNotifier {
     } else {
       _selectedTags = {tag};
     }
+    notifyListeners();
     _persistSelectedTags();
     refreshNotes();
   }
@@ -371,6 +394,7 @@ class NoteProvider extends ChangeNotifier {
         _selectedTags.add(tag);
       }
     }
+    notifyListeners();
     _persistSelectedTags();
     refreshNotes();
   }
@@ -379,6 +403,7 @@ class NoteProvider extends ChangeNotifier {
   void clearSelectedTags() {
     if (_selectedTags.isEmpty) return;
     _selectedTags.clear();
+    notifyListeners();
     _persistSelectedTags();
     refreshNotes();
   }
@@ -447,17 +472,28 @@ class NoteProvider extends ChangeNotifier {
   Future<void> bulkTogglePin() async {
     final ids = _selectedNoteIds.toList();
     if (ids.isEmpty) return;
-    final selected = _notes.where((n) => ids.contains(n.id));
+    final idSet = ids.toSet();
+    final selected = _notes.where((n) => idSet.contains(n.id));
     final allPinned =
         selected.isNotEmpty && selected.every((n) => n.isPinned);
-    await _noteRepository.bulkSetPinned(ids, !allPinned);
+    final nextPinned = !allPinned;
+    _notes = _notes
+        .map((n) => idSet.contains(n.id) ? n.copyWith(isPinned: nextPinned) : n)
+        .toList();
+    _applySearchFilter();
     clearSelection();
+    await _noteRepository.bulkSetPinned(ids, nextPinned);
     await refreshNotes();
   }
 
   Future<void> bulkArchive() async {
-    await _noteRepository.bulkArchive(_selectedNoteIds.toList(), true);
+    final ids = _selectedNoteIds.toList();
+    if (ids.isEmpty) return;
+    final idSet = ids.toSet();
+    _notes.removeWhere((n) => idSet.contains(n.id));
+    _filteredNotes.removeWhere((n) => idSet.contains(n.id));
     clearSelection();
+    await _noteRepository.bulkArchive(ids, true);
     await refreshNotes();
   }
 
@@ -465,15 +501,21 @@ class NoteProvider extends ChangeNotifier {
   /// can offer an undo.
   Future<List<String>> bulkDelete() async {
     final ids = _selectedNoteIds.toList();
-    await _noteRepository.bulkDelete(ids);
+    if (ids.isEmpty) return ids;
+    final idSet = ids.toSet();
+    _notes.removeWhere((n) => idSet.contains(n.id));
+    _filteredNotes.removeWhere((n) => idSet.contains(n.id));
     clearSelection();
+    await _noteRepository.bulkDelete(ids);
     await refreshNotes();
     return ids;
   }
 
   Future<void> bulkTag(List<String> selectedTags) async {
-    await _noteRepository.bulkTag(_selectedNoteIds.toList(), selectedTags);
+    final ids = _selectedNoteIds.toList();
+    if (ids.isEmpty) return;
     clearSelection();
+    await _noteRepository.bulkTag(ids, selectedTags);
     await refreshNotes();
   }
 

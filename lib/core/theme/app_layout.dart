@@ -6,6 +6,8 @@ class ExpressiveSpringCurve extends Curve {
   final SpringDescription spring;
   final double startVelocity;
 
+  static final Map<(double, double, double, double), SpringSimulation> _simCache = {};
+
   const ExpressiveSpringCurve({
     this.spring = AppLayout.springSpatial,
     this.startVelocity = 0.0,
@@ -15,7 +17,11 @@ class ExpressiveSpringCurve extends Curve {
   double transformInternal(double t) {
     if (t <= 0.0) return 0.0;
     if (t >= 1.0) return 1.0;
-    final sim = SpringSimulation(spring, 0.0, 1.0, startVelocity);
+    final key = (spring.mass, spring.stiffness, spring.damping, startVelocity);
+    final sim = _simCache.putIfAbsent(
+      key,
+      () => SpringSimulation(spring, 0.0, 1.0, startVelocity),
+    );
     return sim.x(t);
   }
 }

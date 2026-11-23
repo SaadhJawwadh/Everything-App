@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import '../../../data/period_log_model.dart';
 import '../data/period_repository.dart';
 import '../../../services/period_prediction_service.dart';
-import '../../../services/notification_service.dart';
 import '../../../services/p2p_sync_service.dart';
 
 /// Reactive provider managing Menstrual Cycle logs, predictions, phase calculations, and stats.
@@ -22,6 +21,13 @@ class PeriodTrackerProvider extends ChangeNotifier {
   String _phaseDescription = 'Log a period start date to see cycle phases.';
   CycleStats _cycleStats = CycleStats.initial();
 
+  Map<int, PeriodLog> _logsByDayKey = const {};
+  Set<int> _predictedDayKeys = const {};
+  Set<int> _ovulationDayKeys = const {};
+  int? _cachedCycleVariationDays;
+
+  static int _dayKey(DateTime d) => d.year * 10000 + d.month * 100 + d.day;
+
   // Getters
   List<PeriodLog> get logs => List.unmodifiable(_logs);
   bool get isLoading => _isLoading;
@@ -37,7 +43,9 @@ class PeriodTrackerProvider extends ChangeNotifier {
 
   /// Difference in days between the longest and shortest historical cycle lengths
   /// when at least 2 completed cycles exist; otherwise null.
-  int? get cycleVariationDays {
+  int? get cycleVariationDays => _cachedCycleVariationDays;
+
+  int? _computeCycleVariationDays() {
     if (_logs.length < 3) return null;
     final sortedLogs = List<PeriodLog>.from(_logs)
       ..sort((a, b) => b.startDate.compareTo(a.startDate));
@@ -101,13 +109,45 @@ class PeriodTrackerProvider extends ChangeNotifier {
     _daysUntilNext = await PeriodPredictionService.daysUntilNextPeriod(_logs, _predictedNextPeriod, _avgCycleLength);
     _cycleStats = await PeriodPredictionService.calculateCycleStats(_logs, _avgCycleLength);
     _calculateCyclePhase();
-
-    if (!kIsWeb && _logs.isNotEmpty) {
-      await NotificationService.schedulePeriodNotifications();
-    }
+    _rebuildCalendarIndex();
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  void _rebuildCalendarIndex() {
+    _cachedCycleVariationDays = _computeCycleVariationDays();
+    final now = DateTime.now();
+    final todayUtc = DateTime.utc(now.year, now.month, now.day);
+    final byDay = <int, PeriodLog>{};
+    for (final log in _logs) {
+      final start = DateTime.utc(log.startDate.year, log.startDate.month, log.startDate.day);
+      final end = log.endDate != null
+          ? DateTime.utc(log.endDate!.year, log.endDate!.month, log.endDate!.day)
+          : todayUtc;
+      for (var d = start; !d.isAfter(end); d = d.add(const Duration(days: 1))) {
+        byDay.putIfAbsent(_dayKey(d), () => log);
+      }
+    }
+    _logsByDayKey = byDay;
+
+    final predicted = <int>{};
+    if (_predictedNextPeriod != null) {
+      final p = DateTime.utc(_predictedNextPeriod!.year, _predictedNextPeriod!.month, _predictedNextPeriod!.day);
+      for (int i = 0; i < 5; i++) {
+        predicted.add(_dayKey(p.add(Duration(days: i))));
+      }
+    }
+    _predictedDayKeys = predicted;
+
+    final ovulation = <int>{};
+    if (_predictedOvulation != null) {
+      final p = DateTime.utc(_predictedOvulation!.year, _predictedOvulation!.month, _predictedOvulation!.day);
+      for (int i = -1; i <= 1; i++) {
+        ovulation.add(_dayKey(p.add(Duration(days: i))));
+      }
+    }
+    _ovulationDayKeys = ovulation;
   }
 
   void _calculateCyclePhase() {
@@ -165,38 +205,11 @@ class PeriodTrackerProvider extends ChangeNotifier {
     }
   }
 
-  PeriodLog? getLogForDay(DateTime day) {
-    final targetDay = DateTime.utc(day.year, day.month, day.day);
-    for (final log in _logs) {
-      final startDate = DateTime.utc(log.startDate.year, log.startDate.month, log.startDate.day);
-      final endDate = log.endDate != null
-          ? DateTime.utc(log.endDate!.year, log.endDate!.month, log.endDate!.day)
-          : DateTime.utc(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+  PeriodLog? getLogForDay(DateTime day) => _logsByDayKey[_dayKey(day)];
 
-      if (targetDay.isAtSameMomentAs(startDate) ||
-          targetDay.isAtSameMomentAs(endDate) ||
-          (targetDay.isAfter(startDate) && targetDay.isBefore(endDate.add(const Duration(days: 1))))) {
-        return log;
-      }
-    }
-    return null;
-  }
+  bool isPredictedDay(DateTime day) => _predictedDayKeys.contains(_dayKey(day));
 
-  bool isPredictedDay(DateTime day) {
-    if (_predictedNextPeriod == null) return false;
-    final d = DateTime.utc(day.year, day.month, day.day);
-    final p = DateTime.utc(_predictedNextPeriod!.year, _predictedNextPeriod!.month, _predictedNextPeriod!.day);
-    return d.isAtSameMomentAs(p) || (d.isAfter(p) && d.isBefore(p.add(const Duration(days: 5))));
-  }
-
-  bool isOvulationDay(DateTime day) {
-    if (_predictedOvulation == null) return false;
-    final d = DateTime.utc(day.year, day.month, day.day);
-    final p = DateTime.utc(_predictedOvulation!.year, _predictedOvulation!.month, _predictedOvulation!.day);
-    final start = p.subtract(const Duration(days: 1));
-    final end = p.add(const Duration(days: 1));
-    return d.isAtSameMomentAs(start) || d.isAtSameMomentAs(end) || d.isAtSameMomentAs(p);
-  }
+  bool isOvulationDay(DateTime day) => _ovulationDayKeys.contains(_dayKey(day));
 
   PeriodLog? getCurrentOngoingPeriod() {
     return _logs.where((l) => l.endDate == null).firstOrNull;

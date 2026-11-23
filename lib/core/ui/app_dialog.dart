@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/app_haptics.dart';
+import '../theme/app_layout.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Reusable Modal Dialog helper providing consistent M3 alert and input dialog styling.
@@ -29,6 +30,43 @@ class AppDialog extends StatelessWidget {
     this.actions,
   });
 
+  /// Displays a dialog using standardized scale (0.94 -> 1.0) + fade motion
+  /// and reduced-motion awareness.
+  static Future<T?> show<T>({
+    required BuildContext context,
+    required WidgetBuilder builder,
+    bool barrierDismissible = true,
+    bool useRootNavigator = true,
+  }) {
+    final reduceMotion = AppLayout.shouldReduceMotion(context);
+    return showGeneralDialog<T>(
+      context: context,
+      barrierDismissible: barrierDismissible,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: Colors.black54,
+      useRootNavigator: useRootNavigator,
+      transitionDuration: reduceMotion ? Duration.zero : AppLayout.animFast,
+      pageBuilder: (dialogContext, _, __) => Builder(builder: builder),
+      transitionBuilder: (dialogContext, animation, secondaryAnimation, child) {
+        if (reduceMotion) {
+          return FadeTransition(opacity: animation, child: child);
+        }
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: AppLayout.curveStrongEaseOut,
+          reverseCurve: AppLayout.curveEmphasizedAccelerate,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.94, end: 1.0).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
   /// Standardized confirmation dialog prompt.
   static Future<bool?> showConfirm({
     required BuildContext context,
@@ -38,7 +76,7 @@ class AppDialog extends StatelessWidget {
     String cancelLabel = 'Cancel',
     bool isDestructive = false,
   }) {
-    return showDialog<bool>(
+    return show<bool>(
       context: context,
       builder: (context) => AppDialog(
         title: title,

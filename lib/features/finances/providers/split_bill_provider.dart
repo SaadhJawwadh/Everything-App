@@ -35,6 +35,11 @@ class SplitBillProvider extends ChangeNotifier {
   String? _activeGroupTag;
   int _activeViewMode = 0; // 0: People View, 1: Bills View
 
+  List<String>? _cachedAvailableGroupTags;
+  List<SplitBillModel>? _cachedFilteredBills;
+  Map<String, List<SplitBillModel>> _openBillsByContactLower = const {};
+  Set<String> _contactsWithSettledBillsLower = const {};
+
   List<SplitBillModel> get bills => _bills;
   List<SplitContactModel> get recentContacts => _recentContacts;
   Map<String, double> get contactBalances => _contactBalances;
@@ -47,18 +52,28 @@ class SplitBillProvider extends ChangeNotifier {
   String? get activeGroupTag => _activeGroupTag;
   int get activeViewMode => _activeViewMode;
 
+  /// O(1) lookup for unsettled bills involving [name] (case-insensitive).
+  List<SplitBillModel> openBillsForContact(String name) =>
+      _openBillsByContactLower[name.trim().toLowerCase()] ?? const [];
+
+  /// O(1) lookup indicating whether [name] has any settled bills.
+  bool contactHasSettledBills(String name) =>
+      _contactsWithSettledBillsLower.contains(name.trim().toLowerCase());
+
   List<String> get availableGroupTags {
-    final tags = <String>{};
-    for (final bill in _bills) {
-      if (bill.groupTag != null && bill.groupTag!.trim().isNotEmpty) {
-        tags.add(bill.groupTag!.trim());
+    return _cachedAvailableGroupTags ??= () {
+      final tags = <String>{};
+      for (final bill in _bills) {
+        if (bill.groupTag != null && bill.groupTag!.trim().isNotEmpty) {
+          tags.add(bill.groupTag!.trim());
+        }
       }
-    }
-    return tags.toList()..sort();
+      return List<String>.unmodifiable(tags.toList()..sort());
+    }();
   }
 
   List<SplitBillModel> get filteredBills {
-    return _bills.where((bill) {
+    return _cachedFilteredBills ??= List<SplitBillModel>.unmodifiable(_bills.where((bill) {
       if (_activeGroupTag != null && _activeGroupTag!.isNotEmpty && _activeGroupTag != 'All') {
         if (bill.groupTag?.toLowerCase() != _activeGroupTag!.toLowerCase()) {
           return false;
@@ -77,7 +92,7 @@ class SplitBillProvider extends ChangeNotifier {
         default:
           return true;
       }
-    }).toList();
+    }));
   }
 
   Future<void> loadSplitBills({bool showLoading = false}) async {
@@ -87,13 +102,15 @@ class SplitBillProvider extends ChangeNotifier {
     }
 
     try {
-      _bills = await _repository.getSplitBills(includeSettled: true);
-      _recentContacts = await _repository.getRecentContacts();
-      _contactBalances = await _repository.getContactNetBalances();
-      
-      final metrics = await _repository.getSummaryMetrics();
-      _totalOwedToUser = metrics['owedToUser'] ?? 0.0;
-      _totalUserOwes = metrics['userOwes'] ?? 0.0;
+      final results = await Future.wait<dynamic>([
+        _repository.getSplitBills(includeSettled: true),
+        _repository.getRecentContacts(),
+      ]);
+      _bills = results[0] as List<SplitBillModel>;
+      _recentContacts = results[1] as List<SplitContactModel>;
+      _cachedAvailableGroupTags = null;
+      _cachedFilteredBills = null;
+      _recalculateMetrics();
     } catch (e) {
       debugPrint('[SplitBillProvider] Error loading bills: $e');
     } finally {
@@ -105,6 +122,7 @@ class SplitBillProvider extends ChangeNotifier {
   void setFilter(String filter) {
     if (_activeFilter != filter) {
       _activeFilter = filter;
+      _cachedFilteredBills = null;
       notifyListeners();
     }
   }
@@ -112,6 +130,7 @@ class SplitBillProvider extends ChangeNotifier {
   void setGroupTag(String? groupTag) {
     if (_activeGroupTag != groupTag) {
       _activeGroupTag = groupTag;
+      _cachedFilteredBills = null;
       notifyListeners();
     }
   }
@@ -405,24 +424,38 @@ class SplitBillProvider extends ChangeNotifier {
     double userOwes = 0.0;
     final lowerBalances = <String, double>{};
     final firstSeenCase = <String, String>{};
+    final openByContact = <String, List<SplitBillModel>>{};
+    final settledContacts = <String>{};
 
     for (final bill in _bills) {
       if (bill.deletedAt != null) continue;
       if (bill.isPayerUser) {
+        final seenOpenInBill = <String>{};
         for (final p in bill.participants) {
-          if (!p.hasPaid && p.contactName.trim().toLowerCase() != 'you') {
+          final lower = p.contactName.trim().toLowerCase();
+          if (lower == 'you') continue;
+          if (!p.hasPaid) {
             owedToUser += p.shareAmount;
-            final lower = p.contactName.trim().toLowerCase();
             firstSeenCase.putIfAbsent(lower, () => p.contactName.trim());
             lowerBalances[lower] = (lowerBalances[lower] ?? 0.0) + p.shareAmount;
+            if (!bill.isFullySettled && seenOpenInBill.add(lower)) {
+              openByContact.putIfAbsent(lower, () => []).add(bill);
+            }
+          } else {
+            settledContacts.add(lower);
           }
         }
       } else {
+        final lower = bill.payerName.trim().toLowerCase();
         if (!bill.isUserSharePaid) {
           userOwes += bill.userShare;
-          final lower = bill.payerName.trim().toLowerCase();
           firstSeenCase.putIfAbsent(lower, () => bill.payerName.trim());
           lowerBalances[lower] = (lowerBalances[lower] ?? 0.0) - bill.userShare;
+          if (!bill.isFullySettled) {
+            openByContact.putIfAbsent(lower, () => []).add(bill);
+          }
+        } else {
+          settledContacts.add(lower);
         }
       }
     }
@@ -436,5 +469,7 @@ class SplitBillProvider extends ChangeNotifier {
     _totalOwedToUser = owedToUser;
     _totalUserOwes = userOwes;
     _contactBalances = balances;
+    _openBillsByContactLower = openByContact;
+    _contactsWithSettledBillsLower = settledContacts;
   }
 }

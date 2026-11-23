@@ -10,6 +10,7 @@ import '../../../../core/services/app_haptics.dart';
 import '../../../../core/services/ocr_service.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../utils/rich_text_utils.dart';
+import '../../../../core/routes/app_router.dart';
 
 /// Custom embed builder rendering rounded, full-width responsive images
 /// with full-screen zoom and long-press contextual actions.
@@ -57,15 +58,11 @@ class RoundedImageEmbedBuilder extends EmbedBuilder {
     return GestureDetector(
       onTap: () {
         // View Full Image
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => _FullScreenImageViewer(
+        AppRouter.push(context, _FullScreenImageViewer(
               imageProvider: isUrl
                   ? NetworkImage(imageUrl)
                   : FileImage(file!) as ImageProvider,
-            ),
-          ),
-        );
+            ));
       },
       onLongPress: () {
         if (!embedContext.readOnly) {
@@ -108,15 +105,11 @@ class RoundedImageEmbedBuilder extends EmbedBuilder {
             ),
             onTap: () {
               Navigator.pop(context);
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => _FullScreenImageViewer(
+              AppRouter.push(context, _FullScreenImageViewer(
                     imageProvider: isUrl
                         ? NetworkImage(imageUrl)
                         : FileImage(file!) as ImageProvider,
-                  ),
-                ),
-              );
+                  ));
             },
           ),
           if (!isUrl && file != null)

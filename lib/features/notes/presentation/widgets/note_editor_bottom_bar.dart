@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import '../../../../core/theme/app_layout.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/expressive_floating_toolbar.dart';
 
 class NoteEditorBottomBar extends StatelessWidget {
@@ -56,8 +57,8 @@ class NoteEditorBottomBar extends StatelessWidget {
       children: [
         // ── Floating Formatting Bar Sub-tier ──
         AnimatedSwitcher(
-          duration: AppLayout.animModal,
-          switchInCurve: AppLayout.curveExpressiveEffects,
+          duration: AppLayout.shouldReduceMotion(context) ? Duration.zero : AppLayout.animModal,
+          switchInCurve: AppLayout.curveStrongEaseOut,
           switchOutCurve: AppLayout.curveEmphasizedAccelerate,
           transitionBuilder: (child, animation) {
             return SlideTransition(
@@ -81,9 +82,7 @@ class NoteEditorBottomBar extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                     backgroundColor: (isSystemDefault
                             ? theme.colorScheme.surfaceContainerHigh
-                            : ColorScheme.fromSeed(
-                                    seedColor: Color(color),
-                                    brightness: theme.brightness)
+                            : AppTheme.cachedSeedScheme(color, theme.brightness)
                                 .surfaceContainerHigh)
                         .withValues(alpha: 0.95),
                     children: [
@@ -585,9 +584,7 @@ class NoteEditorBottomBar extends StatelessWidget {
             child: ExpressiveFloatingToolbar(
               backgroundColor: isSystemDefault
                   ? theme.colorScheme.surfaceContainerHighest
-                  : ColorScheme.fromSeed(
-                          seedColor: Color(color),
-                          brightness: theme.brightness)
+                  : AppTheme.cachedSeedScheme(color, theme.brightness)
                       .surfaceContainerHighest,
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

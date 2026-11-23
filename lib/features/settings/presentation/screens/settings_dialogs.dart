@@ -327,7 +327,7 @@ class SettingsDialogs {
   static void showDefaultPaymentInfoDialog(BuildContext context, SettingsProvider settings) {
     final controller = TextEditingController(text: settings.defaultPaymentInfo);
 
-    showDialog(
+    AppDialog.show(
       context: context,
       builder: (ctx) => AppDialog(
         title: 'Default Payment Details',
@@ -362,7 +362,7 @@ class SettingsDialogs {
   static void showNotificationTextDialog(BuildContext context, SettingsProvider settings) {
     final controller = TextEditingController(text: settings.discreetNotificationText);
 
-    showDialog(
+    AppDialog.show(
       context: context,
       builder: (ctx) => AppDialog(
         title: 'Discreet Notification Text',
@@ -665,7 +665,7 @@ class SettingsDialogs {
                               OutlinedButton(
                                 onPressed: () async {
                                   AppHaptics.selectionClick();
-                                  final confirmed = await showDialog<bool>(
+                                  final confirmed = await AppDialog.show<bool>(
                                     context: ctx,
                                     builder: (dialogCtx) => AppDialog(
                                       title: 'Restore Snapshot?',

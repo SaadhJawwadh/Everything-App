@@ -9,6 +9,7 @@ import '../../features/notes/data/note_repository.dart';
 import '../../features/notes/presentation/screens/note_editor_screen.dart';
 import '../../features/notes/providers/note_provider.dart';
 import '../../l10n/app_localizations.dart';
+import '../../core/routes/app_router.dart';
 
 class HomeTagFolderDialogs {
   HomeTagFolderDialogs._();
@@ -25,7 +26,7 @@ class HomeTagFolderDialogs {
 
     final l10n = AppLocalizations.of(context);
     final controller = TextEditingController();
-    final chosen = await showDialog<String>(
+    final chosen = await AppDialog.show<String>(
       context: context,
       builder: (ctx) => AppDialog(
         title: l10n?.filterByFolder ?? 'Move to folder',
@@ -131,7 +132,7 @@ class HomeTagFolderDialogs {
       return;
     }
 
-    final selectedNewTag = await showDialog<String>(
+    final selectedNewTag = await AppDialog.show<String>(
       context: context,
       builder: (context) => AppDialog(
         title: 'Add Tag to Selected',
@@ -160,7 +161,7 @@ class HomeTagFolderDialogs {
     final controller = TextEditingController(text: tag);
     int selectedColor = context.read<NoteProvider>().tagColors[tag] ?? 0;
 
-    await showDialog(
+    await AppDialog.show(
       context: context,
       builder: (context) => StatefulBuilder(builder: (context, setDialogState) {
         return AppDialog(
@@ -257,7 +258,7 @@ class HomeTagFolderDialogs {
   }
 
   static Future<void> deleteTag(BuildContext context, String tag) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await AppDialog.show<bool>(
       context: context,
       builder: (context) => AppDialog(
         title: 'Delete Tag?',
@@ -342,16 +343,11 @@ class HomeTagFolderDialogs {
                 onTap: () async {
                   Navigator.pop(context);
                   final noteProvider = Provider.of<NoteProvider>(context, listen: false);
-                  final returned = await Navigator.push<bool>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => NoteEditorScreen(
+                  final returned = await AppRouter.push<bool>(context, NoteEditorScreen(
                         templateTitle: t.title,
                         templateContent: t.contentDeltaJson,
                         initialFolder: noteProvider.selectedFolder,
-                      ),
-                    ),
-                  );
+                      ));
                   if (returned == true) await onRefreshNotes(scrollOnModified: true);
                 },
               ),

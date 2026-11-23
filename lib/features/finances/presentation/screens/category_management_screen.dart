@@ -11,10 +11,11 @@ import 'package:note_taking_app/core/theme/app_layout.dart';
 import 'package:note_taking_app/core/ui/app_morphing_fab.dart';
 import 'package:note_taking_app/core/ui/expressive_sliver_app_bar.dart';
 import 'package:note_taking_app/core/ui/expressive_shape_morph_indicator.dart';
-import 'package:note_taking_app/utils/app_route.dart';
+import 'package:note_taking_app/core/routes/app_router.dart';
 import 'package:note_taking_app/features/finances/presentation/screens/sms_rules_screen.dart';
 import 'package:note_taking_app/services/hybrid_local_ai_service.dart';
 import 'package:note_taking_app/l10n/app_localizations.dart';
+import '../../../../core/ui/app_dialog.dart';
 
 class CategoryManagementScreen extends StatefulWidget {
   const CategoryManagementScreen({super.key});
@@ -30,6 +31,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
   bool _isFabExpanded = true;
 
   bool _onScrollNotification(UserScrollNotification notification) {
+    if (notification.metrics.axis != Axis.vertical) return false;
     if (notification.direction == ScrollDirection.reverse) {
       if (_isFabExpanded) setState(() => _isFabExpanded = false);
     } else if (notification.direction == ScrollDirection.forward) {
@@ -62,7 +64,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
   Future<void> _confirmRestoreDefaults() async {
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
-    final confirm = await showDialog<bool>(
+    final confirm = await AppDialog.show<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n?.restoreDefaultCategoriesTitle ?? 'Restore default categories?'),
@@ -92,7 +94,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
   }
 
   Future<void> _showEditDialog(CategoryDefinition def) async {
-    await showDialog<void>(
+    await AppDialog.show<void>(
       context: context,
       builder: (ctx) => _EditCategoryDialog(
         definition: def,
@@ -107,7 +109,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
   }
 
   Future<void> _showAddDialog() async {
-    await showDialog<void>(
+    await AppDialog.show<void>(
       context: context,
       builder: (ctx) => _AddCategoryDialog(
         existingCategories: _categories,
@@ -127,7 +129,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
       );
       return;
     }
-    final confirmed = await showDialog<bool>(
+    final confirmed = await AppDialog.show<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n?.deleteCategoryTitle(def.name) ?? 'Delete "${def.name}"?'),
@@ -198,7 +200,9 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
                           duration: AppLayout.animShort,
                           child: SlideAnimation(
                             verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
+                            curve: AppLayout.curveStrongEaseOut,
                             child: FadeInAnimation(
+                              curve: AppLayout.curveStrongEaseOut,
                               child: Card(
                                 margin: EdgeInsets.only(bottom: isLast ? 0 : 12),
                                 elevation: 0,
@@ -326,7 +330,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
           tooltip: 'SMS Rules',
           icon: Icon(Icons.rule_outlined, color: colorScheme.onPrimaryContainer, size: 20),
           onPressed: () {
-            AppRoute.push(context, const SmsRulesScreen());
+            AppRouter.push(context, const SmsRulesScreen());
           },
         ),
       ),
@@ -497,7 +501,6 @@ class _EditCategoryDialogState extends State<_EditCategoryDialog> {
               SizedBox(
                 height: 120,
                 child: GridView.builder(
-                  shrinkWrap: true,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 6,
                     mainAxisSpacing: 8,
@@ -779,7 +782,6 @@ class _AddCategoryDialogState extends State<_AddCategoryDialog> {
               SizedBox(
                 height: 120,
                 child: GridView.builder(
-                  shrinkWrap: true,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 6,
                     mainAxisSpacing: 8,

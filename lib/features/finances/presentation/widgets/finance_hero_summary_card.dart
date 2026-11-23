@@ -221,9 +221,7 @@ class FinanceHeroSummaryCard extends StatelessWidget {
                         onAccountSelected(newAccount);
                       },
                       borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                      child: AnimatedContainer(
-                        duration: AppLayout.animShort,
-                        curve: AppLayout.curveExpressiveSpatial,
+                      child: Container(
                         constraints: const BoxConstraints(minHeight: 48),
                         alignment: Alignment.center,
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -300,9 +298,7 @@ class FinanceHeroSummaryCard extends StatelessWidget {
                         onAccountSelected(newAccount);
                       },
                       borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                      child: AnimatedContainer(
-                        duration: AppLayout.animShort,
-                        curve: AppLayout.curveExpressiveSpatial,
+                      child: Container(
                         constraints: const BoxConstraints(minHeight: 48),
                         alignment: Alignment.center,
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),

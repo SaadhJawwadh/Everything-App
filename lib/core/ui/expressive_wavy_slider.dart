@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../services/app_haptics.dart';
+import '../theme/app_layout.dart';
 
 /// Material 3 Expressive Tactile Sinusoidal Wavy Slider.
 /// Renders an oscillating sinusoidal wave along the active track that reacts to value changes.
@@ -42,10 +43,18 @@ class _ExpressiveWavySliderState extends State<ExpressiveWavySlider>
     _waveController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
-    )..repeat();
+    );
 
     if (widget.divisions != null && widget.divisions! > 0) {
       _lastStepIndex = _computeStep(widget.value);
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (AppLayout.shouldReduceMotion(context) && _waveController.isAnimating) {
+      _waveController.stop();
     }
   }
 
@@ -69,62 +78,72 @@ class _ExpressiveWavySliderState extends State<ExpressiveWavySlider>
     final active = widget.activeColor ?? colorScheme.primary;
     final inactive = widget.inactiveColor ?? colorScheme.surfaceContainerHighest;
 
-    return AnimatedBuilder(
-      animation: _waveController,
-      builder: (context, child) {
-        return SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            trackShape: _WavySliderTrackShape(
-              waveAnimation: _waveController.value,
-              activeColor: active,
-              inactiveColor: inactive,
-            ),
-            thumbColor: active,
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10.0),
-            overlayColor: active.withValues(alpha: 0.16),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 22.0),
-          ),
-          child: Slider(
-            value: widget.value.clamp(widget.min, widget.max),
-            min: widget.min,
-            max: widget.max,
-            divisions: widget.divisions,
-            onChanged: (val) {
-              if (widget.divisions != null && widget.divisions! > 0) {
-                // Discrete slider: tick once cleanly per discrete step crossing
-                final currentStep = _computeStep(val);
-                if (_lastStepIndex != null && currentStep != _lastStepIndex) {
-                  AppHaptics.selectionClick();
-                }
-                _lastStepIndex = currentStep;
-              } else {
-                // Continuous slider: silent during drag, subtle bump on reaching min or max bounds
-                const double threshold = 1e-4;
-                final bool atMin = (val - widget.min).abs() <= threshold;
-                final bool atMax = (val - widget.max).abs() <= threshold;
+    final reduceMotion = AppLayout.shouldReduceMotion(context);
 
-                if (atMin && _lastBoundHit != widget.min) {
-                  AppHaptics.selectionClick();
-                  _lastBoundHit = widget.min;
-                } else if (atMax && _lastBoundHit != widget.max) {
-                  AppHaptics.selectionClick();
-                  _lastBoundHit = widget.max;
-                } else if (!atMin && !atMax) {
-                  _lastBoundHit = null;
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _waveController,
+        builder: (context, child) {
+          return SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackShape: _WavySliderTrackShape(
+                waveAnimation: _waveController.value,
+                activeColor: active,
+                inactiveColor: inactive,
+              ),
+              thumbColor: active,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10.0),
+              overlayColor: active.withValues(alpha: 0.16),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 22.0),
+            ),
+            child: Slider(
+              value: widget.value.clamp(widget.min, widget.max),
+              min: widget.min,
+              max: widget.max,
+              divisions: widget.divisions,
+              onChangeStart: (_) {
+                if (!reduceMotion && !_waveController.isAnimating) {
+                  _waveController.repeat();
                 }
-              }
-              widget.onChanged(val);
-            },
-            onChangeEnd: (val) {
-              _lastStepIndex = widget.divisions != null && widget.divisions! > 0
-                  ? _computeStep(val)
-                  : null;
-              _lastBoundHit = null;
-              widget.onChangeEnd?.call(val);
-            },
-          ),
-        );
-      },
+              },
+              onChanged: (val) {
+                if (widget.divisions != null && widget.divisions! > 0) {
+                  // Discrete slider: tick once cleanly per discrete step crossing
+                  final currentStep = _computeStep(val);
+                  if (_lastStepIndex != null && currentStep != _lastStepIndex) {
+                    AppHaptics.selectionClick();
+                  }
+                  _lastStepIndex = currentStep;
+                } else {
+                  // Continuous slider: silent during drag, subtle bump on reaching min or max bounds
+                  const double threshold = 1e-4;
+                  final bool atMin = (val - widget.min).abs() <= threshold;
+                  final bool atMax = (val - widget.max).abs() <= threshold;
+
+                  if (atMin && _lastBoundHit != widget.min) {
+                    AppHaptics.selectionClick();
+                    _lastBoundHit = widget.min;
+                  } else if (atMax && _lastBoundHit != widget.max) {
+                    AppHaptics.selectionClick();
+                    _lastBoundHit = widget.max;
+                  } else if (!atMin && !atMax) {
+                    _lastBoundHit = null;
+                  }
+                }
+                widget.onChanged(val);
+              },
+              onChangeEnd: (val) {
+                _waveController.stop();
+                _lastStepIndex = widget.divisions != null && widget.divisions! > 0
+                    ? _computeStep(val)
+                    : null;
+                _lastBoundHit = null;
+                widget.onChangeEnd?.call(val);
+              },
+            ),
+          );
+        },
+      ),
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:note_taking_app/core/services/app_haptics.dart';
 import 'package:note_taking_app/core/theme/app_layout.dart';
 import 'package:note_taking_app/data/category_definition.dart';
 import 'package:note_taking_app/data/transaction_category.dart';
+import '../../../../core/ui/app_dialog.dart';
 
 /// Reusable dialogs extracted from [TransactionEditorScreen].
 class TransactionEditorDialogs {
@@ -33,7 +34,7 @@ class TransactionEditorDialogs {
   static Future<String?> showDiscardConfirmation(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    return showDialog<String>(
+    return AppDialog.show<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(
@@ -71,7 +72,7 @@ class TransactionEditorDialogs {
     required bool isSmsTxn,
   }) async {
     var blockSender = false;
-    final confirm = await showDialog<bool>(
+    final confirm = await AppDialog.show<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
@@ -184,7 +185,7 @@ class TransactionEditorDialogs {
   }) {
     final keyword =
         initialKeyword.replaceAll(_leadingActionPrefixRegex, '').trim();
-    return showDialog<String>(
+    return AppDialog.show<String>(
       context: context,
       builder: (context) {
         var input = keyword;
@@ -229,7 +230,7 @@ class TransactionEditorDialogs {
     var selectedColor = _colorSwatches[5];
     var selectedIcon = TransactionCategory.swatches[0];
 
-    final created = await showDialog<bool>(
+    final created = await AppDialog.show<bool>(
       context: context,
       builder: (context) {
         return StatefulBuilder(

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../theme/app_layout.dart';
 
 /// Material 3 Expressive Animated Sinusoidal Wavy Linear Progress Indicator.
 class ExpressiveWavyLinearProgress extends StatefulWidget {
@@ -32,7 +33,18 @@ class _ExpressiveWavyLinearProgressState
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
-    )..repeat();
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (AppLayout.shouldReduceMotion(context)) {
+      _controller.stop();
+      _controller.value = 0.0;
+    } else if (!_controller.isAnimating) {
+      _controller.repeat();
+    }
   }
 
   @override
@@ -48,38 +60,35 @@ class _ExpressiveWavyLinearProgressState
     final primary = widget.color ?? colorScheme.primary;
     final bg = widget.backgroundColor ?? colorScheme.surfaceContainerHighest;
 
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return CustomPaint(
-          size: Size(double.infinity, widget.height + 6.0),
-          painter: _WavyProgressPainter(
-            progress: widget.value,
-            animationValue: _controller.value,
-            color: primary,
-            backgroundColor: bg,
-            strokeWidth: widget.height,
-          ),
-        );
-      },
+    return RepaintBoundary(
+      child: CustomPaint(
+        size: Size(double.infinity, widget.height + 6.0),
+        painter: _WavyProgressPainter(
+          progress: widget.value,
+          animation: _controller,
+          color: primary,
+          backgroundColor: bg,
+          strokeWidth: widget.height,
+        ),
+      ),
     );
   }
 }
 
 class _WavyProgressPainter extends CustomPainter {
   final double? progress;
-  final double animationValue;
+  final Animation<double> animation;
   final Color color;
   final Color backgroundColor;
   final double strokeWidth;
 
   _WavyProgressPainter({
     required this.progress,
-    required this.animationValue,
+    required this.animation,
     required this.color,
     required this.backgroundColor,
     required this.strokeWidth,
-  });
+  }) : super(repaint: animation);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -116,7 +125,7 @@ class _WavyProgressPainter extends CustomPainter {
 
     const double wavelength = 20.0;
     const double amplitude = 3.0;
-    final double phase = animationValue * 2 * math.pi;
+    final double phase = animation.value * 2 * math.pi;
 
     for (double x = strokeWidth / 2; x <= activeWidth; x += 2.0) {
       final double y = midY + amplitude * math.sin((x / wavelength) * 2 * math.pi - phase);
@@ -128,8 +137,10 @@ class _WavyProgressPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _WavyProgressPainter oldDelegate) {
-    return oldDelegate.animationValue != animationValue ||
+    return oldDelegate.animation != animation ||
         oldDelegate.progress != progress ||
-        oldDelegate.color != color;
+        oldDelegate.color != color ||
+        oldDelegate.backgroundColor != backgroundColor ||
+        oldDelegate.strokeWidth != strokeWidth;
   }
 }

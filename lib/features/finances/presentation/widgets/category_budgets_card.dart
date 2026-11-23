@@ -5,6 +5,7 @@ import '../../../../data/transaction_category.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/app_card.dart';
+import '../../../../core/ui/app_dialog.dart';
 
 /// Modular Material 3 Card displaying category budget progress and over-budget warnings.
 class CategoryBudgetsCard extends StatelessWidget {
@@ -26,7 +27,7 @@ class CategoryBudgetsCard extends StatelessWidget {
       text: currentBudget > 0 ? currentBudget.toStringAsFixed(0) : '',
     );
 
-    showDialog(
+    AppDialog.show(
       context: context,
       builder: (ctx) {
         return AlertDialog(

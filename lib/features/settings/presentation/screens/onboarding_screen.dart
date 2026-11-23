@@ -36,10 +36,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void _nextPage() {
     AppHaptics.selectionClick();
     if (_currentPage < _totalPages - 1) {
-      _pageController.nextPage(
-        duration: AppLayout.animDefault,
-        curve: AppLayout.curveFast,
-      );
+      if (AppLayout.shouldReduceMotion(context)) {
+        _pageController.jumpToPage(_currentPage + 1);
+      } else {
+        _pageController.nextPage(
+          duration: AppLayout.animDefault,
+          curve: AppLayout.curveStrongEaseInOut,
+        );
+      }
     } else {
       _finishOnboarding();
     }
@@ -48,10 +52,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void _previousPage() {
     AppHaptics.selectionClick();
     if (_currentPage > 0) {
-      _pageController.previousPage(
-        duration: AppLayout.animDefault,
-        curve: AppLayout.curveFast,
-      );
+      if (AppLayout.shouldReduceMotion(context)) {
+        _pageController.jumpToPage(_currentPage - 1);
+      } else {
+        _pageController.previousPage(
+          duration: AppLayout.animDefault,
+          curve: AppLayout.curveStrongEaseInOut,
+        );
+      }
     }
   }
 
@@ -131,6 +139,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: EdgeFadeMask(
                     axis: EdgeFadeAxis.verticalBottom,
                     fadeStop: 0.94,
+                    fadeColor: theme.colorScheme.surface,
                     child: PageView(
                       controller: _pageController,
                       onPageChanged: (index) {
@@ -159,7 +168,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     children: [
                       // Back Button (when page > 0)
                       AnimatedOpacity(
-                        duration: AppLayout.animShort,
+                        duration: AppLayout.shouldReduceMotion(context) ? Duration.zero : AppLayout.animShort,
+                        curve: AppLayout.curveStrongEaseOut,
                         opacity: _currentPage > 0 ? 1.0 : 0.0,
                         child: IgnorePointer(
                           ignoring: _currentPage == 0,
@@ -179,7 +189,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         children: List.generate(_totalPages, (index) {
                           final isActive = index == _currentPage;
                           return AnimatedContainer(
-                            duration: AppLayout.animShort,
+                            duration: AppLayout.shouldReduceMotion(context) ? Duration.zero : AppLayout.animShort,
+                            curve: AppLayout.curveStrongEaseInOut,
                             margin: const EdgeInsets.only(right: AppLayout.spaceS),
                             width: isActive ? 28 : 8,
                             height: 8,

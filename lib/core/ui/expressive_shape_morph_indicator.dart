@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../theme/app_layout.dart';
 
 /// Material 3 Expressive Shape-Morphing Loading Indicator.
 /// Continuously interpolates between expressive geometric polygons (circle, rounded squircle, starburst, clover).
@@ -29,7 +30,18 @@ class _ExpressiveShapeMorphIndicatorState
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2400),
-    )..repeat();
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (AppLayout.shouldReduceMotion(context)) {
+      _controller.stop();
+      _controller.value = 0.25;
+    } else if (!_controller.isAnimating) {
+      _controller.repeat();
+    }
   }
 
   @override
@@ -43,35 +55,33 @@ class _ExpressiveShapeMorphIndicatorState
     final theme = Theme.of(context);
     final indicatorColor = widget.color ?? theme.colorScheme.primary;
 
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return SizedBox(
-          width: widget.size,
-          height: widget.size,
-          child: CustomPaint(
-            painter: _ShapeMorphPainter(
-              progress: _controller.value,
-              color: indicatorColor,
-            ),
+    return RepaintBoundary(
+      child: SizedBox(
+        width: widget.size,
+        height: widget.size,
+        child: CustomPaint(
+          painter: _ShapeMorphPainter(
+            animation: _controller,
+            color: indicatorColor,
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
 
 class _ShapeMorphPainter extends CustomPainter {
-  final double progress;
+  final Animation<double> animation;
   final Color color;
 
   _ShapeMorphPainter({
-    required this.progress,
+    required this.animation,
     required this.color,
-  });
+  }) : super(repaint: animation);
 
   @override
   void paint(Canvas canvas, Size size) {
+    final double progress = animation.value;
     final Paint paint = Paint()
       ..color = color
       ..style = PaintingStyle.fill;
@@ -129,6 +139,6 @@ class _ShapeMorphPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ShapeMorphPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.color != color;
+    return oldDelegate.animation != animation || oldDelegate.color != color;
   }
 }

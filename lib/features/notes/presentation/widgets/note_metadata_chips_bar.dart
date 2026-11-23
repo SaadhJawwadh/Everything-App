@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/theme/app_theme.dart';
 
 /// Horizontal wrapping chips displaying note metadata: reminder, lock, folder, and custom tags.
 class NoteMetadataChipsBar extends StatelessWidget {
@@ -72,15 +73,12 @@ class NoteMetadataChipsBar extends StatelessWidget {
             ),
           ...tags.map((tag) {
             final tagColorValue = tagColors[tag];
-            final tagColor = tagColorValue != null && tagColorValue != 0
-                ? Color(tagColorValue)
-                : null;
             Color? chipBgColor;
             Color? chipLabelColor;
-            if (tagColor != null) {
-              final scheme = ColorScheme.fromSeed(
-                seedColor: tagColor,
-                brightness: Theme.of(context).brightness,
+            if (tagColorValue != null && tagColorValue != 0) {
+              final scheme = AppTheme.cachedSeedScheme(
+                tagColorValue,
+                Theme.of(context).brightness,
               );
               chipBgColor = scheme.primaryContainer;
               chipLabelColor = scheme.onPrimaryContainer;

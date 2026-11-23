@@ -27,6 +27,7 @@ import '../../utils/widget_helper.dart';
 import '../../widgets/home/home_app_bar.dart';
 import '../../widgets/home/quick_add_todo_sheet.dart';
 import 'package:uuid/uuid.dart';
+import '../routes/app_router.dart';
 
 class AppIntentDispatcher {
   AppIntentDispatcher._();
@@ -61,16 +62,11 @@ class AppIntentDispatcher {
     if (!context.mounted) return;
 
     final noteProvider = Provider.of<NoteProvider>(context, listen: false);
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => NoteEditorScreen(
+    await AppRouter.push(context, NoteEditorScreen(
           initialSharedText: textParts.isEmpty ? null : textParts.join('\n'),
           initialSharedImagePaths: imagePaths.isEmpty ? null : imagePaths,
           initialFolder: noteProvider.selectedFolder,
-        ),
-      ),
-    );
+        ));
   }
 
   /// Copies a shared image out of the transient share cache into app documents.
@@ -276,13 +272,7 @@ class AppIntentDispatcher {
                       TransactionCategory.fromDescriptionCached(prefillDesc),
                 )
               : null;
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) =>
-                  TransactionEditorScreen(transaction: initialTx),
-            ),
-          );
+          await AppRouter.push(context, TransactionEditorScreen(transaction: initialTx));
         }
       } else if (action == 'view_trends' ||
           action == 'view_budgets' ||
@@ -292,15 +282,10 @@ class AppIntentDispatcher {
         FinancialManagerScreen.tabRedirectNotifier.value =
             action == 'view_budgets' ? 'Budgets' : 'Ledger';
       } else if (action == 'new_note') {
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => NoteEditorScreen(
+        await AppRouter.push(context, NoteEditorScreen(
               initialSharedText: extras['content'] ?? extras['title'],
               initialFolder: extras['folder'] ?? noteProvider.selectedFolder,
-            ),
-          ),
-        );
+            ));
       } else if (action == 'search') {
         HomeAppBar.searchRequestedNotifier.value = true;
         final searchQuery = extras['query'];
@@ -314,10 +299,7 @@ class AppIntentDispatcher {
         if (res != null && context.mounted) {
           final double? total = res['total'] as double?;
           final String? merchant = res['merchant'] as String?;
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => TransactionEditorScreen(
+          await AppRouter.push(context, TransactionEditorScreen(
                 transaction: TransactionModel(
                   amount: total ?? 0.0,
                   description: merchant ?? 'Scanned Receipt',
@@ -325,29 +307,19 @@ class AppIntentDispatcher {
                   isExpense: true,
                   category: CategoryConstants.shopping,
                 ),
-              ),
-            ),
-          );
+              ));
         }
       } else if (action == 'sync_devices') {
-        await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const P2pSyncScreen()),
-        );
+        await AppRouter.push(context, const P2pSyncScreen());
       } else if (action == 'process_text') {
         final String? sharedText =
             await _widgetChannel.invokeMethod<String>('getPendingSharedText');
         if (sharedText != null && sharedText.trim().isNotEmpty && context.mounted) {
           final noteProvider = Provider.of<NoteProvider>(context, listen: false);
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => NoteEditorScreen(
+          await AppRouter.push(context, NoteEditorScreen(
                 initialSharedText: sharedText,
                 initialFolder: noteProvider.selectedFolder,
-              ),
-            ),
-          );
+              ));
         }
       } else if (action.startsWith('quick_add_todo')) {
         final parts = action.split(':');
@@ -361,16 +333,11 @@ class AppIntentDispatcher {
         if (noteId.isNotEmpty) {
           final note = await NoteRepository.instance.readNote(noteId);
           if (note != null && context.mounted) {
-            await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => NoteEditorScreen(
+            await AppRouter.push(context, NoteEditorScreen(
                   note: note,
                   targetLineIndex: lineIndex,
                   targetChecklistText: targetText,
-                ),
-              ),
-            );
+                ));
           }
         }
       }

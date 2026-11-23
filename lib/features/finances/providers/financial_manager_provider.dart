@@ -22,7 +22,17 @@ class FinancialManagerProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool _isSmsSyncing = false;
   bool _isAutoRefining = false;
+  bool _hasRunSessionMaintenance = false;
   SmsSyncProgress? _smsSyncProgress;
+
+  List<TransactionModel> _unmodifiableFiltered = const [];
+  List<TransactionModel> _unmodifiableDateFiltered = const [];
+  List<TransactionModel> _unmodifiableTrashed = const [];
+  List<Map<String, dynamic>> _unmodifiableMonthlyData = const [];
+  List<String> _cachedActiveCategories = const [];
+  Map<String, double> _cachedCategoryExpenses = const {};
+  Map<String, double> _cachedCurrentMonthCategoryExpenses = const {};
+  double _cachedTotalDateExpense = 0.0;
 
   DateTimeRange _selectedRange = DateTimeRange(
     start: DateTime(DateTime.now().year, DateTime.now().month, 1),
@@ -70,10 +80,10 @@ class FinancialManagerProvider extends ChangeNotifier {
   double _dailyCashFlow = 0;
   double _savingsVaultCashFlow = 0;
 
-  List<TransactionModel> get transactions => List.unmodifiable(_filteredTransactions);
-  List<TransactionModel> get allDateFiltered => List.unmodifiable(_allDateFiltered);
-  List<TransactionModel> get trashedTransactions => List.unmodifiable(_trashedTransactions);
-  List<Map<String, dynamic>> get monthlyData => List.unmodifiable(_monthlyData);
+  List<TransactionModel> get transactions => _unmodifiableFiltered;
+  List<TransactionModel> get allDateFiltered => _unmodifiableDateFiltered;
+  List<TransactionModel> get trashedTransactions => _unmodifiableTrashed;
+  List<Map<String, dynamic>> get monthlyData => _unmodifiableMonthlyData;
   int get trashedCount => _trashedTransactions.length;
   DateTimeRange get selectedRange => _selectedRange;
   String? get selectedCategory => _selectedCategory;
@@ -90,63 +100,45 @@ class FinancialManagerProvider extends ChangeNotifier {
   double get dailyCashFlow => _dailyCashFlow;
   double get savingsVaultCashFlow => _savingsVaultCashFlow;
 
-  List<String> get activeCategories =>
-      _allDateFiltered.map((t) => t.category).toSet().toList()..sort();
+  List<String> get activeCategories => _cachedActiveCategories;
 
-  Map<String, double> get categoryExpenses {
-    final Map<String, double> totals = {};
-    for (final t in _allDateFiltered) {
-      if (t.isExpense && !t.isTransfer && t.category != '__reversal__') {
-        totals[t.category] = (totals[t.category] ?? 0.0) + t.amount;
-      }
-    }
-    return totals;
-  }
+  Map<String, double> get categoryExpenses => _cachedCategoryExpenses;
 
   /// Current calendar-month expenses by category (excluding transfers and
   /// reversals), respecting [selectedAccount] when filtered.
-  Map<String, double> get currentMonthCategoryExpenses {
-    final now = DateTime.now();
-    final Map<String, double> totals = {};
-    for (final t in _allTransactions) {
-      if (t.deletedAt != null || !t.isExpense || t.isTransfer || t.category == '__reversal__') {
-        continue;
-      }
-      if (_selectedAccount != 'all' && t.account != _selectedAccount) continue;
-      if (t.date.year == now.year && t.date.month == now.month) {
-        totals[t.category] = (totals[t.category] ?? 0.0) + t.amount;
-      }
-    }
-    return totals;
-  }
+  Map<String, double> get currentMonthCategoryExpenses =>
+      _cachedCurrentMonthCategoryExpenses;
 
-  double get totalDateExpense => _allDateFiltered
-      .where((t) => t.isExpense && !t.isTransfer && t.category != '__reversal__')
-      .fold(0.0, (sum, t) => sum + t.amount);
+  double get totalDateExpense => _cachedTotalDateExpense;
 
-  Future<void> loadTransactions() async {
+  Future<void> loadTransactions({bool showLoading = false}) async {
     if (_isDisposed) return;
-    _isLoading = true;
-    notifyListeners();
+    if (showLoading || _allTransactions.isEmpty) {
+      _isLoading = true;
+      notifyListeners();
+    }
 
     try {
-      try {
-        await RecurringRuleRepository.instance.materializeDueRules();
-        await _repository.clearOldTransactionTrash(days: 30);
-      } catch (_) {}
+      if (!_hasRunSessionMaintenance) {
+        _hasRunSessionMaintenance = true;
+        try {
+          await RecurringRuleRepository.instance.materializeDueRules();
+          await _repository.clearOldTransactionTrash(days: 30);
+        } catch (_) {}
+      }
 
-      final loadedTransactions = await _repository.readAllTransactions();
+      final results = await Future.wait<dynamic>([
+        _repository.readAllTransactions(),
+        _repository.readTrashedTransactions(),
+        _repository.getMonthlyTransactionSummary(6).catchError((_) => <Map<String, dynamic>>[]),
+      ]);
       if (_isDisposed) return;
-      final loadedTrashed = await _repository.readTrashedTransactions();
-      if (_isDisposed) return;
-      _allTransactions = loadedTransactions;
-      _trashedTransactions = loadedTrashed;
 
-      try {
-        final loadedMonthly = await _repository.getMonthlyTransactionSummary(6);
-        if (_isDisposed) return;
-        _monthlyData = loadedMonthly;
-      } catch (_) {}
+      _allTransactions = results[0] as List<TransactionModel>;
+      _trashedTransactions = results[1] as List<TransactionModel>;
+      _monthlyData = results[2] as List<Map<String, dynamic>>;
+      _unmodifiableTrashed = List.unmodifiable(_trashedTransactions);
+      _unmodifiableMonthlyData = List.unmodifiable(_monthlyData);
 
       _applyFilters();
       _triggerForegroundAiCatchUpIfNeeded();
@@ -260,6 +252,36 @@ class FinancialManagerProvider extends ChangeNotifier {
       return matchesQuery && matchesCategory && matchesAccount;
     }).toList();
 
+    _unmodifiableDateFiltered = List.unmodifiable(_allDateFiltered);
+    _unmodifiableFiltered = List.unmodifiable(_filteredTransactions);
+
+    final catSet = <String>{};
+    final catExpenses = <String, double>{};
+    double dateExpenseSum = 0.0;
+    for (final t in _allDateFiltered) {
+      catSet.add(t.category);
+      if (t.isExpense && !t.isTransfer && t.category != '__reversal__') {
+        catExpenses[t.category] = (catExpenses[t.category] ?? 0.0) + t.amount;
+        dateExpenseSum += t.amount;
+      }
+    }
+    _cachedActiveCategories = List.unmodifiable(catSet.toList()..sort());
+    _cachedCategoryExpenses = Map.unmodifiable(catExpenses);
+    _cachedTotalDateExpense = dateExpenseSum;
+
+    final now = DateTime.now();
+    final monthExpenses = <String, double>{};
+    for (final t in _allTransactions) {
+      if (t.deletedAt != null || !t.isExpense || t.isTransfer || t.category == '__reversal__') {
+        continue;
+      }
+      if (_selectedAccount != 'all' && t.account != _selectedAccount) continue;
+      if (t.date.year == now.year && t.date.month == now.month) {
+        monthExpenses[t.category] = (monthExpenses[t.category] ?? 0.0) + t.amount;
+      }
+    }
+    _cachedCurrentMonthCategoryExpenses = Map.unmodifiable(monthExpenses);
+
     _calculateTotals();
   }
 
@@ -297,7 +319,6 @@ class FinancialManagerProvider extends ChangeNotifier {
   Future<void> addTransaction(TransactionModel transaction) async {
     await _repository.createTransaction(transaction);
     await loadTransactions();
-    FinancialManagerScreen.refreshNotifier.value++;
   }
 
   /// Transfers funds between accounts using double-entry Transfer records.
@@ -336,15 +357,31 @@ class FinancialManagerProvider extends ChangeNotifier {
       deposit: deposit,
     );
     await loadTransactions();
-    FinancialManagerScreen.refreshNotifier.value++;
   }
 
   Future<void> deleteTransaction(int id) async {
+    final removed = _allTransactions.where((t) => t.id == id).toList();
+    if (removed.isNotEmpty) {
+      _allTransactions.removeWhere((t) => t.id == id);
+      _trashedTransactions.insertAll(0, removed);
+      _unmodifiableTrashed = List.unmodifiable(_trashedTransactions);
+      _applyFilters();
+      notifyListeners();
+    }
     await _repository.softDeleteTransaction(id);
     await loadTransactions();
   }
 
   Future<void> restoreTransaction(int id) async {
+    final restored = _trashedTransactions.where((t) => t.id == id).toList();
+    if (restored.isNotEmpty) {
+      _trashedTransactions.removeWhere((t) => t.id == id);
+      _unmodifiableTrashed = List.unmodifiable(_trashedTransactions);
+      _allTransactions.addAll(restored);
+      _allTransactions.sort((a, b) => b.date.compareTo(a.date));
+      _applyFilters();
+      notifyListeners();
+    }
     await _repository.restoreTransaction(id);
     await loadTransactions();
   }
@@ -416,10 +453,15 @@ class FinancialManagerProvider extends ChangeNotifier {
   Future<List<int>> bulkDeleteSelected() async {
     final idsToDelete = _selectedTransactionIds.toList();
     if (idsToDelete.isEmpty) return [];
+    final idSet = idsToDelete.toSet();
+    final removed = _allTransactions.where((t) => t.id != null && idSet.contains(t.id)).toList();
+    _allTransactions.removeWhere((t) => t.id != null && idSet.contains(t.id));
+    _trashedTransactions.insertAll(0, removed);
+    _unmodifiableTrashed = List.unmodifiable(_trashedTransactions);
+    _applyFilters();
     clearSelection();
     await _repository.bulkDeleteTransactions(idsToDelete);
     await loadTransactions();
-    FinancialManagerScreen.refreshNotifier.value++;
     return idsToDelete;
   }
 
@@ -427,25 +469,32 @@ class FinancialManagerProvider extends ChangeNotifier {
     if (ids.isEmpty) return;
     await _repository.bulkRestoreTransactions(ids);
     await loadTransactions();
-    FinancialManagerScreen.refreshNotifier.value++;
   }
 
   Future<void> bulkUpdateCategory(String category) async {
     final ids = _selectedTransactionIds.toList();
     if (ids.isEmpty) return;
+    final idSet = ids.toSet();
+    _allTransactions = _allTransactions
+        .map((t) => (t.id != null && idSet.contains(t.id)) ? t.copy(category: category) : t)
+        .toList();
+    _applyFilters();
     clearSelection();
     await _repository.bulkUpdateCategory(ids, category);
     await loadTransactions();
-    FinancialManagerScreen.refreshNotifier.value++;
   }
 
   Future<void> bulkUpdateAccount(String account) async {
     final ids = _selectedTransactionIds.toList();
     if (ids.isEmpty) return;
+    final idSet = ids.toSet();
+    _allTransactions = _allTransactions
+        .map((t) => (t.id != null && idSet.contains(t.id)) ? t.copy(account: account) : t)
+        .toList();
+    _applyFilters();
     clearSelection();
     await _repository.bulkUpdateAccount(ids, account);
     await loadTransactions();
-    FinancialManagerScreen.refreshNotifier.value++;
   }
 
   Future<int> bulkAiRefineSelected() async {
@@ -470,7 +519,6 @@ class FinancialManagerProvider extends ChangeNotifier {
         }
       }
       await loadTransactions();
-      FinancialManagerScreen.refreshNotifier.value++;
     } catch (e) {
       debugPrint('Error in bulkAiRefineSelected: $e');
     } finally {

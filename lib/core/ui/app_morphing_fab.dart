@@ -35,15 +35,15 @@ class AppMorphingFab extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final bg = backgroundColor ?? colorScheme.primaryContainer;
     final fg = foregroundColor ?? colorScheme.onPrimaryContainer;
+    final reduceMotion = AppLayout.shouldReduceMotion(context);
 
     return Material(
       elevation: AppLayout.floatingElevation,
       borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
       color: bg,
       shadowColor: colorScheme.shadow.withValues(alpha: 0.2),
-      child: AnimatedContainer(
-        duration: AppLayout.animDefault,
-        curve: AppLayout.curveEmphasizedDecelerate,
+      clipBehavior: Clip.antiAlias,
+      child: Container(
         height: 56,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
@@ -53,8 +53,8 @@ class AppMorphingFab extends StatelessWidget {
           ),
         ),
         child: AnimatedSize(
-          duration: AppLayout.animDefault,
-          curve: AppLayout.curveEmphasizedDecelerate,
+          duration: reduceMotion ? Duration.zero : AppLayout.animFast,
+          curve: AppLayout.curveStrongEaseInOut,
           child: !isExpanded
               ? SizedBox(
                   width: 56,

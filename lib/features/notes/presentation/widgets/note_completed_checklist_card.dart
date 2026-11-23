@@ -32,11 +32,11 @@ class NoteCompletedChecklistCard extends StatelessWidget {
     if (completedItems.isEmpty) return const SizedBox.shrink();
     final theme = Theme.of(context);
 
+    final reduceMotion = AppLayout.shouldReduceMotion(context);
+
     return Padding(
       padding: const EdgeInsets.only(top: 8, bottom: 12),
-      child: AnimatedContainer(
-        duration: AppLayout.animDefault,
-        curve: AppLayout.curveExpressiveSpatial,
+      child: Container(
         decoration: BoxDecoration(
           color: noteScheme.surfaceContainerHighest.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(AppLayout.radiusXL),
@@ -104,8 +104,8 @@ class NoteCompletedChecklistCard extends StatelessWidget {
               ),
             ),
             AnimatedSize(
-              duration: AppLayout.animDefault,
-              curve: AppLayout.curveExpressiveSpatial,
+              duration: reduceMotion ? Duration.zero : AppLayout.animShort,
+              curve: AppLayout.curveStrongEaseOut,
               child: !isCollapsed
                   ? Column(
                       children: [

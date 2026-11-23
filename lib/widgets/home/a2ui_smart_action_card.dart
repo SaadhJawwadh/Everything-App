@@ -28,6 +28,7 @@ import '../../utils/app_constants.dart';
 import '../../utils/rich_text_utils.dart';
 import '../../utils/widget_helper.dart';
 import 'quick_add_todo_sheet.dart';
+import '../../core/routes/app_router.dart';
 
 /// Material 3 Expressive Agent-to-UI (A2UI) Smart Action Card rendered at the top of
 /// Universal Search when a user types a natural-language command (e.g. "Spent 450 on coffee",
@@ -185,11 +186,7 @@ class _A2uiSmartActionCardState extends State<A2uiSmartActionCard> {
                     label: 'Open',
                     onPressed: () {
                       if (!mounted) return;
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => NoteEditorScreen(note: savedNote),
-                        ),
-                      );
+                      AppRouter.push(context, NoteEditorScreen(note: savedNote));
                     },
                   )
                 : null,
@@ -334,9 +331,7 @@ class _A2uiSmartActionCardState extends State<A2uiSmartActionCard> {
       final isExpense = (action['isExpense'] as bool?) ?? true;
       final accountType = (action['accountType'] as String?) ?? AccountType.daily;
 
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => TransactionEditorScreen(
+      await AppRouter.push(context, TransactionEditorScreen(
             transaction: TransactionModel(
               amount: amount,
               description: description,
@@ -345,34 +340,24 @@ class _A2uiSmartActionCardState extends State<A2uiSmartActionCard> {
               category: category,
               account: accountType,
             ),
-          ),
-        ),
-      );
+          ));
     } else if (type == 'split_bill') {
       final amount = (action['amount'] as num?)?.toDouble() ?? 0.0;
       final title = (action['title'] as String?) ?? 'Group Expense';
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => SplitBillEditorScreen(
+      await AppRouter.push(context, SplitBillEditorScreen(
             initialTitle: title,
             initialAmount: amount,
             initialDate: DateTime.now(),
-          ),
-        ),
-      );
+          ));
     } else if (type == 'todo') {
       await QuickAddTodoSheet.show(context, 'ALL_NOTES');
     } else if (type == 'note') {
       final content = (action['content'] as String?) ?? '';
       final noteProvider = Provider.of<NoteProvider>(context, listen: false);
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => NoteEditorScreen(
+      await AppRouter.push(context, NoteEditorScreen(
             initialSharedText: content,
             initialFolder: noteProvider.selectedFolder,
-          ),
-        ),
-      );
+          ));
     }
   }
 

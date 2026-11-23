@@ -5,6 +5,7 @@ import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill/quill_delta.dart';
 import 'package:flutter_quill_extensions/flutter_quill_extensions.dart';
 import '../../../../core/services/app_haptics.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/app_dialog.dart';
 import '../../../../utils/quill_checklist_helper.dart';
 import 'note_completed_checklist_card.dart';
@@ -447,10 +448,7 @@ class NoteEditorCanvas extends StatelessWidget {
         theme.colorScheme.onSurface,
       );
     }
-    final scheme = ColorScheme.fromSeed(
-      seedColor: Color(color),
-      brightness: theme.brightness,
-    );
+    final scheme = AppTheme.cachedSeedScheme(color, theme.brightness);
     return (scheme, scheme.surfaceContainerHigh, scheme.onSurface);
   }
 }

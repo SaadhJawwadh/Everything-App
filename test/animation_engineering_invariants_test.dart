@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:note_taking_app/core/theme/app_layout.dart';
 import 'package:note_taking_app/core/theme/app_theme.dart';
+import 'package:note_taking_app/core/ui/edge_fade_mask.dart';
+import 'package:note_taking_app/core/ui/expressive_shape_morph_indicator.dart';
+import 'package:note_taking_app/core/ui/expressive_wavy_progress.dart';
+import 'package:note_taking_app/core/ui/expressive_wavy_slider.dart';
 import 'package:note_taking_app/widgets/bouncing_widget.dart';
+import 'package:note_taking_app/widgets/skeleton_card.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -182,6 +187,102 @@ void main() {
 
       expect(darkTheme.tooltipTheme.waitDuration, equals(const Duration(milliseconds: 500)));
       expect(darkTheme.tooltipTheme.showDuration, equals(const Duration(milliseconds: 1500)));
+    });
+
+    testWidgets('BouncingWidget release monotonically relaxes toward 1.0 without shrinking deeper', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(disableAnimations: false),
+            child: Scaffold(
+              body: BouncingWidget(
+                onTap: () {},
+                child: const Text('Release Test'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final gesture = await tester.startGesture(tester.getCenter(find.text('Release Test')));
+      await tester.pump(const Duration(milliseconds: 120));
+      await tester.pump(const Duration(milliseconds: 120));
+
+      double readScale() {
+        final finder = find.descendant(
+          of: find.byType(BouncingWidget),
+          matching: find.byType(Transform),
+        );
+        if (finder.evaluate().isEmpty) return 1.0;
+        return tester.widget<Transform>(finder).transform.entry(0, 0);
+      }
+
+      final pressedScale = readScale();
+      expect(pressedScale, closeTo(0.97, 0.01));
+
+      await gesture.up();
+      double prevScale = pressedScale;
+      for (int i = 0; i < 6; i++) {
+        await tester.pump(const Duration(milliseconds: 30));
+        final currentScale = readScale();
+        expect(
+          currentScale,
+          greaterThanOrEqualTo(prevScale - 0.0001),
+          reason: 'Release scale must monotonically relax back to 1.0 without shrinking deeper',
+        );
+        prevScale = currentScale;
+      }
+      await tester.pumpAndSettle();
+      expect(readScale(), closeTo(1.0, 0.001));
+    });
+
+    testWidgets('Expressive loaders stop ticking under disableAnimations and idle wavy slider does not spin', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(disableAnimations: true),
+            child: Scaffold(
+              body: Column(
+                children: [
+                  ExpressiveWavySlider(value: 0.5, onChanged: (_) {}),
+                  const ExpressiveWavyLinearProgress(),
+                  const ExpressiveShapeMorphIndicator(),
+                  const SkeletonCard(height: 80),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Should settle immediately without timing out on infinite tickers.
+      await tester.pumpAndSettle();
+      expect(find.byType(ExpressiveWavySlider), findsOneWidget);
+      expect(find.byType(ExpressiveWavyLinearProgress), findsOneWidget);
+      expect(find.byType(ExpressiveShapeMorphIndicator), findsOneWidget);
+      expect(find.byType(SkeletonCard), findsOneWidget);
+    });
+
+    test('AppTheme.cachedSeedScheme returns identical memoized instance', () {
+      final first = AppTheme.cachedSeedScheme(0xFF4E9F90, Brightness.light);
+      final second = AppTheme.cachedSeedScheme(0xFF4E9F90, Brightness.light);
+      expect(identical(first, second), isTrue);
+    });
+
+    testWidgets('EdgeFadeMask with fadeColor avoids ShaderMask GPU saveLayer', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: EdgeFadeMask(
+              fadeColor: Colors.black,
+              child: Text('Faded Content'),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(ShaderMask), findsNothing);
+      expect(find.text('Faded Content'), findsOneWidget);
     });
   });
 }
