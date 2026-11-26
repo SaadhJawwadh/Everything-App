@@ -51,6 +51,7 @@ class TransactionRepository {
       return [withdrawal.copy(id: wId), deposit.copy(id: dId)];
     });
     await WidgetHelper.updateWidgetData();
+    P2pSyncProvider.activeInstance?.triggerEventSync();
     return results;
   }
 
@@ -198,6 +199,7 @@ class TransactionRepository {
         whereArgs: [id],
       );
       await WidgetHelper.updateWidgetData();
+      P2pSyncProvider.activeInstance?.triggerEventSync();
     }
     return count;
   }
@@ -215,6 +217,7 @@ class TransactionRepository {
         [id],
       );
       await WidgetHelper.updateWidgetData();
+      P2pSyncProvider.activeInstance?.triggerEventSync();
     }
     return count;
   }
@@ -248,6 +251,7 @@ class TransactionRepository {
     });
     if (total > 0) {
       await WidgetHelper.updateWidgetData();
+      P2pSyncProvider.activeInstance?.triggerEventSync();
     }
     return total;
   }
@@ -274,6 +278,7 @@ class TransactionRepository {
     });
     if (total > 0) {
       await WidgetHelper.updateWidgetData();
+      P2pSyncProvider.activeInstance?.triggerEventSync();
     }
     return total;
   }
@@ -292,6 +297,7 @@ class TransactionRepository {
           TableNames.transactions,
           {
             TransactionFields.category: category,
+            TransactionFields.isAiRefined: 1,
             TransactionFields.dateModified: now,
           },
           where: '${TransactionFields.id} IN ($placeholders) AND ${TransactionFields.deletedAt} IS NULL',
@@ -302,6 +308,7 @@ class TransactionRepository {
     if (total > 0) {
       HybridLocalAiService().invalidateHistoryCache();
       await WidgetHelper.updateWidgetData();
+      P2pSyncProvider.activeInstance?.triggerEventSync();
     }
     return total;
   }
@@ -329,6 +336,7 @@ class TransactionRepository {
     });
     if (total > 0) {
       await WidgetHelper.updateWidgetData();
+      P2pSyncProvider.activeInstance?.triggerEventSync();
     }
     return total;
   }
@@ -355,6 +363,7 @@ class TransactionRepository {
         whereArgs: [id],
       );
       await WidgetHelper.updateWidgetData();
+      P2pSyncProvider.activeInstance?.triggerEventSync();
     }
     return count;
   }
@@ -605,11 +614,15 @@ class TransactionRepository {
 
   Future<void> renameCategoryDefinition(String oldName, CategoryDefinition newDef) async {
     final db = await _db;
+    final now = DateTime.now().toIso8601String();
     await db.transaction((txn) async {
       if (oldName != newDef.name) {
         await txn.update(
           TableNames.transactions,
-          {TransactionFields.category: newDef.name},
+          {
+            TransactionFields.category: newDef.name,
+            TransactionFields.dateModified: now,
+          },
           where: '${TransactionFields.category} = ?',
           whereArgs: [oldName],
         );
@@ -632,15 +645,20 @@ class TransactionRepository {
       );
     });
     unawaited(WidgetHelper.updateWidgetData());
+    P2pSyncProvider.activeInstance?.triggerEventSync();
   }
 
   Future<void> deleteCategoryDefinition(String name) async {
     if (name == CategoryConstants.other) return;
     final db = await _db;
+    final now = DateTime.now().toIso8601String();
     await db.transaction((txn) async {
       await txn.update(
         TableNames.transactions,
-        {TransactionFields.category: CategoryConstants.other},
+        {
+          TransactionFields.category: CategoryConstants.other,
+          TransactionFields.dateModified: now,
+        },
         where: '${TransactionFields.category} = ?',
         whereArgs: [name],
       );
@@ -657,6 +675,7 @@ class TransactionRepository {
       );
     });
     unawaited(WidgetHelper.updateWidgetData());
+    P2pSyncProvider.activeInstance?.triggerEventSync();
   }
 
   Future<List<SmsContact>> getAllSmsContacts() async {

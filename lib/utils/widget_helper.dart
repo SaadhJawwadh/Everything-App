@@ -37,6 +37,7 @@ class WidgetHelper {
     bool? lockFinances,
     bool? hideWidgetDataWhenLocked,
     bool? screenshotShieldEnabled,
+    bool? useDynamicColor,
     String? languageCode,
   }) async {
     try {
@@ -51,6 +52,8 @@ class WidgetHelper {
             hideWidgetDataWhenLocked ?? (prefs.getBool('hideWidgetDataWhenLocked') ?? false),
         'screenshotShieldEnabled':
             screenshotShieldEnabled ?? (prefs.getBool('screenshotShieldEnabled') ?? false),
+        'useDynamicColor':
+            useDynamicColor ?? (prefs.getBool('useDynamicColor') ?? true),
         'languageCode':
             languageCode ?? (prefs.getString('selectedLanguageCode') ?? 'system'),
       };

@@ -93,6 +93,7 @@ class Note {
     String? previewText,
     DateTime? deletedAt,
     DateTime? reminderAt,
+    bool clearReminderAt = false,
     bool? isLocked,
     String? searchText,
   }) {
@@ -110,7 +111,7 @@ class Note {
       tags: tags ?? this.tags,
       previewText: previewText ?? this.previewText,
       deletedAt: deletedAt ?? this.deletedAt,
-      reminderAt: reminderAt ?? this.reminderAt,
+      reminderAt: clearReminderAt ? null : (reminderAt ?? this.reminderAt),
       isLocked: isLocked ?? this.isLocked,
       searchText: searchText ?? this.searchText,
     );

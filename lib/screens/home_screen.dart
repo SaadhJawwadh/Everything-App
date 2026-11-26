@@ -103,43 +103,68 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         }
       } else if (call.method == 'onPendingAction') {
         if (mounted) {
-          final settings = Provider.of<SettingsProvider>(context, listen: false);
-          final isLocked = settings.appLockEnabled && !AppLockScreen.sessionAuthenticated.value;
-          if (!isLocked) {
-            unawaited(_checkAndProcessPendingIntents());
-          } else {
-            unawaited(AppIntentDispatcher.processBackgroundQuickCaptureIfAny(context));
-          }
+          unawaited(_dispatchPendingActionSafely());
         }
       }
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        final settings = Provider.of<SettingsProvider>(context, listen: false);
-        unawaited(WidgetHelper.syncWidgetConfig(
-          showFinancialManager: settings.showFinancialManager,
-          appLockEnabled: settings.appLockEnabled,
-          lockFinances: settings.lockFinances,
-          hideWidgetDataWhenLocked: settings.hideWidgetDataWhenLocked,
-          screenshotShieldEnabled: settings.screenshotShieldEnabled,
-          languageCode: settings.selectedLanguageCode,
-        ));
-        unawaited(WidgetHelper.updateWidgetData());
-        unawaited(WidgetHelper.updateTodoWidgetData());
-        unawaited(AppFunctionInboxService.drainPendingQueue(context));
-        final isLocked = settings.appLockEnabled && !AppLockScreen.sessionAuthenticated.value;
-        if (!isLocked) {
-          unawaited(_checkAndProcessPendingIntents());
-        } else {
-          unawaited(AppIntentDispatcher.processBackgroundQuickCaptureIfAny(context));
-        }
+        unawaited(_initializeHomeOnStart());
       }
     });
   }
 
+  Future<void> _initializeHomeOnStart() async {
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    if (!settings.isInitialized) {
+      await settings.initialized;
+    }
+    if (!mounted) return;
+    unawaited(WidgetHelper.updateWidgetData());
+    unawaited(WidgetHelper.updateTodoWidgetData());
+    unawaited(AppFunctionInboxService.drainPendingQueue(context));
+    final isLocked =
+        settings.appLockEnabled && !AppLockScreen.sessionAuthenticated.value;
+    if (!isLocked) {
+      unawaited(_checkAndProcessPendingIntents());
+    } else {
+      unawaited(AppIntentDispatcher.processBackgroundQuickCaptureIfAny(context));
+    }
+  }
+
+  Future<void> _dispatchPendingActionSafely() async {
+    if (!mounted) return;
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    if (!settings.isInitialized) {
+      await settings.initialized;
+    }
+    // If onNewIntent arrived while returning from background, wait for
+    // didChangeAppLifecycleState(resumed) + screen-off check to evaluate lock
+    // state instead of opening private screens before AppLockScreen engages.
+    if (AppLockScreen.isInTrueBackground) {
+      return;
+    }
+    await AppLockScreen.waitForResumeLockCheck();
+    if (!mounted) return;
+    final isLocked =
+        settings.appLockEnabled && !AppLockScreen.sessionAuthenticated.value;
+    if (!isLocked) {
+      unawaited(_checkAndProcessPendingIntents());
+    } else {
+      unawaited(AppIntentDispatcher.processBackgroundQuickCaptureIfAny(context));
+    }
+  }
+
   void _handleSessionUnlock() {
     if (AppLockScreen.sessionAuthenticated.value && mounted) {
+      final settings = Provider.of<SettingsProvider>(context, listen: false);
+      if (settings.isInitialized && !_whatsNewChecked) {
+        _whatsNewChecked = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _maybeShowWhatsNew(settings);
+        });
+      }
       _checkAndProcessPendingIntents();
     }
   }
@@ -210,13 +235,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         await WidgetHelper.updateWidgetData();
         await WidgetHelper.updateTodoWidgetData();
       }());
-      final settings = Provider.of<SettingsProvider>(context, listen: false);
-      final bool isLocked = settings.appLockEnabled && !AppLockScreen.sessionAuthenticated.value;
-      if (!isLocked) {
-        _checkAndProcessPendingIntents();
-      } else {
-        unawaited(AppIntentDispatcher.processBackgroundQuickCaptureIfAny(context));
-      }
+      unawaited(() async {
+        final settings = Provider.of<SettingsProvider>(context, listen: false);
+        if (!settings.isInitialized) {
+          await settings.initialized;
+        }
+        await AppLockScreen.waitForResumeLockCheck();
+        if (!mounted) return;
+        final bool isLocked =
+            settings.appLockEnabled && !AppLockScreen.sessionAuthenticated.value;
+        if (!isLocked) {
+          await _checkAndProcessPendingIntents();
+        } else {
+          await AppIntentDispatcher.processBackgroundQuickCaptureIfAny(context);
+        }
+      }());
     }
   }
 
@@ -380,7 +413,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           });
         }
 
-        if (shell.isInitialized && !_whatsNewChecked) {
+        final isAppLocked =
+            settings.appLockEnabled && !AppLockScreen.sessionAuthenticated.value;
+        if (shell.isInitialized && !_whatsNewChecked && !isAppLocked) {
           _whatsNewChecked = true;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) _maybeShowWhatsNew(settings);

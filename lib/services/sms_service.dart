@@ -1035,6 +1035,11 @@ class SmsService {
     Duration? lookbackWindow,
     void Function(int processed, int total)? onProgress,
   }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (!(prefs.getBool('useOnDeviceAi') ?? true)) return 0;
+    } catch (_) {}
+
     final aiService = HybridLocalAiService();
     if (!await aiService.isSupported()) return 0;
 
@@ -1066,13 +1071,24 @@ class SmsService {
         aiServiceOverride: aiService,
         skipCategoryReload: true,
       );
+      // Re-read live row to guard against concurrent user edits or deletions while AI was running
+      final fresh = t.id != null
+          ? await TransactionRepository.instance.readTransaction(t.id!)
+          : null;
+      if (fresh == null ||
+          fresh.deletedAt != null ||
+          fresh.isAiRefined ||
+          fresh.dateModified != t.dateModified) {
+        onProgress?.call(processedCount, candidates.length);
+        continue;
+      }
       if (refined != null) {
         final updated = refined.copy(isAiRefined: true);
         await TransactionRepository.instance.updateTransaction(updated);
         refinedCount++;
       } else {
         // Even if description wasn't altered, mark as AI checked so we don't repeat
-        await TransactionRepository.instance.updateTransaction(t.copy(isAiRefined: true));
+        await TransactionRepository.instance.updateTransaction(fresh.copy(isAiRefined: true));
       }
       onProgress?.call(processedCount, candidates.length);
     }

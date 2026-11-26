@@ -70,8 +70,9 @@ class NoteMediaCoordinator {
   static Future<String?> pickAndSaveImage(ImageSource source) async {
     final picker = ImagePicker();
     try {
-      AppLockScreen.ignoreNextResumeLock();
-      final pickedFile = await picker.pickImage(source: source);
+      final pickedFile = await AppLockScreen.withLockIgnored(
+        () => picker.pickImage(source: source),
+      );
       if (pickedFile != null) {
         final appDir = await getApplicationDocumentsDirectory();
         final imagesDir = Directory(p.join(appDir.path, 'note_images'));

@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_card.dart';
 import '../../../../core/ui/expressive_sliver_app_bar.dart';
@@ -13,13 +15,32 @@ class QrScannerScreen extends StatefulWidget {
 }
 
 class _QrScannerScreenState extends State<QrScannerScreen> {
-  final MobileScannerController _controller = MobileScannerController();
+  final MobileScannerController _controller = MobileScannerController(
+    autoStart: false,
+  );
   bool _hasScanned = false;
 
   @override
   void initState() {
     super.initState();
-    AppLockScreen.ignoreNextResumeLock();
+    unawaited(_initScannerWithScopedPermissionLock());
+  }
+
+  Future<void> _initScannerWithScopedPermissionLock() async {
+    try {
+      final status = await Permission.camera.status;
+      if (!status.isGranted) {
+        await AppLockScreen.withLockIgnored(() => Permission.camera.request());
+      }
+    } catch (_) {
+      // Fall back to MobileScanner's own permission handling / errorBuilder
+    }
+    if (!mounted) return;
+    try {
+      await _controller.start();
+    } catch (_) {
+      // Handled by MobileScanner.errorBuilder
+    }
   }
 
   @override

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:provider/provider.dart';
+import '../../screens/app_lock_screen.dart';
 import '../../features/finances/data/transaction_repository.dart';
 import '../../features/health/data/period_repository.dart';
 import '../../data/transaction_model.dart';
@@ -27,6 +30,8 @@ import '../../services/sms_service.dart';
 import '../../core/routes/app_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/ui/app_card.dart';
+import '../../core/ui/module_lock_gate.dart';
+import '../../utils/app_globals.dart';
 import 'a2ui_smart_action_card.dart';
 import 'keyboard_shortcuts_dialog.dart';
 
@@ -128,7 +133,21 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
   @override
   void initState() {
     super.initState();
+    AppLockScreen.moduleSessionEpoch.addListener(_onModuleSessionChanged);
     _updateSearchFuture();
+  }
+
+  @override
+  void dispose() {
+    AppLockScreen.moduleSessionEpoch.removeListener(_onModuleSessionChanged);
+    super.dispose();
+  }
+
+  void _onModuleSessionChanged() {
+    if (!mounted) return;
+    setState(() {
+      _updateSearchFuture();
+    });
   }
 
   @override
@@ -143,12 +162,22 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
     final q = widget.query.trim();
     if (q.length < 2) {
       _searchFuture = null;
-    } else {
-      _searchFuture = Future.wait([
-        TransactionRepository.instance.searchTransactions(q),
-        PeriodRepository.instance.searchPeriodLogs(q),
-      ]);
+      return;
     }
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    final canSearchFinances = settings.showFinancialManager &&
+        !ModuleLockGate.isModuleCurrentlyLocked(settings, 'finances');
+    final canSearchHealth = settings.isPeriodTrackerEnabled &&
+        !ModuleLockGate.isModuleCurrentlyLocked(settings, 'health');
+
+    _searchFuture = Future.wait([
+      canSearchFinances
+          ? TransactionRepository.instance.searchTransactions(q)
+          : Future.value(<TransactionModel>[]),
+      canSearchHealth
+          ? PeriodRepository.instance.searchPeriodLogs(q)
+          : Future.value(<PeriodLog>[]),
+    ]);
   }
 
   static final RegExp _whitespaceRegex = RegExp(r'\s+');
@@ -202,6 +231,18 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
     if (search.isEmpty) return [];
 
     final settings = Provider.of<SettingsProvider>(context, listen: false);
+    final isFinancesLocked =
+        ModuleLockGate.isModuleCurrentlyLocked(settings, 'finances');
+    final isHealthLocked =
+        ModuleLockGate.isModuleCurrentlyLocked(settings, 'health');
+
+    void openFinancesFeature(VoidCallback action) {
+      if (isFinancesLocked) {
+        appTabNavigationRequest.value = 'finances';
+        return;
+      }
+      action();
+    }
 
     final allItems = <SettingsSearchResult>[
       // Security
@@ -225,6 +266,36 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         trailingWidget: Switch.adaptive(
           value: settings.appLockEnabled,
           onChanged: (val) async {
+            if (!val) {
+              final auth = LocalAuthentication();
+              try {
+                final canCheck = await auth.canCheckBiometrics ||
+                    await auth.isDeviceSupported();
+                if (canCheck) {
+                  final didAuth = await AppLockScreen.withLockIgnored(
+                    () => auth.authenticate(
+                      localizedReason: 'Authenticate to disable App Lock',
+                      options: const AuthenticationOptions(
+                        stickyAuth: true,
+                        biometricOnly: false,
+                      ),
+                    ),
+                  );
+                  if (!didAuth) return;
+                  await AppLockScreen.resetNativeLockFlag();
+                }
+              } on PlatformException catch (e) {
+                if (e.code != 'NotAvailable' &&
+                    e.code != 'PasscodeNotSet' &&
+                    e.code != 'NotEnrolled') {
+                  return;
+                }
+              } catch (_) {
+                return;
+              }
+            } else {
+              AppLockScreen.unlockSession();
+            }
             await settings.setAppLockEnabled(val);
             if (mounted) setState(() {});
           },
@@ -247,30 +318,32 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           'bank parser',
         ],
         onTap: () => AppRouter.push(context, const SettingsScreen(initialQuery: 'SMS')),
-        trailingWidget: _isTestingSync
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2))
-            : OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 10)),
-                onPressed: () async {
-                  setState(() => _isTestingSync = true);
-                  final messenger = ScaffoldMessenger.of(context);
-                  await SmsService.performDailyTransactionSync();
-                  if (mounted) {
-                    setState(() => _isTestingSync = false);
-                    messenger.showSnackBar(
-                      const SnackBar(
-                          content: Text('SMS Auto-Sync check complete'),
-                          behavior: SnackBarBehavior.floating),
-                    );
-                  }
-                },
-                child: const Text('Test'),
-              ),
+        trailingWidget: !settings.showFinancialManager
+            ? null
+            : (_isTestingSync
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 10)),
+                    onPressed: () => openFinancesFeature(() async {
+                      setState(() => _isTestingSync = true);
+                      final messenger = ScaffoldMessenger.of(context);
+                      await SmsService.performDailyTransactionSync();
+                      if (mounted) {
+                        setState(() => _isTestingSync = false);
+                        messenger.showSnackBar(
+                          const SnackBar(
+                              content: Text('SMS Auto-Sync check complete'),
+                              behavior: SnackBarBehavior.floating),
+                        );
+                      }
+                    }),
+                    child: const Text('Test'),
+                  )),
       ),
       SettingsSearchResult(
         title: 'Currency',
@@ -293,7 +366,9 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           'keywords',
           'ledger'
         ],
-        onTap: () => AppRouter.push(context, const CategoryManagementScreen()),
+        onTap: () => openFinancesFeature(
+          () => AppRouter.push(context, const CategoryManagementScreen()),
+        ),
       ),
       SettingsSearchResult(
         title: 'Savings Goals & Vault',
@@ -317,7 +392,9 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         section: 'Finances',
         icon: Icons.contacts_outlined,
         keywords: ['sms contacts', 'contacts', 'senders', 'bank', 'phone', 'whitelist', 'blacklist'],
-        onTap: () => AppRouter.push(context, const SmsContactsScreen()),
+        onTap: () => openFinancesFeature(
+          () => AppRouter.push(context, const SmsContactsScreen()),
+        ),
       ),
       SettingsSearchResult(
         title: 'SMS Import Rules',
@@ -331,7 +408,9 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           'expense rules',
           'train parser',
         ],
-        onTap: () => AppRouter.push(context, const SmsRulesScreen()),
+        onTap: () => openFinancesFeature(
+          () => AppRouter.push(context, const SmsRulesScreen()),
+        ),
       ),
       SettingsSearchResult(
         title: 'Recurring Transactions',
@@ -346,7 +425,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           'auto transaction',
           'salary',
         ],
-        onTap: () {
+        onTap: () => openFinancesFeature(() {
           final currency = context.read<SettingsProvider>().currencySymbol;
           RecurringRulesSheet.show(
             context: context,
@@ -360,7 +439,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
               FinancialManagerScreen.refreshNotifier.value++;
             },
           );
-        },
+        }),
       ),
 
       // Data & Backups
@@ -393,7 +472,9 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           'excel',
           'ledger csv',
         ],
-        onTap: () => BackupService.importTransactionsFromCsv(context),
+        onTap: () => openFinancesFeature(
+          () => BackupService.importTransactionsFromCsv(context),
+        ),
       ),
       SettingsSearchResult(
         title: 'P2P Device Sync',
@@ -438,7 +519,13 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           'menstrual',
           'lunar',
         ],
-        onTap: () => AppRouter.push(context, const PeriodTrackerScreen()),
+        onTap: () {
+          if (isHealthLocked) {
+            appTabNavigationRequest.value = 'health';
+            return;
+          }
+          AppRouter.push(context, const PeriodTrackerScreen());
+        },
       ),
       SettingsSearchResult(
         title: 'Gemini Nano AI',
@@ -607,23 +694,31 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
   @override
   Widget build(BuildContext context) {
     if (widget.query.trim().isEmpty) return const SizedBox.shrink();
+    final settings = context.watch<SettingsProvider>();
+    final canShowFinances = settings.showFinancialManager &&
+        !ModuleLockGate.isModuleCurrentlyLocked(settings, 'finances');
+    final canShowHealth = settings.isPeriodTrackerEnabled &&
+        !ModuleLockGate.isModuleCurrentlyLocked(settings, 'health');
     final settingsResults = _searchSettings(context, widget.query);
     final noteProvider = context.watch<NoteProvider>();
 
     return FutureBuilder<List<dynamic>>(
       future: _searchFuture,
       builder: (context, snapshot) {
-        final transactions =
-            (snapshot.data?[0] as List<TransactionModel>? ?? [])
+        final transactions = canShowFinances
+            ? (snapshot.data?[0] as List<TransactionModel>? ?? [])
                 .where((t) =>
                     _fuzzyMatch(t.description, widget.query) ||
                     _fuzzyMatch(t.category, widget.query))
-                .toList();
-        final periodLogs = (snapshot.data?[1] as List<PeriodLog>? ?? [])
-            .where((p) =>
-                _fuzzyMatch(p.intensity, widget.query) ||
-                _fuzzyMatch(p.notes, widget.query))
-            .toList();
+                .toList()
+            : <TransactionModel>[];
+        final periodLogs = canShowHealth
+            ? (snapshot.data?[1] as List<PeriodLog>? ?? [])
+                .where((p) =>
+                    _fuzzyMatch(p.intensity, widget.query) ||
+                    _fuzzyMatch(p.notes, widget.query))
+                .toList()
+            : <PeriodLog>[];
         final noteCount = noteProvider.filteredNotes.length;
 
         if (settingsResults.isEmpty &&
@@ -983,6 +1078,11 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           ),
         ),
         onTap: () {
+          final settings = context.read<SettingsProvider>();
+          if (ModuleLockGate.isModuleCurrentlyLocked(settings, 'finances')) {
+            appTabNavigationRequest.value = 'finances';
+            return;
+          }
           AppRouter.push(context, TransactionEditorScreen(transaction: t)).then((_) {
             if (!mounted || !context.mounted) return;
             setState(() {
@@ -1043,7 +1143,14 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
-        onTap: () => AppRouter.push(context, const PeriodTrackerScreen()),
+        onTap: () {
+          final settings = context.read<SettingsProvider>();
+          if (ModuleLockGate.isModuleCurrentlyLocked(settings, 'health')) {
+            appTabNavigationRequest.value = 'health';
+            return;
+          }
+          AppRouter.push(context, const PeriodTrackerScreen());
+        },
       ),
     );
   }

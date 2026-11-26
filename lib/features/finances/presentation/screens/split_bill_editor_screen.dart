@@ -66,6 +66,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
   String? _userParticipantId;
   bool _userHasPaid = false;
   DateTime? _userPaidAt;
+  int? _userSettlementTransactionId;
 
   final List<Map<String, dynamic>> _participantsData = [];
   final Map<String, TextEditingController> _exactAmountControllers = {};
@@ -119,6 +120,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
     _userParticipantId = null;
     _userHasPaid = false;
     _userPaidAt = null;
+    _userSettlementTransactionId = null;
 
     bool foundUser = false;
     for (final p in b.participants) {
@@ -127,6 +129,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
         _userParticipantId = p.id;
         _userHasPaid = p.hasPaid;
         _userPaidAt = p.paidAt;
+        _userSettlementTransactionId = p.settlementTransactionId;
         _userExactAmountController.text = p.shareAmount.toStringAsFixed(2).replaceAll('.00', '');
       } else {
         _participantsData.add({
@@ -135,6 +138,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
           'amount': p.shareAmount,
           'hasPaid': p.hasPaid,
           'paidAt': p.paidAt,
+          'settlementTransactionId': p.settlementTransactionId,
         });
         _exactAmountControllers[p.contactName] = TextEditingController(
           text: p.shareAmount.toStringAsFixed(2).replaceAll('.00', ''),
@@ -440,7 +444,17 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
       lastDate: DateTime(2035),
     );
     if (picked != null) {
-      setState(() => _selectedDate = picked);
+      setState(() {
+        _selectedDate = DateTime(
+          picked.year,
+          picked.month,
+          picked.day,
+          _selectedDate.hour,
+          _selectedDate.minute,
+          _selectedDate.second,
+          _selectedDate.millisecond,
+        );
+      });
     }
   }
 
@@ -688,6 +702,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
               shareAmount: userShare,
               hasPaid: userPaid,
               paidAt: userPaidAt,
+              settlementTransactionId: userPaid ? _userSettlementTransactionId : null,
             ),
           );
         }
@@ -708,6 +723,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
               shareAmount: pShare,
               hasPaid: hasPaid,
               paidAt: hasPaid ? (p['paidAt'] as DateTime? ?? DateTime.now()) : null,
+              settlementTransactionId: hasPaid ? (p['settlementTransactionId'] as int?) : null,
             ),
           );
         }
@@ -729,6 +745,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
               shareAmount: exactShare,
               hasPaid: hasPaid,
               paidAt: hasPaid ? (p['paidAt'] as DateTime? ?? DateTime.now()) : null,
+              settlementTransactionId: hasPaid ? (p['settlementTransactionId'] as int?) : null,
             ),
           );
         }
@@ -748,6 +765,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
               shareAmount: userShare > 0 ? userShare : 0.0,
               hasPaid: userPaid,
               paidAt: userPaidAt,
+              settlementTransactionId: userPaid ? _userSettlementTransactionId : null,
             ),
           );
         }
@@ -769,6 +787,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
               description: '$title (Split: You paid)',
               date: _selectedDate,
               category: _selectedCategory,
+              isAiRefined: true,
             );
             await TransactionRepository.instance.updateTransaction(updatedTx);
             FinancialManagerScreen.refreshNotifier.value = DateTime.now().millisecondsSinceEpoch;
@@ -782,6 +801,7 @@ class _SplitBillEditorScreenState extends State<SplitBillEditorScreen> {
             isExpense: true,
             category: _selectedCategory,
             account: AccountType.daily,
+            isAiRefined: true,
           );
           final createdTx = await TransactionRepository.instance.createTransaction(newTx);
           linkedTxId = createdTx.id;

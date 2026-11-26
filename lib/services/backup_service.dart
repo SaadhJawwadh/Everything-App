@@ -189,7 +189,7 @@ Future<String> generateBackupJson({Map<String, dynamic>? settingsOverride}) asyn
       'lockFinances': prefs.getBool('lockFinances') ?? false,
       'lockHealth': prefs.getBool('lockHealth') ?? false,
       'screenshotShieldEnabled': prefs.getBool('screenshotShieldEnabled') ?? false,
-      'hideWidgetDataWhenLocked': prefs.getBool('hideWidgetDataWhenLocked') ?? true,
+      'hideWidgetDataWhenLocked': prefs.getBool('hideWidgetDataWhenLocked') ?? false,
       'budgetAlertsEnabled': prefs.getBool('budgetAlertsEnabled') ?? true,
       'billRemindersEnabled': prefs.getBool('billRemindersEnabled') ?? true,
       'weeklyDigestEnabled': prefs.getBool('weeklyDigestEnabled') ?? false,
@@ -576,11 +576,11 @@ class BackupService {
         exportPayload = await encryptBackupJsonAsync(json, passphrase);
       }
 
-      AppLockScreen.ignoreNextResumeLock();
-      
       String? dir;
       try {
-        dir = await FilePicker.platform.getDirectoryPath();
+        dir = await AppLockScreen.withLockIgnored(
+          () => FilePicker.platform.getDirectoryPath(),
+        );
       } catch (_) {
         dir = null;
       }
@@ -604,8 +604,9 @@ class BackupService {
         final tempDir = await getTemporaryDirectory();
         final file = File('${tempDir.path}/notebook_backup_$dateStr.json');
         await file.writeAsString(exportPayload);
-        AppLockScreen.ignoreNextResumeLock();
-        await Share.shareXFiles([XFile(file.path)], text: 'Everything App Backup ($dateStr)');
+        await AppLockScreen.withLockIgnored(
+          () => Share.shareXFiles([XFile(file.path)], text: 'Everything App Backup ($dateStr)'),
+        );
       }
     } catch (e) {
       if (context.mounted) {
@@ -624,10 +625,11 @@ class BackupService {
     try {
       FilePickerResult? result;
       try {
-        AppLockScreen.ignoreNextResumeLock();
-        result = await FilePicker.platform.pickFiles(
-          type: FileType.custom,
-          allowedExtensions: ['json'],
+        result = await AppLockScreen.withLockIgnored(
+          () => FilePicker.platform.pickFiles(
+            type: FileType.custom,
+            allowedExtensions: ['json'],
+          ),
         );
       } catch (e) {
         debugPrint('JSON pickFiles error: $e');
@@ -1017,10 +1019,11 @@ class BackupService {
         csvBuffer.writeln('$id,$date,$amount,$type,$category,$description,$smsId');
       }
 
-      AppLockScreen.ignoreNextResumeLock();
       String? dir;
       try {
-        dir = await FilePicker.platform.getDirectoryPath();
+        dir = await AppLockScreen.withLockIgnored(
+          () => FilePicker.platform.getDirectoryPath(),
+        );
       } catch (_) {
         dir = null;
       }
@@ -1043,8 +1046,9 @@ class BackupService {
         final tempDir = await getTemporaryDirectory();
         final file = File('${tempDir.path}/transactions_export_$dateStr.csv');
         await file.writeAsString(csvBuffer.toString());
-        AppLockScreen.ignoreNextResumeLock();
-        await Share.shareXFiles([XFile(file.path)], text: 'Transaction Ledger Export ($dateStr)');
+        await AppLockScreen.withLockIgnored(
+          () => Share.shareXFiles([XFile(file.path)], text: 'Transaction Ledger Export ($dateStr)'),
+        );
       }
     } catch (e) {
       if (context.mounted) {
@@ -1129,10 +1133,11 @@ class BackupService {
     try {
       FilePickerResult? result;
       try {
-        AppLockScreen.ignoreNextResumeLock();
-        result = await FilePicker.platform.pickFiles(
-          type: FileType.custom,
-          allowedExtensions: ['csv', 'txt'],
+        result = await AppLockScreen.withLockIgnored(
+          () => FilePicker.platform.pickFiles(
+            type: FileType.custom,
+            allowedExtensions: ['csv', 'txt'],
+          ),
         );
       } catch (e) {
         debugPrint('CSV pickFiles error: $e');

@@ -14,6 +14,7 @@ import '../../../../../core/routes/app_router.dart';
 import '../../../../../widgets/settings_widgets.dart';
 import '../../../../sync/presentation/screens/p2p_sync_screen.dart';
 import '../../../../../l10n/app_localizations.dart';
+import '../../../../../screens/app_lock_screen.dart';
 import '../../../providers/settings_provider.dart';
 import '../settings_dialogs.dart';
 
@@ -182,19 +183,45 @@ class SyncBackupSettingsScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _showRecoveryKeySheet(BuildContext context) async {
-    final l10n = AppLocalizations.of(context);
+  @visibleForTesting
+  static Future<bool> confirmRecoveryKeyAuth(String reason) async {
     final auth = LocalAuthentication();
     try {
-      final canCheck = await auth.canCheckBiometrics || await auth.isDeviceSupported();
-      if (canCheck) {
-        final didAuth = await auth.authenticate(
-          localizedReason: l10n?.appLockAuthReason ?? 'Authenticate to access your Auto-Backup Recovery Key',
-          options: const AuthenticationOptions(stickyAuth: true, biometricOnly: false),
-        );
-        if (!didAuth) return;
+      final canCheck =
+          await auth.canCheckBiometrics || await auth.isDeviceSupported();
+      if (!canCheck) return true;
+      final didAuth = await AppLockScreen.withLockIgnored(
+        () => auth.authenticate(
+          localizedReason: reason,
+          options: const AuthenticationOptions(
+            stickyAuth: true,
+            biometricOnly: false,
+          ),
+        ),
+      );
+      if (didAuth) {
+        await AppLockScreen.resetNativeLockFlag();
       }
-    } catch (_) {}
+      return didAuth;
+    } on PlatformException catch (e) {
+      if (e.code == 'NotAvailable' ||
+          e.code == 'PasscodeNotSet' ||
+          e.code == 'NotEnrolled') {
+        return true;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _showRecoveryKeySheet(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final ok = await confirmRecoveryKeyAuth(
+      l10n?.appLockAuthReason ??
+          'Authenticate to access your Auto-Backup Recovery Key',
+    );
+    if (!ok) return;
 
     final currentKey = await BackupVaultKeyService.instance.getOrCreateVaultKey();
     if (!context.mounted) return;

@@ -84,12 +84,20 @@ class _ModuleLockGateState extends State<ModuleLockGate> {
     if (!widget.isActive || _promptedForEpoch || _isAuthenticating) return;
     if (!widget.isLockedSettingEnabled) return;
     if (AppLockScreen.unlockedModules.contains(widget.moduleKey)) return;
-    if (AppLockScreen.isLockIgnored) return;
+    if (AppLockScreen.isLockIgnored || AppLockScreen.isInTrueBackground) return;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !widget.isActive || _promptedForEpoch) return;
+      if (!mounted || !widget.isActive || _promptedForEpoch || _isAuthenticating) {
+        return;
+      }
+      if (AppLockScreen.isLockIgnored || AppLockScreen.isInTrueBackground) {
+        return;
+      }
+      if (ModalRoute.of(context)?.isCurrent == false) {
+        return;
+      }
       final settings = context.read<SettingsProvider>();
-      if (settings.appLockEnabled) return;
+      if (!settings.isInitialized || settings.appLockEnabled) return;
       _promptedForEpoch = true;
       unawaited(_authenticate(settings));
     });
@@ -101,40 +109,45 @@ class _ModuleLockGateState extends State<ModuleLockGate> {
         'Authenticate to unlock ${widget.moduleTitle}';
     setState(() => _isAuthenticating = true);
     try {
-      bool useBiometricOnly = settings.useBiometrics;
-      if (useBiometricOnly) {
-        final canCheck = await _auth.canCheckBiometrics;
-        final available = canCheck ? await _auth.getAvailableBiometrics() : <BiometricType>[];
-        if (available.isEmpty) {
-          useBiometricOnly = false;
+      final didAuth = await AppLockScreen.withLockIgnored<bool>(() async {
+        bool useBiometricOnly = settings.useBiometrics;
+        if (useBiometricOnly) {
+          final canCheck = await _auth.canCheckBiometrics;
+          final available =
+              canCheck ? await _auth.getAvailableBiometrics() : <BiometricType>[];
+          if (available.isEmpty) {
+            useBiometricOnly = false;
+          }
         }
-      }
 
-      bool didAuth;
-      try {
-        didAuth = await _auth.authenticate(
-          localizedReason: reason,
-          options: AuthenticationOptions(
-            stickyAuth: true,
-            biometricOnly: useBiometricOnly,
-          ),
-        );
-      } on PlatformException catch (e) {
-        if (useBiometricOnly &&
-            (e.code == 'NotEnrolled' ||
-                e.code == 'LockedOut' ||
-                e.code == 'PermanentlyLockedOut' ||
-                e.code == 'NotAvailable')) {
-          didAuth = await _auth.authenticate(
+        try {
+          return await _auth.authenticate(
             localizedReason: reason,
-            options: const AuthenticationOptions(
+            options: AuthenticationOptions(
               stickyAuth: true,
-              biometricOnly: false,
+              biometricOnly: useBiometricOnly,
             ),
           );
-        } else {
+        } on PlatformException catch (e) {
+          if (useBiometricOnly &&
+              (e.code == 'NotEnrolled' ||
+                  e.code == 'LockedOut' ||
+                  e.code == 'PermanentlyLockedOut' ||
+                  e.code == 'NotAvailable')) {
+            return await _auth.authenticate(
+              localizedReason: reason,
+              options: const AuthenticationOptions(
+                stickyAuth: true,
+                biometricOnly: false,
+              ),
+            );
+          }
           rethrow;
         }
+      });
+
+      if (didAuth) {
+        await AppLockScreen.resetNativeLockFlag();
       }
 
       if (didAuth && mounted) {
@@ -142,6 +155,22 @@ class _ModuleLockGateState extends State<ModuleLockGate> {
         AppLockScreen.unlockedModules.add(widget.moduleKey);
         AppLockScreen.moduleSessionEpoch.value++;
         setState(() {});
+      }
+    } on PlatformException catch (e) {
+      debugPrint('[ModuleLockGate] Auth error for ${widget.moduleKey}: $e');
+      if (mounted &&
+          (e.code == 'NotAvailable' ||
+              e.code == 'PasscodeNotSet' ||
+              e.code == 'NotEnrolled')) {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)?.appLockNoCredentials ??
+                  'No screen lock or biometric credentials enrolled on this device.',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     } catch (e) {
       debugPrint('[ModuleLockGate] Auth error for ${widget.moduleKey}: $e');

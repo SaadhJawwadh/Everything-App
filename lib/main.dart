@@ -111,6 +111,17 @@ Future<void> main() async {
     debugPrint('Critical initialization error: $e');
   }
 
+  // Pre-load persisted preferences before the first frame so AppLockScreen,
+  // HomeScreen, theme, and native widget config never observe uninitialized
+  // default flags (prevents cold-start lock bypass and premature widget
+  // "Finances disabled" poisoning).
+  final settingsProvider = SettingsProvider();
+  try {
+    await settingsProvider.initialized.timeout(const Duration(seconds: 2));
+  } catch (e) {
+    debugPrint('Settings pre-load wait failed: $e');
+  }
+
   WidgetsBinding.instance.addPostFrameCallback((_) {
     unawaited(_initializeBackgroundServices());
   });
@@ -119,12 +130,11 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         Provider<LocalAiService>(create: (_) => HybridLocalAiService()),
-        ChangeNotifierProvider(
+        ChangeNotifierProvider<SettingsProvider>(
           create: (context) {
-            final settings = SettingsProvider();
             final aiService = Provider.of<LocalAiService>(context, listen: false);
-            settings.checkAiCoreSupport(aiService);
-            return settings;
+            settingsProvider.checkAiCoreSupport(aiService);
+            return settingsProvider;
           },
         ),
         ChangeNotifierProvider(create: (_) => NoteProvider()),

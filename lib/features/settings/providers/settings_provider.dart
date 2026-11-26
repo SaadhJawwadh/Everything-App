@@ -199,6 +199,9 @@ class SettingsProvider extends ChangeNotifier {
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
 
+  final Completer<void> _initializedCompleter = Completer<void>();
+  Future<void> get initialized => _initializedCompleter.future;
+
   bool _dailySyncEnabled = false;
   bool get dailySyncEnabled => _dailySyncEnabled;
 
@@ -240,8 +243,9 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   Future<void> loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    _textSize = prefs.getDouble('textSize') ?? 16.0;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _textSize = prefs.getDouble('textSize') ?? 16.0;
     final viewModeIndex = prefs.getInt('noteViewMode');
     if (viewModeIndex != null) {
       if (viewModeIndex >= 0 && viewModeIndex < NoteViewMode.values.length) {
@@ -371,9 +375,27 @@ class SettingsProvider extends ChangeNotifier {
 
     final themeIndex = prefs.getInt('themeMode') ?? 0;
     _themeMode = _getThemeModeFromInt(themeIndex);
+    } catch (e) {
+      debugPrint('Error loading settings: $e');
+    } finally {
+      _isInitialized = true;
+      if (!_initializedCompleter.isCompleted) {
+        _initializedCompleter.complete();
+      }
+      notifyListeners();
+    }
 
-    _isInitialized = true;
-    notifyListeners();
+    if (!kIsWeb) {
+      unawaited(WidgetHelper.syncWidgetConfig(
+        showFinancialManager: _showFinancialManager,
+        appLockEnabled: _appLockEnabled,
+        lockFinances: _lockFinances,
+        hideWidgetDataWhenLocked: _hideWidgetDataWhenLocked,
+        screenshotShieldEnabled: _screenshotShieldEnabled,
+        useDynamicColor: _useDynamicColor,
+        languageCode: selectedLanguageCode,
+      ));
+    }
 
     if (_autoBackupEnabled) {
       await syncAutoBackupSchedule();
@@ -754,6 +776,7 @@ class SettingsProvider extends ChangeNotifier {
     await prefs.setBool('useDynamicColor', value);
     notifyListeners();
     if (!kIsWeb) {
+      unawaited(WidgetHelper.syncWidgetConfig(useDynamicColor: value));
       unawaited(WidgetHelper.updateWidgetData());
       unawaited(WidgetHelper.updateTodoWidgetData());
     }
@@ -765,8 +788,9 @@ class SettingsProvider extends ChangeNotifier {
     await prefs.setBool('isPeriodTrackerEnabled', enabled);
     if (!kIsWeb) {
       if (enabled) {
-        AppLockScreen.ignoreNextResumeLock();
-        await NotificationService.requestPermissions();
+        await AppLockScreen.withLockIgnored(
+          () => NotificationService.requestPermissions(),
+        );
       }
       await NotificationService.schedulePeriodNotifications();
     }

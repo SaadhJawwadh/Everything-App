@@ -49,7 +49,7 @@ class ChangelogRelease {
 
 /// Latest release kept in Dart for synchronous rendering.
 final ChangelogRelease kLatestChangelog = ChangelogRelease(
-  version: 'v3.8.1',
+  version: 'v3.8.2',
   date: 'November 26, 2026',
   isLatest: true,
   categories: [
@@ -71,8 +71,8 @@ final ChangelogRelease kLatestChangelog = ChangelogRelease(
     ChangelogCategory(
       title: 'Fixes',
       items: [
-        'Checklist Picker & Android 12–16 Widget Taps: Fixed unclickable rows, edge-to-edge dim scrim, modal fade animation, and collection fill-in intents for task toggles and note opening.',
-        'Finance Widget Sync Reliability: Fixed Finance widgets staying masked or disabled when toggling lock settings or resuming the app.',
+        'Bulletproof Transaction & Note Saves: Manual transaction edits are no longer reverted by background AI, split-bill and savings goal links stay intact, and image-only notes save safely on app background.',
+        'Finance Widget & App Lock Stability: Fixed random "Finances disabled" flashes on cold start, PIN-fallback re-lock loops, screen-off latch races, and module-lock resume prompts.',
       ],
     ),
   ],

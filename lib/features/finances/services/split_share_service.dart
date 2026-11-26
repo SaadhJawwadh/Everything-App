@@ -121,18 +121,20 @@ class SplitShareService {
       currencySymbol: currencySymbol,
       defaultPaymentInfo: defaultPaymentInfo,
     );
-    AppLockScreen.ignoreNextResumeLock();
-    await Share.share(
-      text,
-      subject: 'Split Bill: ${bill.title}',
+    await AppLockScreen.withLockIgnored(
+      () => Share.share(
+        text,
+        subject: 'Split Bill: ${bill.title}',
+      ),
     );
   }
 
   static Future<void> shareText(String text, {String? subject}) async {
-    AppLockScreen.ignoreNextResumeLock();
-    await Share.share(
-      text,
-      subject: subject,
+    await AppLockScreen.withLockIgnored(
+      () => Share.share(
+        text,
+        subject: subject,
+      ),
     );
   }
 

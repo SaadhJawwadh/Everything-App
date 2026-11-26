@@ -174,6 +174,7 @@ class SplitBillRepository {
               TransactionFields.amount: bill.totalAmount,
               TransactionFields.description: '${bill.title} (Split: You paid)',
               TransactionFields.date: bill.date.toIso8601String(),
+              TransactionFields.isAiRefined: 1,
               TransactionFields.dateModified: now,
               if (bill.groupTag != null && bill.groupTag!.isNotEmpty)
                 TransactionFields.category: bill.groupTag,

@@ -246,7 +246,7 @@ object WidgetCacheStore {
     @Synchronized
     fun syncConfig(
         context: Context,
-        showFinancialManager: Boolean,
+        showFinancialManager: Boolean? = null,
         appLockEnabled: Boolean,
         lockFinances: Boolean,
         hideWidgetDataWhenLocked: Boolean = false,
@@ -254,11 +254,13 @@ object WidgetCacheStore {
         useDynamicColor: Boolean? = null
     ): Boolean {
         val editor = prefs(context).edit()
-            .putBoolean(KEY_SHOW_FINANCIAL_MANAGER, showFinancialManager)
             .putBoolean(KEY_APP_LOCK_ENABLED, appLockEnabled)
             .putBoolean(KEY_LOCK_FINANCES, lockFinances)
             .putBoolean(KEY_HIDE_WIDGET_DATA_WHEN_LOCKED, hideWidgetDataWhenLocked)
             .putBoolean(KEY_SCREENSHOT_SHIELD_ENABLED, screenshotShieldEnabled)
+        if (showFinancialManager != null) {
+            editor.putBoolean(KEY_SHOW_FINANCIAL_MANAGER, showFinancialManager)
+        }
         if (useDynamicColor != null) {
             editor.putBoolean(KEY_USE_DYNAMIC_COLOR, useDynamicColor)
         }
@@ -271,13 +273,20 @@ object WidgetCacheStore {
 
     fun isFinanceLocked(context: Context): Boolean = false
 
+    @Synchronized
     fun isFinancialManagerEnabled(context: Context): Boolean {
         val store = prefs(context)
-        return if (store.contains(KEY_SHOW_FINANCIAL_MANAGER)) {
-            store.getBoolean(KEY_SHOW_FINANCIAL_MANAGER, false)
-        } else {
-            flutterPrefs(context).getBoolean("flutter.showFinancialManager", false)
+        val fPrefs = flutterPrefs(context)
+        if (fPrefs.contains("flutter.showFinancialManager")) {
+            val flutterValue = fPrefs.getBoolean("flutter.showFinancialManager", false)
+            if (!store.contains(KEY_SHOW_FINANCIAL_MANAGER) ||
+                store.getBoolean(KEY_SHOW_FINANCIAL_MANAGER, false) != flutterValue
+            ) {
+                store.edit().putBoolean(KEY_SHOW_FINANCIAL_MANAGER, flutterValue).commit()
+            }
+            return flutterValue
         }
+        return store.getBoolean(KEY_SHOW_FINANCIAL_MANAGER, false)
     }
 
     fun isAppLockEnabled(context: Context): Boolean =
@@ -330,12 +339,14 @@ object WidgetCacheStore {
             flutterDirty = true
         }
 
-        if (!cache.contains(KEY_SHOW_FINANCIAL_MANAGER) && fPrefs.contains("flutter.showFinancialManager")) {
-            cacheEditor.putBoolean(
-                KEY_SHOW_FINANCIAL_MANAGER,
-                fPrefs.getBoolean("flutter.showFinancialManager", false)
-            )
-            cacheDirty = true
+        if (fPrefs.contains("flutter.showFinancialManager")) {
+            val flutterValue = fPrefs.getBoolean("flutter.showFinancialManager", false)
+            if (!cache.contains(KEY_SHOW_FINANCIAL_MANAGER) ||
+                cache.getBoolean(KEY_SHOW_FINANCIAL_MANAGER, false) != flutterValue
+            ) {
+                cacheEditor.putBoolean(KEY_SHOW_FINANCIAL_MANAGER, flutterValue)
+                cacheDirty = true
+            }
         }
 
         // Migrate any pre-upgrade active note mappings or pending toggles into isolated store
@@ -516,10 +527,10 @@ object WidgetCacheStore {
             KEY_PENDING_TOGGLES to getPendingTogglesJson(context),
             KEY_ACTIVE_NOTE_ID to (store.getString(KEY_ACTIVE_NOTE_ID, "ALL_NOTES") ?: "ALL_NOTES"),
             KEY_ACTIVE_NOTE_TITLE to (store.getString(KEY_ACTIVE_NOTE_TITLE, "") ?: ""),
-            KEY_SHOW_FINANCIAL_MANAGER to store.getBoolean(KEY_SHOW_FINANCIAL_MANAGER, false),
+            KEY_SHOW_FINANCIAL_MANAGER to isFinancialManagerEnabled(context),
             KEY_APP_LOCK_ENABLED to store.getBoolean(KEY_APP_LOCK_ENABLED, false),
             KEY_LOCK_FINANCES to store.getBoolean(KEY_LOCK_FINANCES, false),
-            KEY_HIDE_WIDGET_DATA_WHEN_LOCKED to store.getBoolean(KEY_HIDE_WIDGET_DATA_WHEN_LOCKED, true),
+            KEY_HIDE_WIDGET_DATA_WHEN_LOCKED to store.getBoolean(KEY_HIDE_WIDGET_DATA_WHEN_LOCKED, false),
             KEY_SCREENSHOT_SHIELD_ENABLED to store.getBoolean(KEY_SCREENSHOT_SHIELD_ENABLED, false),
             "active_widget_ids" to getWidgetActiveNoteIds(context)
         )

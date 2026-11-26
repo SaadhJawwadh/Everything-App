@@ -153,6 +153,7 @@ class NoteEditorProvider extends ChangeNotifier {
       isPinned: _isPinned,
       tags: _tags,
       reminderAt: _reminderAt,
+      clearReminderAt: _reminderAt == null,
       dateModified: now,
     );
 

@@ -14,7 +14,6 @@ import 'package:note_taking_app/features/finances/providers/financial_manager_pr
 import 'package:note_taking_app/features/finances/providers/savings_goal_provider.dart';
 import 'package:note_taking_app/features/finances/providers/split_bill_provider.dart';
 import 'package:note_taking_app/features/health/providers/period_tracker_provider.dart';
-import 'package:note_taking_app/screens/app_lock_screen.dart';
 import 'package:note_taking_app/l10n/app_localizations.dart';
 import 'package:note_taking_app/services/backup_service.dart';
 import 'package:note_taking_app/services/p2p_sync_service.dart';
@@ -903,7 +902,6 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                   height: 48,
                                   child: OutlinedButton.icon(
                                     onPressed: () {
-                                      AppLockScreen.ignoreNextResumeLock();
                                       BackupService.exportBackup(context);
                                     },
                                     icon: const Icon(Icons.share_rounded, size: 18),
@@ -921,7 +919,6 @@ class _P2pSyncScreenState extends State<P2pSyncScreen> {
                                   height: 48,
                                   child: FilledButton.tonalIcon(
                                     onPressed: () {
-                                      AppLockScreen.ignoreNextResumeLock();
                                       BackupService.importBackup(context);
                                     },
                                     icon: const Icon(Icons.file_open_rounded, size: 18),

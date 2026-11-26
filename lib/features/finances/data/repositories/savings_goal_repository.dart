@@ -93,6 +93,7 @@ class SavingsGoalRepository {
       currentAmount: newAmount,
       isCompleted: isCompleted,
       completedAt: isCompleted ? (goal.completedAt ?? now) : null,
+      clearCompletedAt: !isCompleted,
     );
 
     await db.transaction((txn) async {
@@ -165,6 +166,7 @@ class SavingsGoalRepository {
       currentAmount: newAmount,
       isCompleted: isCompleted,
       completedAt: isCompleted ? goal.completedAt : null,
+      clearCompletedAt: !isCompleted,
     );
 
     await db.transaction((txn) async {

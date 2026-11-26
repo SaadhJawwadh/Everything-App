@@ -52,8 +52,9 @@ class NoteShareExportSheet {
               onTap: () {
                 Navigator.pop(context);
                 if (shareContent.isNotEmpty) {
-                  AppLockScreen.ignoreNextResumeLock();
-                  Share.share(shareContent, subject: title.isEmpty ? 'Note' : title);
+                  AppLockScreen.withLockIgnored(
+                    () => Share.share(shareContent, subject: title.isEmpty ? 'Note' : title),
+                  );
                 }
               },
             ),
@@ -68,8 +69,9 @@ class NoteShareExportSheet {
                 Navigator.pop(context);
                 final mdContent = title.isEmpty ? markdown : '# $title\n\n$markdown';
                 if (mdContent.isNotEmpty) {
-                  AppLockScreen.ignoreNextResumeLock();
-                  Share.share(mdContent, subject: title.isEmpty ? 'Note' : title);
+                  AppLockScreen.withLockIgnored(
+                    () => Share.share(mdContent, subject: title.isEmpty ? 'Note' : title),
+                  );
                 }
               },
             ),
@@ -86,8 +88,9 @@ class NoteShareExportSheet {
                 final safeTitle = (title.isEmpty ? 'Note' : title).replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
                 final file = File('${tempDir.path}/$safeTitle.txt');
                 await file.writeAsString(shareContent);
-                AppLockScreen.ignoreNextResumeLock();
-                await Share.shareXFiles([XFile(file.path)], text: title.isEmpty ? 'Note Export' : title);
+                await AppLockScreen.withLockIgnored(
+                  () => Share.shareXFiles([XFile(file.path)], text: title.isEmpty ? 'Note Export' : title),
+                );
               },
             ),
             ListTile(

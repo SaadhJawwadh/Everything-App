@@ -118,10 +118,11 @@ class StoryCardMediaService {
       final file = File('${tempDir.path}/$name');
       await file.writeAsBytes(bytes);
 
-      AppLockScreen.ignoreNextResumeLock();
-      final result = await Share.shareXFiles(
-        [XFile(file.path)],
-        text: title.isNotEmpty ? title : 'Story Note',
+      final result = await AppLockScreen.withLockIgnored(
+        () => Share.shareXFiles(
+          [XFile(file.path)],
+          text: title.isNotEmpty ? title : 'Story Note',
+        ),
       );
       return result.status == ShareResultStatus.success;
     } catch (e) {

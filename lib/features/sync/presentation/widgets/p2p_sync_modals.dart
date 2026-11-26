@@ -5,7 +5,6 @@ import '../../../../core/services/app_haptics.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../core/ui/app_dialog.dart';
-import '../../../../screens/app_lock_screen.dart';
 import '../../../../services/p2p_sync_service.dart';
 import '../../data/p2p_pairing_model.dart';
 import '../../providers/p2p_sync_provider.dart';
@@ -166,8 +165,10 @@ class P2pSyncModals {
                         onPressed: isPairing
                             ? null
                             : () async {
-                                AppLockScreen.ignoreNextResumeLock();
-                                final scanned = await AppRouter.push<String>(context, const QrScannerScreen());
+                                final scanned = await AppRouter.push<String>(
+                                  context,
+                                  const QrScannerScreen(),
+                                );
                                 if (scanned != null && scanned.isNotEmpty) {
                                   try {
                                     final map = json.decode(scanned) as Map<String, dynamic>;

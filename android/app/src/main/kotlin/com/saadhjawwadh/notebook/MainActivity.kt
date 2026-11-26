@@ -18,6 +18,7 @@ import android.content.ContentValues
 import android.provider.MediaStore
 import android.content.ClipboardManager
 import android.content.ClipData
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import java.io.File
 import java.io.FileOutputStream
@@ -65,7 +66,12 @@ class MainActivity: FlutterFragmentActivity() {
                 screenOffSinceBackground = true
             }
         }
-        registerReceiver(receiver, filter)
+        ContextCompat.registerReceiver(
+            this,
+            receiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
         acquireMulticastLock()
     }
 
@@ -283,6 +289,7 @@ class MainActivity: FlutterFragmentActivity() {
                 result.success(isLocked)
             } else if (call.method == "resetLockFlag") {
                 screenOffLock = false
+                screenOffSinceBackground = false
                 result.success(true)
             } else if (call.method == "consumeScreenOff") {
                 // Returns whether the screen was turned off since the last call, then clears it.
@@ -342,7 +349,7 @@ class MainActivity: FlutterFragmentActivity() {
                 }
                 "syncWidgetConfig" -> {
                     val context = applicationContext
-                    val showFinancialManager = call.argument<Boolean>("showFinancialManager") ?: false
+                    val showFinancialManager = call.argument<Boolean>("showFinancialManager")
                     val appLockEnabled = call.argument<Boolean>("appLockEnabled") ?: false
                     val lockFinances = call.argument<Boolean>("lockFinances") ?: false
                     val hideWidgetDataWhenLocked = call.argument<Boolean>("hideWidgetDataWhenLocked") ?: false

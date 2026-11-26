@@ -289,13 +289,16 @@ class NoteEditorActions {
   ) async {
     AppHaptics.selectionClick();
     try {
-      AppLockScreen.ignoreNextResumeLock();
-      final didAuthenticate = await LocalAuthentication().authenticate(
-        localizedReason:
-            isCurrentlyLocked ? 'Unlock this note' : 'Lock this note',
-        options: const AuthenticationOptions(stickyAuth: true),
+      final didAuthenticate = await AppLockScreen.withLockIgnored(
+        () => LocalAuthentication().authenticate(
+          localizedReason:
+              isCurrentlyLocked ? 'Unlock this note' : 'Lock this note',
+          options: const AuthenticationOptions(stickyAuth: true),
+        ),
       );
-      if (!didAuthenticate || !context.mounted) return null;
+      if (!didAuthenticate) return null;
+      await AppLockScreen.resetNativeLockFlag();
+      if (!context.mounted) return null;
       final nextLocked = !isCurrentlyLocked;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -588,8 +591,10 @@ class NoteEditorActions {
     }
     final content = RichTextUtils.deltaToJson(delta);
     final plainText = quillController.document.toPlainText().trim();
+    final hasEmbeds = delta.toList().any((op) => op.data is Map);
     final isEmpty = title.isEmpty &&
         plainText.isEmpty &&
+        !hasEmbeds &&
         completedItems.isEmpty &&
         tags.isEmpty;
     final exists = initialNote != null || isNoteSaved;

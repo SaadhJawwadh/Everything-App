@@ -205,8 +205,9 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
       );
       if (proceed != true) return;
 
-      AppLockScreen.ignoreNextResumeLock();
-      final ok = await SmsService.requestPermissions();
+      final ok = await AppLockScreen.withLockIgnored(
+        () => SmsService.requestPermissions(),
+      );
       if (!mounted) return;
       if (!ok) {
         ScaffoldMessenger.of(context).showSnackBar(

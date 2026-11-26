@@ -131,11 +131,12 @@ Please format your response using clean Markdown with tables, code blocks, rende
           )
         : 'Exported ${transactions.length} transactions ($currency)';
 
-    AppLockScreen.ignoreNextResumeLock();
-    await Share.shareXFiles(
-      [XFile(file.path, mimeType: 'text/csv')],
-      text: promptText,
-      subject: 'Financial Ledger & AI Spending Analysis Export',
+    await AppLockScreen.withLockIgnored(
+      () => Share.shareXFiles(
+        [XFile(file.path, mimeType: 'text/csv')],
+        text: promptText,
+        subject: 'Financial Ledger & AI Spending Analysis Export',
+      ),
     );
   }
 

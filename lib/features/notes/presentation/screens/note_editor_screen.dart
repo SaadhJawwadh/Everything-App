@@ -391,6 +391,19 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
 
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      if (!_isNoteInTrash && (_debounce?.isActive ?? false)) {
+        _debounce?.cancel();
+        unawaited(saveNote());
+      }
+    }
+  }
+
+  @override
   void didChangeMetrics() {
     super.didChangeMetrics();
     if (!mounted) return;
@@ -445,7 +458,8 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
           }
           _updateColorFromTags();
         });
-        _onContentChanged();
+        _debounce?.cancel();
+        unawaited(saveNote());
       },
       onTagCreated: (newTag, colorVal) {
         setState(() {
@@ -460,7 +474,8 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
             _tagColors[newTag] = colorVal;
           }
         });
-        _onContentChanged();
+        _debounce?.cancel();
+        unawaited(saveNote());
       },
     );
   }
@@ -609,13 +624,15 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
   /// Authenticates before revealing a locked note's content.
   Future<void> _authenticateForLockedNote() async {
     try {
-      AppLockScreen.ignoreNextResumeLock();
-      final didAuthenticate = await LocalAuthentication().authenticate(
-        localizedReason: 'This note is locked',
-        options: const AuthenticationOptions(stickyAuth: true),
+      final didAuthenticate = await AppLockScreen.withLockIgnored(
+        () => LocalAuthentication().authenticate(
+          localizedReason: 'This note is locked',
+          options: const AuthenticationOptions(stickyAuth: true),
+        ),
       );
-      if (!mounted) return;
       if (didAuthenticate) {
+        await AppLockScreen.resetNativeLockFlag();
+        if (!mounted) return;
         setState(() => _lockAuthPassed = true);
         if (widget.targetLineIndex != null || widget.targetChecklistText != null) {
           _jumpToTargetChecklist();
@@ -630,13 +647,15 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
     final picked = await NoteEditorActions.pickReminder(context, _reminderAt);
     if (picked == null || !mounted) return;
     setState(() => _reminderAt = picked);
-    _onContentChanged();
+    _debounce?.cancel();
+    unawaited(saveNote());
   }
 
   void _clearReminder() {
     AppHaptics.selectionClick();
     setState(() => _reminderAt = null);
-    _onContentChanged();
+    _debounce?.cancel();
+    unawaited(saveNote());
   }
 
   void _performSearch(String query) {
@@ -736,7 +755,8 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
     final chosen = await NoteEditorActions.pickFolder(context, _folder);
     if (chosen == null || !mounted) return;
     setState(() => _folder = chosen);
-    _onContentChanged();
+    _debounce?.cancel();
+    unawaited(saveNote());
   }
 
   Future<void> _toggleNoteLock() async {
@@ -744,7 +764,8 @@ class _NoteEditorScreenState extends State<NoteEditorScreen>
         await NoteEditorActions.toggleNoteLock(context, _isNoteLocked);
     if (nextLocked == null || !mounted) return;
     setState(() => _isNoteLocked = nextLocked);
-    _onContentChanged();
+    _debounce?.cancel();
+    unawaited(saveNote());
   }
 
   Future<void> _restoreNoteFromTrash() async {

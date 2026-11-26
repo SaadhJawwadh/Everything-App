@@ -164,16 +164,25 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
 
     setState(() => _isLoading = true);
 
-    final transaction = TransactionModel(
-      id: widget.transaction?.id,
-      amount: amount,
-      description: description,
-      date: _selectedDate,
-      isExpense: _isExpense,
-      category: _category,
-      smsId: widget.transaction?.smsId,
-      account: _account,
-    );
+    final transaction = widget.transaction != null
+        ? widget.transaction!.copy(
+            amount: amount,
+            description: description,
+            date: _selectedDate,
+            isExpense: _isExpense,
+            category: _category,
+            account: _account,
+            isAiRefined: true,
+          )
+        : TransactionModel(
+            amount: amount,
+            description: description,
+            date: _selectedDate,
+            isExpense: _isExpense,
+            category: _category,
+            account: _account,
+            isAiRefined: true,
+          );
 
     if (widget.transaction == null) {
       await TransactionRepository.instance.createTransaction(transaction);
@@ -440,9 +449,20 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
-    if (picked != null && picked != _selectedDate) {
-      AppHaptics.selectionClick();
-      setState(() => _selectedDate = picked);
+    if (picked != null) {
+      final updatedDate = DateTime(
+        picked.year,
+        picked.month,
+        picked.day,
+        _selectedDate.hour,
+        _selectedDate.minute,
+        _selectedDate.second,
+        _selectedDate.millisecond,
+      );
+      if (updatedDate != _selectedDate) {
+        AppHaptics.selectionClick();
+        setState(() => _selectedDate = updatedDate);
+      }
     }
   }
 

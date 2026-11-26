@@ -62,10 +62,11 @@ class _NoteMigrationSheetState extends State<NoteMigrationSheet> {
   }
 
   Future<void> _launchGoogleTakeout() async {
-    AppLockScreen.ignoreNextResumeLock();
     final uri = Uri.parse('https://takeout.google.com/settings/takeout/custom/keep');
     try {
-      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      final launched = await AppLockScreen.withLockIgnored(
+        () => launchUrl(uri, mode: LaunchMode.externalApplication),
+      );
       if (!launched && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

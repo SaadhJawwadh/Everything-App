@@ -9,6 +9,7 @@ import '../../core/theme/app_layout.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/ui/app_card.dart';
 import '../../core/ui/app_chip.dart';
+import '../../core/ui/module_lock_gate.dart';
 import '../../data/note_model.dart';
 import '../../data/transaction_category.dart';
 import '../../data/transaction_model.dart';
@@ -23,6 +24,7 @@ import '../../features/notes/data/note_repository.dart';
 import '../../features/notes/presentation/screens/note_editor_screen.dart';
 import '../../features/notes/providers/note_provider.dart';
 import '../../features/settings/providers/settings_provider.dart';
+import '../../screens/app_lock_screen.dart';
 import '../../services/local_ai_service.dart';
 import '../../services/offline_ai_fallback_service.dart';
 import '../../utils/app_constants.dart';
@@ -57,7 +59,20 @@ class _A2uiSmartActionCardState extends State<A2uiSmartActionCard> {
   @override
   void initState() {
     super.initState();
+    AppLockScreen.moduleSessionEpoch.addListener(_onModuleSessionChanged);
     _parseDeterministic();
+  }
+
+  @override
+  void dispose() {
+    AppLockScreen.moduleSessionEpoch.removeListener(_onModuleSessionChanged);
+    super.dispose();
+  }
+
+  void _onModuleSessionChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -118,11 +133,16 @@ class _A2uiSmartActionCardState extends State<A2uiSmartActionCard> {
     final action = _parsedAction;
     if (action == null || _isSaving) return;
 
+    final type = action['type'] as String?;
+    if ((type == 'transaction' || type == 'split_bill') &&
+        ModuleLockGate.isModuleCurrentlyLocked(settings, 'finances')) {
+      return;
+    }
+
     setState(() => _isSaving = true);
     AppHaptics.mediumImpact();
 
     final messenger = ScaffoldMessenger.of(context);
-    final type = action['type'] as String?;
 
     try {
       if (type == 'transaction') {
@@ -322,9 +342,12 @@ class _A2uiSmartActionCardState extends State<A2uiSmartActionCard> {
   Future<void> _openEditor(SettingsProvider settings) async {
     final action = _parsedAction;
     if (action == null) return;
-    AppHaptics.selectionClick();
-
     final type = action['type'] as String?;
+    if ((type == 'transaction' || type == 'split_bill') &&
+        ModuleLockGate.isModuleCurrentlyLocked(settings, 'finances')) {
+      return;
+    }
+    AppHaptics.selectionClick();
     if (type == 'transaction') {
       final amount = (action['amount'] as num?)?.toDouble() ?? 0.0;
       final description = (action['description'] as String?) ?? '';
@@ -369,11 +392,16 @@ class _A2uiSmartActionCardState extends State<A2uiSmartActionCard> {
     if (action == null) return const SizedBox.shrink();
 
     final type = action['type'] as String?;
-    if (type == 'transaction' && !settings.showFinancialManager) {
+    final isFinancesLocked =
+        ModuleLockGate.isModuleCurrentlyLocked(settings, 'finances');
+    if (type == 'transaction' &&
+        (!settings.showFinancialManager || isFinancesLocked)) {
       return const SizedBox.shrink();
     }
     if (type == 'split_bill' &&
-        (!settings.showFinancialManager || !settings.showSplitBills)) {
+        (!settings.showFinancialManager ||
+            !settings.showSplitBills ||
+            isFinancesLocked)) {
       return const SizedBox.shrink();
     }
 

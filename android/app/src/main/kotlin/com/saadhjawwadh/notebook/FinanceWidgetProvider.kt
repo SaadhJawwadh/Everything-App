@@ -86,7 +86,6 @@ class FinanceWidgetProvider : AppWidgetProvider() {
         options: Bundle? = null
     ) {
         val isDisabled = !WidgetCacheStore.isFinancialManagerEnabled(context)
-        val isLocked = false
         val snapshot = if (isDisabled) null else parseSnapshot(context)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -104,14 +103,13 @@ class FinanceWidgetProvider : AppWidgetProvider() {
                 null
             }
 
-            val stripViews = buildStripViews(context, isDisabled, isLocked, snapshot)
-            val compactViews = buildCompactViews(context, isDisabled, isLocked, snapshot)
+            val stripViews = buildStripViews(context, isDisabled, snapshot)
+            val compactViews = buildCompactViews(context, isDisabled, snapshot)
             val standardViews = buildFullViews(
                 context = context,
                 layoutRes = R.layout.finance_widget_layout,
                 isExpanded = false,
                 isDisabled = isDisabled,
-                isLocked = isLocked,
                 snapshot = snapshot,
                 sparklineBitmap = sparklineBitmap
             )
@@ -120,7 +118,6 @@ class FinanceWidgetProvider : AppWidgetProvider() {
                 layoutRes = R.layout.finance_widget_expanded,
                 isExpanded = true,
                 isDisabled = isDisabled,
-                isLocked = isLocked,
                 snapshot = snapshot,
                 sparklineBitmap = sparklineBitmap
             )
@@ -142,8 +139,8 @@ class FinanceWidgetProvider : AppWidgetProvider() {
             val isExpanded = !isStrip && !isCompact && minWidth >= 340 && minHeight >= 260
 
             val views = when {
-                isStrip -> buildStripViews(context, isDisabled, isLocked, snapshot)
-                isCompact -> buildCompactViews(context, isDisabled, isLocked, snapshot)
+                isStrip -> buildStripViews(context, isDisabled, snapshot)
+                isCompact -> buildCompactViews(context, isDisabled, snapshot)
                 else -> {
                     val sparklineBitmap = if (
                         snapshot != null &&
@@ -163,7 +160,6 @@ class FinanceWidgetProvider : AppWidgetProvider() {
                         layoutRes = if (isExpanded) R.layout.finance_widget_expanded else R.layout.finance_widget_layout,
                         isExpanded = isExpanded,
                         isDisabled = isDisabled,
-                        isLocked = isLocked,
                         snapshot = snapshot,
                         sparklineBitmap = sparklineBitmap
                     )
@@ -237,11 +233,10 @@ class FinanceWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    private fun applyLockOrDisabledMask(
+    private fun applyDisabledMask(
         context: Context,
         views: RemoteViews,
-        isDisabled: Boolean,
-        isLocked: Boolean
+        isDisabled: Boolean
     ): Boolean {
         val manageIntent = actionPendingIntent(context, ACTION_VIEW_LEDGER, 5)
         views.setOnClickPendingIntent(android.R.id.background, manageIntent)
@@ -257,17 +252,6 @@ class FinanceWidgetProvider : AppWidgetProvider() {
             return true
         }
 
-        if (isLocked) {
-            views.setViewVisibility(R.id.finance_content_container, View.GONE)
-            views.setViewVisibility(R.id.finance_locked_container, View.VISIBLE)
-            views.setTextViewText(
-                R.id.finance_locked_label,
-                context.getString(R.string.widget_locked_title)
-            )
-            views.setOnClickPendingIntent(R.id.finance_locked_container, manageIntent)
-            return true
-        }
-
         views.setViewVisibility(R.id.finance_locked_container, View.GONE)
         views.setViewVisibility(R.id.finance_content_container, View.VISIBLE)
         return false
@@ -276,11 +260,10 @@ class FinanceWidgetProvider : AppWidgetProvider() {
     private fun buildStripViews(
         context: Context,
         isDisabled: Boolean,
-        isLocked: Boolean,
         snapshot: FinanceSnapshot?
     ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.finance_widget_strip)
-        if (applyLockOrDisabledMask(context, views, isDisabled, isLocked) || snapshot == null) {
+        if (applyDisabledMask(context, views, isDisabled) || snapshot == null) {
             return views
         }
 
@@ -306,11 +289,10 @@ class FinanceWidgetProvider : AppWidgetProvider() {
     private fun buildCompactViews(
         context: Context,
         isDisabled: Boolean,
-        isLocked: Boolean,
         snapshot: FinanceSnapshot?
     ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.finance_widget_compact)
-        if (applyLockOrDisabledMask(context, views, isDisabled, isLocked) || snapshot == null) {
+        if (applyDisabledMask(context, views, isDisabled) || snapshot == null) {
             return views
         }
 
@@ -340,12 +322,11 @@ class FinanceWidgetProvider : AppWidgetProvider() {
         layoutRes: Int,
         isExpanded: Boolean,
         isDisabled: Boolean,
-        isLocked: Boolean,
         snapshot: FinanceSnapshot?,
         sparklineBitmap: Bitmap?
     ): RemoteViews {
         val views = RemoteViews(context.packageName, layoutRes)
-        if (applyLockOrDisabledMask(context, views, isDisabled, isLocked) || snapshot == null) {
+        if (applyDisabledMask(context, views, isDisabled) || snapshot == null) {
             return views
         }
 

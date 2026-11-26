@@ -182,6 +182,7 @@ class SavingsGoalModel {
     bool? isCompleted,
     DateTime? createdAt,
     DateTime? completedAt,
+    bool clearCompletedAt = false,
     DateTime? deletedAt,
   }) {
     return SavingsGoalModel(
@@ -198,7 +199,7 @@ class SavingsGoalModel {
       iconCodePoint: iconCodePoint ?? this.iconCodePoint,
       isCompleted: isCompleted ?? this.isCompleted,
       createdAt: createdAt ?? this.createdAt,
-      completedAt: completedAt ?? this.completedAt,
+      completedAt: clearCompletedAt ? null : (completedAt ?? this.completedAt),
       deletedAt: deletedAt ?? this.deletedAt,
     );
   }

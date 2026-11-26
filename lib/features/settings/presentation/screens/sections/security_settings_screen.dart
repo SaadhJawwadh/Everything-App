@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:local_auth/local_auth.dart';
 import '../../../../../core/theme/app_layout.dart';
@@ -13,6 +14,40 @@ import '../settings_dialogs.dart';
 
 class SecuritySettingsScreen extends StatelessWidget {
   const SecuritySettingsScreen({super.key});
+
+  static Future<bool> _confirmDisableLockAuth(String reason) async {
+    final auth = LocalAuthentication();
+    try {
+      final canCheck = await auth.canCheckBiometrics ||
+          await auth.isDeviceSupported();
+      if (!canCheck) return true;
+      final didAuth = await AppLockScreen.withLockIgnored(
+        () => auth.authenticate(
+          localizedReason: reason,
+          options: const AuthenticationOptions(
+            stickyAuth: true,
+            biometricOnly: false,
+          ),
+        ),
+      );
+      if (didAuth) {
+        await AppLockScreen.resetNativeLockFlag();
+      }
+      return didAuth;
+    } on PlatformException catch (e) {
+      // Only allow bypass if the device has no enrolled credentials.
+      if (e.code == 'NotAvailable' ||
+          e.code == 'PasscodeNotSet' ||
+          e.code == 'NotEnrolled') {
+        return true;
+      }
+      debugPrint('Auth error disabling lock: $e');
+      return false;
+    } catch (e) {
+      debugPrint('Auth error disabling lock: $e');
+      return false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,22 +87,15 @@ class SecuritySettingsScreen extends StatelessWidget {
                           value: settings.appLockEnabled,
                           onChanged: (enabled) async {
                             if (!enabled) {
-                              final auth = LocalAuthentication();
-                              try {
-                                final canCheck = await auth.canCheckBiometrics || await auth.isDeviceSupported();
-                                if (canCheck) {
-                                  final didAuth = await auth.authenticate(
-                                    localizedReason: l10n?.appLockAuthReason ?? 'Authenticate to disable App Lock',
-                                    options: const AuthenticationOptions(
-                                      stickyAuth: true,
-                                      biometricOnly: false,
-                                    ),
-                                  );
-                                  if (!didAuth) return;
-                                }
-                              } catch (e) {
-                                debugPrint('Auth error disabling app lock: $e');
-                              }
+                              final ok = await _confirmDisableLockAuth(
+                                l10n?.appLockAuthReason ??
+                                    'Authenticate to disable App Lock',
+                              );
+                              if (!ok) return;
+                            } else {
+                              // Mark current session authenticated so enabling App Lock
+                              // never immediately locks the user out of Settings.
+                              AppLockScreen.unlockSession();
                             }
                             await settings.setAppLockEnabled(enabled);
                           },
@@ -120,7 +148,16 @@ class SecuritySettingsScreen extends StatelessWidget {
                                 : (l10n?.lockFinancesSubtitle ??
                                     'Require authentication to open Finances. Finance widgets still display summaries.'),
                             value: settings.lockFinances,
-                            onChanged: settings.setLockFinances,
+                            onChanged: (enabled) async {
+                              if (!enabled && !settings.appLockEnabled) {
+                                final ok = await _confirmDisableLockAuth(
+                                  l10n?.appLockAuthReason ??
+                                      'Authenticate to unlock Finances protection',
+                                );
+                                if (!ok) return;
+                              }
+                              await settings.setLockFinances(enabled);
+                            },
                           ),
                         if (settings.isPeriodTrackerEnabled)
                           SettingsSwitchTile(
@@ -131,7 +168,16 @@ class SecuritySettingsScreen extends StatelessWidget {
                                 ? 'Covered while full App Lock is active'
                                 : (l10n?.lockHealthSubtitle ?? 'Require authentication to open Health'),
                             value: settings.lockHealth,
-                            onChanged: settings.setLockHealth,
+                            onChanged: (enabled) async {
+                              if (!enabled && !settings.appLockEnabled) {
+                                final ok = await _confirmDisableLockAuth(
+                                  l10n?.appLockAuthReason ??
+                                      'Authenticate to unlock Health protection',
+                                );
+                                if (!ok) return;
+                              }
+                              await settings.setLockHealth(enabled);
+                            },
                           ),
                         if (!kIsWeb && Platform.isAndroid)
                           SettingsSwitchTile(
@@ -150,8 +196,8 @@ class SecuritySettingsScreen extends StatelessWidget {
                             subtitle: 'Immediately clear unlocked session state',
                             showArrow: true,
                             onTap: () {
-                              AppLockScreen.lockNow();
                               Navigator.of(context).popUntil((route) => route.isFirst);
+                              AppLockScreen.lockNow();
                             },
                           ),
                       ],

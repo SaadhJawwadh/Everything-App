@@ -81,8 +81,8 @@ class WhatsNewSheet extends StatelessWidget {
         items: [
           _WhatsNewItem(
             icon: Icons.verified_user_rounded,
-            title: "Checklist switching & live widget sync",
-            desc: "Fixed checklist picker taps, edge-to-edge scrim fade, Android 12–16 task clicks, and live Finance widget refreshes.",
+            title: "Reliable saves, widgets & App Lock",
+            desc: "Preserved manual transaction edits and image notes, fixed random Finance widget resets, and resolved PIN/App Lock resume conflicts.",
           ),
         ],
       ),

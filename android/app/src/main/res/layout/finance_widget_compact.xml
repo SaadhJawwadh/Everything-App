@@ -177,8 +177,8 @@
         <ImageView
             android:layout_width="28dp"
             android:layout_height="28dp"
-            android:contentDescription="@string/widget_locked_title"
-            android:src="@drawable/ic_lock_rounded"
+            android:contentDescription="@string/widget_finances_disabled"
+            android:src="@drawable/ic_shortcut_new_transaction"
             android:tint="@color/widget_primary" />
 
         <TextView
@@ -188,7 +188,7 @@
             android:layout_marginTop="6dp"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:text="@string/widget_locked_title"
+            android:text="@string/widget_finances_disabled"
             android:textColor="@color/widget_text_primary"
             android:textSize="13.5sp" />
     </LinearLayout>

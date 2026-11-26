@@ -460,8 +460,9 @@ class SettingsDialogs {
 
   static Future<void> showBackupLocationPicker(BuildContext context, SettingsProvider settings) async {
     try {
-      AppLockScreen.ignoreNextResumeLock();
-      final selectedDirectory = await FilePicker.platform.getDirectoryPath();
+      final selectedDirectory = await AppLockScreen.withLockIgnored(
+        () => FilePicker.platform.getDirectoryPath(),
+      );
       if (selectedDirectory != null && selectedDirectory.isNotEmpty) {
         final targetDir = Directory(selectedDirectory);
         if (!await targetDir.exists()) {
