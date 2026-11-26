@@ -152,7 +152,6 @@ class TodoWidgetProvider : AppWidgetProvider() {
         }
 
         private fun loadState(context: Context, appWidgetId: Int): TodoWidgetState {
-            val isLocked = WidgetCacheStore.isTodoLocked(context)
             val activeNoteId = WidgetCacheStore.getActiveNoteId(context, appWidgetId)
             val fallbackTitle = WidgetCacheStore.getActiveNoteTitle(context, appWidgetId)
             val isAllNotesMode = activeNoteId == "ALL_NOTES" || activeNoteId.isEmpty()
@@ -161,19 +160,6 @@ class TodoWidgetProvider : AppWidgetProvider() {
                 isAllNotesMode -> context.getString(R.string.widget_all_action_items)
                 fallbackTitle.isNotBlank() -> fallbackTitle
                 else -> context.getString(R.string.widget_checklist_fallback)
-            }
-
-            if (isLocked) {
-                return TodoWidgetState(
-                    isLocked = true,
-                    activeNoteId = activeNoteId,
-                    title = title,
-                    isAllNotesMode = isAllNotesMode,
-                    totalCount = 0,
-                    checkedCount = 0,
-                    pendingCount = 0,
-                    pendingItems = emptyList()
-                )
             }
 
             val notesJsonStr = WidgetCacheStore.getTodoNotesJson(context)
@@ -289,7 +275,7 @@ class TodoWidgetProvider : AppWidgetProvider() {
                 activityIntent(context, appWidgetId, 6, ACTION_VIEW_NOTES)
             )
 
-            if (state.isLocked || state.pendingCount <= 0) {
+            if (state.pendingCount <= 0) {
                 views.setViewVisibility(R.id.todo_strip_badge, View.GONE)
             } else {
                 views.setViewVisibility(R.id.todo_strip_badge, View.VISIBLE)
@@ -311,13 +297,6 @@ class TodoWidgetProvider : AppWidgetProvider() {
 
             val unlockPendingIntent = activityIntent(context, appWidgetId, 6, ACTION_VIEW_NOTES)
             views.setOnClickPendingIntent(android.R.id.background, unlockPendingIntent)
-
-            if (state.isLocked) {
-                views.setViewVisibility(R.id.todo_locked_container, View.VISIBLE)
-                views.setViewVisibility(R.id.todo_content_container, View.GONE)
-                views.setOnClickPendingIntent(R.id.todo_locked_container, unlockPendingIntent)
-                return views
-            }
 
             views.setViewVisibility(R.id.todo_locked_container, View.GONE)
             views.setViewVisibility(R.id.todo_content_container, View.VISIBLE)
@@ -402,10 +381,22 @@ class TodoWidgetProvider : AppWidgetProvider() {
             appWidgetId: Int,
             state: TodoWidgetState
         ) {
+            val templateIntent = Intent(context, TodoWidgetActionReceiver::class.java).apply {
+                action = ACTION_ITEM_CLICK
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+            }
+            val templatePendingIntent = PendingIntent.getBroadcast(
+                context,
+                requestCode(appWidgetId, 3),
+                templateIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+            )
+            views.setPendingIntentTemplate(R.id.todo_widget_list, templatePendingIntent)
+
             val builder = RemoteViews.RemoteCollectionItems.Builder()
             val visibleItems = state.pendingItems.take(MAX_INLINE_ITEMS)
 
-            for ((index, item) in visibleItems.withIndex()) {
+            for (item in visibleItems) {
                 val itemViews = RemoteViews(context.packageName, R.layout.todo_widget_item)
                 itemViews.setImageViewResource(R.id.todo_item_checkbox, R.drawable.ic_checkbox_unchecked)
                 itemViews.setTextViewText(R.id.todo_item_text, item.text)
@@ -417,43 +408,22 @@ class TodoWidgetProvider : AppWidgetProvider() {
                     itemViews.setViewVisibility(R.id.todo_item_source_note, View.GONE)
                 }
 
-                val itemReqBase = 1_000_000 + (appWidgetId and 0x7FFF) * 64 + index * 2
-
-                // Direct Activity PendingIntent on text container (avoids Android 14-16 BAL block)
-                val openIntent = Intent(context, MainActivity::class.java).apply {
-                    action = ACTION_OPEN_NOTE
-                    data = Uri.parse("widget://todo_item/$appWidgetId/$index/open")
-                    putExtra("open_note_id", item.noteId)
+                val openFillInIntent = Intent().apply {
+                    putExtra("click_action", "open_note")
+                    putExtra("note_id", item.noteId)
                     putExtra("line_index", item.lineIndex)
                     putExtra("text", item.text)
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 }
-                val openPendingIntent = PendingIntent.getActivity(
-                    context,
-                    itemReqBase,
-                    openIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-                itemViews.setOnClickPendingIntent(R.id.todo_item_text_container, openPendingIntent)
+                itemViews.setOnClickFillInIntent(R.id.todo_item_text_container, openFillInIntent)
 
-                // Direct Broadcast PendingIntent on 48x48dp checkbox wrapper
-                val toggleIntent = Intent(context, TodoWidgetActionReceiver::class.java).apply {
-                    action = ACTION_ITEM_CLICK
-                    data = Uri.parse("widget://todo_item/$appWidgetId/$index/toggle")
-                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+                val toggleFillInIntent = Intent().apply {
                     putExtra("click_action", "toggle")
                     putExtra("note_id", item.noteId)
                     putExtra("line_index", item.lineIndex)
                     putExtra("text", item.text)
                     putExtra("is_done", false)
                 }
-                val togglePendingIntent = PendingIntent.getBroadcast(
-                    context,
-                    itemReqBase + 1,
-                    toggleIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-                itemViews.setOnClickPendingIntent(R.id.todo_item_checkbox_wrapper, togglePendingIntent)
+                itemViews.setOnClickFillInIntent(R.id.todo_item_checkbox_wrapper, toggleFillInIntent)
 
                 builder.addItem(stableItemId(item.noteId, item.lineIndex, item.text), itemViews)
             }
@@ -465,14 +435,14 @@ class TodoWidgetProvider : AppWidgetProvider() {
                     R.id.todo_footer_text,
                     context.getString(R.string.widget_view_all_tasks, state.pendingCount)
                 )
-                val footerPendingIntent = if (!state.isAllNotesMode && state.activeNoteId.isNotBlank()) {
-                    activityIntent(context, appWidgetId, 7, ACTION_OPEN_NOTE) {
-                        putExtra("open_note_id", state.activeNoteId)
-                    }
-                } else {
-                    activityIntent(context, appWidgetId, 7, ACTION_VIEW_NOTES)
+                val footerFillInIntent = Intent().apply {
+                    putExtra("click_action", "view_all")
+                    putExtra(
+                        "note_id",
+                        if (!state.isAllNotesMode && state.activeNoteId.isNotBlank()) state.activeNoteId else ""
+                    )
                 }
-                footerViews.setOnClickPendingIntent(R.id.todo_footer_row, footerPendingIntent)
+                footerViews.setOnClickFillInIntent(R.id.todo_footer_row, footerFillInIntent)
                 builder.addItem(-999_999L, footerViews)
                 builder.setViewTypeCount(2)
             } else {

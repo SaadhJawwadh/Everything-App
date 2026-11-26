@@ -207,6 +207,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         if (mounted) {
           await context.read<NoteProvider>().refreshNotes();
         }
+        await WidgetHelper.updateWidgetData();
+        await WidgetHelper.updateTodoWidgetData();
       }());
       final settings = Provider.of<SettingsProvider>(context, listen: false);
       final bool isLocked = settings.appLockEnabled && !AppLockScreen.sessionAuthenticated.value;

@@ -323,18 +323,18 @@ void main() {
       expect(methodCalls.any((c) => c.method == 'requestPinAppWidget' && c.arguments?['type'] == 'todo'), isTrue);
     });
 
-    test('SettingsProvider hideWidgetDataWhenLocked defaults true and round-trips backup map', () async {
+    test('SettingsProvider hideWidgetDataWhenLocked defaults false and round-trips backup map', () async {
       SharedPreferences.setMockInitialValues({});
       final provider = SettingsProvider();
       await provider.loadSettings();
-      expect(provider.hideWidgetDataWhenLocked, isTrue);
-
-      await provider.setHideWidgetDataWhenLocked(false);
       expect(provider.hideWidgetDataWhenLocked, isFalse);
-      expect(provider.toBackupMap()['hideWidgetDataWhenLocked'], isFalse);
 
-      await provider.restoreFromBackupMap({'hideWidgetDataWhenLocked': true});
+      await provider.setHideWidgetDataWhenLocked(true);
       expect(provider.hideWidgetDataWhenLocked, isTrue);
+      expect(provider.toBackupMap()['hideWidgetDataWhenLocked'], isTrue);
+
+      await provider.restoreFromBackupMap({'hideWidgetDataWhenLocked': false});
+      expect(provider.hideWidgetDataWhenLocked, isFalse);
     });
   });
 }

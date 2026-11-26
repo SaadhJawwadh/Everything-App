@@ -689,7 +689,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get appLockSubtitle =>
-      'Authentification requise pour accéder au contenu';
+      'Authentification requise pour ouvrir l’app. Les widgets d’accueil affichent toujours vos infos.';
 
   @override
   String get appLockAuthReason =>
@@ -999,7 +999,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get lockFinancesSubtitle =>
-      'Authentification requise pour ouvrir Finances';
+      'Authentification requise pour ouvrir Finances. Les widgets Finance affichent toujours les résumés.';
 
   @override
   String get lockHealth => 'Verrouiller l’onglet Santé';

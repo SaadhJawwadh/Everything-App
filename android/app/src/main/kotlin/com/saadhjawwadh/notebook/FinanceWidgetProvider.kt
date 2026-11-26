@@ -86,8 +86,8 @@ class FinanceWidgetProvider : AppWidgetProvider() {
         options: Bundle? = null
     ) {
         val isDisabled = !WidgetCacheStore.isFinancialManagerEnabled(context)
-        val isLocked = !isDisabled && WidgetCacheStore.isFinanceLocked(context)
-        val snapshot = if (isDisabled || isLocked) null else parseSnapshot(context)
+        val isLocked = false
+        val snapshot = if (isDisabled) null else parseSnapshot(context)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val sparklineBitmap = if (

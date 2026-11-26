@@ -94,9 +94,8 @@ class UnifiedWidgetProvider : AppWidgetProvider() {
             val minHeight = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
             val isCompact = (minWidth in 1..220) || (minHeight in 1..90)
 
-            // 1. Finance Domain (respecting module toggle & privacy mask)
+            // 1. Finance Domain (respecting module toggle)
             val isFinanceEnabled = WidgetCacheStore.isFinancialManagerEnabled(context)
-            val isFinanceLocked = WidgetCacheStore.isFinanceLocked(context)
             val incomeColor = ContextCompat.getColor(context, R.color.widget_income)
             val expenseColor = ContextCompat.getColor(context, R.color.widget_expense)
             val mutedColor = ContextCompat.getColor(context, R.color.widget_text_secondary)
@@ -109,20 +108,6 @@ class UnifiedWidgetProvider : AppWidgetProvider() {
                 views.setTextColor(R.id.unified_net_balance, mutedColor)
                 views.setTextViewText(R.id.unified_today_spent, "--")
                 views.setViewVisibility(R.id.unified_month_spent, View.GONE)
-            } else if (isFinanceLocked) {
-                views.setTextViewText(R.id.unified_net_balance, "••••")
-                views.setTextColor(R.id.unified_net_balance, mutedColor)
-                views.setTextViewText(
-                    R.id.unified_today_spent,
-                    context.getString(R.string.widget_locked_title)
-                )
-                views.setViewVisibility(
-                    R.id.unified_month_spent,
-                    if (isCompact) View.GONE else View.VISIBLE
-                )
-                if (!isCompact) {
-                    views.setTextViewText(R.id.unified_month_spent, "••••")
-                }
             } else {
                 var spentToday = "--"
                 var spentMonth = "--"
@@ -156,8 +141,7 @@ class UnifiedWidgetProvider : AppWidgetProvider() {
                 }
             }
 
-            // 2. Notes & Checklist Domain (respecting privacy mask)
-            val isTodoLocked = WidgetCacheStore.isTodoLocked(context)
+            // 2. Notes & Checklist Domain
             val activeNoteId = WidgetCacheStore.getActiveNoteId(context, appWidgetId)
             val fallbackTitle = WidgetCacheStore.getActiveNoteTitle(context, appWidgetId)
             val isAllNotesMode = activeNoteId == "ALL_NOTES" || activeNoteId.isEmpty()
@@ -172,75 +156,65 @@ class UnifiedWidgetProvider : AppWidgetProvider() {
             var totalTaskCount = 0
             var checkedTaskCount = 0
 
-            if (!isTodoLocked) {
-                val notesJsonStr = WidgetCacheStore.getTodoNotesJson(context)
-                try {
-                    val notesArr = JSONArray(notesJsonStr)
-                    for (i in 0 until notesArr.length()) {
-                        val noteObj = notesArr.getJSONObject(i)
-                        val noteId = noteObj.optString("id", "")
-                        if (!isAllNotesMode && noteId != activeNoteId) continue
+            val notesJsonStr = WidgetCacheStore.getTodoNotesJson(context)
+            try {
+                val notesArr = JSONArray(notesJsonStr)
+                for (i in 0 until notesArr.length()) {
+                    val noteObj = notesArr.getJSONObject(i)
+                    val noteId = noteObj.optString("id", "")
+                    if (!isAllNotesMode && noteId != activeNoteId) continue
 
-                        if (!isAllNotesMode) {
-                            targetNoteId = activeNoteId
-                            val parsedTitle = noteObj.optString("title", "")
-                            if (parsedTitle.isNotBlank()) activeNoteTitle = parsedTitle
-                        }
+                    if (!isAllNotesMode) {
+                        targetNoteId = activeNoteId
+                        val parsedTitle = noteObj.optString("title", "")
+                        if (parsedTitle.isNotBlank()) activeNoteTitle = parsedTitle
+                    }
 
-                        val items = noteObj.optJSONArray("items")
-                        var arrayTotal = 0
-                        var arrayChecked = 0
-                        if (items != null) {
-                            for (j in 0 until items.length()) {
-                                val item = items.getJSONObject(j)
-                                arrayTotal++
-                                if (item.optBoolean("isDone", false)) {
-                                    arrayChecked++
-                                } else if (pendingTasks.size < 2) {
-                                    val text = item.optString("text", "").trim()
-                                    if (text.isNotEmpty()) {
-                                        pendingTasks.add(
-                                            UnifiedTask(
-                                                noteId = noteId,
-                                                lineIndex = item.optInt("lineIndex", j),
-                                                text = text
-                                            )
+                    val items = noteObj.optJSONArray("items")
+                    var arrayTotal = 0
+                    var arrayChecked = 0
+                    if (items != null) {
+                        for (j in 0 until items.length()) {
+                            val item = items.getJSONObject(j)
+                            arrayTotal++
+                            if (item.optBoolean("isDone", false)) {
+                                arrayChecked++
+                            } else if (pendingTasks.size < 2) {
+                                val text = item.optString("text", "").trim()
+                                if (text.isNotEmpty()) {
+                                    pendingTasks.add(
+                                        UnifiedTask(
+                                            noteId = noteId,
+                                            lineIndex = item.optInt("lineIndex", j),
+                                            text = text
                                         )
-                                        if (targetNoteId.isEmpty()) targetNoteId = noteId
-                                    }
+                                    )
+                                    if (targetNoteId.isEmpty()) targetNoteId = noteId
                                 }
                             }
                         }
-
-                        val noteTotal = if (noteObj.has("totalCount")) {
-                            noteObj.optInt("totalCount", arrayTotal)
-                        } else {
-                            arrayTotal
-                        }
-                        val noteChecked = if (noteObj.has("checkedCount")) {
-                            noteObj.optInt("checkedCount", arrayChecked)
-                        } else {
-                            arrayChecked
-                        }
-                        totalTaskCount += noteTotal
-                        checkedTaskCount += noteChecked
-
-                        if (!isAllNotesMode) break
                     }
-                } catch (_: Exception) {}
-            }
+
+                    val noteTotal = if (noteObj.has("totalCount")) {
+                        noteObj.optInt("totalCount", arrayTotal)
+                    } else {
+                        arrayTotal
+                    }
+                    val noteChecked = if (noteObj.has("checkedCount")) {
+                        noteObj.optInt("checkedCount", arrayChecked)
+                    } else {
+                        arrayChecked
+                    }
+                    totalTaskCount += noteTotal
+                    checkedTaskCount += noteChecked
+
+                    if (!isAllNotesMode) break
+                }
+            } catch (_: Exception) {}
 
             views.setTextViewText(R.id.unified_note_title, activeNoteTitle)
 
-            if (isTodoLocked) {
-                views.setViewVisibility(R.id.unified_task_1_container, View.GONE)
-                views.setViewVisibility(R.id.unified_task_2_container, View.GONE)
-                views.setViewVisibility(R.id.unified_notes_empty, View.VISIBLE)
-                views.setTextViewText(
-                    R.id.unified_notes_empty,
-                    context.getString(R.string.widget_locked_title)
-                )
-            } else if (pendingTasks.isNotEmpty()) {
+            if (pendingTasks.isNotEmpty()) {
                 views.setViewVisibility(R.id.unified_notes_empty, View.GONE)
                 views.setViewVisibility(R.id.unified_task_1_container, View.VISIBLE)
                 views.setTextViewText(R.id.unified_task_1_text, pendingTasks[0].text)
@@ -331,13 +305,13 @@ class UnifiedWidgetProvider : AppWidgetProvider() {
             )
 
             val openNoteIntent = Intent(context, MainActivity::class.java).apply {
-                action = if (targetNoteId.isNotEmpty() && !isTodoLocked) {
+                action = if (targetNoteId.isNotEmpty()) {
                     TodoWidgetProvider.ACTION_OPEN_NOTE
                 } else {
                     TodoWidgetProvider.ACTION_VIEW_NOTES
                 }
                 data = Uri.parse("widget://unified/$appWidgetId/open_note")
-                if (targetNoteId.isNotEmpty() && !isTodoLocked) {
+                if (targetNoteId.isNotEmpty()) {
                     putExtra("open_note_id", targetNoteId)
                 }
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP

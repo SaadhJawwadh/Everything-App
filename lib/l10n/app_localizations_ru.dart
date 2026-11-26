@@ -701,7 +701,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get appLockSubtitle =>
-      'Для доступа к содержимому требуется аутентификация';
+      'Требуется вход для открытия приложения. Виджеты на главном экране продолжают показывать данные.';
 
   @override
   String get appLockAuthReason =>
@@ -1014,7 +1014,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get lockFinances => 'Блокировать раздел «Финансы»';
 
   @override
-  String get lockFinancesSubtitle => 'Требовать вход для открытия «Финансов»';
+  String get lockFinancesSubtitle =>
+      'Требовать вход для открытия «Финансов». Финансовые виджеты продолжают показывать сводку.';
 
   @override
   String get lockHealth => 'Блокировать раздел «Здоровье»';

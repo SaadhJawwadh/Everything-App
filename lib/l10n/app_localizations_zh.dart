@@ -657,7 +657,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get appLockSubtitle => '需要身份验证才能访问内容';
+  String get appLockSubtitle => '打开应用需要身份验证。主屏幕小组件仍会显示您的信息。';
 
   @override
   String get appLockAuthReason => '请验证身份以访问应用';
@@ -934,7 +934,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get lockFinances => '锁定财务标签页';
 
   @override
-  String get lockFinancesSubtitle => '打开财务需要身份验证';
+  String get lockFinancesSubtitle => '打开财务需要身份验证。财务小组件仍会显示摘要。';
 
   @override
   String get lockHealth => '锁定健康标签页';

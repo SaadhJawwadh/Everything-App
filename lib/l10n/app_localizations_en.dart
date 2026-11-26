@@ -686,7 +686,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get appLockSubtitle => 'Authentication required to access content';
+  String get appLockSubtitle =>
+      'Require authentication to open app. Home screen widgets still display your info.';
 
   @override
   String get appLockAuthReason => 'Please authenticate to access the app';
@@ -992,7 +993,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lockFinances => 'Lock Finances Tab';
 
   @override
-  String get lockFinancesSubtitle => 'Require authentication to open Finances';
+  String get lockFinancesSubtitle =>
+      'Require authentication to open Finances. Finance widgets still display summaries.';
 
   @override
   String get lockHealth => 'Lock Health Tab';

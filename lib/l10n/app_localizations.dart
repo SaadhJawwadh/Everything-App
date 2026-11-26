@@ -1343,7 +1343,7 @@ abstract class AppLocalizations {
   /// No description provided for @appLockSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Authentication required to access content'**
+  /// **'Require authentication to open app. Home screen widgets still display your info.'**
   String get appLockSubtitle;
 
   /// No description provided for @appLockAuthReason.
@@ -1889,7 +1889,7 @@ abstract class AppLocalizations {
   /// No description provided for @lockFinancesSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Require authentication to open Finances'**
+  /// **'Require authentication to open Finances. Finance widgets still display summaries.'**
   String get lockFinancesSubtitle;
 
   /// No description provided for @lockHealth.

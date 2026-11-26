@@ -689,7 +689,8 @@ class AppLocalizationsTa extends AppLocalizations {
   }
 
   @override
-  String get appLockSubtitle => 'உள்ளடக்கத்தை அணுக அங்கீகாரம் தேவை';
+  String get appLockSubtitle =>
+      'பயன்பாட்டைத் திறக்க அங்கீகாரம் தேவை. முகப்புத் திரை விட்ஜெட்கள் தகவலைத் தொடர்ந்து காட்டும்.';
 
   @override
   String get appLockAuthReason => 'பயன்பாட்டை அணுக அங்கீகரிக்கவும்';
@@ -1001,7 +1002,8 @@ class AppLocalizationsTa extends AppLocalizations {
   String get lockFinances => 'நிதி பகுதியை பூட்டு';
 
   @override
-  String get lockFinancesSubtitle => 'நிதி பகுதியைத் திறக்க அங்கீகாரம் தேவை';
+  String get lockFinancesSubtitle =>
+      'நிதி பகுதியைத் திறக்க அங்கீகாரம் தேவை. நிதி விட்ஜெட்கள் சுருக்கங்களைத் தொடர்ந்து காட்டும்.';
 
   @override
   String get lockHealth => 'சுகாதார பகுதியை பூட்டு';

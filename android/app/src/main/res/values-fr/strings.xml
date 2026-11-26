@@ -2,9 +2,9 @@
 <resources>
     <string name="widget_todo_label">Tâches et notes</string>
     <string name="widget_finance_label">Finances</string>
-    <string name="finance_widget_description">Suivez vos dépenses du jour, les totaux mensuels et vos dernières opérations depuis l\'écran d\'accueil.</string>
+    <string name="finance_widget_description">Suivez vos dépenses du jour et totaux mensuels sur l\'écran d\'accueil. Visible même avec le verrouillage.</string>
     <string name="notes_widget_description">Créez une note ou recherchez tout en un geste.</string>
-    <string name="todo_widget_description">Consultez, changez et cochez les tâches de vos notes directement depuis l\'écran d\'accueil.</string>
+    <string name="todo_widget_description">Consultez, changez et cochez vos tâches sur l\'écran d\'accueil. Visible même avec le verrouillage.</string>
     <string name="unified_widget_description">Finances et notes réunies dans un widget unifié Material 3 Expressive.</string>
 
     <string name="widget_all_action_items">Toutes les tâches</string>
@@ -35,7 +35,7 @@
 
     <string name="widget_picker_title">Choisir une liste</string>
     <string name="widget_picker_subtitle">Choisissez la liste à afficher sur le widget</string>
-    <string name="widget_picker_new_checklist">+ Créer une liste</string>
+    <string name="widget_picker_new_checklist">+ Nouvelle liste</string>
     <string name="widget_picker_cancel">Annuler</string>
     <string name="widget_left_count">%1$d restantes</string>
     <string name="widget_done_count">%1$d/%2$d faites</string>

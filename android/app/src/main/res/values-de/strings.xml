@@ -2,9 +2,9 @@
 <resources>
     <string name="widget_todo_label">Aufgaben &amp; Notizen</string>
     <string name="widget_finance_label">Finanzen</string>
-    <string name="finance_widget_description">Behalte heutige Ausgaben, Monatssummen und letzte Buchungen direkt auf dem Startbildschirm im Blick.</string>
+    <string name="finance_widget_description">Heutige Ausgaben und Monatssummen auf dem Startbildschirm verfolgen. Auch bei App-Sperre sichtbar.</string>
     <string name="notes_widget_description">Erstelle eine Notiz oder durchsuche alles mit einem Tippen.</string>
-    <string name="todo_widget_description">Aufgaben aus deinen Notizen direkt auf dem Startbildschirm ansehen, wechseln und abhaken.</string>
+    <string name="todo_widget_description">Aufgaben auf dem Startbildschirm ansehen, wechseln und abhaken. Auch bei App-Sperre sichtbar.</string>
     <string name="unified_widget_description">Finanzen und Notizen vereint in einem Material 3 Expressive Widget.</string>
 
     <string name="widget_all_action_items">Alle Aufgaben</string>
@@ -35,7 +35,7 @@
 
     <string name="widget_picker_title">Liste auswählen</string>
     <string name="widget_picker_subtitle">Liste für das Widget auswählen</string>
-    <string name="widget_picker_new_checklist">+ Neue Liste erstellen</string>
+    <string name="widget_picker_new_checklist">+ Neue Checkliste</string>
     <string name="widget_picker_cancel">Abbrechen</string>
     <string name="widget_left_count">Noch %1$d</string>
     <string name="widget_done_count">%1$d/%2$d erledigt</string>

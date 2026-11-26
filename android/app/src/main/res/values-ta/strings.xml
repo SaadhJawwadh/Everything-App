@@ -2,9 +2,9 @@
 <resources>
     <string name="widget_todo_label">பணிகள் &amp; குறிப்புகள்</string>
     <string name="widget_finance_label">நிதி</string>
-    <string name="finance_widget_description">இன்றைய செலவு, மாத மொத்தம் மற்றும் சமீபத்திய பரிவர்த்தனைகளை முகப்புத் திரையிலிருந்தே கண்காணிக்கவும்.</string>
+    <string name="finance_widget_description">இன்றைய செலவு மற்றும் மாத மொத்தத்தை முகப்புத் திரையில் கண்காணிக்கவும். செயலி பூட்டியிருந்தாலும் தெரியும்.</string>
     <string name="notes_widget_description">ஒரே தட்டலில் குறிப்பு எடுக்கவும் அல்லது அனைத்தையும் தேடவும்.</string>
-    <string name="todo_widget_description">முகப்புத் திரையிலிருந்தே உங்கள் குறிப்புகளில் உள்ள பணிகளைப் பார்க்கவும், மாற்றவும், முடிக்கவும்.</string>
+    <string name="todo_widget_description">முகப்புத் திரையிலேயே பணிகளைப் பார்க்கவும், மாற்றவும், முடிக்கவும். செயலி பூட்டியிருந்தாலும் தெரியும்.</string>
     <string name="unified_widget_description">Material 3 Expressive விட்ஜெட்டில் நிதியும் குறிப்புகளும் ஒன்றாக.</string>
 
     <string name="widget_all_action_items">அனைத்துப் பணிகள்</string>
@@ -35,7 +35,7 @@
 
     <string name="widget_picker_title">பட்டியலைத் தேர்ந்தெடு</string>
     <string name="widget_picker_subtitle">விட்ஜெட்டில் காட்ட பட்டியலைத் தேர்ந்தெடுக்கவும்</string>
-    <string name="widget_picker_new_checklist">+ புதிய பட்டியலை உருவாக்கு</string>
+    <string name="widget_picker_new_checklist">+ புதிய பட்டியல்</string>
     <string name="widget_picker_cancel">ரத்து செய்</string>
     <string name="widget_left_count">%1$d மீதம்</string>
     <string name="widget_done_count">%1$d/%2$d முடிந்தது</string>

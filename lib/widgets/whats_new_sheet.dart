@@ -41,12 +41,12 @@ class WhatsNewSheet extends StatelessWidget {
           _WhatsNewItem(
             icon: Icons.widgets_outlined,
             title: "Material You home widgets",
-            desc: "Streamlined Tasks & Notes and Finances widgets that adapt smoothly from compact strips to tablet and foldable layouts.",
+            desc: "Streamlined Tasks & Notes and Finances widgets with rounded task cards and adaptive layouts.",
           ),
           _WhatsNewItem(
-            icon: Icons.visibility_off_outlined,
-            title: "Widget privacy lock",
-            desc: "Mask home screen balances and tasks automatically while App Lock or Finance Lock is active.",
+            icon: Icons.lock_open_rounded,
+            title: "Always-visible widgets",
+            desc: "Home widgets stay live even when App Lock is enabled, while opening the app remains protected.",
             actionLabel: "Open Security Settings",
             onAction: () {
               Navigator.pop(context);
@@ -81,8 +81,8 @@ class WhatsNewSheet extends StatelessWidget {
         items: [
           _WhatsNewItem(
             icon: Icons.verified_user_rounded,
-            title: "Instant background sync & reliable taps",
-            desc: "Fixed background widget refreshes, task-row taps on newer Android versions, dual-account splits, and dark-mode contrast.",
+            title: "Checklist switching & live widget sync",
+            desc: "Fixed checklist picker taps, edge-to-edge scrim fade, Android 12–16 task clicks, and live Finance widget refreshes.",
           ),
         ],
       ),

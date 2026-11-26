@@ -48,7 +48,7 @@ class WidgetHelper {
             appLockEnabled ?? (prefs.getBool('appLockEnabled') ?? false),
         'lockFinances': lockFinances ?? (prefs.getBool('lockFinances') ?? false),
         'hideWidgetDataWhenLocked':
-            hideWidgetDataWhenLocked ?? (prefs.getBool('hideWidgetDataWhenLocked') ?? true),
+            hideWidgetDataWhenLocked ?? (prefs.getBool('hideWidgetDataWhenLocked') ?? false),
         'screenshotShieldEnabled':
             screenshotShieldEnabled ?? (prefs.getBool('screenshotShieldEnabled') ?? false),
         'languageCode':

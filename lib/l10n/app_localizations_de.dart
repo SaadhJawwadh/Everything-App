@@ -689,7 +689,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get appLockSubtitle =>
-      'Authentifizierung erforderlich, um auf Inhalte zuzugreifen';
+      'Authentifizierung zum Öffnen der App erforderlich. Startbildschirm-Widgets zeigen weiterhin Infos an.';
 
   @override
   String get appLockAuthReason =>
@@ -1002,7 +1002,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get lockFinancesSubtitle =>
-      'Authentifizierung zum Öffnen von Finanzen erforderlich';
+      'Authentifizierung zum Öffnen von Finanzen erforderlich. Finanz-Widgets zeigen weiterhin Übersichten an.';
 
   @override
   String get lockHealth => 'Gesundheit-Tab sperren';

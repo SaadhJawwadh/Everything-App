@@ -2,9 +2,9 @@
 <resources>
     <string name="widget_todo_label">Tarefas e notas</string>
     <string name="widget_finance_label">Finanças</string>
-    <string name="finance_widget_description">Acompanhe os gastos de hoje, os totais do mês e suas últimas transações direto na tela inicial.</string>
+    <string name="finance_widget_description">Acompanhe gastos de hoje e totais do mês na tela inicial. Visível mesmo com o bloqueio ativo.</string>
     <string name="notes_widget_description">Crie uma nota ou pesquise tudo com um toque.</string>
-    <string name="todo_widget_description">Veja, alterne e conclua tarefas das suas notas diretamente na tela inicial.</string>
+    <string name="todo_widget_description">Veja, alterne e conclua tarefas na tela inicial. Visível mesmo com o bloqueio ativo.</string>
     <string name="unified_widget_description">Finanças e notas juntas em um widget unificado Material 3 Expressive.</string>
 
     <string name="widget_all_action_items">Todas as tarefas</string>
@@ -35,7 +35,7 @@
 
     <string name="widget_picker_title">Selecionar lista</string>
     <string name="widget_picker_subtitle">Escolha a lista para exibir no widget</string>
-    <string name="widget_picker_new_checklist">+ Criar nova lista</string>
+    <string name="widget_picker_new_checklist">+ Nova lista</string>
     <string name="widget_picker_cancel">Cancelar</string>
     <string name="widget_left_count">%1$d restantes</string>
     <string name="widget_done_count">%1$d/%2$d concluídas</string>

@@ -47,7 +47,8 @@ class SecuritySettingsScreen extends StatelessWidget {
                           icon: Icons.lock_outline,
                           iconColor: colorScheme.primary,
                           title: 'App Lock',
-                          subtitle: 'Require authentication to open app',
+                          subtitle: l10n?.appLockSubtitle ??
+                              'Require authentication to open app. Home screen widgets still display your info.',
                           value: settings.appLockEnabled,
                           onChanged: (enabled) async {
                             if (!enabled) {
@@ -116,7 +117,8 @@ class SecuritySettingsScreen extends StatelessWidget {
                             title: l10n?.lockFinances ?? 'Lock Finances Tab',
                             subtitle: settings.appLockEnabled
                                 ? 'Covered while full App Lock is active'
-                                : (l10n?.lockFinancesSubtitle ?? 'Require authentication to open Finances'),
+                                : (l10n?.lockFinancesSubtitle ??
+                                    'Require authentication to open Finances. Finance widgets still display summaries.'),
                             value: settings.lockFinances,
                             onChanged: settings.setLockFinances,
                           ),
@@ -139,19 +141,6 @@ class SecuritySettingsScreen extends StatelessWidget {
                             subtitle: l10n?.screenshotShieldSubtitle ?? 'Block screenshots and screen recording on Android',
                             value: settings.screenshotShieldEnabled,
                             onChanged: settings.setScreenshotShieldEnabled,
-                          ),
-                        if (!kIsWeb &&
-                            Platform.isAndroid &&
-                            (settings.appLockEnabled || settings.lockFinances))
-                          SettingsSwitchTile(
-                            icon: Icons.widgets_outlined,
-                            iconColor: colorScheme.secondary,
-                            title: l10n?.hideWidgetDataWhenLocked ??
-                                'Hide Widget Content When Locked',
-                            subtitle: l10n?.hideWidgetDataWhenLockedSubtitle ??
-                                'Mask financial balances with •••• and hide tasks on home screen widgets when locked',
-                            value: settings.hideWidgetDataWhenLocked,
-                            onChanged: settings.setHideWidgetDataWhenLocked,
                           ),
                         if (settings.appLockEnabled || settings.hasAnyModuleLockEnabled)
                           SettingsTile(

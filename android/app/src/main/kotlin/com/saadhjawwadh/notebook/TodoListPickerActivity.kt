@@ -4,17 +4,22 @@ import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Intent
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.DecelerateInterpolator
 import android.widget.BaseAdapter
 import android.widget.ImageView
 import android.widget.ListView
 import android.widget.TextView
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import org.json.JSONArray
 
@@ -27,6 +32,8 @@ class TodoListPickerActivity : Activity() {
         val isSelected: Boolean
     )
 
+    private var isDismissing = false
+
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         if (intent != null) {
@@ -38,13 +45,25 @@ class TodoListPickerActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if (WidgetCacheStore.isAppLockEnabled(this)) {
-            val unlockIntent = Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.TRANSPARENT
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isStatusBarContrastEnforced = false
+            window.isNavigationBarContrastEnforced = false
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.attributes = window.attributes.apply {
+                layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
             }
-            startActivity(unlockIntent)
-            finish()
-            return
+        }
+        @Suppress("DEPRECATION")
+        if (Build.VERSION.SDK_INT >= 34) {
+            overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0)
+            overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, 0, 0)
+        } else {
+            overridePendingTransition(0, 0)
         }
 
         if (WidgetCacheStore.isScreenshotShieldEnabled(this)) {
@@ -53,8 +72,11 @@ class TodoListPickerActivity : Activity() {
 
         setContentView(R.layout.activity_todo_list_picker)
 
-        findViewById<View>(R.id.picker_root)?.let { rootView ->
-            ViewCompat.setOnApplyWindowInsetsListener(rootView) { view, windowInsets ->
+        val scrim = findViewById<View>(R.id.picker_scrim)
+        val card = findViewById<View>(R.id.picker_card)
+
+        if (scrim != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(scrim) { view, windowInsets ->
                 val insets = windowInsets.getInsets(
                     WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
                 )
@@ -63,7 +85,63 @@ class TodoListPickerActivity : Activity() {
             }
         }
 
+        if (scrim != null && card != null) {
+            scrim.alpha = 0f
+            card.alpha = 0f
+            card.scaleX = 0.95f
+            card.scaleY = 0.95f
+            scrim.animate()
+                .alpha(1f)
+                .setDuration(180L)
+                .setInterpolator(DecelerateInterpolator())
+                .start()
+            card.animate()
+                .alpha(1f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(180L)
+                .setInterpolator(DecelerateInterpolator())
+                .start()
+        }
+
         bindForIntent(intent)
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        dismissWithAnimation()
+    }
+
+    private fun dismissWithAnimation() {
+        if (isDismissing) return
+        isDismissing = true
+        val scrim = findViewById<View>(R.id.picker_scrim)
+        val card = findViewById<View>(R.id.picker_card)
+        if (scrim == null || card == null) {
+            finishNow()
+            return
+        }
+        scrim.animate()
+            .alpha(0f)
+            .setDuration(120L)
+            .setInterpolator(AccelerateInterpolator())
+            .start()
+        card.animate()
+            .alpha(0f)
+            .scaleX(0.96f)
+            .scaleY(0.96f)
+            .setDuration(120L)
+            .setInterpolator(AccelerateInterpolator())
+            .withEndAction { finishNow() }
+            .start()
+    }
+
+    private fun finishNow() {
+        finish()
+        @Suppress("DEPRECATION")
+        if (Build.VERSION.SDK_INT < 34) {
+            overridePendingTransition(0, 0)
+        }
     }
 
     private fun bindForIntent(activeIntent: Intent) {
@@ -85,11 +163,11 @@ class TodoListPickerActivity : Activity() {
         }
 
         findViewById<View>(R.id.picker_scrim).setOnClickListener {
-            finish()
+            dismissWithAnimation()
         }
 
         findViewById<View>(R.id.picker_btn_cancel).setOnClickListener {
-            finish()
+            dismissWithAnimation()
         }
 
         findViewById<View>(R.id.picker_btn_new_list).setOnClickListener {
@@ -98,7 +176,7 @@ class TodoListPickerActivity : Activity() {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             startActivity(newChecklistIntent)
-            finish()
+            finishNow()
         }
 
         val notesJsonStr = WidgetCacheStore.getTodoNotesJson(this)
@@ -261,7 +339,7 @@ class TodoListPickerActivity : Activity() {
 
             TodoWidgetProvider.updateAllWidgets(applicationContext)
             UnifiedWidgetProvider.updateAllWidgets(applicationContext)
-            finish()
+            dismissWithAnimation()
         }
     }
 }

@@ -22,9 +22,14 @@
 
     <!-- Translucent dialog theme for Google Tasks-style widget list picker -->
     <style name="Theme.TodoListPicker" parent="@android:style/Theme.Translucent.NoTitleBar">
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:windowNoTitle">true</item>
         <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowAnimationStyle">@null</item>
         <item name="android:windowElevation">0dp</item>
     </style>
 </resources>

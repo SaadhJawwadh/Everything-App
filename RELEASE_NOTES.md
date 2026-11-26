@@ -1,16 +1,10 @@
 
-### 🌟 What's New
-- **Redesigned Material You Home Widgets**: Streamlined to two adaptive widgets (**Tasks & Notes** and **Finances**) that scale from compact 4x1 quick strips to spacious tablet and foldable layouts with rounded Material icons and concentric corners.
-- **Widget Privacy Lock**: Mask home screen balances and checklist tasks automatically while App Lock or Finance Lock is active, with a dedicated toggle in Security Settings.
-- **Poster Story Cards & Local Wi-Fi Browser Companion**: Bold chromatic Story Card themes with poster typography, plus a pair-code protected local Wi-Fi browser companion.
-- **Dynamic App Shortcuts**: Long-press launcher shortcuts now adapt automatically to your enabled modules, giving quick access to New Note, Sync, Search, New Transaction, and Scan Receipt.
-
 ### 🚀 Improvements
-- **Faster Ledger, Tabular Numerals & Cleaner Cards**: Live transactions open immediately above the fold, tabular numerals keep figures aligned, and nested card clutter is removed across Finances, Health, Onboarding, and Settings.
-- **Clearer Widget Picker & Smoother List Switching**: Added distinct widget names, realistic picker previews, smoother checklist switching, and an option to create a new checklist directly.
-- **Full 8-Language Translations & Lighter App Size**: Translated all home widget strings across all 8 languages and removed ~5 MB of duplicate native font files.
+- **Always-Visible Home Widgets**: Both **Tasks & Notes** and **Finances** widgets now stay live and visible on your home screen even when App Lock or Lock Finances Tab is active (matching Google Keep and WhatsApp), while opening the app still requires authentication.
+- **Refined Tasks & Notes Widget Layout**: Replaced heavy header dividers with airy spacing, refined header pill proportions, and styled task items as rounded tonal cards.
 
 ### 🐛 Fixes
-- **Instant Background Refreshes & Reliable Taps**: Fixed background sync and currency/language changes not updating widgets, and fixed task-row opening reliability on Android 14+.
-- **Accurate Counts, Dual Accounts & Contrast**: Fixed midnight boundary totals, pending task filtering, dark-mode checkbox contrast, and removed placeholder chart data.
+- **Instant Checklist Switching & Edge-to-Edge Picker**: Fixed checklist rows not responding to taps in the `Select Checklist` dialog, eliminated black bars around the dim scrim, and replaced the sideways slide with a smooth fade-and-scale modal transition.
+- **Reliable Task & Checkbox Taps on Android 12–16**: Switched inline `RemoteCollectionItems` to `PendingIntentTemplate` + fill-in intents so checking off tasks and opening notes from the widget work reliably across Android 12–16.
+- **Finance Widget Cold-Start Sync**: Fixed Finance widgets showing as locked or disabled after changing lock settings or on cold launcher refreshes.
 

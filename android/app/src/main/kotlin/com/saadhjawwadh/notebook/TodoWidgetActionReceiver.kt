@@ -10,9 +10,25 @@ class TodoWidgetActionReceiver : BroadcastReceiver() {
         if (intent.action != TodoWidgetProvider.ACTION_ITEM_CLICK) return
 
         val clickAction = intent.getStringExtra("click_action") ?: "toggle"
-        val noteId = intent.getStringExtra("note_id") ?: return
+        val noteId = intent.getStringExtra("note_id") ?: ""
         val lineIndex = intent.getIntExtra("line_index", -1)
         val text = intent.getStringExtra("text") ?: ""
+
+        if (clickAction == "view_all") {
+            val openIntent = Intent(context, MainActivity::class.java).apply {
+                if (noteId.isNotBlank()) {
+                    action = TodoWidgetProvider.ACTION_OPEN_NOTE
+                    putExtra("open_note_id", noteId)
+                } else {
+                    action = TodoWidgetProvider.ACTION_VIEW_NOTES
+                }
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            context.startActivity(openIntent)
+            return
+        }
+
+        if (noteId.isBlank()) return
 
         if (clickAction == "open_note") {
             val openIntent = Intent(context, MainActivity::class.java).apply {
@@ -23,11 +39,6 @@ class TodoWidgetActionReceiver : BroadcastReceiver() {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             context.startActivity(openIntent)
-            return
-        }
-
-        // Block background checklist mutations when Todo widget privacy lock is active
-        if (WidgetCacheStore.isTodoLocked(context)) {
             return
         }
 

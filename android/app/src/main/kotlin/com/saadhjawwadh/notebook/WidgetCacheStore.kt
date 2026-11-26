@@ -249,7 +249,7 @@ object WidgetCacheStore {
         showFinancialManager: Boolean,
         appLockEnabled: Boolean,
         lockFinances: Boolean,
-        hideWidgetDataWhenLocked: Boolean,
+        hideWidgetDataWhenLocked: Boolean = false,
         screenshotShieldEnabled: Boolean,
         useDynamicColor: Boolean? = null
     ): Boolean {
@@ -265,21 +265,20 @@ object WidgetCacheStore {
         return editor.commit()
     }
 
-    fun isTodoLocked(context: Context): Boolean {
-        val store = prefs(context)
-        return store.getBoolean(KEY_APP_LOCK_ENABLED, false) &&
-            store.getBoolean(KEY_HIDE_WIDGET_DATA_WHEN_LOCKED, true)
-    }
+    // Home screen widgets always display live data (matching Google Keep / WhatsApp),
+    // while in-app navigation remains protected by App Lock and per-module locks.
+    fun isTodoLocked(context: Context): Boolean = false
 
-    fun isFinanceLocked(context: Context): Boolean {
-        val store = prefs(context)
-        val lockActive = store.getBoolean(KEY_APP_LOCK_ENABLED, false) ||
-            store.getBoolean(KEY_LOCK_FINANCES, false)
-        return lockActive && store.getBoolean(KEY_HIDE_WIDGET_DATA_WHEN_LOCKED, true)
-    }
+    fun isFinanceLocked(context: Context): Boolean = false
 
-    fun isFinancialManagerEnabled(context: Context): Boolean =
-        prefs(context).getBoolean(KEY_SHOW_FINANCIAL_MANAGER, false)
+    fun isFinancialManagerEnabled(context: Context): Boolean {
+        val store = prefs(context)
+        return if (store.contains(KEY_SHOW_FINANCIAL_MANAGER)) {
+            store.getBoolean(KEY_SHOW_FINANCIAL_MANAGER, false)
+        } else {
+            flutterPrefs(context).getBoolean("flutter.showFinancialManager", false)
+        }
+    }
 
     fun isAppLockEnabled(context: Context): Boolean =
         prefs(context).getBoolean(KEY_APP_LOCK_ENABLED, false)
@@ -329,6 +328,14 @@ object WidgetCacheStore {
             drainedStaging = true
             cacheDirty = true
             flutterDirty = true
+        }
+
+        if (!cache.contains(KEY_SHOW_FINANCIAL_MANAGER) && fPrefs.contains("flutter.showFinancialManager")) {
+            cacheEditor.putBoolean(
+                KEY_SHOW_FINANCIAL_MANAGER,
+                fPrefs.getBoolean("flutter.showFinancialManager", false)
+            )
+            cacheDirty = true
         }
 
         // Migrate any pre-upgrade active note mappings or pending toggles into isolated store

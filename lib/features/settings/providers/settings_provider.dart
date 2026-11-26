@@ -131,7 +131,7 @@ class SettingsProvider extends ChangeNotifier {
   bool _screenshotShieldEnabled = false;
   bool get screenshotShieldEnabled => _screenshotShieldEnabled;
 
-  bool _hideWidgetDataWhenLocked = true;
+  bool _hideWidgetDataWhenLocked = false;
   bool get hideWidgetDataWhenLocked => _hideWidgetDataWhenLocked;
 
   bool _budgetAlertsEnabled = true;
@@ -291,7 +291,7 @@ class SettingsProvider extends ChangeNotifier {
     _lockFinances = prefs.getBool('lockFinances') ?? false;
     _lockHealth = prefs.getBool('lockHealth') ?? false;
     _screenshotShieldEnabled = prefs.getBool('screenshotShieldEnabled') ?? false;
-    _hideWidgetDataWhenLocked = prefs.getBool('hideWidgetDataWhenLocked') ?? true;
+    _hideWidgetDataWhenLocked = prefs.getBool('hideWidgetDataWhenLocked') ?? false;
     _budgetAlertsEnabled = prefs.getBool('budgetAlertsEnabled') ?? true;
     _billRemindersEnabled = prefs.getBool('billRemindersEnabled') ?? true;
     _weeklyDigestEnabled = prefs.getBool('weeklyDigestEnabled') ?? false;

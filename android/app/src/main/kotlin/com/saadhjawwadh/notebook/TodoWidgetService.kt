@@ -39,9 +39,6 @@ class TodoRemoteViewsFactory(
 
     private fun loadData() {
         items.clear()
-        if (WidgetCacheStore.isTodoLocked(context)) {
-            return
-        }
 
         val extraId = intent.getIntExtra(
             AppWidgetManager.EXTRA_APPWIDGET_ID,

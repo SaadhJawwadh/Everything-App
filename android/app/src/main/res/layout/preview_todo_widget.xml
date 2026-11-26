@@ -15,6 +15,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="48dp"
+        android:layout_marginBottom="6dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
@@ -83,21 +84,16 @@
         </FrameLayout>
     </LinearLayout>
 
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="4dp"
-        android:layout_marginBottom="4dp"
-        android:background="@color/widget_divider" />
-
     <!-- Static Sample Row 1 -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="40dp"
+        android:layout_height="44dp"
+        android:layout_marginBottom="6dp"
+        android:background="@drawable/widget_subcard_shape"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="4dp"
-        android:paddingEnd="4dp">
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
 
         <ImageView
             android:layout_width="20dp"
@@ -111,7 +107,7 @@
             android:layout_weight="1"
             android:layout_marginStart="10dp"
             android:ellipsize="end"
-            android:fontFamily="sans-serif"
+            android:fontFamily="sans-serif-medium"
             android:maxLines="1"
             android:text="Review monthly budget"
             android:textColor="@color/widget_text_primary"
@@ -121,11 +117,13 @@
     <!-- Static Sample Row 2 -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="40dp"
+        android:layout_height="44dp"
+        android:layout_marginBottom="6dp"
+        android:background="@drawable/widget_subcard_shape"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="4dp"
-        android:paddingEnd="4dp">
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
 
         <ImageView
             android:layout_width="20dp"
@@ -139,7 +137,7 @@
             android:layout_weight="1"
             android:layout_marginStart="10dp"
             android:ellipsize="end"
-            android:fontFamily="sans-serif"
+            android:fontFamily="sans-serif-medium"
             android:maxLines="1"
             android:text="Pick up groceries"
             android:textColor="@color/widget_text_primary"
@@ -149,11 +147,12 @@
     <!-- Static Sample Row 3 -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="40dp"
+        android:layout_height="44dp"
+        android:background="@drawable/widget_subcard_shape"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="4dp"
-        android:paddingEnd="4dp">
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
 
         <ImageView
             android:layout_width="20dp"
@@ -167,7 +166,7 @@
             android:layout_weight="1"
             android:layout_marginStart="10dp"
             android:ellipsize="end"
-            android:fontFamily="sans-serif"
+            android:fontFamily="sans-serif-medium"
             android:maxLines="1"
             android:text="Sync devices over Wi-Fi"
             android:textColor="@color/widget_text_primary"

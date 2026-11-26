@@ -345,7 +345,7 @@ class MainActivity: FlutterFragmentActivity() {
                     val showFinancialManager = call.argument<Boolean>("showFinancialManager") ?: false
                     val appLockEnabled = call.argument<Boolean>("appLockEnabled") ?: false
                     val lockFinances = call.argument<Boolean>("lockFinances") ?: false
-                    val hideWidgetDataWhenLocked = call.argument<Boolean>("hideWidgetDataWhenLocked") ?: true
+                    val hideWidgetDataWhenLocked = call.argument<Boolean>("hideWidgetDataWhenLocked") ?: false
                     val screenshotShieldEnabled = call.argument<Boolean>("screenshotShieldEnabled") ?: false
                     val useDynamicColor = call.argument<Boolean>("useDynamicColor")
                     val languageCode = call.argument<String>("languageCode")

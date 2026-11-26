@@ -22,61 +22,68 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="48dp"
+            android:layout_marginBottom="6dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <!-- List Selector Stadium Pill -->
-            <LinearLayout
+            <!-- List Selector Stadium Pill (48dp touch area, 40dp visual pill) -->
+            <FrameLayout
                 android:id="@+id/todo_widget_switcher"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_weight="1"
                 android:minWidth="48dp"
                 android:minHeight="48dp"
-                android:layout_marginEnd="8dp"
-                android:background="@drawable/widget_cta_secondary_shape"
+                android:layout_marginEnd="6dp"
                 android:clickable="true"
-                android:focusable="true"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="12dp"
-                android:paddingEnd="10dp">
+                android:focusable="true">
 
-                <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:layout_marginEnd="6dp"
-                    android:contentDescription="@string/widget_picker_title"
-                    android:src="@drawable/ic_checklist"
-                    android:tint="@color/widget_on_secondary_container" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_gravity="center_vertical"
+                    android:background="@drawable/widget_cta_secondary_shape"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="10dp">
 
-                <TextView
-                    android:id="@+id/todo_widget_title"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:ellipsize="end"
-                    android:fontFamily="sans-serif-medium"
-                    android:maxLines="1"
-                    android:textColor="@color/widget_on_secondary_container"
-                    android:textSize="13.5sp"
-                    tools:text="All Action Items" />
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_marginEnd="6dp"
+                        android:contentDescription="@string/widget_picker_title"
+                        android:src="@drawable/ic_checklist"
+                        android:tint="@color/widget_on_secondary_container" />
 
-                <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:layout_marginStart="2dp"
-                    android:contentDescription="@string/widget_picker_title"
-                    android:src="@drawable/ic_arrow_drop_down"
-                    android:tint="@color/widget_on_secondary_container" />
-            </LinearLayout>
+                    <TextView
+                        android:id="@+id/todo_widget_title"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:fontFamily="sans-serif-medium"
+                        android:maxLines="1"
+                        android:textColor="@color/widget_on_secondary_container"
+                        android:textSize="13.5sp"
+                        tools:text="All Action Items" />
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_marginStart="2dp"
+                        android:contentDescription="@string/widget_picker_title"
+                        android:src="@drawable/ic_arrow_drop_down"
+                        android:tint="@color/widget_on_secondary_container" />
+                </LinearLayout>
+            </FrameLayout>
 
             <!-- Tasks Counter -->
             <TextView
                 android:id="@+id/todo_widget_counter"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="6dp"
                 android:fontFamily="sans-serif-medium"
                 android:fontFeatureSettings="tnum"
                 android:maxLines="1"
@@ -84,54 +91,58 @@
                 android:textSize="12sp"
                 tools:text="3 left" />
 
-            <!-- New Note Secondary Button -->
+            <!-- New Note Secondary Button (48dp touch area, 40dp visual pill) -->
             <FrameLayout
                 android:id="@+id/todo_widget_new_note"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:layout_marginEnd="8dp"
                 android:minWidth="48dp"
                 android:minHeight="48dp"
-                android:background="@drawable/widget_cta_secondary_shape"
                 android:clickable="true"
                 android:focusable="true">
 
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                <FrameLayout
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
                     android:layout_gravity="center"
-                    android:contentDescription="@string/widget_new_note"
-                    android:src="@drawable/ic_note_add_rounded"
-                    android:tint="@color/widget_on_secondary_container" />
+                    android:background="@drawable/widget_cta_secondary_shape">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@string/widget_new_note"
+                        android:src="@drawable/ic_note_add_rounded"
+                        android:tint="@color/widget_on_secondary_container" />
+                </FrameLayout>
             </FrameLayout>
 
-            <!-- Add Task Action Button -->
+            <!-- Add Task Action Button (48dp touch area, 40dp visual pill) -->
             <FrameLayout
                 android:id="@+id/todo_widget_add"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:minWidth="48dp"
                 android:minHeight="48dp"
-                android:background="@drawable/widget_cta_primary_shape"
                 android:clickable="true"
                 android:focusable="true">
 
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                <FrameLayout
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
                     android:layout_gravity="center"
-                    android:contentDescription="@string/widget_new_task"
-                    android:src="@drawable/ic_add_small"
-                    android:tint="@color/widget_on_primary" />
+                    android:background="@drawable/widget_cta_primary_shape">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@string/widget_new_task"
+                        android:src="@drawable/ic_add_small"
+                        android:tint="@color/widget_on_primary" />
+                </FrameLayout>
             </FrameLayout>
         </LinearLayout>
-
-        <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginTop="6dp"
-            android:layout_marginBottom="4dp"
-            android:background="@color/widget_divider" />
 
         <!-- Task List -->
         <FrameLayout

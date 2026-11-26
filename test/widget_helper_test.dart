@@ -200,7 +200,7 @@ void main() {
         showFinancialManager: true,
         appLockEnabled: true,
         lockFinances: true,
-        hideWidgetDataWhenLocked: true,
+        hideWidgetDataWhenLocked: false,
         screenshotShieldEnabled: true,
         languageCode: 'ta',
       );
@@ -210,7 +210,7 @@ void main() {
       expect(args['showFinancialManager'], isTrue);
       expect(args['appLockEnabled'], isTrue);
       expect(args['lockFinances'], isTrue);
-      expect(args['hideWidgetDataWhenLocked'], isTrue);
+      expect(args['hideWidgetDataWhenLocked'], isFalse);
       expect(args['screenshotShieldEnabled'], isTrue);
       expect(args['languageCode'], 'ta');
     });

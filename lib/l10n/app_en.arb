@@ -275,7 +275,7 @@
       }
     }
   },
-  "appLockSubtitle": "Authentication required to access content",
+  "appLockSubtitle": "Require authentication to open app. Home screen widgets still display your info.",
   "appLockAuthReason": "Please authenticate to access the app",
   "appLockNoCredentials": "No screen lock or biometric credentials enrolled on this device.",
   "appLockAuthFailed": "Authentication failed. Please try again.",
@@ -380,7 +380,7 @@
   "autoBackupRecoveryKeySubtitle": "Copy or import key to restore encrypted auto-backups",
   "perModulePrivacyLocks": "Module Locks & Screen Protection",
   "lockFinances": "Lock Finances Tab",
-  "lockFinancesSubtitle": "Require authentication to open Finances",
+  "lockFinancesSubtitle": "Require authentication to open Finances. Finance widgets still display summaries.",
   "lockHealth": "Lock Health Tab",
   "lockHealthSubtitle": "Require authentication to open Health",
   "screenshotShield": "Screenshot Shield",

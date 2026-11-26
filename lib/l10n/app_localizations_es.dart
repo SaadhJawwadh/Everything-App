@@ -691,7 +691,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get appLockSubtitle =>
-      'Se requiere autenticación para acceder al contenido';
+      'Requiere autenticación para abrir la app. Los widgets de inicio siguen mostrando tu información.';
 
   @override
   String get appLockAuthReason => 'Autentícate para acceder a la app';
@@ -1001,7 +1001,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get lockFinancesSubtitle =>
-      'Requiere autenticación para abrir Finanzas';
+      'Requiere autenticación para abrir Finanzas. Los widgets de finanzas siguen mostrando resúmenes.';
 
   @override
   String get lockHealth => 'Bloquear pestaña Salud';

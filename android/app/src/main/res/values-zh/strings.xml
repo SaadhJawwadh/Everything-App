@@ -2,9 +2,9 @@
 <resources>
     <string name="widget_todo_label">待办与笔记</string>
     <string name="widget_finance_label">财务</string>
-    <string name="finance_widget_description">在主屏幕上直接查看今日支出、本月汇总和最新交易。</string>
+    <string name="finance_widget_description">在主屏幕上查看今日支出和本月汇总。即使开启应用锁也会显示。</string>
     <string name="notes_widget_description">一键记录笔记或搜索全部内容。</string>
-    <string name="todo_widget_description">在主屏幕上直接查看、切换和勾选笔记中的待办事项。</string>
+    <string name="todo_widget_description">在主屏幕上查看、切换和勾选待办事项。即使开启应用锁也会显示。</string>
     <string name="unified_widget_description">将财务与笔记整合在统一的 Material 3 Expressive 小组件中。</string>
 
     <string name="widget_all_action_items">全部待办</string>
