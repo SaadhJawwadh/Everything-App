@@ -132,9 +132,9 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // Net savings surplus is 5000 - 1200 = 3800
+      // Net cash flow is 5000 - 1200 = 3800
       expect(find.text('+ \$ 3800'), findsOneWidget);
-      expect(find.text('Net Savings Surplus'), findsOneWidget);
+      expect(find.text('Net cash flow'), findsOneWidget);
       expect(find.text('Income'), findsOneWidget);
       expect(find.text('Expense'), findsOneWidget);
       expect(find.text('\$ 5000'), findsOneWidget);

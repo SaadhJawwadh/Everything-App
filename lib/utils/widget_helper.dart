@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'app_constants.dart';
 import '../data/note_model.dart';
+import '../data/transaction_model.dart';
+import '../features/finances/data/repositories/split_bill_repository.dart';
 import '../features/finances/data/transaction_repository.dart';
 import '../features/finances/services/spending_forecast_service.dart';
 import '../features/notes/data/note_repository.dart';
@@ -26,6 +28,39 @@ class WidgetHelper {
 
   static Future<void>? _todoActiveFuture;
   static bool _todoDirty = false;
+
+  /// Pushes non-sensitive widget configuration & privacy flags to the native
+  /// `WidgetCacheStore` and triggers launcher shortcut / component state sync.
+  static Future<void> syncWidgetConfig({
+    bool? showFinancialManager,
+    bool? appLockEnabled,
+    bool? lockFinances,
+    bool? hideWidgetDataWhenLocked,
+    bool? screenshotShieldEnabled,
+    String? languageCode,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final payload = <String, dynamic>{
+        'showFinancialManager':
+            showFinancialManager ?? (prefs.getBool('showFinancialManager') ?? false),
+        'appLockEnabled':
+            appLockEnabled ?? (prefs.getBool('appLockEnabled') ?? false),
+        'lockFinances': lockFinances ?? (prefs.getBool('lockFinances') ?? false),
+        'hideWidgetDataWhenLocked':
+            hideWidgetDataWhenLocked ?? (prefs.getBool('hideWidgetDataWhenLocked') ?? true),
+        'screenshotShieldEnabled':
+            screenshotShieldEnabled ?? (prefs.getBool('screenshotShieldEnabled') ?? false),
+        'languageCode':
+            languageCode ?? (prefs.getString('selectedLanguageCode') ?? 'system'),
+      };
+      await _channel.invokeMethod('syncWidgetConfig', payload);
+    } on MissingPluginException {
+      // Ignore missing native implementation silently in background isolates / tests
+    } catch (e) {
+      debugPrint('Sync widget config failed: $e');
+    }
+  }
 
   /// Coalesces rapid consecutive calls to refresh financial widget metrics so
   /// batch imports or rapid row edits trigger at most one trailing recompute.
@@ -54,162 +89,201 @@ class WidgetHelper {
       final prefs = await SharedPreferences.getInstance();
       final currencyCode = prefs.getString('currency') ?? 'LKR';
       final currency = AppConstants.getCurrencyInfo(currencyCode).symbol;
+      final account1Name = prefs.getString('account1Name') ?? 'Daily';
+      final account2Name = prefs.getString('account2Name') ?? 'Savings';
+      final enableSavingsVault = prefs.getBool('enableSavingsVault') ?? true;
+      final enableBudgetsAndAnalytics =
+          prefs.getBool('enableBudgetsAndAnalytics') ?? true;
+      final showSplitBills = prefs.getBool('showSplitBills') ?? false;
 
       final repo = TransactionRepository.instance;
       final allTx = await repo.readAllTransactions();
 
       // Filter out reversals and neutral double-entry transfers
       final activeTx = allTx
-          .where((t) => t.category != '__reversal__' && t.category.toLowerCase() != 'transfer')
+          .where((t) =>
+              t.category != '__reversal__' &&
+              t.category.toLowerCase() != 'transfer')
           .toList();
 
-      // Today's total spent
+      // Exact calendar boundaries [today 00:00, tomorrow 00:00) & [monthStart, monthEnd)
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
       final tomorrow = today.add(const Duration(days: 1));
-
-      final todaySpent = activeTx
-          .where((t) => t.isExpense && t.date.isAfter(today.subtract(const Duration(seconds: 1))) && t.date.isBefore(tomorrow))
-          .fold(0.0, (sum, t) => sum + t.amount);
-
-      // Month's summaries
       final monthStart = DateTime(now.year, now.month, 1);
       final monthEnd = DateTime(now.year, now.month + 1, 1);
 
-      final monthTx = activeTx.where((t) => t.date.isAfter(monthStart.subtract(const Duration(seconds: 1))) && t.date.isBefore(monthEnd)).toList();
+      final todaySpent = activeTx
+          .where((t) =>
+              t.isExpense &&
+              !t.date.isBefore(today) &&
+              t.date.isBefore(tomorrow))
+          .fold(0.0, (sum, t) => sum + t.amount);
 
-      final monthSpent = monthTx.where((t) => t.isExpense).fold(0.0, (sum, t) => sum + t.amount);
-      final monthIncome = monthTx.where((t) => !t.isExpense).fold(0.0, (sum, t) => sum + t.amount);
+      final monthTx = activeTx
+          .where((t) =>
+              !t.date.isBefore(monthStart) && t.date.isBefore(monthEnd))
+          .toList();
 
-      // Format overview strings with thousands separators (LKR 1,250,000)
-      final numberFormat = NumberFormat('#,##0');
-      final spentTodayStr = '$currency ${numberFormat.format(todaySpent)}';
-      final spentMonthStr = '$currency ${numberFormat.format(monthSpent)}';
-      final incomeMonthStr = '$currency ${numberFormat.format(monthIncome)}';
+      final monthSpent =
+          monthTx.where((t) => t.isExpense).fold(0.0, (sum, t) => sum + t.amount);
+      final monthIncome = monthTx
+          .where((t) => !t.isExpense)
+          .fold(0.0, (sum, t) => sum + t.amount);
 
-      // ── Analytics ──
-      // Net cash flow this month
+      // Dual-account cash flow split for current month (transfers included per account)
+      double dailyNet = 0.0;
+      double savingsNet = 0.0;
+      for (final t in allTx) {
+        if (t.category == '__reversal__') continue;
+        if (t.date.isBefore(monthStart) || !t.date.isBefore(monthEnd)) continue;
+        final isSavings =
+            t.account == 'savings' || t.account == AccountType.savings;
+        final delta = t.isExpense ? -t.amount : t.amount;
+        if (isSavings) {
+          savingsNet += delta;
+        } else {
+          dailyNet += delta;
+        }
+      }
+
+      final numberFormat = NumberFormat('#,##0.##', Intl.defaultLocale);
+      String formatUnsigned(double value) =>
+          '$currency ${numberFormat.format(value)}';
+      String formatSigned(double value) =>
+          '${value < 0 ? '-' : '+'}$currency ${numberFormat.format(value.abs())}';
+      String formatBalance(double value) =>
+          '${value < 0 ? '-' : ''}$currency ${numberFormat.format(value.abs())}';
+
+      final spentTodayStr = formatUnsigned(todaySpent);
+      final spentMonthStr = formatUnsigned(monthSpent);
+      final incomeMonthStr = formatUnsigned(monthIncome);
       final net = monthIncome - monthSpent;
-      final netStr =
-          '${net < 0 ? '-' : '+'}$currency ${numberFormat.format(net.abs())}';
+      final netStr = formatSigned(net);
+      final dailyBalanceStr = formatBalance(dailyNet);
+      final savingsBalanceStr = formatBalance(savingsNet);
 
-      // Budget progress: total spent vs the sum of all category budgets
+      // Budget progress & category map
       double totalBudget = 0;
+      final Map<String, double> categoryBudgetsMap = {};
       final budgetsStr = prefs.getString('categoryBudgets');
-      if (budgetsStr != null) {
+      if (budgetsStr != null && budgetsStr.isNotEmpty) {
         try {
-          final Map<String, dynamic> budgets = json.decode(budgetsStr);
-          totalBudget =
-              budgets.values.fold(0.0, (sum, v) => sum + (v as num).toDouble());
+          final Map<String, dynamic> raw = json.decode(budgetsStr);
+          raw.forEach((k, v) {
+            final amount = (v as num).toDouble();
+            categoryBudgetsMap[k] = amount;
+            totalBudget += amount;
+          });
         } catch (_) {}
       }
       final budgetPercent =
           totalBudget > 0 ? ((monthSpent / totalBudget) * 100).round() : -1;
       final budgetLabel = totalBudget > 0
-          ? '$currency ${numberFormat.format(monthSpent)} of $currency ${numberFormat.format(totalBudget)}'
+          ? '$currency ${numberFormat.format(monthSpent)} / $currency ${numberFormat.format(totalBudget)}'
           : '';
 
-      // ── Analytics Breakdown ──
-      // Top spending categories this month sorted by total expense
+      // Top spending category this month
       final byCategory = <String, double>{};
       for (final t in monthTx.where((t) => t.isExpense)) {
         byCategory[t.category] = (byCategory[t.category] ?? 0) + t.amount;
       }
-
       final sortedCategories = byCategory.entries.toList()
         ..sort((a, b) => b.value.compareTo(a.value));
 
-      String topCategory = '';
-      String topCategoryAmount = '';
-      if (sortedCategories.isNotEmpty) {
-        topCategory = sortedCategories.first.key;
-        topCategoryAmount = '$currency ${numberFormat.format(sortedCategories.first.value)}';
-      }
+      final topCategory =
+          sortedCategories.isNotEmpty ? sortedCategories.first.key : '';
+      final topCategoryAmount = sortedCategories.isNotEmpty
+          ? formatUnsigned(sortedCategories.first.value)
+          : '';
 
-      final categoryBreakdown = sortedCategories.take(3).map((e) {
-        final pct = monthSpent > 0 ? ((e.value / monthSpent) * 100).round() : 0;
-        return {
-          'name': e.key,
-          'amount': '$currency ${numberFormat.format(e.value)}',
-          'pct': pct,
-        };
-      }).toList();
-
-      // ── Spending Run-Rate & Forecast Sparkline Data ──
+      // Spending run-rate & forecast sparkline (using filtered activeTx)
       String forecastAmountStr = '';
-      String forecastTrendStr = '';
-      bool isTrendingUp = false;
+      String forecastPace = 'on_track';
       final sparklinePoints = <double>[];
 
       try {
-        final Map<String, double> categoryBudgetsMap = {};
-        if (budgetsStr != null) {
-          try {
-            final Map<String, dynamic> raw = json.decode(budgetsStr);
-            raw.forEach((k, v) => categoryBudgetsMap[k] = (v as num).toDouble());
-          } catch (_) {}
-        }
-
-        final spendingForecast = SpendingForecastService.calculateMonthlyForecast(
-          transactions: allTx,
+        final spendingForecast =
+            SpendingForecastService.calculateMonthlyForecast(
+          transactions: activeTx,
           categoryBudgets: categoryBudgetsMap,
         );
 
         forecastAmountStr =
-            '~$currency ${numberFormat.format(spendingForecast.projectedMonthEndSpend)}';
-        forecastTrendStr = spendingForecast.status == SpendingPaceStatus.overPace
-            ? 'Pacing Fast'
-            : spendingForecast.status == SpendingPaceStatus.exhausted
-                ? 'Exhausted'
-                : 'On Track';
-        isTrendingUp = spendingForecast.status == SpendingPaceStatus.overPace ||
-            spendingForecast.status == SpendingPaceStatus.exhausted;
+            '~${formatUnsigned(spendingForecast.projectedMonthEndSpend)}';
+        forecastPace = switch (spendingForecast.status) {
+          SpendingPaceStatus.overPace => 'over_pace',
+          SpendingPaceStatus.exhausted => 'exhausted',
+          _ => 'on_track',
+        };
 
+        final rawPoints = <double>[];
         final monthlyData = await repo.getMonthlyTransactionSummary(6);
         for (final d in monthlyData) {
           final exp = (d['totalExpense'] as num?)?.toDouble() ??
               (d['expense'] as num?)?.toDouble() ??
               0.0;
-          sparklinePoints.add(exp);
+          rawPoints.add(exp);
         }
         if (spendingForecast.projectedMonthEndSpend > 0) {
-          sparklinePoints.add(spendingForecast.projectedMonthEndSpend);
+          rawPoints.add(spendingForecast.projectedMonthEndSpend);
+        }
+        final firstNonZeroIdx = rawPoints.indexWhere((v) => v > 0);
+        if (firstNonZeroIdx >= 0) {
+          sparklinePoints.addAll(rawPoints.sublist(firstNonZeroIdx));
         }
       } catch (_) {}
 
-      // Top 3 recent transactions (kept for backward compatibility)
-      final recentList = activeTx.take(3).map((t) {
-        return {
-          'category': t.category,
-          'description': t.description,
-          'amount': '${t.isExpense ? '-' : '+'} $currency ${numberFormat.format(t.amount)}',
-          'isExpense': t.isExpense,
-        };
-      }).toList();
+      // Split Bills pending net balance (only when Split Bills is enabled)
+      String splitBillsPendingStr = '';
+      if (showSplitBills) {
+        try {
+          final metrics = await SplitBillRepository.instance.getSummaryMetrics();
+          final owed = metrics['owedToUser'] ?? 0.0;
+          final owes = metrics['userOwes'] ?? 0.0;
+          final splitNet = metrics['netBalance'] ?? 0.0;
+          if (owed > 0 || owes > 0) {
+            splitBillsPendingStr = formatSigned(splitNet);
+          }
+        } catch (_) {}
+      }
 
-      // Save to shared preferences (Dart SharedPreferences automatically prepends 'flutter.')
-      await prefs.setString('widget_spent_today', spentTodayStr);
-      await prefs.setString('widget_spent_month', spentMonthStr);
-      await prefs.setString('widget_income_month', incomeMonthStr);
-      await prefs.setString('widget_net_month', netStr);
-      await prefs.setBool('widget_net_positive', net >= 0);
-      await prefs.setInt('widget_budget_percent', budgetPercent);
-      await prefs.setString('widget_budget_label', budgetLabel);
-      await prefs.setString('widget_top_category', topCategory);
-      await prefs.setString('widget_top_category_amount', topCategoryAmount);
-      await prefs.setString('widget_category_breakdown', json.encode(categoryBreakdown));
-      await prefs.setString('widget_forecast_amount', forecastAmountStr);
-      await prefs.setString('widget_forecast_trend', forecastTrendStr);
-      await prefs.setBool('widget_is_trending_up', isTrendingUp);
-      await prefs.setString('widget_sparkline_data', json.encode(sparklinePoints));
-      await prefs.setString('widget_recent_transactions', json.encode(recentList));
+      final snapshotMap = <String, dynamic>{
+        'spentToday': spentTodayStr,
+        'spentMonth': spentMonthStr,
+        'incomeMonth': incomeMonthStr,
+        'netMonth': netStr,
+        'netPositive': net >= 0,
+        'netBalance': net,
+        'totalIncome': monthIncome,
+        'totalExpense': monthSpent,
+        'currencySymbol': currency,
+        'account1Name': account1Name,
+        'account2Name': account2Name,
+        'dailyBalance': dailyBalanceStr,
+        'savingsBalance': savingsBalanceStr,
+        'enableSavingsVault': enableSavingsVault,
+        'enableBudgetsAndAnalytics': enableBudgetsAndAnalytics,
+        'showSplitBills': showSplitBills,
+        'splitBillsPending': splitBillsPendingStr,
+        'budgetPercent': budgetPercent,
+        'budgetLabel': budgetLabel,
+        'topCategory': topCategory,
+        'topCategoryAmount': topCategoryAmount,
+        'forecastAmount': forecastAmountStr,
+        'forecastPace': forecastPace,
+        'sparklinePoints': sparklinePoints,
+        'hasEnoughSparklineData': sparklinePoints.length >= 2,
+      };
 
-      // Trigger update on native side
-      await _channel.invokeMethod('updateWidget');
-    } on MissingPluginException {
-      // Ignore missing native implementation silently in testing environments
+      final jsonStr = json.encode(snapshotMap);
+      try {
+        await _channel.invokeMethod('syncFinanceSnapshot', jsonStr);
+      } on MissingPluginException {
+        // Background isolate (Workmanager / Telephony): stage for EverythingApplication
+        await prefs.setString('widget_bg_staging_finance', jsonStr);
+      }
     } catch (e) {
-      // Avoid crashing the app if widget updates fail
       debugPrint('Widget update failed: $e');
     }
   }
@@ -219,10 +293,28 @@ class WidgetHelper {
   static Future<void> syncPendingTodoToggles() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      bool usedChannel = false;
+      String? pendingStr;
+
       try {
-        await prefs.reload();
-      } catch (_) {}
-      final pendingStr = prefs.getString('widget_pending_toggles');
+        pendingStr =
+            await _channel.invokeMethod<String>('getPendingTodoToggles');
+        if (pendingStr != null) {
+          usedChannel = true;
+        }
+      } on MissingPluginException {
+        pendingStr = null;
+      } catch (_) {
+        pendingStr = null;
+      }
+
+      if (pendingStr == null) {
+        try {
+          await prefs.reload();
+        } catch (_) {}
+        pendingStr = prefs.getString('widget_pending_toggles');
+      }
+
       if (pendingStr == null || pendingStr.isEmpty || pendingStr == '[]') {
         return;
       }
@@ -230,7 +322,8 @@ class WidgetHelper {
       final List<dynamic> toggles = json.decode(pendingStr);
       if (toggles.isEmpty) return;
 
-      // Group toggles by noteId and squash redundant intermediate toggles for the same item
+      // Group toggles by noteId and squash redundant intermediate toggles;
+      // match by lineIndex >= 0 first, falling back to trimmed text.
       final Map<String, Map<String, Map<String, dynamic>>> byNoteSquashed = {};
       int maxProcessedTimestamp = 0;
       for (final t in toggles) {
@@ -243,9 +336,13 @@ class WidgetHelper {
           if (noteId != null && noteId.isNotEmpty) {
             final lineIndex = t['lineIndex'] as int? ?? -1;
             final text = (t['text'] as String?)?.trim();
-            // Distinct key: prefer text, fallback to lineIndex
-            final itemKey = (text != null && text.isNotEmpty) ? text : 'idx_$lineIndex';
-            byNoteSquashed.putIfAbsent(noteId, () => {})[itemKey] = Map<String, dynamic>.from(t);
+            final itemKey = lineIndex >= 0
+                ? 'idx_$lineIndex'
+                : ((text != null && text.isNotEmpty) ? 'txt_$text' : '');
+            if (itemKey.isNotEmpty) {
+              byNoteSquashed.putIfAbsent(noteId, () => {})[itemKey] =
+                  Map<String, dynamic>.from(t);
+            }
           }
         }
       }
@@ -263,7 +360,8 @@ class WidgetHelper {
           final lineIndex = toggle['lineIndex'] as int? ?? -1;
           final isDone = toggle['isDone'] as bool? ?? false;
           final expectedText = toggle['text'] as String?;
-          if (lineIndex >= 0 || (expectedText != null && expectedText.isNotEmpty)) {
+          if (lineIndex >= 0 ||
+              (expectedText != null && expectedText.isNotEmpty)) {
             final ok = QuillChecklistHelper.toggleChecklistLine(
               doc,
               lineIndex,
@@ -282,10 +380,19 @@ class WidgetHelper {
       }
 
       // Preserve any toggles queued while SQLite writes were in flight
-      try {
-        await prefs.reload();
-      } catch (_) {}
-      final latestPendingStr = prefs.getString('widget_pending_toggles');
+      String? latestPendingStr;
+      if (usedChannel) {
+        try {
+          latestPendingStr =
+              await _channel.invokeMethod<String>('getPendingTodoToggles');
+        } catch (_) {}
+      } else {
+        try {
+          await prefs.reload();
+        } catch (_) {}
+        latestPendingStr = prefs.getString('widget_pending_toggles');
+      }
+
       final List<dynamic> remainingToggles = [];
       if (latestPendingStr != null &&
           latestPendingStr.isNotEmpty &&
@@ -305,10 +412,17 @@ class WidgetHelper {
         } catch (_) {}
       }
 
-      await prefs.setString(
-        'widget_pending_toggles',
-        remainingToggles.isEmpty ? '[]' : json.encode(remainingToggles),
-      );
+      final remainingJson =
+          remainingToggles.isEmpty ? '[]' : json.encode(remainingToggles);
+      if (usedChannel) {
+        try {
+          await _channel.invokeMethod('setPendingTodoToggles', remainingJson);
+          return;
+        } on MissingPluginException {
+          // Fall through to legacy prefs write
+        }
+      }
+      await prefs.setString('widget_pending_toggles', remainingJson);
     } catch (e) {
       debugPrint('Sync pending todo toggles failed: $e');
     }
@@ -346,18 +460,39 @@ class WidgetHelper {
       final repo = NoteRepository.instance;
       final activeNotes = await repo.readActiveChecklistNotes();
 
-      final activeNoteId = prefs.getString('widget_active_note_id');
-      final allKeys = prefs.getKeys();
-      final pinnedNoteIds = <String>{};
-      if (activeNoteId != null && activeNoteId != 'ALL_NOTES') {
-        pinnedNoteIds.add(activeNoteId);
-      }
-      for (final key in allKeys) {
-        if (key.startsWith('widget_active_note_id_')) {
-          final widgetSpecificId = prefs.getString(key);
-          if (widgetSpecificId != null && widgetSpecificId != 'ALL_NOTES') {
-            pinnedNoteIds.add(widgetSpecificId);
+      Map<String, String> activeNoteIdsMap = {};
+      bool usedChannelForActiveIds = false;
+      try {
+        final channelMap = await _channel
+            .invokeMapMethod<String, String>('getWidgetActiveNoteIds');
+        if (channelMap != null) {
+          activeNoteIdsMap = Map<String, String>.from(channelMap);
+          usedChannelForActiveIds = true;
+        }
+      } on MissingPluginException {
+        // Fallback below
+      } catch (_) {}
+
+      if (!usedChannelForActiveIds) {
+        final activeNoteId = prefs.getString('widget_active_note_id');
+        if (activeNoteId != null) {
+          activeNoteIdsMap['global'] = activeNoteId;
+        }
+        for (final key in prefs.getKeys()) {
+          if (key.startsWith('widget_active_note_id_')) {
+            final widgetSpecificId = prefs.getString(key);
+            if (widgetSpecificId != null) {
+              activeNoteIdsMap[key.replaceFirst('widget_active_note_id_', '')] =
+                  widgetSpecificId;
+            }
           }
+        }
+      }
+
+      final pinnedNoteIds = <String>{};
+      for (final id in activeNoteIdsMap.values) {
+        if (id.isNotEmpty && id != 'ALL_NOTES') {
+          pinnedNoteIds.add(id);
         }
       }
       final remainingPinnedIds = Set<String>.from(pinnedNoteIds);
@@ -382,58 +517,103 @@ class WidgetHelper {
         final hasChecklist = note.content.contains('"list":"checked"') ||
             note.content.contains('"list":"unchecked"') ||
             note.content.contains('- [ ]') ||
-            note.content.contains('- [x]');
+            note.content.contains('- [x]') ||
+            note.content.contains('- [X]');
         if (!hasChecklist) continue;
 
         final delta = RichTextUtils.contentToDelta(note.content);
         final doc = Document.fromDelta(delta);
         final items = QuillChecklistHelper.extractChecklistData(doc);
         if (items.isNotEmpty) {
-          final boundedItems = items.take(maxItemsPerNote).toList();
+          final totalCount = items.length;
+          final checkedCount = items.where((it) => it.isDone).length;
+          final pendingItems = items.where((it) => !it.isDone).toList();
+          final pendingCount = pendingItems.length;
+          final boundedPending = pendingItems.take(maxItemsPerNote).toList();
+
           todoNotes.add({
             'id': note.id,
-            'title': note.title.trim().isEmpty ? 'Untitled Note' : note.title.trim(),
-            'items': boundedItems.map((it) => it.toJson()).toList(),
+            'title':
+                note.title.trim().isEmpty ? 'Untitled Note' : note.title.trim(),
+            'pendingCount': pendingCount,
+            'checkedCount': checkedCount,
+            'totalCount': totalCount,
+            'items': boundedPending
+                .map((it) => {
+                      'lineIndex': it.lineIndex,
+                      'text': it.text,
+                      'isDone': it.isDone,
+                    })
+                .toList(),
           });
-          totalItemsCount += boundedItems.length;
-          if (totalItemsCount >= maxTotalItems && remainingPinnedIds.isEmpty) break;
-        }
-      }
-
-      await prefs.setString('widget_todo_notes_json', json.encode(todoNotes));
-
-      if (activeNoteId != null && activeNoteId != 'ALL_NOTES') {
-        final exists = todoNotes.any((n) => n['id'] == activeNoteId);
-        if (!exists) {
-          await prefs.setString('widget_active_note_id', 'ALL_NOTES');
-          await prefs.setString('widget_active_note_title', 'All Action Items');
-        } else {
-          final matched = todoNotes.firstWhere((n) => n['id'] == activeNoteId);
-          await prefs.setString('widget_active_note_title', matched['title'] as String? ?? 'Checklist');
-        }
-      }
-
-      // Synchronize and clean up per-widget active note titles and deleted IDs
-      for (final key in allKeys) {
-        if (key.startsWith('widget_active_note_id_')) {
-          final widgetSpecificId = prefs.getString(key);
-          final suffix = key.replaceFirst('widget_active_note_id_', '');
-          if (widgetSpecificId != null && widgetSpecificId != 'ALL_NOTES') {
-            final exists = todoNotes.any((n) => n['id'] == widgetSpecificId);
-            if (!exists) {
-              await prefs.setString(key, 'ALL_NOTES');
-              await prefs.setString('widget_active_note_title_$suffix', 'All Action Items');
-            } else {
-              final matched = todoNotes.firstWhere((n) => n['id'] == widgetSpecificId);
-              await prefs.setString('widget_active_note_title_$suffix', matched['title'] as String? ?? 'Checklist');
-            }
+          totalItemsCount += boundedPending.length;
+          if (totalItemsCount >= maxTotalItems && remainingPinnedIds.isEmpty) {
+            break;
           }
         }
       }
 
-      await _channel.invokeMethod('updateWidget');
-    } on MissingPluginException {
-      // Ignore missing native implementation silently in testing environments
+      final jsonStr = json.encode(todoNotes);
+      try {
+        await _channel.invokeMethod('syncTodoSnapshot', jsonStr);
+      } on MissingPluginException {
+        await prefs.setString('widget_bg_staging_todo', jsonStr);
+      }
+
+      // Synchronize and clean up per-widget active note titles and deleted IDs
+      final Map<String, Map<String, String>> titleUpdates = {};
+      for (final entry in activeNoteIdsMap.entries) {
+        final key = entry.key;
+        final noteId = entry.value;
+        if (noteId.isNotEmpty && noteId != 'ALL_NOTES') {
+          final matchedIdx = todoNotes.indexWhere((n) => n['id'] == noteId);
+          if (matchedIdx < 0) {
+            titleUpdates[key] = {
+              'id': 'ALL_NOTES',
+              'title': 'All Action Items',
+            };
+          } else {
+            final matchedTitle =
+                todoNotes[matchedIdx]['title'] as String? ?? 'Checklist';
+            titleUpdates[key] = {
+              'id': noteId,
+              'title': matchedTitle,
+            };
+          }
+        }
+      }
+
+      if (titleUpdates.isNotEmpty) {
+        bool updatedViaChannel = false;
+        try {
+          await _channel.invokeMethod(
+            'updateWidgetActiveNoteTitles',
+            titleUpdates,
+          );
+          updatedViaChannel = true;
+        } on MissingPluginException {
+          updatedViaChannel = false;
+        }
+        if (!updatedViaChannel || !usedChannelForActiveIds) {
+          for (final entry in titleUpdates.entries) {
+            final key = entry.key;
+            final idVal = entry.value['id']!;
+            final titleVal = entry.value['title']!;
+            if (key == 'global') {
+              if (prefs.containsKey('widget_active_note_id')) {
+                await prefs.setString('widget_active_note_id', idVal);
+                await prefs.setString('widget_active_note_title', titleVal);
+              }
+            } else {
+              if (prefs.containsKey('widget_active_note_id_$key')) {
+                await prefs.setString('widget_active_note_id_$key', idVal);
+                await prefs.setString(
+                    'widget_active_note_title_$key', titleVal);
+              }
+            }
+          }
+        }
+      }
     } catch (e) {
       debugPrint('Todo widget update failed: $e');
     }
@@ -460,26 +640,48 @@ class WidgetHelper {
 
       if (targetNote == null) {
         // Check if any Todo widget instance has a specific active note pinned
-        final prefs = await SharedPreferences.getInstance();
-        for (final key in prefs.getKeys()) {
-          if (key.startsWith('widget_active_note_id_')) {
-            final candidateId = prefs.getString(key);
-            if (candidateId != null &&
-                candidateId.isNotEmpty &&
-                candidateId != 'ALL_NOTES') {
-              final n = await repo.readNote(candidateId);
-              if (n != null && !n.isLocked && n.deletedAt == null && !n.isArchived) {
-                targetNote = n;
-                break;
+        final candidateIds = <String>[];
+        try {
+          final channelMap = await _channel
+              .invokeMapMethod<String, String>('getWidgetActiveNoteIds');
+          if (channelMap != null) {
+            for (final entry in channelMap.entries) {
+              if (entry.key != 'global' &&
+                  entry.value.isNotEmpty &&
+                  entry.value != 'ALL_NOTES') {
+                candidateIds.add(entry.value);
               }
             }
+          }
+        } catch (_) {}
+
+        if (candidateIds.isEmpty) {
+          final prefs = await SharedPreferences.getInstance();
+          for (final key in prefs.getKeys()) {
+            if (key.startsWith('widget_active_note_id_')) {
+              final candidateId = prefs.getString(key);
+              if (candidateId != null &&
+                  candidateId.isNotEmpty &&
+                  candidateId != 'ALL_NOTES') {
+                candidateIds.add(candidateId);
+              }
+            }
+          }
+        }
+
+        for (final candidateId in candidateIds) {
+          final n = await repo.readNote(candidateId);
+          if (n != null && !n.isLocked && n.deletedAt == null && !n.isArchived) {
+            targetNote = n;
+            break;
           }
         }
       }
 
       if (targetNote == null) {
         // Find existing "My Tasks" / "Quick Tasks" or first pinned checklist note
-        final activeNotes = await repo.readAllNotes(isArchived: false, isTrashed: false);
+        final activeNotes =
+            await repo.readAllNotes(isArchived: false, isTrashed: false);
         for (final n in activeNotes) {
           if (n.isLocked) continue;
           final titleLower = n.title.trim().toLowerCase();
@@ -499,7 +701,8 @@ class WidgetHelper {
             if (n.content.contains('"list":"checked"') ||
                 n.content.contains('"list":"unchecked"') ||
                 n.content.contains('- [ ]') ||
-                n.content.contains('- [x]')) {
+                n.content.contains('- [x]') ||
+                n.content.contains('- [X]')) {
               targetNote = n;
               break;
             }
@@ -542,7 +745,7 @@ class WidgetHelper {
   }
 
   /// Requests the host launcher to pin an Android widget of the specified [widgetType]
-  /// ('todo', 'finance', 'unified', or 'notes') to the home screen.
+  /// ('todo' or 'finance') to the home screen.
   static Future<bool> requestPinWidget(String widgetType) async {
     try {
       final res = await _channel.invokeMethod<bool>('requestPinAppWidget', {

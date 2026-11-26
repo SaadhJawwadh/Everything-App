@@ -276,7 +276,7 @@ void main() {
         ),
       );
 
-      expect(find.text('PRO-TIP'), findsOneWidget);
+      expect(find.text('Pro tip'), findsOneWidget);
       expect(find.text('Zero-Cloud P2P Device Sync'), findsOneWidget);
       expect(find.text('Pair devices over local Wi-Fi to sync notes.'), findsOneWidget);
       expect(find.text('Got it'), findsOneWidget);

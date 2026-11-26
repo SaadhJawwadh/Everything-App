@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/theme/app_layout.dart';
+import '../../../../core/theme/app_theme.dart';
 
 /// Standardized Search Bar widget for NoteEditorScreen.
 class NoteSearchReplaceBar extends StatelessWidget {
@@ -72,34 +73,47 @@ class NoteSearchReplaceBar extends StatelessWidget {
             ),
             Tooltip(
               message: 'Match case',
-              child: InkWell(
-                onTap: onToggleCaseSensitive,
-                borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                child: AnimatedContainer(
-                  duration: AppLayout.shouldReduceMotion(context)
-                      ? Duration.zero
-                      : AppLayout.animMicro,
-                  curve: AppLayout.curveStrongEaseOut,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isCaseSensitive
-                        ? colorScheme.primaryContainer
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                    border: Border.all(
-                      color: isCaseSensitive
-                          ? colorScheme.primary
-                          : colorScheme.outlineVariant.withValues(alpha: 0.4),
-                    ),
-                  ),
-                  child: Text(
-                    'Aa',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: isCaseSensitive ? FontWeight.bold : FontWeight.normal,
-                      color: isCaseSensitive
-                          ? colorScheme.onPrimaryContainer
-                          : colorScheme.onSurfaceVariant,
+              child: Semantics(
+                button: true,
+                selected: isCaseSensitive,
+                label: 'Match case',
+                child: InkWell(
+                  onTap: onToggleCaseSensitive,
+                  borderRadius: BorderRadius.circular(AppLayout.radiusS),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                    child: Center(
+                      widthFactor: 1.0,
+                      child: AnimatedContainer(
+                        duration: AppLayout.shouldReduceMotion(context)
+                            ? Duration.zero
+                            : AppLayout.animMicro,
+                        curve: AppLayout.curveStrongEaseOut,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isCaseSensitive
+                              ? colorScheme.primaryContainer
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(AppLayout.radiusS),
+                          border: Border.all(
+                            color: isCaseSensitive
+                                ? colorScheme.primary
+                                : colorScheme.outlineVariant.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Text(
+                          'Aa',
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontFamily: AppTheme.fontGoogleSansFlex,
+                            fontFamilyFallback: AppTheme.fontFallbacks,
+                            fontSize: 13.0,
+                            fontWeight: isCaseSensitive ? FontWeight.bold : FontWeight.w500,
+                            color: isCaseSensitive
+                                ? colorScheme.onPrimaryContainer
+                                : colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -124,9 +138,12 @@ class NoteSearchReplaceBar extends StatelessWidget {
                   searchOffsets.isNotEmpty
                       ? '${currentSearchIndex + 1}/${searchOffsets.length}'
                       : '0/0',
-                  style: TextStyle(
-                    fontSize: 11,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontFamily: AppTheme.fontGoogleSansFlex,
+                    fontFamilyFallback: AppTheme.fontFallbacks,
+                    fontSize: 13.0,
                     fontWeight: FontWeight.bold,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                     color: searchOffsets.isNotEmpty
                         ? colorScheme.onSecondaryContainer
                         : colorScheme.onSurfaceVariant,

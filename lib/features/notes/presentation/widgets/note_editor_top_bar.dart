@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import '../../../../core/theme/app_layout.dart';
-import '../../../../widgets/bouncing_widget.dart';
+import '../../../../core/theme/app_theme.dart';
 
 /// Top bar for NoteEditorScreen, encapsulating both search mode and the primary navigation/action bar.
 class NoteEditorTopBar extends StatelessWidget {
@@ -104,34 +104,47 @@ class NoteEditorTopBar extends StatelessWidget {
                       ),
                       Tooltip(
                         message: 'Match case',
-                        child: InkWell(
-                          onTap: onToggleCaseSensitive,
-                          borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                          child: AnimatedContainer(
-                            duration: AppLayout.shouldReduceMotion(context)
-                                ? Duration.zero
-                                : AppLayout.animMicro,
-                            curve: AppLayout.curveStrongEaseOut,
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: isCaseSensitive
-                                  ? theme.colorScheme.primaryContainer
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                              border: Border.all(
-                                color: isCaseSensitive
-                                    ? theme.colorScheme.primary
-                                    : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-                              ),
-                            ),
-                            child: Text(
-                              'Aa',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: isCaseSensitive ? FontWeight.bold : FontWeight.normal,
-                                color: isCaseSensitive
-                                    ? theme.colorScheme.onPrimaryContainer
-                                    : theme.colorScheme.onSurfaceVariant,
+                        child: Semantics(
+                          button: true,
+                          selected: isCaseSensitive,
+                          label: 'Match case',
+                          child: InkWell(
+                            onTap: onToggleCaseSensitive,
+                            borderRadius: BorderRadius.circular(AppLayout.radiusS),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                              child: Center(
+                                widthFactor: 1.0,
+                                child: AnimatedContainer(
+                                  duration: AppLayout.shouldReduceMotion(context)
+                                      ? Duration.zero
+                                      : AppLayout.animMicro,
+                                  curve: AppLayout.curveStrongEaseOut,
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: isCaseSensitive
+                                        ? theme.colorScheme.primaryContainer
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(AppLayout.radiusS),
+                                    border: Border.all(
+                                      color: isCaseSensitive
+                                          ? theme.colorScheme.primary
+                                          : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Aa',
+                                    style: theme.textTheme.labelLarge?.copyWith(
+                                      fontFamily: AppTheme.fontGoogleSansFlex,
+                                      fontFamilyFallback: AppTheme.fontFallbacks,
+                                      fontSize: 13.0,
+                                      fontWeight: isCaseSensitive ? FontWeight.bold : FontWeight.w500,
+                                      color: isCaseSensitive
+                                          ? theme.colorScheme.onPrimaryContainer
+                                          : theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -156,9 +169,12 @@ class NoteEditorTopBar extends StatelessWidget {
                             searchOffsets.isNotEmpty
                                 ? '${currentSearchIndex + 1}/${searchOffsets.length}'
                                 : '0/0',
-                            style: TextStyle(
-                              fontSize: 11,
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              fontFamily: AppTheme.fontGoogleSansFlex,
+                              fontFamilyFallback: AppTheme.fontFallbacks,
+                              fontSize: 13.0,
                               fontWeight: FontWeight.bold,
+                              fontFeatures: const [FontFeature.tabularFigures()],
                               color: searchOffsets.isNotEmpty
                                   ? theme.colorScheme.onSecondaryContainer
                                   : theme.colorScheme.onSurfaceVariant,
@@ -238,14 +254,11 @@ class NoteEditorTopBar extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  BouncingWidget(
-                    onTap: onTagPicker,
-                    child: IconButton(
-                      icon: const Icon(Icons.label_outline),
-                      tooltip: 'Tags',
-                      color: textColor,
-                      onPressed: onTagPicker,
-                    ),
+                  IconButton(
+                    icon: const Icon(Icons.label_outline),
+                    tooltip: 'Tags',
+                    color: textColor,
+                    onPressed: onTagPicker,
                   ),
                   const SizedBox(width: 4.0),
                   PopupMenuButton<String>(

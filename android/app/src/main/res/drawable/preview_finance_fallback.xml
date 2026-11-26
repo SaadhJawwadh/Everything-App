@@ -1,0 +1,23 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="240dp"
+    android:height="140dp"
+    android:viewportWidth="240"
+    android:viewportHeight="140">
+    <path
+        android:fillColor="@color/widget_background"
+        android:pathData="M20,0 L220,0 C231.05,0 240,8.95 240,20 L240,120 C240,131.05 231.05,140 220,140 L20,140 C8.95,140 0,131.05 0,120 L0,20 C0,8.95 8.95,0 20,0 Z" />
+    <path
+        android:fillColor="@color/widget_secondary_container"
+        android:pathData="M24,14 L106,14 C112.63,14 118,19.37 118,26 C118,32.63 112.63,38 106,38 L24,38 C17.37,38 12,32.63 12,26 C12,19.37 17.37,14 24,14 Z" />
+    <path
+        android:fillColor="@color/widget_primary"
+        android:pathData="M214,14 C221.73,14 228,20.27 228,28 C228,35.73 221.73,42 214,42 C206.27,42 200,35.73 200,28 C200,20.27 206.27,14 214,14 Z" />
+    <path
+        android:fillColor="@color/widget_subcard"
+        android:pathData="M24,84 L216,84 C222.63,84 228,89.37 228,96 L228,116 C228,122.63 222.63,128 216,128 L24,128 C17.37,128 12,122.63 12,116 L12,96 C12,89.37 17.37,84 24,84 Z" />
+    <path
+        android:strokeColor="@color/widget_primary"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M132,116 C152,110 166,100 184,104 C198,107 208,96 220,94" />
+</vector>

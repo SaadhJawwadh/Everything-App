@@ -7,6 +7,8 @@ import 'package:note_taking_app/core/ui/app_card.dart';
 import 'package:note_taking_app/core/ui/app_chip.dart';
 import 'package:note_taking_app/data/database_helper.dart';
 import 'package:note_taking_app/features/settings/presentation/screens/settings_dialogs.dart';
+import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -308,17 +310,31 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Pin to Home Screen'), findsOneWidget);
-      expect(find.text('Action Items & Checklist'), findsOneWidget);
-      expect(find.text('Financial Manager'), findsOneWidget);
-      expect(find.text('Unified Dual-Domain Capsule'), findsOneWidget);
+      expect(find.text('Tasks & Notes'), findsOneWidget);
+      expect(find.text('Finances'), findsOneWidget);
+      expect(find.text('Unified Dual-Domain Capsule'), findsNothing);
 
       // Tap the first 'Pin' button
       final pinButtons = find.widgetWithText(FilledButton, 'Pin');
-      expect(pinButtons, findsNWidgets(3));
+      expect(pinButtons, findsNWidgets(2));
       await tester.tap(pinButtons.first);
       await tester.pumpAndSettle();
 
       expect(methodCalls.any((c) => c.method == 'requestPinAppWidget' && c.arguments?['type'] == 'todo'), isTrue);
+    });
+
+    test('SettingsProvider hideWidgetDataWhenLocked defaults true and round-trips backup map', () async {
+      SharedPreferences.setMockInitialValues({});
+      final provider = SettingsProvider();
+      await provider.loadSettings();
+      expect(provider.hideWidgetDataWhenLocked, isTrue);
+
+      await provider.setHideWidgetDataWhenLocked(false);
+      expect(provider.hideWidgetDataWhenLocked, isFalse);
+      expect(provider.toBackupMap()['hideWidgetDataWhenLocked'], isFalse);
+
+      await provider.restoreFromBackupMap({'hideWidgetDataWhenLocked': true});
+      expect(provider.hideWidgetDataWhenLocked, isTrue);
     });
   });
 }

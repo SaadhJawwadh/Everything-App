@@ -45,6 +45,7 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   int _analyticsSubView = 0; // 0: Breakdown, 1: Budgets
+  bool _showLedgerCharts = false;
   bool _isSearching = false;
   DateTime? _lastResumeReload;
   List<TransactionModel>? _lastGroupedSource;
@@ -397,54 +398,6 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                 child: SizedBox(height: 12),
               ),
             if (effectiveTab == 'Ledger') ...[
-        // ── Minimalist Visual Chart Deck on Ledger (Tap jumps to Budgets) ──
-        if (showBudgets && (finProvider.categoryExpenses.isNotEmpty || finProvider.monthlyData.isNotEmpty)) ...[
-          SliverToBoxAdapter(
-            child: AnimationConfiguration.staggeredList(
-              position: 3,
-              duration: AppLayout.animShort,
-              child: SlideAnimation(
-                verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
-                curve: AppLayout.curveStrongEaseOut,
-                child: FadeInAnimation(
-                  curve: AppLayout.curveStrongEaseOut,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                    child: Builder(
-                      builder: (context) {
-                        final forecast =
-                            SpendingForecastService.calculateMonthlyForecast(
-                          transactions: finProvider.allDateFiltered,
-                          categoryBudgets: settings.categoryBudgets,
-                        );
-                        return MinimalChartDeck(
-                          monthlyData: finProvider.monthlyData,
-                          categoryExpenses: finProvider.categoryExpenses,
-                          totalExpense: finProvider.totalDateExpense,
-                          currency: currency,
-                          forecast: forecast,
-                          onTapDetailsWithPage: (page) {
-                            setState(() {
-                              _selectedTab = 'Budgets';
-                              _analyticsSubView = (page == 2) ? 1 : 0;
-                            });
-                          },
-                          onTapDetails: () {
-                            setState(() {
-                              _selectedTab = 'Budgets';
-                              _analyticsSubView = 0;
-                            });
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-
         // ── Active search query badge indicator (if query set and top bar not in search mode) ──
         if (finProvider.searchQuery.isNotEmpty && !_isSearching)
           SliverToBoxAdapter(
@@ -497,55 +450,14 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
             ),
           ),
 
-        // ── Account Selector Segment ──────────────────────────────────
-        if (settings.enableSavingsVault)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    FilterChip(
-                      showCheckmark: false,
-                      avatar: const Icon(Icons.account_tree_outlined, size: 16),
-                      label: const Text('All Accounts'),
-                      selected: finProvider.selectedAccount == 'all',
-                      onSelected: (_) {
-                        finProvider.setSelectedAccount('all');
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    FilterChip(
-                      showCheckmark: false,
-                      avatar: const Icon(Icons.credit_card_outlined, size: 16),
-                      label: Text(settings.account1Name),
-                      selected: finProvider.selectedAccount == AccountType.daily,
-                      onSelected: (_) {
-                        finProvider.setSelectedAccount(AccountType.daily);
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    FilterChip(
-                      showCheckmark: false,
-                      avatar: const Icon(Icons.account_balance_outlined, size: 16),
-                      label: Text(settings.account2Name),
-                      selected: finProvider.selectedAccount == AccountType.savings,
-                      onSelected: (_) {
-                        finProvider.setSelectedAccount(AccountType.savings);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-        // ── Category filter chips ────────────────────────────────────
-        if (finProvider.activeCategories.isNotEmpty) ...[
+        // ── Category & compact chart toggle chips ─────────────────────
+        if (finProvider.activeCategories.isNotEmpty ||
+            (showBudgets &&
+                (finProvider.categoryExpenses.isNotEmpty ||
+                    finProvider.monthlyData.isNotEmpty))) ...[
           SliverToBoxAdapter(
             child: AnimationConfiguration.staggeredList(
-              position: 5,
+              position: 4,
               duration: AppLayout.animShort,
               child: SlideAnimation(
                 verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
@@ -553,52 +465,77 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
                 child: FadeInAnimation(
                   curve: AppLayout.curveStrongEaseOut,
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          FilterChip(
-                            showCheckmark: false,
-                            avatar: const Icon(Icons.all_inclusive, size: 16),
-                            label: const Text('All Categories'),
-                            selected: finProvider.selectedCategory == null,
-                            onSelected: (_) {
-                              finProvider.setSelectedCategory(null);
-                            },
-                          ),
-                          const SizedBox(width: 8),
-                          ...finProvider.activeCategories.map((cat) {
-                            final catColor = TransactionCategory.colorFor(cat);
-                            final catIcon = TransactionCategory.iconFor(cat);
-                            final selected = finProvider.selectedCategory == cat;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: FilterChip(
-                                showCheckmark: false,
-                                avatar: Icon(
-                                  catIcon,
-                                  size: 16,
-                                  color: selected ? catColor : colorScheme.onSurfaceVariant,
-                                ),
-                                label: Text(cat),
-                                selected: selected,
-                                onSelected: (_) {
-                                  finProvider.setSelectedCategory(selected ? null : cat);
-                                },
-                                selectedColor: catColor.withValues(alpha: 0.2),
-                                checkmarkColor: catColor,
-                                labelStyle: TextStyle(
-                                  color: selected ? catColor : colorScheme.onSurfaceVariant,
-                                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                                ),
-                                side: BorderSide(
-                                  color: selected ? catColor : colorScheme.outline,
-                                  width: selected ? 1.5 : 0.5,
-                                ),
+                          if (showBudgets &&
+                              (finProvider.categoryExpenses.isNotEmpty ||
+                                  finProvider.monthlyData.isNotEmpty)) ...[
+                            FilterChip(
+                              showCheckmark: false,
+                              avatar: Icon(
+                                Icons.show_chart_rounded,
+                                size: 16,
+                                color: _showLedgerCharts
+                                    ? colorScheme.primary
+                                    : colorScheme.onSurfaceVariant,
                               ),
-                            );
-                          }),
+                              label: const Text('Trends'),
+                              selected: _showLedgerCharts,
+                              onSelected: (selected) {
+                                setState(() {
+                                  _showLedgerCharts = selected;
+                                });
+                              },
+                            ),
+                            if (finProvider.activeCategories.isNotEmpty)
+                              const SizedBox(width: 8),
+                          ],
+                          if (finProvider.activeCategories.isNotEmpty) ...[
+                            FilterChip(
+                              showCheckmark: false,
+                              avatar: const Icon(Icons.all_inclusive, size: 16),
+                              label: const Text('All Categories'),
+                              selected: finProvider.selectedCategory == null,
+                              onSelected: (_) {
+                                finProvider.setSelectedCategory(null);
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            ...finProvider.activeCategories.map((cat) {
+                              final catColor = TransactionCategory.colorFor(cat);
+                              final catIcon = TransactionCategory.iconFor(cat);
+                              final selected = finProvider.selectedCategory == cat;
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: FilterChip(
+                                  showCheckmark: false,
+                                  avatar: Icon(
+                                    catIcon,
+                                    size: 16,
+                                    color: selected ? catColor : colorScheme.onSurfaceVariant,
+                                  ),
+                                  label: Text(cat),
+                                  selected: selected,
+                                  onSelected: (_) {
+                                    finProvider.setSelectedCategory(selected ? null : cat);
+                                  },
+                                  selectedColor: catColor.withValues(alpha: 0.2),
+                                  checkmarkColor: catColor,
+                                  labelStyle: TextStyle(
+                                    color: selected ? catColor : colorScheme.onSurfaceVariant,
+                                    fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                                  ),
+                                  side: BorderSide(
+                                    color: selected ? catColor : colorScheme.outline,
+                                    width: selected ? 1.5 : 0.5,
+                                  ),
+                                ),
+                              );
+                            }),
+                          ],
                         ],
                       ),
                     ),
@@ -608,6 +545,44 @@ class _FinancialManagerScreenState extends State<FinancialManagerScreen> with Wi
             ),
           ),
         ],
+
+        // ── Collapsible Minimalist Chart Deck (collapsed by default for immediate ledger feed) ──
+        if (_showLedgerCharts &&
+            showBudgets &&
+            (finProvider.categoryExpenses.isNotEmpty || finProvider.monthlyData.isNotEmpty))
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+              child: Builder(
+                builder: (context) {
+                  final forecast =
+                      SpendingForecastService.calculateMonthlyForecast(
+                    transactions: finProvider.allDateFiltered,
+                    categoryBudgets: settings.categoryBudgets,
+                  );
+                  return MinimalChartDeck(
+                    monthlyData: finProvider.monthlyData,
+                    categoryExpenses: finProvider.categoryExpenses,
+                    totalExpense: finProvider.totalDateExpense,
+                    currency: currency,
+                    forecast: forecast,
+                    onTapDetailsWithPage: (page) {
+                      setState(() {
+                        _selectedTab = 'Budgets';
+                        _analyticsSubView = (page == 2) ? 1 : 0;
+                      });
+                    },
+                    onTapDetails: () {
+                      setState(() {
+                        _selectedTab = 'Budgets';
+                        _analyticsSubView = 0;
+                      });
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
 
         // ── Transaction list ──────────────────────────────────────────
             if (finProvider.isLoading)

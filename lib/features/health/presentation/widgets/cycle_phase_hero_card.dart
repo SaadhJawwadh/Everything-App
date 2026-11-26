@@ -105,6 +105,7 @@ class _CyclePhaseHeroCardState extends State<CyclePhaseHeroCard> {
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                             fontWeight: FontWeight.w600,
+                            fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
                       ],
@@ -115,6 +116,7 @@ class _CyclePhaseHeroCardState extends State<CyclePhaseHeroCard> {
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: activeColor,
                             fontWeight: FontWeight.bold,
+                            fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
                       ],

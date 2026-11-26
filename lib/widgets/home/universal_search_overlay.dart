@@ -25,8 +25,8 @@ import '../../features/finances/presentation/widgets/recurring_rules_sheet.dart'
 import '../../services/backup_service.dart';
 import '../../services/sms_service.dart';
 import '../../core/routes/app_router.dart';
-import '../../core/theme/app_layout.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/ui/app_card.dart';
 import 'a2ui_smart_action_card.dart';
 import 'keyboard_shortcuts_dialog.dart';
 
@@ -269,7 +269,7 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
                     );
                   }
                 },
-                child: const Text('Test', style: TextStyle(fontSize: 12)),
+                child: const Text('Test'),
               ),
       ),
       SettingsSearchResult(
@@ -730,7 +730,14 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
                 _buildSectionHeader(
                     context, 'Notes', Icons.notes_rounded),
                 const SizedBox(height: 8),
-                ...noteProvider.filteredNotes.map((n) => _buildNoteCard(context, n)),
+                ...List.generate(
+                  noteProvider.filteredNotes.length,
+                  (i) => _buildNoteCard(
+                    context,
+                    noteProvider.filteredNotes[i],
+                    _groupPosition(i, noteProvider.filteredNotes.length),
+                  ),
+                ),
                 const SizedBox(height: 12),
               ],
               if ((_selectedScope == 'All' || _selectedScope == 'Settings') &&
@@ -738,7 +745,14 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
                 _buildSectionHeader(
                     context, 'Settings & Tools', Icons.settings_outlined),
                 const SizedBox(height: 8),
-                ...settingsResults.map((s) => _buildSettingsCard(context, s)),
+                ...List.generate(
+                  settingsResults.length,
+                  (i) => _buildSettingsCard(
+                    context,
+                    settingsResults[i],
+                    _groupPosition(i, settingsResults.length),
+                  ),
+                ),
                 const SizedBox(height: 12),
               ],
               if ((_selectedScope == 'All' || _selectedScope == 'Finances') &&
@@ -746,7 +760,14 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
                 _buildSectionHeader(context, 'Financial Transactions',
                     Icons.account_balance_wallet_outlined),
                 const SizedBox(height: 8),
-                ...transactions.map((t) => _buildTransactionCard(context, t)),
+                ...List.generate(
+                  transactions.length,
+                  (i) => _buildTransactionCard(
+                    context,
+                    transactions[i],
+                    _groupPosition(i, transactions.length),
+                  ),
+                ),
                 const SizedBox(height: 12),
               ],
               if ((_selectedScope == 'All' || _selectedScope == 'Health') &&
@@ -754,7 +775,14 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
                 _buildSectionHeader(
                     context, 'Health Logs', Icons.health_and_safety_outlined),
                 const SizedBox(height: 8),
-                ...periodLogs.map((p) => _buildPeriodLogCard(context, p)),
+                ...List.generate(
+                  periodLogs.length,
+                  (i) => _buildPeriodLogCard(
+                    context,
+                    periodLogs[i],
+                    _groupPosition(i, periodLogs.length),
+                  ),
+                ),
                 const SizedBox(height: 12),
               ],
             ],
@@ -762,6 +790,13 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         );
       },
     );
+  }
+
+  AppCardGroupPosition _groupPosition(int index, int length) {
+    if (length <= 1) return AppCardGroupPosition.single;
+    if (index == 0) return AppCardGroupPosition.first;
+    if (index == length - 1) return AppCardGroupPosition.last;
+    return AppCardGroupPosition.middle;
   }
 
   Widget _buildScopeChip(String label, int count) {
@@ -774,9 +809,17 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
         showCheckmark: false,
         selected: isSelected,
         label: Text('$label ($count)'),
-        labelStyle: TextStyle(
-          fontSize: 12,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        labelStyle: theme.textTheme.labelLarge?.copyWith(
+          fontFamily: AppTheme.fontGoogleSansFlex,
+          fontFamilyFallback: AppTheme.fontFallbacks,
+          fontSize: 13.0,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          fontFeatures: const [FontFeature.tabularFigures()],
+          fontVariations: AppTheme.buildFontVariations(
+            size: 13.0,
+            brightness: theme.brightness,
+            weight: isSelected ? 700 : 500,
+          ),
           color: isSelected
               ? theme.colorScheme.onPrimaryContainer
               : theme.colorScheme.onSurfaceVariant,
@@ -810,74 +853,58 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
     );
   }
 
-  Widget _buildSettingsCard(BuildContext context, SettingsSearchResult s) {
+  Widget _buildSettingsCard(
+      BuildContext context, SettingsSearchResult s, AppCardGroupPosition groupPosition) {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
+    final titleStyle = theme.textTheme.titleSmall?.copyWith(
+          fontFamily: AppTheme.fontGoogleSansFlex,
+          fontFamilyFallback: AppTheme.fontFallbacks,
+          fontWeight: FontWeight.w600,
+          fontVariations: AppTheme.buildFontVariations(
+            size: 14.0,
+            brightness: theme.brightness,
+            weight: 600,
+          ),
+        ) ??
+        const TextStyle(fontWeight: FontWeight.w600, fontSize: 14);
+    final subtitleStyle = theme.textTheme.bodyMedium?.copyWith(
+          fontSize: 13.0,
+          color: theme.colorScheme.onSurfaceVariant,
+        ) ??
+        TextStyle(fontSize: 13.0, color: theme.colorScheme.onSurfaceVariant);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      color: theme.colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppLayout.radiusL),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-          width: 1.0,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: ListTile(
+    return AppCard(
+      groupPosition: groupPosition,
+      margin: const EdgeInsets.only(bottom: 2),
+      padding: EdgeInsets.zero,
+      backgroundColor: theme.colorScheme.surfaceContainerLow,
+      child: ListTile(
         leading: Container(
           width: 36,
           height: 36,
           decoration: BoxDecoration(
             color: primaryColor.withValues(alpha: 0.15),
             shape: BoxShape.circle,
-            border: Border.all(
-              color: primaryColor.withValues(alpha: 0.3),
-              width: 1,
-            ),
           ),
           child: Icon(s.icon, color: primaryColor, size: 18),
         ),
-        title: Row(
-          children: [
-            Expanded(
-              child: HighlightedText(
-                text: s.title,
-                query: widget.query,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                highlightStyle: TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 14, color: primaryColor),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: primaryColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppLayout.radiusXS),
-              ),
-              child: Text(
-                s.section,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: primaryColor,
-                ),
-              ),
-            ),
-          ],
+        title: HighlightedText(
+          text: s.title,
+          query: widget.query,
+          style: titleStyle,
+          highlightStyle: titleStyle.copyWith(color: primaryColor),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         subtitle: HighlightedText(
-          text: s.subtitle,
+          text: '${s.section} · ${s.subtitle}',
           query: widget.query,
-          style: TextStyle(
-              fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
-          highlightStyle: TextStyle(
-              fontSize: 12, fontWeight: FontWeight.bold, color: primaryColor),
+          style: subtitleStyle,
+          highlightStyle: subtitleStyle.copyWith(
+            fontWeight: FontWeight.w600,
+            color: primaryColor,
+          ),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
@@ -886,60 +913,73 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
                 size: 14, color: theme.colorScheme.onSurfaceVariant),
         onTap: s.onTap,
       ),
-    ),
-  );
+    );
   }
 
-  Widget _buildTransactionCard(BuildContext context, TransactionModel t) {
+  Widget _buildTransactionCard(
+      BuildContext context, TransactionModel t, AppCardGroupPosition groupPosition) {
     final theme = Theme.of(context);
     final catColor = TransactionCategory.colorFor(t.category);
     final catIcon = TransactionCategory.iconFor(t.category);
     final primaryColor = theme.colorScheme.primary;
+    final titleStyle = theme.textTheme.titleSmall?.copyWith(
+          fontFamily: AppTheme.fontGoogleSansFlex,
+          fontFamilyFallback: AppTheme.fontFallbacks,
+          fontWeight: FontWeight.w600,
+          fontVariations: AppTheme.buildFontVariations(
+            size: 14.0,
+            brightness: theme.brightness,
+            weight: 600,
+          ),
+        ) ??
+        const TextStyle(fontSize: 14, fontWeight: FontWeight.w600);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      color: theme.colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppLayout.radiusL),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-          width: 1.0,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: ListTile(
+    return AppCard(
+      groupPosition: groupPosition,
+      margin: const EdgeInsets.only(bottom: 2),
+      padding: EdgeInsets.zero,
+      backgroundColor: theme.colorScheme.surfaceContainerLow,
+      child: ListTile(
         leading: Container(
           width: 36,
           height: 36,
           decoration: BoxDecoration(
             color: catColor.withValues(alpha: 0.15),
             shape: BoxShape.circle,
-            border: Border.all(
-              color: catColor.withValues(alpha: 0.3),
-              width: 1,
-            ),
           ),
           child: Icon(catIcon, color: catColor, size: 18),
         ),
         title: HighlightedText(
           text: t.description,
           query: widget.query,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-          highlightStyle: TextStyle(
-              fontSize: 14, fontWeight: FontWeight.bold, color: primaryColor),
+          style: titleStyle,
+          highlightStyle: titleStyle.copyWith(color: primaryColor),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-        subtitle: Text("${t.category} • ${DateFormat.yMMMd().format(t.date)}",
-            style: const TextStyle(fontSize: 12)),
+        subtitle: Text(
+          "${t.category} • ${DateFormat.yMMMd().format(t.date)}",
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontSize: 13.0,
+            color: theme.colorScheme.onSurfaceVariant,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
         trailing: Text(
           "${t.isExpense ? '-' : '+'}${context.select<SettingsProvider, String>((s) => s.currencySymbol)} ${t.amount.toStringAsFixed(2)}",
-          style: TextStyle(
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontFamily: AppTheme.fontGoogleSansFlex,
+            fontFamilyFallback: AppTheme.fontFallbacks,
             color: t.isExpense
                 ? theme.colorScheme.error
                 : (theme.extension<AppSemanticColors>()?.success ?? theme.colorScheme.primary),
             fontWeight: FontWeight.bold,
+            fontFeatures: const [FontFeature.tabularFigures()],
+            fontVariations: AppTheme.buildFontVariations(
+              size: 14.0,
+              brightness: theme.brightness,
+              weight: 700,
+            ),
           ),
         ),
         onTap: () {
@@ -952,147 +992,142 @@ class _UniversalSearchOverlayState extends State<UniversalSearchOverlay> {
           });
         },
       ),
-    ),
-  );
+    );
   }
 
-  Widget _buildPeriodLogCard(BuildContext context, PeriodLog log) {
+  Widget _buildPeriodLogCard(
+      BuildContext context, PeriodLog log, AppCardGroupPosition groupPosition) {
     final theme = Theme.of(context);
     final healthColor = theme.colorScheme.error;
     final primaryColor = theme.colorScheme.primary;
+    final titleStyle = theme.textTheme.titleSmall?.copyWith(
+          fontFamily: AppTheme.fontGoogleSansFlex,
+          fontFamilyFallback: AppTheme.fontFallbacks,
+          fontWeight: FontWeight.w600,
+          fontVariations: AppTheme.buildFontVariations(
+            size: 14.0,
+            brightness: theme.brightness,
+            weight: 600,
+          ),
+        ) ??
+        const TextStyle(fontSize: 14, fontWeight: FontWeight.w600);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      color: theme.colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppLayout.radiusL),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-          width: 1.0,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: ListTile(
+    return AppCard(
+      groupPosition: groupPosition,
+      margin: const EdgeInsets.only(bottom: 2),
+      padding: EdgeInsets.zero,
+      backgroundColor: theme.colorScheme.surfaceContainerLow,
+      child: ListTile(
         leading: Container(
           width: 36,
           height: 36,
           decoration: BoxDecoration(
             color: healthColor.withValues(alpha: 0.15),
             shape: BoxShape.circle,
-            border: Border.all(
-              color: healthColor.withValues(alpha: 0.3),
-              width: 1,
-            ),
           ),
           child: Icon(Icons.water_drop_outlined, color: healthColor, size: 18),
         ),
         title: HighlightedText(
           text: "Period Log: ${log.intensity}",
           query: widget.query,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-          highlightStyle: TextStyle(
-              fontSize: 14, fontWeight: FontWeight.bold, color: primaryColor),
+          style: titleStyle,
+          highlightStyle: titleStyle.copyWith(color: primaryColor),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        subtitle: Text("Started: ${DateFormat.yMMMd().format(log.startDate)}",
-            style: const TextStyle(fontSize: 12)),
+        subtitle: Text(
+          "Started: ${DateFormat.yMMMd().format(log.startDate)}",
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontSize: 13.0,
+            color: theme.colorScheme.onSurfaceVariant,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
         onTap: () => AppRouter.push(context, const PeriodTrackerScreen()),
       ),
-    ),
-  );
+    );
   }
 
-  Widget _buildNoteCard(BuildContext context, Note note) {
+  Widget _buildNoteCard(
+      BuildContext context, Note note, AppCardGroupPosition groupPosition) {
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
+    final titleStyle = theme.textTheme.titleSmall?.copyWith(
+          fontFamily: AppTheme.fontGoogleSansFlex,
+          fontFamilyFallback: AppTheme.fontFallbacks,
+          fontWeight: FontWeight.w600,
+          fontVariations: AppTheme.buildFontVariations(
+            size: 14.0,
+            brightness: theme.brightness,
+            weight: 600,
+          ),
+        ) ??
+        const TextStyle(fontWeight: FontWeight.w600, fontSize: 14);
+    final subtitleStyle = theme.textTheme.bodyMedium?.copyWith(
+          fontSize: 13.0,
+          color: theme.colorScheme.onSurfaceVariant,
+        ) ??
+        TextStyle(fontSize: 13.0, color: theme.colorScheme.onSurfaceVariant);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      color: theme.colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppLayout.radiusL),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-          width: 1.0,
+    return AppCard(
+      groupPosition: groupPosition,
+      margin: const EdgeInsets.only(bottom: 2),
+      padding: EdgeInsets.zero,
+      backgroundColor: theme.colorScheme.surfaceContainerLow,
+      child: ListTile(
+        leading: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: note.isLocked
+                ? theme.colorScheme.error.withValues(alpha: 0.15)
+                : primaryColor.withValues(alpha: 0.15),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            note.isLocked
+                ? Icons.lock_outline_rounded
+                : (note.isPinned ? Icons.push_pin_rounded : Icons.note_alt_outlined),
+            color: note.isLocked ? theme.colorScheme.error : primaryColor,
+            size: 18,
+          ),
         ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: ListTile(
-          leading: Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: note.isLocked
-                  ? theme.colorScheme.error.withValues(alpha: 0.15)
-                  : primaryColor.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: note.isLocked
-                    ? theme.colorScheme.error.withValues(alpha: 0.3)
-                    : primaryColor.withValues(alpha: 0.3),
-                width: 1,
-              ),
-            ),
-            child: Icon(
-              note.isLocked
-                  ? Icons.lock_outline_rounded
-                  : (note.isPinned ? Icons.push_pin_rounded : Icons.note_alt_outlined),
-              color: note.isLocked ? theme.colorScheme.error : primaryColor,
-              size: 18,
-            ),
-          ),
-          title: HighlightedText(
-            text: note.title.isNotEmpty ? note.title : 'Untitled',
-            query: widget.query,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            highlightStyle: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-              color: primaryColor,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          subtitle: note.isLocked
-              ? Text(
-                  'Locked Note (Tap to unlock)',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontStyle: FontStyle.italic,
-                  ),
-                )
-              : HighlightedText(
-                  text: note.previewText ?? '',
-                  query: widget.query,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  highlightStyle: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: primaryColor,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+        title: HighlightedText(
+          text: note.title.isNotEmpty ? note.title : 'Untitled',
+          query: widget.query,
+          style: titleStyle,
+          highlightStyle: titleStyle.copyWith(color: primaryColor),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: note.isLocked
+            ? Text(
+                'Locked note (tap to unlock)',
+                style: subtitleStyle.copyWith(fontStyle: FontStyle.italic),
+              )
+            : HighlightedText(
+                text: note.previewText ?? '',
+                query: widget.query,
+                style: subtitleStyle,
+                highlightStyle: subtitleStyle.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: primaryColor,
                 ),
-          trailing: Icon(
-            Icons.arrow_forward_ios,
-            size: 14,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-          onTap: () {
-            AppRouter.push(context, NoteEditorScreen(note: note)).then((_) {
-              if (context.mounted) {
-                context.read<NoteProvider>().refreshNotes();
-              }
-            });
-          },
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+        trailing: Icon(
+          Icons.arrow_forward_ios,
+          size: 14,
+          color: theme.colorScheme.onSurfaceVariant,
         ),
+        onTap: () {
+          AppRouter.push(context, NoteEditorScreen(note: note)).then((_) {
+            if (context.mounted) {
+              context.read<NoteProvider>().refreshNotes();
+            }
+          });
+        },
       ),
     );
   }

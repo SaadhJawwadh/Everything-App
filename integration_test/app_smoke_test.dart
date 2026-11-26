@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:note_taking_app/data/changelog_data.dart';
@@ -53,13 +54,35 @@ void main() {
       expect(backupData['notes'], isA<List<dynamic>>());
       expect(backupData['transactions'], isA<List<dynamic>>());
 
+      await WidgetHelper.syncWidgetConfig(
+        showFinancialManager: true,
+        appLockEnabled: false,
+        lockFinances: false,
+        hideWidgetDataWhenLocked: true,
+        screenshotShieldEnabled: false,
+        languageCode: 'en',
+      );
       await WidgetHelper.updateTodoWidgetData();
       await WidgetHelper.updateWidgetData();
       await WidgetHelper.syncPendingTodoToggles();
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.reload();
-      expect(prefs.getString('widget_todo_notes_json'), isNotNull);
+      // Plaintext payloads should not be persisted in FlutterSharedPreferences
+      expect(prefs.getString('widget_todo_notes_json'), isNull);
+      expect(prefs.getString('widget_recent_transactions'), isNull);
+
+      try {
+        final cacheSnap = await const MethodChannel('com.saadhjawwadh.notebook/widget')
+            .invokeMethod<dynamic>('getWidgetCacheSnapshot');
+        if (cacheSnap is Map) {
+          expect(cacheSnap['todo_notes_json'], isNotNull);
+          expect(cacheSnap['finance_snapshot_json'], isNotNull);
+        }
+      } on MissingPluginException {
+        expect(prefs.getString('widget_bg_staging_todo'), isNotNull);
+        expect(prefs.getString('widget_bg_staging_finance'), isNotNull);
+      }
     } finally {
       await NoteRepository.instance.deleteNote(testNoteId);
       if (createdTx?.id != null) {

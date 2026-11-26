@@ -475,12 +475,13 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                   },
                   icon: Icon(
                     _isEditingText ? Icons.visibility_rounded : Icons.edit_note_rounded,
-                    size: 17,
+                    size: 18,
                   ),
                   label: Text(_isEditingText ? 'Preview' : 'Edit Text'),
                   style: TextButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: const Size(48, 48),
+                    tapTargetSize: MaterialTapTargetSize.padded,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
                   ),
                 ),
               ],
@@ -504,12 +505,11 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                   label: Text(
                     _isSummarizing ? 'Distilling...' : 'AI Highlight',
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  materialTapTargetSize: MaterialTapTargetSize.padded,
                   onPressed: _isSummarizing ? null : _applyAiHighlight,
                 ),
               ),
@@ -605,12 +605,12 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                           : null,
                       icon: const Icon(Icons.chevron_left_rounded),
                       tooltip: 'Previous slide',
-                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
-                        vertical: 4,
+                        vertical: 6,
                       ),
                       decoration: BoxDecoration(
                         color: colorScheme.surfaceContainerHighest,
@@ -636,7 +636,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                           : null,
                       icon: const Icon(Icons.chevron_right_rounded),
                       tooltip: 'Next slide',
-                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                     ),
                   ],
                 ),
@@ -650,15 +650,14 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                 segments: StoryCardLayoutMode.values.map((mode) {
                   return ButtonSegment(
                     value: mode,
-                    label: Text(mode.label, style: const TextStyle(fontSize: 11)),
-                    icon: Icon(mode.icon, size: 14),
+                    label: Text(mode.label, style: const TextStyle(fontSize: 12)),
+                    icon: Icon(mode.icon, size: 15),
                   );
                 }).toList(),
                 selected: {_config.layoutMode},
                 showSelectedIcon: false,
                 style: const ButtonStyle(
-                  visualDensity: VisualDensity.compact,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  tapTargetSize: MaterialTapTargetSize.padded,
                 ),
                 onSelectionChanged: (set) {
                   AppHaptics.selectionClick();
@@ -678,15 +677,14 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                 segments: StoryCardAspectRatio.values.map((ratio) {
                   return ButtonSegment(
                     value: ratio,
-                    label: Text(ratio.label, style: const TextStyle(fontSize: 11)),
-                    icon: Icon(ratio.icon, size: 14),
+                    label: Text(ratio.label, style: const TextStyle(fontSize: 12)),
+                    icon: Icon(ratio.icon, size: 15),
                   );
                 }).toList(),
                 selected: {_config.aspectRatio},
                 showSelectedIcon: false,
                 style: const ButtonStyle(
-                  visualDensity: VisualDensity.compact,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  tapTargetSize: MaterialTapTargetSize.padded,
                 ),
                 onSelectionChanged: (set) {
                   AppHaptics.selectionClick();
@@ -700,14 +698,13 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
 
             // Controls 2: Typography Font Style Switcher
             Text(
-              'TYPOGRAPHY STYLE',
-              style: textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.1,
+              'Typography style',
+              style: textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w600,
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
@@ -721,13 +718,12 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                       label: Text(
                         style.label,
                         style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                         ),
                       ),
                       selected: isSelected,
-                      visualDensity: VisualDensity.compact,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      materialTapTargetSize: MaterialTapTargetSize.padded,
                       onSelected: (_) {
                         AppHaptics.selectionClick();
                         setState(() => _config = _config.copyWith(fontStyle: style));
@@ -742,39 +738,49 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
 
             // Controls 4: Visual Theme Presets
             Text(
-              'VISUAL THEME',
-              style: textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.1,
+              'Visual theme',
+              style: textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w600,
                 color: colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
               child: Row(
                 children: StoryCardThemePreset.values.map((preset) {
                   final isSelected = _config.themePreset == preset;
+                  final swatchStyle = StoryCardThemeStyle.resolve(
+                    preset: preset,
+                    appTheme: theme,
+                    noteColorValue: _config.noteColorValue,
+                  );
                   return Padding(
                     padding: const EdgeInsets.only(right: 6.0),
                     child: ChoiceChip(
                       showCheckmark: false,
-                      avatar: Icon(
-                        preset.icon,
-                        size: 15,
-                        color: isSelected ? colorScheme.primary : colorScheme.onSurfaceVariant,
+                      avatar: Container(
+                        width: 16,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: swatchStyle.background,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: swatchStyle.accent,
+                            width: 2.0,
+                          ),
+                        ),
                       ),
                       label: Text(
                         preset.label,
                         style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                          fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                         ),
                       ),
                       selected: isSelected,
-                      visualDensity: VisualDensity.compact,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      materialTapTargetSize: MaterialTapTargetSize.padded,
                       onSelected: (_) {
                         AppHaptics.selectionClick();
                         setState(() => _config = _config.copyWith(themePreset: preset));
@@ -788,71 +794,68 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
             const SizedBox(height: AppLayout.spaceM),
 
             // Controls 5: Elements & Toggles (Title, Date, Watermark)
-            Row(
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
               children: [
                 FilterChip(
                   showCheckmark: false,
                   label: Text(
                     'Title',
                     style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: _config.showTitle ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 12,
+                      fontWeight: _config.showTitle ? FontWeight.w700 : FontWeight.w500,
                     ),
                   ),
                   avatar: Icon(
                     Icons.title_rounded,
-                    size: 15,
+                    size: 16,
                     color: _config.showTitle ? colorScheme.primary : colorScheme.onSurfaceVariant,
                   ),
                   selected: _config.showTitle,
-                  visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  materialTapTargetSize: MaterialTapTargetSize.padded,
                   onSelected: (val) {
                     AppHaptics.selectionClick();
                     setState(() => _config = _config.copyWith(showTitle: val));
                   },
                 ),
-                const SizedBox(width: 6),
                 FilterChip(
                   showCheckmark: false,
                   label: Text(
                     'Date',
                     style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: _config.showDate ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 12,
+                      fontWeight: _config.showDate ? FontWeight.w700 : FontWeight.w500,
                     ),
                   ),
                   avatar: Icon(
                     Icons.event_outlined,
-                    size: 15,
+                    size: 16,
                     color: _config.showDate ? colorScheme.primary : colorScheme.onSurfaceVariant,
                   ),
                   selected: _config.showDate,
-                  visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  materialTapTargetSize: MaterialTapTargetSize.padded,
                   onSelected: (val) {
                     AppHaptics.selectionClick();
                     setState(() => _config = _config.copyWith(showDate: val));
                   },
                 ),
-                const SizedBox(width: 6),
                 FilterChip(
                   showCheckmark: false,
                   label: Text(
                     'Watermark',
                     style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: _config.showWatermark ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 12,
+                      fontWeight: _config.showWatermark ? FontWeight.w700 : FontWeight.w500,
                     ),
                   ),
                   avatar: Icon(
                     Icons.verified_outlined,
-                    size: 15,
+                    size: 16,
                     color: _config.showWatermark ? colorScheme.primary : colorScheme.onSurfaceVariant,
                   ),
                   selected: _config.showWatermark,
-                  visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  materialTapTargetSize: MaterialTapTargetSize.padded,
                   onSelected: (val) {
                     AppHaptics.selectionClick();
                     setState(() => _config = _config.copyWith(showWatermark: val));
@@ -915,96 +918,108 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                   : const SizedBox.shrink(key: ValueKey('empty_feedback')),
             ),
 
-            // Action Buttons: Primary Share + Save to Gallery + Copy Image
-            Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    height: 48,
-                    child: FilledButton.icon(
-                      onPressed: _isExporting ? null : _shareCard,
-                      icon: _isExporting
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.share_rounded, size: 20),
-                      label: Text(
-                        _isExporting ? 'Exporting...' : 'Share Image',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppLayout.spaceS),
-                Semantics(
-                  button: true,
-                  label: 'Save image to gallery',
-                  child: SizedBox(
-                    width: 52,
-                    height: 48,
-                    child: IconButton.filledTonal(
-                      onPressed: _isExporting ? null : _saveCardToGallery,
-                      tooltip: 'Save to Gallery (Pictures/EverythingApp)',
-                      icon: const Icon(Icons.download_rounded, size: 22),
-                      style: IconButton.styleFrom(
-                        backgroundColor: colorScheme.surfaceContainerHighest,
-                        foregroundColor: colorScheme.onSurface,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppLayout.radiusM),
-                          side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.7)),
+            // Action Bar: 1 Primary CTA (Share / Share All) + Compact Secondary Icon Actions (Save, Copy)
+            Builder(
+              builder: (context) {
+                final slideCount = _config.slides.length;
+                final isMultiSlide = slideCount > 1;
+                return Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 48,
+                        child: FilledButton.icon(
+                          onPressed: _isExporting
+                              ? null
+                              : (isMultiSlide ? _shareAllSlides : _shareCard),
+                          icon: _isExporting
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : Icon(
+                                  isMultiSlide
+                                      ? Icons.collections_outlined
+                                      : Icons.share_rounded,
+                                  size: 20,
+                                ),
+                          label: Text(
+                            _isExporting
+                                ? 'Exporting...'
+                                : (isMultiSlide ? 'Share All ($slideCount)' : 'Share'),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: AppLayout.spaceS),
-                Semantics(
-                  button: true,
-                  label: 'Copy image to clipboard',
-                  child: SizedBox(
-                    width: 52,
-                    height: 48,
-                    child: IconButton.filledTonal(
-                      onPressed: _isExporting ? null : _copyImageToClipboard,
-                      tooltip: 'Copy Image to Clipboard',
-                      icon: const Icon(Icons.copy_rounded, size: 20),
-                      style: IconButton.styleFrom(
-                        backgroundColor: colorScheme.surfaceContainerHighest,
-                        foregroundColor: colorScheme.onSurface,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppLayout.radiusM),
-                          side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.7)),
+                    const SizedBox(width: AppLayout.spaceS),
+                    Semantics(
+                      button: true,
+                      label: isMultiSlide
+                          ? 'Save all slides to gallery'
+                          : 'Save image to gallery',
+                      child: SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: IconButton.filledTonal(
+                          onPressed: _isExporting
+                              ? null
+                              : (isMultiSlide
+                                  ? _saveAllSlidesToGallery
+                                  : _saveCardToGallery),
+                          tooltip: isMultiSlide
+                              ? 'Save all $slideCount slides to gallery'
+                              : 'Save to Gallery (Pictures/EverythingApp)',
+                          icon: Icon(
+                            isMultiSlide
+                                ? Icons.download_for_offline_outlined
+                                : Icons.download_rounded,
+                            size: 22,
+                          ),
+                          style: IconButton.styleFrom(
+                            minimumSize: const Size(48, 48),
+                            backgroundColor: colorScheme.surfaceContainerHighest,
+                            foregroundColor: colorScheme.onSurface,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppLayout.radiusM),
+                              side: BorderSide(
+                                color: colorScheme.outlineVariant.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-              ],
+                    const SizedBox(width: AppLayout.spaceS),
+                    Semantics(
+                      button: true,
+                      label: 'Copy image to clipboard',
+                      child: SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: IconButton.filledTonal(
+                          onPressed: _isExporting ? null : _copyImageToClipboard,
+                          tooltip: 'Copy Image to Clipboard',
+                          icon: const Icon(Icons.copy_rounded, size: 20),
+                          style: IconButton.styleFrom(
+                            minimumSize: const Size(48, 48),
+                            backgroundColor: colorScheme.surfaceContainerHighest,
+                            foregroundColor: colorScheme.onSurface,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(AppLayout.radiusM),
+                              side: BorderSide(
+                                color: colorScheme.outlineVariant.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
-            if (_config.slides.length > 1) ...[
-              const SizedBox(height: AppLayout.spaceS),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _isExporting ? null : _shareAllSlides,
-                      icon: const Icon(Icons.collections_outlined, size: 18),
-                      label: Text('Share All (${_config.slides.length})'),
-                    ),
-                  ),
-                  const SizedBox(width: AppLayout.spaceS),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _isExporting ? null : _saveAllSlidesToGallery,
-                      icon: const Icon(Icons.download_for_offline_outlined, size: 18),
-                      label: Text('Save All (${_config.slides.length})'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ],
         ),
       ),

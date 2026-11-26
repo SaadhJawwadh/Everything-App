@@ -3,13 +3,10 @@ package com.saadhjawwadh.notebook
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
-import android.text.SpannableString
-import android.text.style.StrikethroughSpan
 import android.view.View
 import android.widget.RemoteViews
 import android.widget.RemoteViewsService
 import org.json.JSONArray
-import org.json.JSONObject
 
 class TodoWidgetService : RemoteViewsService() {
     override fun onGetViewFactory(intent: Intent): RemoteViewsFactory {
@@ -26,8 +23,7 @@ class TodoRemoteViewsFactory(
         val noteId: String,
         val noteTitle: String,
         val lineIndex: Int,
-        val text: String,
-        val isDone: Boolean
+        val text: String
     )
 
     private val items = mutableListOf<TaskItem>()
@@ -43,63 +39,57 @@ class TodoRemoteViewsFactory(
 
     private fun loadData() {
         items.clear()
-        val prefs = context.getSharedPreferences(TodoWidgetProvider.PREFS_NAME, Context.MODE_PRIVATE)
-        val notesJsonStr = prefs.getString("flutter.widget_todo_notes_json", "[]") ?: "[]"
-        
-        // Check for per-widget active note first, fallback to global active note
-        val extraId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
+        if (WidgetCacheStore.isTodoLocked(context)) {
+            return
+        }
+
+        val extraId = intent.getIntExtra(
+            AppWidgetManager.EXTRA_APPWIDGET_ID,
+            AppWidgetManager.INVALID_APPWIDGET_ID
+        )
         val appWidgetId = if (extraId != AppWidgetManager.INVALID_APPWIDGET_ID) {
             extraId
         } else {
             intent.data?.lastPathSegment?.toIntOrNull() ?: AppWidgetManager.INVALID_APPWIDGET_ID
         }
-        val activeNoteId = if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID && prefs.contains("flutter.widget_active_note_id_$appWidgetId")) {
-            prefs.getString("flutter.widget_active_note_id_$appWidgetId", "ALL_NOTES") ?: "ALL_NOTES"
-        } else {
-            prefs.getString("flutter.widget_active_note_id", "ALL_NOTES") ?: "ALL_NOTES"
-        }
 
+        val activeNoteId = WidgetCacheStore.getActiveNoteId(context, appWidgetId)
         isAllNotesMode = activeNoteId == "ALL_NOTES" || activeNoteId.isEmpty()
-        val pendingList = mutableListOf<TaskItem>()
-        val doneList = mutableListOf<TaskItem>()
+
+        val notesJsonStr = WidgetCacheStore.getTodoNotesJson(context)
+        val fallbackTitle = context.getString(R.string.widget_checklist_fallback)
 
         try {
             val notesArr = JSONArray(notesJsonStr)
             for (i in 0 until notesArr.length()) {
                 val noteObj = notesArr.getJSONObject(i)
                 val noteId = noteObj.optString("id")
-                val noteTitle = noteObj.optString("title", "Untitled")
-
                 if (!isAllNotesMode && noteId != activeNoteId) {
                     continue
                 }
 
+                val rawTitle = noteObj.optString("title", "")
+                val noteTitle = if (rawTitle.isBlank()) fallbackTitle else rawTitle
                 val itemsArr = noteObj.optJSONArray("items") ?: continue
+
                 for (j in 0 until itemsArr.length()) {
                     val itemObj = itemsArr.getJSONObject(j)
-                    val lineIndex = itemObj.optInt("lineIndex", j)
+                    if (itemObj.optBoolean("isDone", false)) continue
+
                     val text = itemObj.optString("text", "")
-                    val isDone = itemObj.optBoolean("isDone", false)
+                    if (text.isBlank()) continue
 
-                    val item = TaskItem(
-                        noteId = noteId,
-                        noteTitle = if (noteTitle.isBlank()) "Untitled" else noteTitle,
-                        lineIndex = lineIndex,
-                        text = text,
-                        isDone = isDone
+                    items.add(
+                        TaskItem(
+                            noteId = noteId,
+                            noteTitle = noteTitle,
+                            lineIndex = itemObj.optInt("lineIndex", j),
+                            text = text
+                        )
                     )
-
-                    if (isDone) {
-                        doneList.add(item)
-                    } else {
-                        pendingList.add(item)
-                    }
                 }
             }
         } catch (_: Exception) {}
-
-        // Exclude completed items from widget list preview so widget remains an actionable pending queue
-        items.addAll(pendingList)
     }
 
     override fun onDestroy() {
@@ -114,45 +104,25 @@ class TodoRemoteViewsFactory(
 
         val item = items[position]
 
-        // Checkbox icon
-        views.setImageViewResource(
-            R.id.todo_item_checkbox,
-            if (item.isDone) R.drawable.ic_checkbox_checked else R.drawable.ic_checkbox_unchecked
-        )
+        views.setImageViewResource(R.id.todo_item_checkbox, R.drawable.ic_checkbox_unchecked)
+        views.setTextViewText(R.id.todo_item_text, item.text)
 
-        // Text & Strikethrough (Never override with static integer colors to preserve light/dark mode)
-        if (item.isDone) {
-            val spannable = SpannableString(item.text).apply {
-                setSpan(StrikethroughSpan(), 0, length, 0)
-            }
-            views.setTextViewText(R.id.todo_item_text, spannable)
-            // Apply muted opacity for finished tasks while respecting dynamic theme colors
-            views.setFloat(R.id.todo_item_text, "setAlpha", 0.6f)
-        } else {
-            views.setTextViewText(R.id.todo_item_text, item.text)
-            views.setFloat(R.id.todo_item_text, "setAlpha", 1.0f)
-        }
-
-        // Source Note Badge (visible when aggregating all notes)
         if (isAllNotesMode) {
-            views.setViewVisibility(R.id.todo_item_badge, View.VISIBLE)
-            views.setTextViewText(R.id.todo_item_badge, item.noteTitle)
+            views.setViewVisibility(R.id.todo_item_source_note, View.VISIBLE)
+            views.setTextViewText(R.id.todo_item_source_note, item.noteTitle)
         } else {
-            views.setViewVisibility(R.id.todo_item_badge, View.GONE)
+            views.setViewVisibility(R.id.todo_item_source_note, View.GONE)
         }
 
-        // Fill-in Intent for checking/toggling the item
         val checkFillInIntent = Intent().apply {
             putExtra("click_action", "toggle")
             putExtra("note_id", item.noteId)
             putExtra("line_index", item.lineIndex)
             putExtra("text", item.text)
-            putExtra("is_done", item.isDone)
+            putExtra("is_done", false)
         }
-        views.setOnClickFillInIntent(R.id.todo_item_check_touch, checkFillInIntent)
-        views.setOnClickFillInIntent(R.id.todo_item_checkbox, checkFillInIntent)
+        views.setOnClickFillInIntent(R.id.todo_item_checkbox_wrapper, checkFillInIntent)
 
-        // Fill-in Intent for opening the note at this specific task
         val openFillInIntent = Intent().apply {
             putExtra("click_action", "open_note")
             putExtra("note_id", item.noteId)
@@ -165,13 +135,16 @@ class TodoRemoteViewsFactory(
     }
 
     override fun getLoadingView(): RemoteViews? = null
+
     override fun getViewTypeCount(): Int = 1
+
     override fun getItemId(position: Int): Long {
         if (position in 0 until items.size) {
             val item = items[position]
-            return "${item.noteId}:${item.lineIndex}:${item.text}".hashCode().toLong()
+            return TodoWidgetProvider.stableItemId(item.noteId, item.lineIndex, item.text)
         }
         return position.toLong()
     }
+
     override fun hasStableIds(): Boolean = true
 }

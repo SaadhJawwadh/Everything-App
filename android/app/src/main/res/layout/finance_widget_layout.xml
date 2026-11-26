@@ -1,22 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@android:id/background"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_background_shape"
-    android:orientation="vertical"
-    android:padding="12dp">
+    android:clipToOutline="true"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="12dp"
+    android:paddingBottom="12dp">
 
-    <!-- Header Row -->
-    <RelativeLayout
+    <!-- Active Content Container -->
+    <LinearLayout
+        android:id="@+id/finance_content_container"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
+        <!-- Flex LinearLayout Header Row -->
         <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentStart="true"
-            android:layout_centerVertical="true"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -24,261 +29,346 @@
                 android:id="@+id/widget_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/google_sans_flex"
-                android:text="Finances"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:text="@string/widget_finance_label"
                 android:textColor="@color/widget_text_primary"
-                android:textSize="17sp"
-                android:letterSpacing="0.01"
-                android:textStyle="bold" />
+                android:textSize="16sp" />
 
             <TextView
+                android:id="@+id/widget_account_chip"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="28dp"
                 android:layout_marginStart="8dp"
-                android:background="@drawable/widget_category_chip_shape"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:paddingTop="3dp"
-                android:paddingBottom="3dp"
-                android:fontFamily="@font/google_sans_flex"
-                android:text="Daily Cash"
-                android:textColor="@color/widget_on_primary_container"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+                android:background="@drawable/widget_badge_tonal_shape"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:maxLines="1"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11.5sp"
+                tools:text="Daily" />
 
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <!-- New Note Shortcut Button -->
             <FrameLayout
-                android:id="@+id/widget_note_button"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:minWidth="44dp"
-                android:minHeight="44dp"
-                android:background="@drawable/widget_category_chip_shape"
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <!-- Scan Receipt Action Button -->
+            <FrameLayout
+                android:id="@+id/widget_scan_button"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="8dp"
+                android:minWidth="48dp"
+                android:minHeight="48dp"
+                android:background="@drawable/widget_cta_secondary_shape"
                 android:clickable="true"
                 android:focusable="true">
 
                 <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
                     android:layout_gravity="center"
-                    android:contentDescription="New Note"
-                    android:src="@drawable/ic_shortcut_new_note"
-                    android:tint="@color/widget_on_primary_container" />
+                    android:contentDescription="@string/widget_scan_receipt"
+                    android:src="@drawable/ic_receipt_scanner_rounded"
+                    android:tint="@color/widget_on_secondary_container" />
             </FrameLayout>
 
             <!-- Add Transaction Action Button -->
             <FrameLayout
                 android:id="@+id/widget_add_button"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:minWidth="44dp"
-                android:minHeight="44dp"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/widget_add_button_shape"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:minWidth="48dp"
+                android:minHeight="48dp"
+                android:background="@drawable/widget_cta_primary_shape"
                 android:clickable="true"
                 android:focusable="true">
 
                 <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
                     android:layout_gravity="center"
-                    android:contentDescription="Add Transaction"
+                    android:contentDescription="@string/widget_add_transaction"
                     android:src="@drawable/ic_add_small"
-                    android:tint="@color/widget_on_primary_container" />
+                    android:tint="@color/widget_on_primary" />
             </FrameLayout>
         </LinearLayout>
-    </RelativeLayout>
 
-    <!-- Spendings Overview Grid -->
-    <LinearLayout
-        android:id="@+id/widget_overview_grid"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal">
-
+        <!-- Spendings Overview Grid -->
         <LinearLayout
-            android:layout_width="0dp"
+            android:id="@+id/widget_overview_grid"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:paddingEnd="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.03"
+                    android:maxLines="1"
+                    android:text="@string/widget_today_label"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/widget_today_spent"
+                    android:layout_width="match_parent"
+                    android:layout_height="22dp"
+                    android:layout_marginTop="1dp"
+                    android:autoSizeMaxTextSize="16sp"
+                    android:autoSizeMinTextSize="11sp"
+                    android:autoSizeStepGranularity="1sp"
+                    android:autoSizeTextType="uniform"
+                    android:fontFamily="sans-serif-medium"
+                    android:fontFeatureSettings="tnum"
+                    android:gravity="center_vertical"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="16sp"
+                    tools:text="$28" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.1"
+                android:orientation="vertical"
+                android:paddingEnd="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.03"
+                    android:maxLines="1"
+                    android:text="@string/widget_spent_month_label"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/widget_month_spent"
+                    android:layout_width="match_parent"
+                    android:layout_height="22dp"
+                    android:layout_marginTop="1dp"
+                    android:autoSizeMaxTextSize="16sp"
+                    android:autoSizeMinTextSize="11sp"
+                    android:autoSizeStepGranularity="1sp"
+                    android:autoSizeTextType="uniform"
+                    android:fontFamily="sans-serif-medium"
+                    android:fontFeatureSettings="tnum"
+                    android:gravity="center_vertical"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="16sp"
+                    tools:text="$640" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.03"
+                    android:maxLines="1"
+                    android:text="@string/widget_net_label"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="11sp" />
+
+                <TextView
+                    android:id="@+id/widget_month_net_positive"
+                    android:layout_width="match_parent"
+                    android:layout_height="22dp"
+                    android:layout_marginTop="1dp"
+                    android:autoSizeMaxTextSize="16sp"
+                    android:autoSizeMinTextSize="11sp"
+                    android:autoSizeStepGranularity="1sp"
+                    android:autoSizeTextType="uniform"
+                    android:fontFamily="sans-serif-medium"
+                    android:fontFeatureSettings="tnum"
+                    android:gravity="center_vertical"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_income"
+                    android:textSize="16sp"
+                    android:visibility="visible"
+                    tools:text="+$1,860" />
+
+                <TextView
+                    android:id="@+id/widget_month_net_negative"
+                    android:layout_width="match_parent"
+                    android:layout_height="22dp"
+                    android:layout_marginTop="1dp"
+                    android:autoSizeMaxTextSize="16sp"
+                    android:autoSizeMinTextSize="11sp"
+                    android:autoSizeStepGranularity="1sp"
+                    android:autoSizeTextType="uniform"
+                    android:fontFamily="sans-serif-medium"
+                    android:fontFeatureSettings="tnum"
+                    android:gravity="center_vertical"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_expense"
+                    android:textSize="16sp"
+                    android:visibility="gone"
+                    tools:text="-$120" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Analytics Bottom Highlight Card -->
+        <LinearLayout
+            android:id="@+id/widget_analytics_card"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:layout_marginTop="8dp"
+            android:background="@drawable/widget_subcard_shape"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="TODAY"
-                android:textColor="@color/widget_text_secondary"
-                android:textSize="10.5sp"
-                android:letterSpacing="0.04"
-                android:fontFamily="@font/google_sans_flex"
-                android:textStyle="bold" />
+                android:layout_weight="1"
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/widget_today_spent"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
-                android:fontFamily="@font/google_sans_flex"
-                android:text="--"
-                android:textColor="@color/widget_text_primary"
-                android:textSize="15.5sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="0.03"
+                    android:maxLines="1"
+                    android:text="@string/widget_month_est_label"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="11sp" />
 
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1.1"
-            android:orientation="vertical">
+                <TextView
+                    android:id="@+id/widget_forecast_amount"
+                    android:layout_width="match_parent"
+                    android:layout_height="20dp"
+                    android:layout_marginTop="1dp"
+                    android:autoSizeMaxTextSize="15sp"
+                    android:autoSizeMinTextSize="11sp"
+                    android:autoSizeStepGranularity="1sp"
+                    android:autoSizeTextType="uniform"
+                    android:fontFamily="sans-serif-medium"
+                    android:fontFeatureSettings="tnum"
+                    android:gravity="center_vertical"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="15sp"
+                    tools:text="$1,420" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="SPENT (MO)"
-                android:textColor="@color/widget_text_secondary"
-                android:textSize="10.5sp"
-                android:letterSpacing="0.04"
-                android:fontFamily="@font/google_sans_flex"
-                android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/widget_forecast_trend_normal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-medium"
+                    android:maxLines="1"
+                    android:text="@string/widget_pace_on_track"
+                    android:textColor="@color/widget_income"
+                    android:textSize="11sp"
+                    android:visibility="visible" />
 
-            <TextView
-                android:id="@+id/widget_month_spent"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
-                android:fontFamily="@font/google_sans_flex"
-                android:text="--"
-                android:textColor="@color/widget_text_primary"
-                android:textSize="15.5sp"
-                android:textStyle="bold" />
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/widget_forecast_trend_alert"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-medium"
+                    android:maxLines="1"
+                    android:text="@string/widget_pace_fast"
+                    android:textColor="@color/widget_expense"
+                    android:textSize="11sp"
+                    android:visibility="gone" />
+            </LinearLayout>
 
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1.1"
-            android:orientation="vertical">
+            <!-- Dynamic Mini Sparkline Curve Plot -->
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1.2"
+                android:layout_marginStart="8dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="NET"
-                android:textColor="@color/widget_text_secondary"
-                android:textSize="10.5sp"
-                android:letterSpacing="0.04"
-                android:fontFamily="@font/google_sans_flex"
-                android:textStyle="bold" />
+                <ImageView
+                    android:id="@+id/widget_sparkline_plot"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@string/widget_month_est_label"
+                    android:scaleType="fitCenter" />
 
-            <TextView
-                android:id="@+id/widget_month_net_positive"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
-                android:fontFamily="@font/google_sans_flex"
-                android:text="--"
-                android:textColor="@color/widget_income"
-                android:textSize="15.5sp"
-                android:textStyle="bold"
-                android:visibility="visible" />
-
-            <TextView
-                android:id="@+id/widget_month_net_negative"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
-                android:fontFamily="@font/google_sans_flex"
-                android:text="--"
-                android:textColor="@color/widget_expense"
-                android:textSize="15.5sp"
-                android:textStyle="bold"
-                android:visibility="gone" />
+                <TextView
+                    android:id="@+id/widget_sparkline_empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:fontFamily="sans-serif"
+                    android:gravity="center"
+                    android:maxLines="2"
+                    android:text="@string/widget_sparkline_empty_hint"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="11sp"
+                    android:visibility="gone" />
+            </FrameLayout>
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Analytics Bottom Highlight Card (Mini Sparkline Plot & Ongoing Month Projection) -->
+    <!-- Locked / Disabled State Container -->
     <LinearLayout
-        android:id="@+id/widget_analytics_card"
+        android:id="@+id/finance_locked_container"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginTop="8dp"
-        android:background="@drawable/widget_subcard_shape"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingLeft="12dp"
-        android:paddingRight="12dp"
-        android:paddingTop="6dp"
-        android:paddingBottom="6dp">
+        android:layout_height="match_parent"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:visibility="gone">
 
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="THIS MONTH EST"
-                android:textColor="@color/widget_text_secondary"
-                android:textSize="10sp"
-                android:letterSpacing="0.04"
-                android:fontFamily="@font/google_sans_flex"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/widget_forecast_amount"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
-                android:fontFamily="@font/google_sans_flex"
-                android:text="--"
-                android:textColor="@color/widget_text_primary"
-                android:textSize="14.5sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/widget_forecast_trend_normal"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
-                android:fontFamily="@font/google_sans_flex"
-                android:text="On Track"
-                android:textColor="@color/widget_income"
-                android:textSize="10.5sp"
-                android:textStyle="bold"
-                android:visibility="visible" />
-
-            <TextView
-                android:id="@+id/widget_forecast_trend_alert"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="1dp"
-                android:fontFamily="@font/google_sans_flex"
-                android:text="Pacing Fast"
-                android:textColor="@color/widget_expense"
-                android:textSize="10.5sp"
-                android:textStyle="bold"
-                android:visibility="gone" />
-        </LinearLayout>
-
-        <!-- Dynamic Mini Sparkline Curve Plot -->
         <ImageView
-            android:id="@+id/widget_sparkline_plot"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1.2"
-            android:layout_marginStart="6dp"
-            android:scaleType="fitCenter" />
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:contentDescription="@string/widget_locked_title"
+            android:src="@drawable/ic_lock_rounded"
+            android:tint="@color/widget_primary" />
+
+        <TextView
+            android:id="@+id/finance_locked_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:fontFamily="sans-serif-medium"
+            android:gravity="center"
+            android:text="@string/widget_locked_title"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="14sp" />
     </LinearLayout>
 
-</LinearLayout>
+</FrameLayout>

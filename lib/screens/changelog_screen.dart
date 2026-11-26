@@ -145,24 +145,6 @@ class _ChangelogScreenState extends State<ChangelogScreen> {
                               color: isLatest ? theme.colorScheme.primary : null,
                             ),
                           ),
-                          if (isLatest) ...[
-                            const SizedBox(width: AppLayout.spaceS),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.primary,
-                                borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                              ),
-                              child: Text(
-                                'LATEST',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.onPrimary,
-                                ),
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                       Text(

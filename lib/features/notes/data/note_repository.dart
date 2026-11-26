@@ -317,7 +317,8 @@ class NoteRepository {
         "${NoteFields.content} LIKE '%\"list\"%\"checked\"%' OR "
         "${NoteFields.content} LIKE '%\"list\"%\"unchecked\"%' OR "
         "${NoteFields.content} LIKE '%- [ ]%' OR "
-        "${NoteFields.content} LIKE '%- [x]%')";
+        "${NoteFields.content} LIKE '%- [x]%' OR "
+        "${NoteFields.content} LIKE '%- [X]%')";
     final List<dynamic> whereArgs = [];
 
     if (folder != null && folder.isNotEmpty && folder != 'All Notes') {
@@ -343,7 +344,8 @@ class NoteRepository {
         "${NoteFields.content} LIKE '%\"list\"%\"checked\"%' OR "
         "${NoteFields.content} LIKE '%\"list\"%\"unchecked\"%' OR "
         "${NoteFields.content} LIKE '%- [ ]%' OR "
-        "${NoteFields.content} LIKE '%- [x]%')";
+        "${NoteFields.content} LIKE '%- [x]%' OR "
+        "${NoteFields.content} LIKE '%- [X]%')";
     final rows = await db.query(
       TableNames.notes,
       where: where,
@@ -369,6 +371,7 @@ class NoteRepository {
       );
     }
     await batch.commit(noResult: true);
+    unawaited(WidgetHelper.updateTodoWidgetData());
     P2pSyncProvider.activeInstance?.triggerEventSync();
   }
 
@@ -389,6 +392,7 @@ class NoteRepository {
       );
     }
     await batch.commit(noResult: true);
+    unawaited(WidgetHelper.updateTodoWidgetData());
     P2pSyncProvider.activeInstance?.triggerEventSync();
   }
 
@@ -412,6 +416,7 @@ class NoteRepository {
       );
     }
     await batch.commit(noResult: true);
+    unawaited(WidgetHelper.updateTodoWidgetData());
     P2pSyncProvider.activeInstance?.triggerEventSync();
   }
 
@@ -568,6 +573,9 @@ class NoteRepository {
       }
     });
     await _deleteOrphanedNoteImages(db, candidatePaths);
+    if (purgedCount > 0) {
+      unawaited(WidgetHelper.updateTodoWidgetData());
+    }
     return purgedCount;
   }
 

@@ -97,6 +97,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         await WidgetHelper.syncPendingTodoToggles();
         if (mounted) {
           await Provider.of<NoteProvider>(context, listen: false).refreshNotes();
+          if (mounted) {
+            unawaited(AppFunctionInboxService.drainPendingQueue(context));
+          }
         }
       } else if (call.method == 'onPendingAction') {
         if (mounted) {
@@ -113,10 +116,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        final settings = Provider.of<SettingsProvider>(context, listen: false);
+        unawaited(WidgetHelper.syncWidgetConfig(
+          showFinancialManager: settings.showFinancialManager,
+          appLockEnabled: settings.appLockEnabled,
+          lockFinances: settings.lockFinances,
+          hideWidgetDataWhenLocked: settings.hideWidgetDataWhenLocked,
+          screenshotShieldEnabled: settings.screenshotShieldEnabled,
+          languageCode: settings.selectedLanguageCode,
+        ));
         unawaited(WidgetHelper.updateWidgetData());
         unawaited(WidgetHelper.updateTodoWidgetData());
         unawaited(AppFunctionInboxService.drainPendingQueue(context));
-        final settings = Provider.of<SettingsProvider>(context, listen: false);
         final isLocked = settings.appLockEnabled && !AppLockScreen.sessionAuthenticated.value;
         if (!isLocked) {
           unawaited(_checkAndProcessPendingIntents());
@@ -252,14 +263,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   Future<void> refreshNotes({bool scrollOnModified = false}) async {
     if (!mounted) return;
+    final reduceMotion = AppLayout.shouldReduceMotion(context);
     final provider = context.read<NoteProvider>();
     await provider.refreshNotes();
     if (scrollOnModified && provider.sortMode == 'modified' && _scrollController.hasClients) {
-      await _scrollController.animateTo(
-        0,
-        duration: AppLayout.animDefault,
-        curve: AppLayout.curveEmphasizedDecelerate,
-      );
+      if (reduceMotion) {
+        _scrollController.jumpTo(0);
+      } else {
+        await _scrollController.animateTo(
+          0,
+          duration: AppLayout.animDefault,
+          curve: AppLayout.curveEmphasizedDecelerate,
+        );
+      }
     }
   }
 

@@ -42,7 +42,6 @@ void main() {
         ..insert('\n', {'list': 'unchecked'});
       final doc = Document.fromDelta(delta);
 
-      // Toggle first item to checked
       final success = QuillChecklistHelper.toggleChecklistLine(doc, 0, true);
       expect(success, true);
 
@@ -50,7 +49,6 @@ void main() {
       expect(itemsAfterFirst[0].isDone, true);
       expect(itemsAfterFirst[1].isDone, false);
 
-      // Toggle first item back to unchecked
       final successBack = QuillChecklistHelper.toggleChecklistLine(doc, 0, false);
       expect(successBack, true);
 
@@ -116,33 +114,49 @@ void main() {
       expect(decoded.isDone, item.isDone);
     });
 
-    test('Widget notes JSON payload matches Android contract', () {
-      final doc = Document();
-      doc.insert(0, 'Groceries:\nApples\nBananas\n');
-      doc.format(17, 1, Attribute.unchecked);
-      doc.format(25, 1, Attribute.checked);
+    test('Widget notes JSON payload filters pending before take(30) and preserves counts', () {
+      final delta = Delta();
+      for (int i = 0; i < 32; i++) {
+        delta
+          ..insert('Done $i')
+          ..insert('\n', {'list': 'checked'});
+      }
+      delta
+        ..insert('Pending A')
+        ..insert('\n', {'list': 'unchecked'})
+        ..insert('Pending B')
+        ..insert('\n', {'list': 'unchecked'});
+      final doc = Document.fromDelta(delta);
 
       final items = QuillChecklistHelper.extractChecklistData(doc);
+      final totalCount = items.length;
+      final checkedCount = items.where((it) => it.isDone).length;
+      final pendingItems = items.where((it) => !it.isDone).toList();
+      final boundedPending = pendingItems.take(30).toList();
+
       final widgetNote = {
         'id': 'note_123',
         'title': 'Shopping List',
-        'items': items.map((it) => it.toJson()).toList(),
+        'pendingCount': pendingItems.length,
+        'checkedCount': checkedCount,
+        'totalCount': totalCount,
+        'items': boundedPending
+            .map((it) => {
+                  'lineIndex': it.lineIndex,
+                  'text': it.text,
+                  'isDone': it.isDone,
+                })
+            .toList(),
       };
 
-      final serialized = jsonEncode([widgetNote]);
-      final List<dynamic> parsed = jsonDecode(serialized);
-
-      expect(parsed.length, 1);
-      final firstNote = parsed.first as Map<String, dynamic>;
-      expect(firstNote['id'], 'note_123');
-      expect(firstNote['title'], 'Shopping List');
-
-      final parsedItems = firstNote['items'] as List<dynamic>;
+      final parsed = (jsonDecode(jsonEncode([widgetNote])) as List).first as Map<String, dynamic>;
+      expect(parsed['pendingCount'], 2);
+      expect(parsed['checkedCount'], 32);
+      expect(parsed['totalCount'], 34);
+      final parsedItems = parsed['items'] as List<dynamic>;
       expect(parsedItems.length, 2);
-      expect(parsedItems[0]['text'], 'Apples');
-      expect(parsedItems[0]['isDone'], false);
-      expect(parsedItems[1]['text'], 'Bananas');
-      expect(parsedItems[1]['isDone'], true);
+      expect(parsedItems[0]['text'], 'Pending A');
+      expect(parsedItems[1]['text'], 'Pending B');
     });
 
     test('toggleChecklistLine falls back to expectedText search if lineIndex shifted', () {
@@ -154,10 +168,9 @@ void main() {
         ..insert('\n', {'list': 'unchecked'});
       final doc = Document.fromDelta(delta);
 
-      // Line index 0 is "Added line above", but expectedText is "Buy groceries" which is at line 1
       final success = QuillChecklistHelper.toggleChecklistLine(
         doc,
-        0, // stale lineIndex
+        0,
         true,
         expectedText: 'Buy groceries',
       );
@@ -179,36 +192,38 @@ void main() {
 
       final success = QuillChecklistHelper.toggleChecklistLine(
         doc,
-        5, // out of bounds
+        5,
         true,
         expectedText: 'Nonexistent task',
       );
       expect(success, false);
     });
 
-    test('Strict checklist signature prevents false-positive matches on regular text', () {
+    test('Strict checklist signature supports lowercase and uppercase - [X]', () {
       const regularTextWithPlaylist = 'Listening to my favorite music playlist all day';
       const checklistJson = '{"insert":"Task\\n","attributes":{"list":"unchecked"}}';
       const markdownChecklist = '- [ ] Buy groceries';
+      const markdownUpperChecked = '- [X] Done groceries';
 
       bool hasChecklistSignature(String content) {
         return content.contains('"list":"checked"') ||
             content.contains('"list":"unchecked"') ||
             content.contains('- [ ]') ||
-            content.contains('- [x]');
+            content.contains('- [x]') ||
+            content.contains('- [X]');
       }
 
       expect(hasChecklistSignature(regularTextWithPlaylist), isFalse);
       expect(hasChecklistSignature(checklistJson), isTrue);
       expect(hasChecklistSignature(markdownChecklist), isTrue);
+      expect(hasChecklistSignature(markdownUpperChecked), isTrue);
     });
 
-    test('Pending toggles deduplicate/squash by distinct itemKey', () {
+    test('Pending toggles match by lineIndex >= 0 first without collapsing duplicate text', () {
       final rawToggles = [
-        {'noteId': 'note_1', 'lineIndex': 0, 'text': 'Buy milk', 'isDone': true},
-        {'noteId': 'note_1', 'lineIndex': 0, 'text': 'Buy milk', 'isDone': false},
-        {'noteId': 'note_1', 'lineIndex': 0, 'text': 'Buy milk', 'isDone': true},
-        {'noteId': 'note_1', 'lineIndex': 1, 'text': 'Call plumber', 'isDone': true},
+        {'noteId': 'note_1', 'lineIndex': 0, 'text': 'Check', 'isDone': true},
+        {'noteId': 'note_1', 'lineIndex': 0, 'text': 'Check', 'isDone': false},
+        {'noteId': 'note_1', 'lineIndex': 2, 'text': 'Check', 'isDone': true},
       ];
 
       final Map<String, Map<String, Map<String, dynamic>>> byNoteSquashed = {};
@@ -217,16 +232,18 @@ void main() {
         if (noteId != null && noteId.isNotEmpty) {
           final lineIndex = t['lineIndex'] as int? ?? -1;
           final text = (t['text'] as String?)?.trim();
-          final itemKey = (text != null && text.isNotEmpty) ? text : 'idx_$lineIndex';
-          byNoteSquashed.putIfAbsent(noteId, () => {})[itemKey] = Map<String, dynamic>.from(t);
+          final itemKey = lineIndex >= 0
+              ? 'idx_$lineIndex'
+              : ((text != null && text.isNotEmpty) ? 'txt_$text' : '');
+          if (itemKey.isNotEmpty) {
+            byNoteSquashed.putIfAbsent(noteId, () => {})[itemKey] = Map<String, dynamic>.from(t);
+          }
         }
       }
 
-      expect(byNoteSquashed.length, 1);
-      final note1Toggles = byNoteSquashed['note_1']!;
-      expect(note1Toggles.length, 2);
-      expect(note1Toggles['Buy milk']!['isDone'], true);
-      expect(note1Toggles['Call plumber']!['isDone'], true);
+      expect(byNoteSquashed['note_1']!.length, 2);
+      expect(byNoteSquashed['note_1']!['idx_0']!['isDone'], false);
+      expect(byNoteSquashed['note_1']!['idx_2']!['isDone'], true);
     });
 
     test('Widget expense calculation excludes reversals and transfers', () {
@@ -238,10 +255,11 @@ void main() {
         {'category': 'Groceries', 'amount': 750.0, 'isExpense': true},
       ];
 
-      final activeTx = transactions.where((t) =>
-        t['category'] != '__reversal__' &&
-        (t['category'] as String).toLowerCase() != 'transfer'
-      ).toList();
+      final activeTx = transactions
+          .where((t) =>
+              t['category'] != '__reversal__' &&
+              (t['category'] as String).toLowerCase() != 'transfer')
+          .toList();
 
       expect(activeTx.length, 2);
       final totalSpent = activeTx.fold<double>(0.0, (sum, t) => sum + (t['amount'] as double));

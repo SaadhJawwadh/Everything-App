@@ -179,19 +179,12 @@ class CategoryBudgetsCard extends StatelessWidget {
                                 ),
                                 if (paceTag != null) ...[
                                   const SizedBox(width: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                                    decoration: BoxDecoration(
-                                      color: paceTagColor!.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      paceTag,
-                                      style: textTheme.labelSmall?.copyWith(
-                                        color: paceTagColor,
-                                        fontSize: 9.5,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                  Text(
+                                    '· $paceTag',
+                                    style: textTheme.labelSmall?.copyWith(
+                                      color: paceTagColor,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ],
@@ -226,6 +219,7 @@ class CategoryBudgetsCard extends StatelessWidget {
                             style: textTheme.labelSmall?.copyWith(
                               color: colorScheme.error,
                               fontWeight: FontWeight.bold,
+                              fontFeatures: const [FontFeature.tabularFigures()],
                             ),
                           ),
                         ),

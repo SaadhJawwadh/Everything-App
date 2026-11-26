@@ -385,5 +385,8 @@
   "lockHealthSubtitle": "Require authentication to open Health",
   "screenshotShield": "Screenshot Shield",
   "screenshotShieldSubtitle": "Block screenshots and screen recording on Android",
-  "lockAppNow": "Lock App Now"
+  "lockAppNow": "Lock App Now",
+  "hideWidgetDataWhenLocked": "Hide Widget Content When Locked",
+  "hideWidgetDataWhenLockedSubtitle": "Mask financial balances with •••• and hide tasks on home screen widgets when locked",
+  "financesDisabledShortcutHint": "Enable Financial Manager in Settings to use this shortcut"
 }

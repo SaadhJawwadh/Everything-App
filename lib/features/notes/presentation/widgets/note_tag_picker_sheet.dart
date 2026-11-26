@@ -98,17 +98,16 @@ class _NoteTagPickerSheetState extends State<NoteTagPickerSheet> {
           ),
             const SizedBox(height: 16),
             Text(
-              'TAG COLOR',
-              style: theme.textTheme.labelSmall?.copyWith(
+              'Tag color',
+              style: theme.textTheme.titleSmall?.copyWith(
                 color: colorScheme.primary,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
+                fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: 8),
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: 4,
+              runSpacing: 4,
               alignment: WrapAlignment.center,
               children: [
                 ...AppTheme.noteColors.map((c) {
@@ -119,6 +118,7 @@ class _NoteTagPickerSheetState extends State<NoteTagPickerSheet> {
                     selected: isSelected,
                     button: true,
                     child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
                       onTap: () {
                         setState(() {
                           if (isSystem) {
@@ -133,8 +133,8 @@ class _NoteTagPickerSheetState extends State<NoteTagPickerSheet> {
                         });
                       },
                       child: SizedBox(
-                        width: 44,
-                        height: 44,
+                        width: 48,
+                        height: 48,
                         child: Center(
                           child: Container(
                             width: isSelected ? 34 : 30,
@@ -180,11 +180,10 @@ class _NoteTagPickerSheetState extends State<NoteTagPickerSheet> {
             const SizedBox(height: 16),
             if (widget.allTags.isNotEmpty) ...[
               Text(
-                'SELECT TAGS',
-                style: theme.textTheme.labelSmall?.copyWith(
+                'Select tags',
+                style: theme.textTheme.titleSmall?.copyWith(
                   color: colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               const SizedBox(height: 8),

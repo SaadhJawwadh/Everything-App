@@ -53,8 +53,8 @@ class MainActivity: FlutterFragmentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         instance = this
-        val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-        if (prefs.getBoolean("flutter.screenshotShieldEnabled", false)) {
+        WidgetCacheStore.drainBackgroundStaging(applicationContext)
+        if (WidgetCacheStore.isScreenshotShieldEnabled(applicationContext)) {
             window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
         }
         handleIntent(intent)
@@ -130,6 +130,8 @@ class MainActivity: FlutterFragmentActivity() {
             "com.saadhjawwadh.notebook.VIEW_BUDGETS" -> pendingWidgetAction = "view_budgets"
             "com.saadhjawwadh.notebook.VIEW_TRENDS" -> pendingWidgetAction = "view_trends"
             "com.saadhjawwadh.notebook.NEW_NOTE" -> pendingWidgetAction = "new_note"
+            "com.saadhjawwadh.notebook.NEW_CHECKLIST_NOTE" -> pendingWidgetAction = "new_checklist_note"
+            "com.saadhjawwadh.notebook.VIEW_NOTES" -> pendingWidgetAction = "view_notes"
             "com.saadhjawwadh.notebook.SEARCH" -> pendingWidgetAction = "search"
             "com.saadhjawwadh.notebook.SCAN_RECEIPT" -> pendingWidgetAction = "scan_receipt"
             "com.saadhjawwadh.notebook.SYNC_DEVICES" -> pendingWidgetAction = "sync_devices"
@@ -168,12 +170,14 @@ class MainActivity: FlutterFragmentActivity() {
         try {
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val category = android.appwidget.AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN
-            val mappings = listOf(
-                ComponentName(context, FinanceWidgetProvider::class.java) to R.layout.finance_widget_layout,
-                ComponentName(context, NotesWidgetProvider::class.java) to R.layout.notes_widget_layout,
-                ComponentName(context, TodoWidgetProvider::class.java) to R.layout.todo_widget_layout,
-                ComponentName(context, UnifiedWidgetProvider::class.java) to R.layout.unified_widget_layout
+            val mappings = mutableListOf(
+                ComponentName(context, TodoWidgetProvider::class.java) to R.layout.preview_todo_widget
             )
+            if (WidgetCacheStore.isFinancialManagerEnabled(context)) {
+                mappings.add(
+                    ComponentName(context, FinanceWidgetProvider::class.java) to R.layout.preview_finance_widget
+                )
+            }
             for ((component, layoutRes) in mappings) {
                 val remoteViews = android.widget.RemoteViews(context.packageName, layoutRes)
                 appWidgetManager.setWidgetPreview(component, category, remoteViews)
@@ -192,10 +196,13 @@ class MainActivity: FlutterFragmentActivity() {
             return false
         }
 
-        val component = when (widgetType.lowercase()) {
+        val normalizedType = widgetType.lowercase()
+        if (normalizedType == "finance" && !WidgetCacheStore.isFinancialManagerEnabled(this)) {
+            return false
+        }
+
+        val component = when (normalizedType) {
             "finance" -> ComponentName(this, FinanceWidgetProvider::class.java)
-            "unified" -> ComponentName(this, UnifiedWidgetProvider::class.java)
-            "notes" -> ComponentName(this, NotesWidgetProvider::class.java)
             else -> ComponentName(this, TodoWidgetProvider::class.java)
         }
 
@@ -203,11 +210,9 @@ class MainActivity: FlutterFragmentActivity() {
         // Android 15 (API 35) setWidgetPreview support via EXTRA_APPWIDGET_PREVIEW
         if (Build.VERSION.SDK_INT >= 35) {
             try {
-                val layoutRes = when (widgetType.lowercase()) {
-                    "finance" -> R.layout.finance_widget_layout
-                    "unified" -> R.layout.unified_widget_layout
-                    "notes" -> R.layout.notes_widget_layout
-                    else -> R.layout.todo_widget_layout
+                val layoutRes = when (normalizedType) {
+                    "finance" -> R.layout.preview_finance_widget
+                    else -> R.layout.preview_todo_widget
                 }
                 val previewViews = android.widget.RemoteViews(packageName, layoutRes)
                 extras.putParcelable("appWidgetPreview", previewViews)
@@ -319,6 +324,86 @@ class MainActivity: FlutterFragmentActivity() {
                     publishGeneratedWidgetPreviews(context)
                     result.success(true)
                 }
+                "syncFinanceSnapshot" -> {
+                    val context = applicationContext
+                    val json = (call.arguments as? String) ?: call.argument<String>("json") ?: "{}"
+                    WidgetCacheStore.setFinanceSnapshotJson(context, json)
+                    FinanceWidgetProvider.updateAllWidgets(context)
+                    UnifiedWidgetProvider.updateAllWidgets(context)
+                    result.success(true)
+                }
+                "syncTodoSnapshot" -> {
+                    val context = applicationContext
+                    val json = (call.arguments as? String) ?: call.argument<String>("json") ?: "[]"
+                    WidgetCacheStore.setTodoNotesJson(context, json)
+                    TodoWidgetProvider.updateAllWidgets(context)
+                    UnifiedWidgetProvider.updateAllWidgets(context)
+                    result.success(true)
+                }
+                "syncWidgetConfig" -> {
+                    val context = applicationContext
+                    val showFinancialManager = call.argument<Boolean>("showFinancialManager") ?: false
+                    val appLockEnabled = call.argument<Boolean>("appLockEnabled") ?: false
+                    val lockFinances = call.argument<Boolean>("lockFinances") ?: false
+                    val hideWidgetDataWhenLocked = call.argument<Boolean>("hideWidgetDataWhenLocked") ?: true
+                    val screenshotShieldEnabled = call.argument<Boolean>("screenshotShieldEnabled") ?: false
+                    val useDynamicColor = call.argument<Boolean>("useDynamicColor")
+                    val languageCode = call.argument<String>("languageCode")
+
+                    WidgetCacheStore.syncConfig(
+                        context = context,
+                        showFinancialManager = showFinancialManager,
+                        appLockEnabled = appLockEnabled,
+                        lockFinances = lockFinances,
+                        hideWidgetDataWhenLocked = hideWidgetDataWhenLocked,
+                        screenshotShieldEnabled = screenshotShieldEnabled,
+                        useDynamicColor = useDynamicColor
+                    )
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        try {
+                            val localeManager = getSystemService(android.app.LocaleManager::class.java)
+                            val targetLocales = if (languageCode.isNullOrBlank() || languageCode == "system") {
+                                android.os.LocaleList.getEmptyLocaleList()
+                            } else {
+                                android.os.LocaleList.forLanguageTags(languageCode)
+                            }
+                            if (localeManager != null && localeManager.applicationLocales != targetLocales) {
+                                localeManager.applicationLocales = targetLocales
+                            }
+                        } catch (_: Exception) {}
+                    }
+
+                    WidgetVisibilityManager.syncComponentStates(context)
+                    ShortcutHelper.syncDynamicShortcuts(context)
+                    FinanceWidgetProvider.updateAllWidgets(context)
+                    TodoWidgetProvider.updateAllWidgets(context)
+                    UnifiedWidgetProvider.updateAllWidgets(context)
+                    hasPublishedWidgetPreviews = false
+                    publishGeneratedWidgetPreviews(context)
+                    result.success(true)
+                }
+                "getPendingTodoToggles" -> {
+                    result.success(WidgetCacheStore.getPendingTogglesJson(applicationContext))
+                }
+                "setPendingTodoToggles" -> {
+                    val json = (call.arguments as? String) ?: call.argument<String>("json") ?: "[]"
+                    WidgetCacheStore.setPendingTogglesJson(applicationContext, json)
+                    result.success(true)
+                }
+                "getWidgetActiveNoteIds" -> {
+                    result.success(WidgetCacheStore.getWidgetActiveNoteIds(applicationContext))
+                }
+                "updateWidgetActiveNoteTitles" -> {
+                    val updates = call.arguments as? Map<*, *>
+                    if (updates != null) {
+                        WidgetCacheStore.updateWidgetActiveNoteTitles(applicationContext, updates)
+                    }
+                    result.success(true)
+                }
+                "getWidgetCacheSnapshot" -> {
+                    result.success(WidgetCacheStore.getSnapshotMap(applicationContext))
+                }
                 "pinWidget", "requestPinAppWidget" -> {
                     val type = call.argument<String>("type") ?: "todo"
                     result.success(requestPinAppWidget(type))
@@ -332,6 +417,9 @@ class MainActivity: FlutterFragmentActivity() {
                 "getPendingAction" -> {
                     result.success(pendingWidgetAction)
                     pendingWidgetAction = null
+                }
+                "peekPendingIntentExtras" -> {
+                    result.success(pendingIntentExtras)
                 }
                 "getPendingIntentExtras" -> {
                     result.success(pendingIntentExtras)

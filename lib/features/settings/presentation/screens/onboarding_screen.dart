@@ -99,24 +99,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Replay Tag / Step Progress Badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppLayout.spaceM,
-                          vertical: AppLayout.spaceXS,
-                        ),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                        ),
-                        child: Text(
-                          widget.isReplay
-                              ? 'Step ${_currentPage + 1} of $_totalPages'
-                              : 'Welcome ${_currentPage + 1}/$_totalPages',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: theme.colorScheme.onPrimaryContainer,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      Text(
+                        '${_currentPage + 1} / $_totalPages',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
                       // Skip / Close Button

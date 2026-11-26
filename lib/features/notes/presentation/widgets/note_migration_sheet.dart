@@ -3,6 +3,7 @@ import '../../../../core/services/app_haptics.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_layout.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../core/ui/app_card.dart';
 import '../../../../core/ui/app_chip.dart';
@@ -112,7 +113,7 @@ class _NoteMigrationSheetState extends State<NoteMigrationSheet> {
             duration: const Duration(seconds: 8),
             action: result.importedNoteIds.isNotEmpty
                 ? SnackBarAction(
-                    label: 'UNDO',
+                    label: 'Undo',
                     textColor: theme.colorScheme.inversePrimary,
                     onPressed: () async {
                       AppHaptics.mediumImpact();
@@ -168,6 +169,8 @@ class _NoteMigrationSheetState extends State<NoteMigrationSheet> {
                       Text(
                         'Google Keep & Markdown',
                         style: theme.textTheme.titleMedium?.copyWith(
+                          fontFamily: AppTheme.fontGoogleSansFlex,
+                          fontFamilyFallback: AppTheme.fontFallbacks,
                           fontWeight: FontWeight.bold,
                           color: colorScheme.onSurface,
                         ),
@@ -182,55 +185,32 @@ class _NoteMigrationSheetState extends State<NoteMigrationSheet> {
                       height: 1.4,
                     ),
                   ),
-                  const SizedBox(height: AppLayout.spaceM),
-                  Container(
-                    padding: const EdgeInsets.all(AppLayout.spaceM),
-                    decoration: BoxDecoration(
-                      color: colorScheme.surface.withValues(alpha: 0.65),
-                      borderRadius: BorderRadius.circular(AppLayout.radiusM),
-                      border: Border.all(
-                        color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+                  const Divider(height: AppLayout.spaceXL),
+                  Row(
+                    children: [
+                      Icon(Icons.lightbulb_outline_rounded, size: 20, color: colorScheme.primary),
+                      const SizedBox(width: AppLayout.spaceS),
+                      Text(
+                        'How to export from Google Keep',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontFamily: AppTheme.fontGoogleSansFlex,
+                          fontFamilyFallback: AppTheme.fontFallbacks,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
                       ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.lightbulb_outline_rounded, size: 20, color: colorScheme.primary),
-                            const SizedBox(width: AppLayout.spaceS),
-                            Text(
-                              'How to export from Google Keep',
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: colorScheme.onSurface,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppLayout.spaceS),
-                        Text(
-                          '1. Tap below to open Google Takeout with Keep pre-selected.\n'
-                          '2. Scroll down and tap "Next step" → "Create export".\n'
-                          '3. Once downloaded, return here and select the ZIP file.',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                            height: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: AppLayout.spaceM),
-                        OutlinedButton.icon(
-                          onPressed: _launchGoogleTakeout,
-                          icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                          label: const Text('Open Google Takeout'),
-                          style: OutlinedButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                            ),
-                          ),
-                        ),
-                      ],
+                    ],
+                  ),
+                  const SizedBox(height: AppLayout.spaceS),
+                  Text(
+                    '1. Use the menu below to open Google Takeout with Keep pre-selected.\n'
+                    '2. Scroll down and tap "Next step" → "Create export".\n'
+                    '3. Once downloaded, return here and select the ZIP file.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontSize: 13.0,
+                      color: colorScheme.onSurfaceVariant,
+                      height: 1.5,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                 ],
@@ -249,16 +229,6 @@ class _NoteMigrationSheetState extends State<NoteMigrationSheet> {
               onPrimaryPressed: _isLoading ? () {} : _pickFiles,
               menuItems: const [
                 PopupMenuItem(
-                  value: 'pick',
-                  child: Row(
-                    children: [
-                      Icon(Icons.file_open_outlined, size: 20),
-                      SizedBox(width: 10),
-                      Text('Browse Device Files'),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
                   value: 'takeout',
                   child: Row(
                     children: [
@@ -270,9 +240,7 @@ class _NoteMigrationSheetState extends State<NoteMigrationSheet> {
                 ),
               ],
               onSelected: (val) {
-                if (val == 'pick') {
-                  _pickFiles();
-                } else if (val == 'takeout') {
+                if (val == 'takeout') {
                   _launchGoogleTakeout();
                 }
               },
@@ -289,12 +257,22 @@ class _NoteMigrationSheetState extends State<NoteMigrationSheet> {
                     children: [
                       Text(
                         'Ready to Import',
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontFamily: AppTheme.fontGoogleSansFlex,
+                          fontFamilyFallback: AppTheme.fontFallbacks,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      AppChip(
-                        label: '${_parsedNotes!.length} Notes Found',
-                        backgroundColor: colorScheme.primaryContainer.withValues(alpha: 0.5),
-                        textColor: colorScheme.primary,
+                      Text(
+                        '${_parsedNotes!.length} Notes Found',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontFamily: AppTheme.fontGoogleSansFlex,
+                          fontFamilyFallback: AppTheme.fontFallbacks,
+                          fontSize: 13.0,
+                          fontWeight: FontWeight.w600,
+                          color: colorScheme.primary,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
                       ),
                     ],
                   ),

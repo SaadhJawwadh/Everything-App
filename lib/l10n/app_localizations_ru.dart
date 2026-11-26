@@ -1031,4 +1031,16 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get lockAppNow => 'Заблокировать сейчас';
+
+  @override
+  String get hideWidgetDataWhenLocked =>
+      'Скрывать данные виджета при блокировке';
+
+  @override
+  String get hideWidgetDataWhenLockedSubtitle =>
+      'Маскировать балансы символами •••• и скрывать задачи на виджетах при блокировке';
+
+  @override
+  String get financesDisabledShortcutHint =>
+      'Включите «Финансовый менеджер» в настройках, чтобы использовать этот ярлык';
 }

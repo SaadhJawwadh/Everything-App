@@ -3,8 +3,10 @@ package com.saadhjawwadh.notebook
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.widget.RemoteViews
 
 class NotesWidgetProvider : AppWidgetProvider() {
@@ -17,9 +19,17 @@ class NotesWidgetProvider : AppWidgetProvider() {
         for (appWidgetId in appWidgetIds) {
             updateAppWidget(context, appWidgetManager, appWidgetId)
         }
+        super.onUpdate(context, appWidgetManager, appWidgetIds)
+    }
+
+    override fun onDisabled(context: Context) {
+        WidgetVisibilityManager.disableComponentIfUnused(context, NotesWidgetProvider::class.java)
+        super.onDisabled(context)
     }
 
     companion object {
+        private const val REQUEST_CODE_BASE = 300_000
+
         fun updateAppWidget(
             context: Context,
             appWidgetManager: AppWidgetManager,
@@ -29,28 +39,29 @@ class NotesWidgetProvider : AppWidgetProvider() {
 
             views.setOnClickPendingIntent(
                 R.id.notes_widget_new_note,
-                actionPendingIntent(context, "com.saadhjawwadh.notebook.NEW_NOTE", 10)
+                actionPendingIntent(context, "com.saadhjawwadh.notebook.NEW_NOTE", 1)
             )
             views.setOnClickPendingIntent(
                 R.id.notes_widget_new_checklist,
-                actionPendingIntent(context, "com.saadhjawwadh.notebook.QUICK_ADD_TODO", 12)
+                actionPendingIntent(context, "com.saadhjawwadh.notebook.QUICK_ADD_TODO", 2)
             )
             views.setOnClickPendingIntent(
                 R.id.notes_widget_search,
-                actionPendingIntent(context, "com.saadhjawwadh.notebook.SEARCH", 11)
+                actionPendingIntent(context, "com.saadhjawwadh.notebook.SEARCH", 3)
             )
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
 
-        private fun actionPendingIntent(context: Context, action: String, requestCode: Int): PendingIntent {
+        private fun actionPendingIntent(context: Context, action: String, slot: Int): PendingIntent {
             val intent = Intent(context, MainActivity::class.java).apply {
                 this.action = action
+                data = Uri.parse("widget://notes/slot/$slot")
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             return PendingIntent.getActivity(
                 context,
-                requestCode,
+                REQUEST_CODE_BASE + slot,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
@@ -59,7 +70,7 @@ class NotesWidgetProvider : AppWidgetProvider() {
         fun updateAllWidgets(context: Context) {
             val appContext = context.applicationContext ?: context
             val appWidgetManager = AppWidgetManager.getInstance(appContext)
-            val thisWidget = android.content.ComponentName(appContext, NotesWidgetProvider::class.java)
+            val thisWidget = ComponentName(appContext, NotesWidgetProvider::class.java)
             val allWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
             for (id in allWidgetIds) {
                 updateAppWidget(appContext, appWidgetManager, id)

@@ -79,7 +79,7 @@ class SettingsSearchIndex {
     SettingsIndexItem(
       id: 'home_screen_widgets',
       title: 'Home Screen Widgets',
-      subtitle: 'Pin Checklist, Financial Manager, or Unified Dual-Domain widgets',
+      subtitle: 'Pin Tasks & Notes or Finances widgets to your home screen',
       section: 'Appearance',
       icon: Icons.widgets_outlined,
       keywords: ['widget', 'home screen', 'launcher', 'todo widget', 'finance widget', 'pin widget'],

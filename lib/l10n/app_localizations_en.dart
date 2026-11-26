@@ -1009,4 +1009,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lockAppNow => 'Lock App Now';
+
+  @override
+  String get hideWidgetDataWhenLocked => 'Hide Widget Content When Locked';
+
+  @override
+  String get hideWidgetDataWhenLockedSubtitle =>
+      'Mask financial balances with •••• and hide tasks on home screen widgets when locked';
+
+  @override
+  String get financesDisabledShortcutHint =>
+      'Enable Financial Manager in Settings to use this shortcut';
 }

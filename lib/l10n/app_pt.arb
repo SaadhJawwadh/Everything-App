@@ -301,5 +301,8 @@
   "lockHealthSubtitle": "Exigir autenticação para abrir Saúde",
   "screenshotShield": "Escudo contra capturas",
   "screenshotShieldSubtitle": "Bloquear capturas e gravação de tela no Android",
-  "lockAppNow": "Bloquear app agora"
+  "lockAppNow": "Bloquear app agora",
+  "hideWidgetDataWhenLocked": "Ocultar conteúdo do widget quando bloqueado",
+  "hideWidgetDataWhenLockedSubtitle": "Mascarar saldos financeiros com •••• e ocultar tarefas nos widgets quando bloqueado",
+  "financesDisabledShortcutHint": "Ative o Gerenciador Financeiro nas Configurações para usar este atalho"
 }

@@ -13,7 +13,6 @@ import 'package:note_taking_app/utils/widget_helper.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  // Setup sqflite_common_ffi
   setUpAll(() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
@@ -23,27 +22,42 @@ void main() {
     late Database db;
     late TransactionRepository repository;
     final List<MethodCall> methodCalls = [];
+    Map<String, String>? mockActiveNoteIds;
+    String? mockPendingToggles;
 
     setUp(() async {
       methodCalls.clear();
+      mockActiveNoteIds = null;
+      mockPendingToggles = null;
 
-      // Mock method channel for the widget to verify it triggers updateWidget
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(
         const MethodChannel('com.saadhjawwadh.notebook/widget'),
         (MethodCall methodCall) async {
           methodCalls.add(methodCall);
           if (methodCall.method == 'requestPinAppWidget') return true;
-          return null;
+          if (methodCall.method == 'getWidgetActiveNoteIds') {
+            return mockActiveNoteIds;
+          }
+          if (methodCall.method == 'getPendingTodoToggles') {
+            return mockPendingToggles;
+          }
+          if (methodCall.method == 'setPendingTodoToggles') {
+            mockPendingToggles = methodCall.arguments as String?;
+            return true;
+          }
+          return true;
         },
       );
 
-      // Set mock initial values for SharedPreferences (default currency USD)
       SharedPreferences.setMockInitialValues({
         'flutter.currency': 'USD',
+        'flutter.account1Name': 'Checking',
+        'flutter.account2Name': 'Vault',
+        'flutter.enableSavingsVault': true,
+        'flutter.enableBudgetsAndAnalytics': true,
       });
 
-      // Initialize fresh in-memory database
       db = await databaseFactoryFfi.openDatabase(inMemoryDatabasePath);
       await DatabaseHelper.instance.createTestDatabase(db);
       DatabaseHelper.setMockDatabase(db);
@@ -57,38 +71,44 @@ void main() {
       DatabaseHelper.setMockDatabase(null);
     });
 
-    test('updateWidgetData correctly calculates summaries and formats preferences', () async {
+    test('updateWidgetData builds finance_snapshot_json with exact boundaries and dual accounts', () async {
       final now = DateTime.now();
+      final todayStart = DateTime(now.year, now.month, now.day);
+      final yesterdayEnd = todayStart.subtract(const Duration(milliseconds: 1));
+      final monthStart = DateTime(now.year, now.month, 1);
 
-      // Today expense
+      // Today expense on daily account (at exact midnight start)
       final tx1 = TransactionModel(
-        amount: 25.0,
+        amount: 25.5,
         description: 'Lunch',
-        date: now,
+        date: todayStart,
         isExpense: true,
         category: 'Food',
+        account: AccountType.daily,
       );
 
-      // Today income (should go to income, not today spent)
+      // Today income on savings account
       final tx2 = TransactionModel(
         amount: 100.0,
-        description: 'Part-time job',
-        date: now.subtract(const Duration(minutes: 5)),
+        description: 'Interest',
+        date: now,
         isExpense: false,
         category: 'Salary',
+        account: AccountType.savings,
       );
 
-      // Past month expense (still this month)
-      final tx3 = TransactionModel(
-        amount: 50.0,
-        description: 'Utility bill',
-        date: DateTime(now.year, now.month, 1),
+      // Yesterday at 23:59:59.999 (must NOT leak into spentToday)
+      final txYesterday = TransactionModel(
+        amount: 40.0,
+        description: 'Yesterday snack',
+        date: yesterdayEnd,
         isExpense: true,
-        category: 'Utilities',
+        category: 'Food',
+        account: AccountType.daily,
       );
 
-      // Reversal Sentinel (should be filtered out entirely)
-      final tx4 = TransactionModel(
+      // Reversal Sentinel (must be excluded)
+      final txReversal = TransactionModel(
         amount: 99.0,
         description: 'Reversal item',
         date: now,
@@ -96,106 +116,173 @@ void main() {
         category: '__reversal__',
       );
 
-      // Insert via repository
-      await repository.createTransaction(tx1);
-      await repository.createTransaction(tx2);
-      await repository.createTransaction(tx3);
-      await repository.createTransaction(tx4);
+      await repository.createTransaction(tx1, updateWidgets: false);
+      await repository.createTransaction(tx2, updateWidgets: false);
+      await repository.createTransaction(txYesterday, updateWidgets: false);
+      await repository.createTransaction(txReversal, updateWidgets: false);
 
-      // Call WidgetHelper manually to populate prefs (also triggered by createTransaction)
       await WidgetHelper.updateWidgetData();
 
-      // Verify Shared Preferences
+      final syncCall = methodCalls.lastWhere(
+        (c) => c.method == 'syncFinanceSnapshot',
+      );
+      final snapshot = json.decode(syncCall.arguments as String) as Map<String, dynamic>;
+
+      expect(snapshot['spentToday'], '\$ 25.5');
+      final expectedMonthSpent = yesterdayEnd.isBefore(monthStart) ? 25.5 : 65.5;
+      expect(snapshot['totalExpense'], expectedMonthSpent);
+      expect(snapshot['totalIncome'], 100.0);
+      expect(snapshot['netBalance'], closeTo(100.0 - expectedMonthSpent, 0.001));
+      expect(snapshot['netPositive'], isTrue);
+      expect(snapshot['currencySymbol'], '\$');
+      expect(snapshot['account1Name'], 'Checking');
+      expect(snapshot['account2Name'], 'Vault');
+      expect(snapshot['enableSavingsVault'], isTrue);
+      expect(snapshot['enableBudgetsAndAnalytics'], isTrue);
+      expect(snapshot['savingsBalance'], '\$ 100');
+      expect(snapshot['topCategory'], 'Food');
+
+      // Plaintext financial cache must NOT be written into FlutterSharedPreferences
       final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('widget_recent_transactions'), isNull);
+      expect(prefs.getString('widget_spent_today'), isNull);
+    });
 
-      final expectedSpentToday = now.day == 1 ? '\$ 75' : '\$ 25';
-      expect(prefs.getString('widget_spent_today'), expectedSpentToday);
-      expect(prefs.getString('widget_spent_month'), '\$ 75'); // 25 (today) + 50 (month start)
-      expect(prefs.getString('widget_income_month'), '\$ 100');
+    test('updateWidgetData stages widget_bg_staging_finance on MissingPluginException', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+        const MethodChannel('com.saadhjawwadh.notebook/widget'),
+        null,
+      );
 
-      // Verify recent transactions json format
-      final recentJson = prefs.getString('widget_recent_transactions');
-      expect(recentJson, isNotNull);
+      await repository.createTransaction(
+        TransactionModel(
+          amount: 15.0,
+          description: 'Coffee',
+          date: DateTime.now(),
+          isExpense: true,
+          category: 'Food',
+        ),
+        updateWidgets: false,
+      );
 
-      final List<dynamic> recentList = json.decode(recentJson!);
-      expect(recentList.length, 3); // Top 3, reversal tx4 is skipped
+      await WidgetHelper.updateWidgetData();
 
-      // Verify date ordering (newest first, which is DESC)
-      final firstTx = recentList[0];
-      final secondTx = recentList[1];
-      final thirdTx = recentList[2];
-
-      expect(firstTx['description'], 'Lunch');
-      expect(secondTx['description'], 'Part-time job');
-      expect(thirdTx['description'], 'Utility bill');
-
-      // Verify format matches pattern
-      expect(firstTx['amount'], '- \$ 25');
-      expect(secondTx['amount'], '+ \$ 100');
-      expect(thirdTx['amount'], '- \$ 50');
-
-      // Verify method channel was triggered
-      expect(methodCalls.any((call) => call.method == 'updateWidget'), isTrue);
+      final prefs = await SharedPreferences.getInstance();
+      final staged = prefs.getString('widget_bg_staging_finance');
+      expect(staged, isNotNull);
+      final decoded = json.decode(staged!) as Map<String, dynamic>;
+      expect(decoded['spentToday'], '\$ 15');
     });
 
     test('requestPinWidget and pinTodoWidget trigger platform method channel', () async {
       final result1 = await WidgetHelper.requestPinWidget('finance');
       expect(result1, isTrue);
-      expect(methodCalls.any((call) => call.method == 'requestPinAppWidget' && call.arguments?['type'] == 'finance'), isTrue);
+      expect(
+        methodCalls.any((call) =>
+            call.method == 'requestPinAppWidget' &&
+            call.arguments?['type'] == 'finance'),
+        isTrue,
+      );
 
-      final result2 = await WidgetHelper.requestPinWidget('unified');
+      final result2 = await WidgetHelper.pinTodoWidget();
       expect(result2, isTrue);
-      expect(methodCalls.any((call) => call.method == 'requestPinAppWidget' && call.arguments?['type'] == 'unified'), isTrue);
-
-      final result3 = await WidgetHelper.pinTodoWidget();
-      expect(result3, isTrue);
-      expect(methodCalls.any((call) => call.method == 'requestPinAppWidget' && call.arguments?['type'] == 'todo'), isTrue);
+      expect(
+        methodCalls.any((call) =>
+            call.method == 'requestPinAppWidget' &&
+            call.arguments?['type'] == 'todo'),
+        isTrue,
+      );
     });
 
-    test('updateTodoWidgetData correctly updates active note titles and cleans orphaned per-widget IDs', () async {
+    test('syncWidgetConfig sends privacy and module flags to native channel', () async {
+      await WidgetHelper.syncWidgetConfig(
+        showFinancialManager: true,
+        appLockEnabled: true,
+        lockFinances: true,
+        hideWidgetDataWhenLocked: true,
+        screenshotShieldEnabled: true,
+        languageCode: 'ta',
+      );
+
+      final call = methodCalls.lastWhere((c) => c.method == 'syncWidgetConfig');
+      final args = Map<String, dynamic>.from(call.arguments as Map);
+      expect(args['showFinancialManager'], isTrue);
+      expect(args['appLockEnabled'], isTrue);
+      expect(args['lockFinances'], isTrue);
+      expect(args['hideWidgetDataWhenLocked'], isTrue);
+      expect(args['screenshotShieldEnabled'], isTrue);
+      expect(args['languageCode'], 'ta');
+    });
+
+    test('updateTodoWidgetData filters pending before take(30), supports - [X], and syncs active titles', () async {
       final now = DateTime.now();
       final noteRepo = NoteRepository.instance;
 
-      // Create an active note with checklist items
+      // Note with 35 completed items followed by 3 pending items
+      final ops = <Map<String, dynamic>>[];
+      for (int i = 0; i < 35; i++) {
+        ops.add({'insert': 'Done $i'});
+        ops.add({'insert': '\n', 'attributes': {'list': 'checked'}});
+      }
+      for (int i = 0; i < 3; i++) {
+        ops.add({'insert': 'Pending $i'});
+        ops.add({'insert': '\n', 'attributes': {'list': 'unchecked'}});
+      }
+
       final note1 = Note(
         id: 'note_123',
         title: 'Project Roadmap',
-        content: jsonEncode([
-          {"insert": "Milestone 1\n", "attributes": {"list": "unchecked"}},
-          {"insert": "Milestone 2\n", "attributes": {"list": "checked"}},
-        ]),
+        content: jsonEncode(ops),
+        dateCreated: now,
+        dateModified: now,
+      );
+      final note2 = Note(
+        id: 'note_upper',
+        title: 'Markdown Uppercase',
+        content: '- [X] Completed task\n- [ ] Open uppercase test',
         dateCreated: now,
         dateModified: now,
       );
       await noteRepo.createNote(note1);
+      await noteRepo.createNote(note2);
 
-      // Pre-populate SharedPreferences with:
-      // 1. widget_active_note_id pointing to note_123 with stale/empty title
-      // 2. widget_active_note_id_app1 pointing to note_123
-      // 3. widget_active_note_id_app2 pointing to a deleted note 'deleted_note_999'
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('widget_active_note_id', 'note_123');
-      await prefs.setString('widget_active_note_title', 'Old Title');
-      await prefs.setString('widget_active_note_id_app1', 'note_123');
-      await prefs.setString('widget_active_note_title_app1', 'Old App1 Title');
-      await prefs.setString('widget_active_note_id_app2', 'deleted_note_999');
-      await prefs.setString('widget_active_note_title_app2', 'Deleted Note Title');
+      mockActiveNoteIds = {
+        'global': 'note_123',
+        '101': 'note_123',
+        '102': 'deleted_note_999',
+      };
 
       await WidgetHelper.updateTodoWidgetData();
 
-      // Verify widget_todo_notes_json contains note_123 with items
-      final todoNotesJson = prefs.getString('widget_todo_notes_json');
-      expect(todoNotesJson, isNotNull);
-      final List<dynamic> todoNotes = jsonDecode(todoNotesJson!);
-      expect(todoNotes.any((n) => n['id'] == 'note_123'), isTrue);
+      final syncCall = methodCalls.lastWhere((c) => c.method == 'syncTodoSnapshot');
+      final List<dynamic> todoNotes = jsonDecode(syncCall.arguments as String);
 
-      // Verify active note titles are synchronized
-      expect(prefs.getString('widget_active_note_title'), 'Project Roadmap');
-      expect(prefs.getString('widget_active_note_title_app1'), 'Project Roadmap');
+      final n1 = todoNotes.firstWhere((n) => n['id'] == 'note_123') as Map<String, dynamic>;
+      expect(n1['checkedCount'], 35);
+      expect(n1['pendingCount'], 3);
+      expect(n1['totalCount'], 38);
+      expect((n1['items'] as List).length, 3);
+      expect(n1['items'][0]['text'], 'Pending 0');
 
-      // Verify orphaned/deleted note widget resets to ALL_NOTES and All Action Items
-      expect(prefs.getString('widget_active_note_id_app2'), 'ALL_NOTES');
-      expect(prefs.getString('widget_active_note_title_app2'), 'All Action Items');
+      final n2 = todoNotes.firstWhere((n) => n['id'] == 'note_upper') as Map<String, dynamic>;
+      expect(n2['checkedCount'], 1);
+      expect(n2['pendingCount'], 1);
+      expect(n2['totalCount'], 2);
+      expect(n2['items'][0]['text'], 'Open uppercase test');
+
+      final titleUpdateCall = methodCalls.lastWhere(
+        (c) => c.method == 'updateWidgetActiveNoteTitles',
+      );
+      final updates = Map<String, dynamic>.from(titleUpdateCall.arguments as Map);
+      expect(updates['global']['title'], 'Project Roadmap');
+      expect(updates['101']['title'], 'Project Roadmap');
+      expect(updates['102']['id'], 'ALL_NOTES');
+      expect(updates['102']['title'], 'All Action Items');
+
+      // Plaintext todo JSON must NOT be stored in FlutterSharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getString('widget_todo_notes_json'), isNull);
     });
   });
 }

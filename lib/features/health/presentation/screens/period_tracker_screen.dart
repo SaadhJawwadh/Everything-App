@@ -336,6 +336,7 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                                                     color: phaseColor,
                                                     fontSize: 11,
                                                     fontWeight: FontWeight.w600,
+                                                    fontFeatures: const [FontFeature.tabularFigures()],
                                                   ),
                                                 ),
                                               ),
@@ -357,7 +358,7 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                                 icon: const Icon(Icons.today_outlined),
                                 tooltip: 'Today',
                                 padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                                 visualDensity: VisualDensity.compact,
                                 onPressed: () async {
                                   setState(() {
@@ -373,25 +374,11 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                                   }
                                 },
                               ),
-                              IconButton(
-                                icon: Icon(
-                                  isDiscreet ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                                  color: isDiscreet ? colorScheme.primary : colorScheme.onSurfaceVariant,
-                                ),
-                                tooltip: isDiscreet ? 'Discreet Mode (Active)' : 'Enable Discreet Mode',
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                                visualDensity: VisualDensity.compact,
-                                onPressed: () {
-                                  AppHaptics.lightImpact();
-                                  context.read<SettingsProvider>().setIsDiscreetHealthMode(!isDiscreet);
-                                },
-                              ),
                               PopupMenuButton<String>(
                                 icon: const Icon(Icons.more_vert_rounded),
                                 tooltip: 'Health Tools',
                                 padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                                 elevation: 3,
                                 shadowColor: colorScheme.shadow.withValues(alpha: 0.15),
                                 shape: RoundedRectangleBorder(
@@ -414,9 +401,6 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                                     );
                                   } else if (value == 'phase_guide') {
                                     _showPhaseGuideDialog(context);
-                                  } else if (value == 'cycle_settings') {
-                                    AppRouter.push(context, const SettingsScreen())
-                                        .then((_) => provider.loadData());
                                   }
                                 },
                                 itemBuilder: (ctx) => [
@@ -463,24 +447,13 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> with WidgetsB
                                       ],
                                     ),
                                   ),
-                                  PopupMenuItem(
-                                    value: 'cycle_settings',
-                                    height: 48,
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.tune_rounded, size: 20, color: colorScheme.onSurfaceVariant),
-                                        const SizedBox(width: 12),
-                                        Text('Cycle Preferences', style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface, fontWeight: FontWeight.w500)),
-                                      ],
-                                    ),
-                                  ),
                                 ],
                               ),
                               IconButton(
                                 icon: const Icon(Icons.settings_outlined),
                                 tooltip: 'Settings',
                                 padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                                 visualDensity: VisualDensity.compact,
                                 onPressed: () {
                                   AppRouter.push(context, const SettingsScreen())

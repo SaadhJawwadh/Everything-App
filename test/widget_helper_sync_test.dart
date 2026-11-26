@@ -79,4 +79,62 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     expect(prefs.getString('widget_pending_toggles'), '[]');
   });
+
+  test('syncPendingTodoToggles uses channel getPendingTodoToggles/setPendingTodoToggles and matches lineIndex first', () async {
+    SharedPreferences.setMockInitialValues({});
+    final noteId = const Uuid().v4();
+    final now = DateTime.now();
+    final content = jsonEncode([
+      {'insert': 'Water plants'},
+      {'insert': '\n', 'attributes': {'list': 'unchecked'}},
+      {'insert': 'Water plants'},
+      {'insert': '\n', 'attributes': {'list': 'unchecked'}},
+    ]);
+
+    await NoteRepository.instance.createNote(
+      Note(
+        id: noteId,
+        title: 'Chores',
+        content: content,
+        dateCreated: now,
+        dateModified: now,
+        category: 'Notes',
+      ),
+    );
+
+    String channelQueue = jsonEncode([
+      {
+        'noteId': noteId,
+        'lineIndex': 1,
+        'text': 'Water plants',
+        'isDone': true,
+        'timestamp': 2000,
+      },
+    ]);
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+      const MethodChannel('com.saadhjawwadh.notebook/widget'),
+      (MethodCall methodCall) async {
+        if (methodCall.method == 'getPendingTodoToggles') {
+          return channelQueue;
+        }
+        if (methodCall.method == 'setPendingTodoToggles') {
+          channelQueue = methodCall.arguments as String? ?? '[]';
+          return true;
+        }
+        return null;
+      },
+    );
+
+    await WidgetHelper.syncPendingTodoToggles();
+
+    final updated = await NoteRepository.instance.readNote(noteId);
+    expect(updated, isNotNull);
+    final decoded = jsonDecode(updated!.content) as List<dynamic>;
+    // Line 0 remains unchecked, Line 1 is checked
+    expect(decoded[1]['attributes']['list'], 'unchecked');
+    expect(decoded[3]['attributes']['list'], 'checked');
+    expect(channelQueue, '[]');
+  });
 }

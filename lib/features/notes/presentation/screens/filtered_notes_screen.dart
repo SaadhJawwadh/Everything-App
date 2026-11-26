@@ -321,9 +321,10 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
                                         settings.trashAutoPurgeDays > 0
                                             ? 'Notes in trash are automatically purged after ${settings.trashAutoPurgeDays} days.'
                                             : 'Notes in trash can be restored anytime before permanent deletion.',
-                                        style: textTheme.bodySmall?.copyWith(
+                                        style: textTheme.bodyMedium?.copyWith(
                                           color: colorScheme.onSurfaceVariant,
-                                          fontSize: 11,
+                                          fontSize: 13.0,
+                                          fontFeatures: const [FontFeature.tabularFigures()],
                                         ),
                                       ),
                                     ],
@@ -373,53 +374,58 @@ class _FilteredNotesScreenState extends State<FilteredNotesScreen> {
                             final isSelected = _selectedNoteIds.contains(note.id);
 
                             final cardBg = NoteCard.resolveCardBackground(note, Theme.of(context));
+                            final reduceMotion = AppLayout.shouldReduceMotion(context);
+                            final cardWidget = Padding(
+                              padding: const EdgeInsets.only(bottom: 12.0),
+                              child: OpenContainer<bool>(
+                                transitionType: ContainerTransitionType.fadeThrough,
+                                transitionDuration: reduceMotion ? Duration.zero : AppLayout.animModal,
+                                openElevation: 0,
+                                openColor: cardBg,
+                                openBuilder: (context, _) => NoteEditorScreen(note: note),
+                                closedElevation: 0,
+                                closedColor: cardBg,
+                                closedShape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(AppLayout.radiusL),
+                                ),
+                                onClosed: (returned) async {
+                                  await refreshNotes();
+                                  if (context.mounted) {
+                                    unawaited(context.read<NoteProvider>().refreshNotes());
+                                  }
+                                },
+                                closedBuilder: (context, openContainer) {
+                                  return NoteCard(
+                                    note: note,
+                                    onTap: () {
+                                      if (_isSelectionMode) {
+                                        _toggleSelection(note.id);
+                                      } else {
+                                        openContainer();
+                                      }
+                                    },
+                                    tagColors: _tagColors,
+                                    isSelected: isSelected,
+                                    onLongPress: () {
+                                      _toggleSelection(note.id);
+                                    },
+                                  );
+                                },
+                              ),
+                            );
+                            if (reduceMotion) {
+                              return KeyedSubtree(key: ValueKey(note.id), child: cardWidget);
+                            }
                             return AnimationConfiguration.staggeredList(
                               key: ValueKey(note.id),
                               position: index.clamp(0, 8),
                               duration: AppLayout.animShort,
                               child: SlideAnimation(
-                                verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
+                                verticalOffset: 16.0,
                                 curve: AppLayout.curveStrongEaseOut,
                                 child: FadeInAnimation(
                                   curve: AppLayout.curveStrongEaseOut,
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(bottom: 12.0),
-                                    child: OpenContainer<bool>(
-                                      transitionType: ContainerTransitionType.fadeThrough,
-                                      transitionDuration: AppLayout.shouldReduceMotion(context) ? Duration.zero : AppLayout.animModal,
-                                      openElevation: 0,
-                                      openColor: cardBg,
-                                      openBuilder: (context, _) => NoteEditorScreen(note: note),
-                                      closedElevation: 0,
-                                      closedColor: cardBg,
-                                      closedShape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(AppLayout.radiusL),
-                                      ),
-                                      onClosed: (returned) async {
-                                        await refreshNotes();
-                                        if (context.mounted) {
-                                          unawaited(context.read<NoteProvider>().refreshNotes());
-                                        }
-                                      },
-                                      closedBuilder: (context, openContainer) {
-                                        return NoteCard(
-                                          note: note,
-                                          onTap: () {
-                                            if (_isSelectionMode) {
-                                              _toggleSelection(note.id);
-                                            } else {
-                                              openContainer();
-                                            }
-                                          },
-                                          tagColors: _tagColors,
-                                          isSelected: isSelected,
-                                          onLongPress: () {
-                                            _toggleSelection(note.id);
-                                          },
-                                        );
-                                      },
-                                    ),
-                                  ),
+                                  child: cardWidget,
                                 ),
                               ),
                             );

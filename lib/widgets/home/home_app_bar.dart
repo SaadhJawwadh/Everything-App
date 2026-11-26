@@ -11,7 +11,7 @@ import 'package:note_taking_app/features/notes/presentation/screens/manage_tags_
 import 'package:note_taking_app/features/notes/presentation/screens/filtered_notes_screen.dart';
 import 'package:note_taking_app/features/notes/presentation/widgets/note_migration_sheet.dart';
 import '../../core/theme/app_layout.dart';
-import '../../core/ui/app_chip.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/ui/app_dialog.dart';
 import '../../core/ui/app_bottom_sheet.dart';
 import '../../core/routes/app_router.dart';
@@ -177,7 +177,15 @@ class _HomeAppBarState extends State<HomeAppBar> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontFamily: AppTheme.fontGoogleSansFlex,
+                  fontFamilyFallback: AppTheme.fontFallbacks,
                   fontWeight: FontWeight.bold,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                  fontVariations: AppTheme.buildFontVariations(
+                    size: 16.0,
+                    brightness: Theme.of(context).brightness,
+                    weight: 700,
+                  ),
                   color: Theme.of(context).colorScheme.onSurface,
                 ),
           ),
@@ -366,8 +374,12 @@ class _HomeAppBarState extends State<HomeAppBar> {
                       padding: const EdgeInsets.only(right: 8),
                       child: Text(
                         '$count',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              fontFamily: AppTheme.fontGoogleSansFlex,
+                              fontFamilyFallback: AppTheme.fontFallbacks,
+                              fontSize: 13.0,
                               color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              fontFeatures: const [FontFeature.tabularFigures()],
                             ),
                       ),
                     ),
@@ -402,9 +414,15 @@ class _HomeAppBarState extends State<HomeAppBar> {
                 if (noteProvider.checklistNotesCount > 0)
                   Padding(
                     padding: EdgeInsets.only(right: noteProvider.filterChecklistsOnly ? 8 : 0),
-                    child: AppChip(
-                      label: '${noteProvider.checklistNotesCount}',
-                      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    child: Text(
+                      '${noteProvider.checklistNotesCount}',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            fontFamily: AppTheme.fontGoogleSansFlex,
+                            fontFamilyFallback: AppTheme.fontFallbacks,
+                            fontSize: 13.0,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
                     ),
                   ),
                 if (noteProvider.filterChecklistsOnly)
@@ -420,9 +438,15 @@ class _HomeAppBarState extends State<HomeAppBar> {
             leading: Icon(Icons.archive_outlined, color: Theme.of(context).colorScheme.onSurfaceVariant),
             title: Text(l10n?.archivedNotes ?? 'Archived Notes'),
             trailing: noteProvider.archivedCount > 0
-                ? AppChip(
-                    label: '${noteProvider.archivedCount}',
-                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                ? Text(
+                    '${noteProvider.archivedCount}',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontFamily: AppTheme.fontGoogleSansFlex,
+                          fontFamilyFallback: AppTheme.fontFallbacks,
+                          fontSize: 13.0,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
                   )
                 : null,
             onTap: () {
@@ -435,10 +459,16 @@ class _HomeAppBarState extends State<HomeAppBar> {
             leading: Icon(Icons.delete_outline_rounded, color: Theme.of(context).colorScheme.error),
             title: Text(l10n?.trashBin ?? 'Trash Bin', style: TextStyle(color: Theme.of(context).colorScheme.error)),
             trailing: noteProvider.trashCount > 0
-                ? AppChip(
-                    label: '${noteProvider.trashCount}',
-                    backgroundColor: Theme.of(context).colorScheme.errorContainer.withValues(alpha: 0.4),
-                    textColor: Theme.of(context).colorScheme.error,
+                ? Text(
+                    '${noteProvider.trashCount}',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontFamily: AppTheme.fontGoogleSansFlex,
+                          fontFamilyFallback: AppTheme.fontFallbacks,
+                          fontSize: 13.0,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.error,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
                   )
                 : null,
             onTap: () {
@@ -487,8 +517,15 @@ class _HomeAppBarState extends State<HomeAppBar> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleLarge?.copyWith(
+                      fontFamily: AppTheme.fontGoogleSansFlex,
+                      fontFamilyFallback: AppTheme.fontFallbacks,
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
+                      fontVariations: AppTheme.buildFontVariations(
+                        size: 18.0,
+                        brightness: theme.brightness,
+                        weight: 700,
+                      ),
                     ),
               ),
               const SizedBox(height: 3),
@@ -506,7 +543,7 @@ class _HomeAppBarState extends State<HomeAppBar> {
                           _showFolderPicker(context, noteProvider);
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                           decoration: BoxDecoration(
                             color: colorScheme.primaryContainer.withValues(alpha: isDark ? 0.35 : 0.45),
                             borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
@@ -521,22 +558,31 @@ class _HomeAppBarState extends State<HomeAppBar> {
                               Icon(
                                 isChecklistsView ? Icons.checklist_rtl_rounded : Icons.folder_outlined,
                                 color: colorScheme.primary,
-                                size: 13,
+                                size: 14,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 '$scopeLabel • $count',
-                                style: theme.textTheme.labelSmall?.copyWith(
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                      fontFamily: AppTheme.fontGoogleSansFlex,
+                                      fontFamilyFallback: AppTheme.fontFallbacks,
+                                      fontSize: 13.0,
                                       color: colorScheme.onSurface,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 0.2,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.0,
+                                      fontFeatures: const [FontFeature.tabularFigures()],
+                                      fontVariations: AppTheme.buildFontVariations(
+                                        size: 13.0,
+                                        brightness: theme.brightness,
+                                        weight: 600,
+                                      ),
                                     ),
                               ),
                               const SizedBox(width: 2),
                               Icon(
                                 Icons.keyboard_arrow_down_rounded,
                                 color: colorScheme.primary,
-                                size: 14,
+                                size: 16,
                               ),
                             ],
                           ),

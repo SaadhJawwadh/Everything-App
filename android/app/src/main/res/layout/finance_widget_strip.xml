@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background_shape"
+    android:clipToOutline="true"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
+
+    <!-- Active Content Container -->
+    <LinearLayout
+        android:id="@+id/finance_content_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <!-- Today Metric -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:paddingEnd="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:text="@string/widget_today_label"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/finance_strip_today"
+                android:layout_width="match_parent"
+                android:layout_height="22dp"
+                android:autoSizeMaxTextSize="16sp"
+                android:autoSizeMinTextSize="11sp"
+                android:autoSizeStepGranularity="1sp"
+                android:autoSizeTextType="uniform"
+                android:fontFamily="sans-serif-medium"
+                android:fontFeatureSettings="tnum"
+                android:gravity="center_vertical"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="16sp"
+                tools:text="$28" />
+        </LinearLayout>
+
+        <!-- Net Metric -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:paddingEnd="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:text="@string/widget_net_label"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/finance_strip_net_positive"
+                android:layout_width="match_parent"
+                android:layout_height="22dp"
+                android:autoSizeMaxTextSize="16sp"
+                android:autoSizeMinTextSize="11sp"
+                android:autoSizeStepGranularity="1sp"
+                android:autoSizeTextType="uniform"
+                android:fontFamily="sans-serif-medium"
+                android:fontFeatureSettings="tnum"
+                android:gravity="center_vertical"
+                android:maxLines="1"
+                android:textColor="@color/widget_income"
+                android:textSize="16sp"
+                android:visibility="visible"
+                tools:text="+$1,860" />
+
+            <TextView
+                android:id="@+id/finance_strip_net_negative"
+                android:layout_width="match_parent"
+                android:layout_height="22dp"
+                android:autoSizeMaxTextSize="16sp"
+                android:autoSizeMinTextSize="11sp"
+                android:autoSizeStepGranularity="1sp"
+                android:autoSizeTextType="uniform"
+                android:fontFamily="sans-serif-medium"
+                android:fontFeatureSettings="tnum"
+                android:gravity="center_vertical"
+                android:maxLines="1"
+                android:textColor="@color/widget_expense"
+                android:textSize="16sp"
+                android:visibility="gone"
+                tools:text="-$120" />
+        </LinearLayout>
+
+        <!-- Scan Receipt Secondary Button -->
+        <FrameLayout
+            android:id="@+id/finance_strip_scan"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="8dp"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:background="@drawable/widget_cta_secondary_shape"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:contentDescription="@string/widget_scan_receipt"
+                android:src="@drawable/ic_receipt_scanner_rounded"
+                android:tint="@color/widget_on_secondary_container" />
+        </FrameLayout>
+
+        <!-- Add Transaction Primary Button -->
+        <FrameLayout
+            android:id="@+id/finance_strip_add"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:background="@drawable/widget_cta_primary_shape"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:contentDescription="@string/widget_add_transaction"
+                android:src="@drawable/ic_add_small"
+                android:tint="@color/widget_on_primary" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <!-- Locked / Disabled State Container -->
+    <LinearLayout
+        android:id="@+id/finance_locked_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="@string/widget_locked_title"
+            android:src="@drawable/ic_lock_rounded"
+            android:tint="@color/widget_primary" />
+
+        <TextView
+            android:id="@+id/finance_locked_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="1"
+            android:text="@string/widget_locked_title"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+</FrameLayout>

@@ -986,31 +986,32 @@ class SettingsDialogs {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
+    bool showFinances = true;
+    try {
+      showFinances =
+          Provider.of<SettingsProvider>(context, listen: false).showFinancialManager;
+    } catch (_) {
+      // Fallback when rendered outside SettingsProvider in isolated tests
+    }
+
     final widgets = [
       (
         type: 'todo',
-        name: 'Action Items & Checklist',
-        desc: 'Interactive checklist with 1-tap toggling, list selector, and quick task capture.',
+        name: 'Tasks & Notes',
+        desc: 'Interactive checklist with 1-tap completion, list picker, and quick task capture.',
         icon: Icons.checklist_rtl_rounded,
         color: colorScheme.primary,
-        gridSize: '2x2 • 4x2 • 4x4',
+        gridSize: '4x1 • 2x2 • 4x3',
       ),
-      (
-        type: 'finance',
-        name: 'Financial Manager',
-        desc: 'Real-time daily/monthly cash flow, budget pacing indicator, and mini sparkline plot.',
-        icon: Icons.account_balance_wallet_outlined,
-        color: colorScheme.secondary,
-        gridSize: '2x2 • 4x2',
-      ),
-      (
-        type: 'unified',
-        name: 'Unified Dual-Domain Capsule',
-        desc: 'Dual-domain balance metrics paired with pending note checklist items.',
-        icon: Icons.dashboard_customize_outlined,
-        color: colorScheme.tertiary,
-        gridSize: '4x2 • 4x4',
-      ),
+      if (showFinances)
+        (
+          type: 'finance',
+          name: 'Finances',
+          desc: 'Daily and monthly cash flow, dual account balances, and spending pace sparkline.',
+          icon: Icons.account_balance_wallet_outlined,
+          color: colorScheme.secondary,
+          gridSize: '4x1 • 2x2 • 4x2',
+        ),
     ];
 
     AppBottomSheet.show(
@@ -1022,7 +1023,7 @@ class SettingsDialogs {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Add tactile Material You widgets directly to your device home screen with 1-tap launcher pinning.',
+              'Add adaptive home screen widgets directly to your launcher with 1-tap pinning.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colorScheme.onSurfaceVariant,
               ),

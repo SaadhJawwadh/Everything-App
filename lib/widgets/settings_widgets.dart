@@ -95,51 +95,11 @@ class SettingsHeroCard extends StatelessWidget {
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 3),
-                                  Wrap(
-                                    crossAxisAlignment: WrapCrossAlignment.center,
-                                    spacing: 6,
-                                    children: [
-                                      Text(
-                                        'Preferences & Health',
-                                        style: theme.textTheme.bodySmall?.copyWith(
-                                          color: colorScheme.onSurfaceVariant,
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                                        decoration: BoxDecoration(
-                                          color: (isDark ? const Color(0xFF10B981) : const Color(0xFF059669)).withValues(alpha: isDark ? 0.18 : 0.10),
-                                          borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                                          border: Border.all(
-                                            color: (isDark ? const Color(0xFF34D399) : const Color(0xFF10B981)).withValues(alpha: 0.35),
-                                            width: 0.8,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Container(
-                                              width: 5,
-                                              height: 5,
-                                              decoration: const BoxDecoration(
-                                                color: Color(0xFF10B981),
-                                                shape: BoxShape.circle,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              'Local Vault',
-                                              style: theme.textTheme.labelSmall?.copyWith(
-                                                fontSize: 9.5,
-                                                fontWeight: FontWeight.w600,
-                                                letterSpacing: 0.2,
-                                                color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
+                                  Text(
+                                    'Preferences & Vault',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -169,13 +129,12 @@ class SettingsHeroCard extends StatelessWidget {
 
                   const SizedBox(height: AppLayout.spaceL),
 
-                  // 2. Active Feature Module Badges
+                  // 2. Active Feature Module Controls
                   Text(
-                    'ACTIVE MODULES & SYSTEM STATUS',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.1,
-                      color: colorScheme.primary.withValues(alpha: 0.9),
+                    'Active modules & status',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: AppLayout.spaceS),

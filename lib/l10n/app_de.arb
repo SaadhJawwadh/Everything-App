@@ -301,5 +301,8 @@
   "lockHealthSubtitle": "Authentifizierung zum Öffnen von Gesundheit erforderlich",
   "screenshotShield": "Screenshot-Schutz",
   "screenshotShieldSubtitle": "Screenshots und Bildschirmaufnahmen unter Android blockieren",
-  "lockAppNow": "App jetzt sperren"
+  "lockAppNow": "App jetzt sperren",
+  "hideWidgetDataWhenLocked": "Widget-Inhalte bei Sperre ausblenden",
+  "hideWidgetDataWhenLockedSubtitle": "Kontostände mit •••• maskieren und Aufgaben in Widgets bei Sperre ausblenden",
+  "financesDisabledShortcutHint": "Aktiviere den Finanzmanager in den Einstellungen, um diese Verknüpfung zu nutzen"
 }

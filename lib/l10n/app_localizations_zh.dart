@@ -950,4 +950,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get lockAppNow => '立即锁定应用';
+
+  @override
+  String get hideWidgetDataWhenLocked => '锁定时隐藏小组件内容';
+
+  @override
+  String get hideWidgetDataWhenLockedSubtitle => '锁定时用 •••• 遮蔽财务余额并隐藏桌面小组件中的任务';
+
+  @override
+  String get financesDisabledShortcutHint => '请在设置中启用财务管理以使用此快捷方式';
 }

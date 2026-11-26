@@ -140,6 +140,19 @@ class SecuritySettingsScreen extends StatelessWidget {
                             value: settings.screenshotShieldEnabled,
                             onChanged: settings.setScreenshotShieldEnabled,
                           ),
+                        if (!kIsWeb &&
+                            Platform.isAndroid &&
+                            (settings.appLockEnabled || settings.lockFinances))
+                          SettingsSwitchTile(
+                            icon: Icons.widgets_outlined,
+                            iconColor: colorScheme.secondary,
+                            title: l10n?.hideWidgetDataWhenLocked ??
+                                'Hide Widget Content When Locked',
+                            subtitle: l10n?.hideWidgetDataWhenLockedSubtitle ??
+                                'Mask financial balances with •••• and hide tasks on home screen widgets when locked',
+                            value: settings.hideWidgetDataWhenLocked,
+                            onChanged: settings.setHideWidgetDataWhenLocked,
+                          ),
                         if (settings.appLockEnabled || settings.hasAnyModuleLockEnabled)
                           SettingsTile(
                             icon: Icons.lock_reset_rounded,

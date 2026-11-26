@@ -48,7 +48,13 @@ class NoteMetadataChipsBar extends StatelessWidget {
               avatar: Icon(Icons.alarm, size: 16, color: textColor),
               label: Text(
                 DateFormat('EEE, d MMM • h:mm a').format(reminderAt!),
-                style: TextStyle(color: textColor, fontSize: 12),
+                style: TextStyle(
+                  fontFamily: AppTheme.fontGoogleSansFlex,
+                  fontFamilyFallback: AppTheme.fontFallbacks,
+                  color: textColor,
+                  fontSize: 13.0,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
               onPressed: onPickReminder,
               onDeleted: onClearReminder,
@@ -59,7 +65,12 @@ class NoteMetadataChipsBar extends StatelessWidget {
               avatar: Icon(Icons.lock, size: 16, color: textColor),
               label: Text(
                 'Locked',
-                style: TextStyle(color: textColor, fontSize: 12),
+                style: TextStyle(
+                  fontFamily: AppTheme.fontGoogleSansFlex,
+                  fontFamilyFallback: AppTheme.fontFallbacks,
+                  color: textColor,
+                  fontSize: 13.0,
+                ),
               ),
             ),
           if (isCustomFolder)
@@ -67,7 +78,12 @@ class NoteMetadataChipsBar extends StatelessWidget {
               avatar: Icon(Icons.folder_outlined, size: 16, color: textColor),
               label: Text(
                 folder,
-                style: TextStyle(color: textColor, fontSize: 12),
+                style: TextStyle(
+                  fontFamily: AppTheme.fontGoogleSansFlex,
+                  fontFamilyFallback: AppTheme.fontFallbacks,
+                  color: textColor,
+                  fontSize: 13.0,
+                ),
               ),
               onPressed: onPickFolder,
             ),

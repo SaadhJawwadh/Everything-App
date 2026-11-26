@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:provider/provider.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
-import 'package:note_taking_app/features/settings/presentation/screens/sections/sync_backup_settings_screen.dart';
+import 'package:note_taking_app/features/settings/presentation/screens/sections/security_settings_screen.dart';
 import 'package:note_taking_app/core/routes/app_router.dart';
 import '../core/services/app_haptics.dart';
 import '../core/theme/app_layout.dart';
@@ -33,35 +33,30 @@ class WhatsNewSheet extends StatelessWidget {
 
     final categories = [
       _WhatsNewCategory(
-        categoryTitle: "New Features",
+        categoryTitle: "New features",
         categoryIcon: Icons.auto_awesome_rounded,
         categoryColor: theme.colorScheme.primary,
         bgColor: theme.colorScheme.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.document_scanner_outlined,
-            title: "Scan Text to Note (Offline OCR)",
-            desc: "Use /scan or the image menu to extract editable text from camera photos and embedded note images on-device.",
+            icon: Icons.widgets_outlined,
+            title: "Material You home widgets",
+            desc: "Streamlined Tasks & Notes and Finances widgets that adapt smoothly from compact strips to tablet and foldable layouts.",
           ),
           _WhatsNewItem(
-            icon: Icons.notifications_active_outlined,
-            title: "Budget Alerts, Bill Reminders & Digest",
-            desc: "Get 80%/100% category budget warnings, 48h pre-due recurring bill alerts, and an optional Sunday Spend Digest.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.auto_fix_high_rounded,
-            title: "Simplify Group Debts & Batch Story Slides",
-            desc: "Compute minimal transfers for grouped split bills and share or save all Story Card slides in one tap.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.shield_outlined,
-            title: "Encrypted Auto-Backups & Module Locks",
-            desc: "Automated backups are now encrypted with a recovery key, alongside individual Finances & Health tab locks and Screenshot Shield.",
-            actionLabel: "View Sync & Backups ➔",
+            icon: Icons.visibility_off_outlined,
+            title: "Widget privacy lock",
+            desc: "Mask home screen balances and tasks automatically while App Lock or Finance Lock is active.",
+            actionLabel: "Open Security Settings",
             onAction: () {
               Navigator.pop(context);
-              AppRouter.push(context, const SyncBackupSettingsScreen());
+              AppRouter.push(context, const SecuritySettingsScreen());
             },
+          ),
+          _WhatsNewItem(
+            icon: Icons.style_outlined,
+            title: "Poster Story Cards & Web Companion",
+            desc: "Bold chromatic Story Card themes with poster typography, plus a PIN-protected local Wi-Fi browser companion.",
           ),
         ],
       ),
@@ -73,13 +68,8 @@ class WhatsNewSheet extends StatelessWidget {
         items: [
           _WhatsNewItem(
             icon: Icons.bolt_rounded,
-            title: "Smoother Animations & Faster Performance",
-            desc: "Snappier launch, fluid 120Hz scrolling across notes, finances & calendars, instant search and filters, and full Reduce Motion support.",
-          ),
-          _WhatsNewItem(
-            icon: Icons.manage_search_rounded,
-            title: "Full-Body Note Search & Period Notes",
-            desc: "Search unlocked notes past the preview limit, add notes to period logs, and jump directly to Health from period alerts.",
+            title: "Faster ledger, cleaner cards & 8 languages",
+            desc: "Transactions open above the fold, tabular numerals keep figures aligned, and all widgets are translated across 8 languages.",
           ),
         ],
       ),
@@ -90,14 +80,9 @@ class WhatsNewSheet extends StatelessWidget {
         bgColor: theme.colorScheme.secondaryContainer.withValues(alpha: isDark ? 0.3 : 0.4),
         items: [
           _WhatsNewItem(
-            icon: Icons.tune_rounded,
-            title: "Smoother Typing, Charts & Battery Life",
-            desc: "Removed keyboard stutter in the note editor, stopped idle animations at rest, and eliminated redundant refreshes.",
-          ),
-          _WhatsNewItem(
             icon: Icons.verified_user_rounded,
-            title: "Cleaner Budgets, Biometrics & Sync Integrity",
-            desc: "Excluded transfers from spending charts, wired Use Biometrics with PIN fallback, and added P2P integrity checks.",
+            title: "Instant background sync & reliable taps",
+            desc: "Fixed background widget refreshes, task-row taps on newer Android versions, dual-account splits, and dark-mode contrast.",
           ),
         ],
       ),
@@ -239,6 +224,7 @@ class WhatsNewSheet extends StatelessWidget {
                                         return Padding(
                                           padding: const EdgeInsets.only(bottom: AppLayout.spaceS),
                                           child: AppCard(
+                                            backgroundColor: theme.colorScheme.surfaceContainerLow,
                                             padding: const EdgeInsets.all(AppLayout.spaceM),
                                             child: Row(
                                               crossAxisAlignment: CrossAxisAlignment.start,

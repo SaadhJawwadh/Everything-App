@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/app_card.dart';
-import '../../../../core/ui/app_chip.dart';
 import '../../../../services/period_prediction_service.dart';
 
 /// Standardized Material 3 Card presenting cycle statistical insights,
@@ -41,7 +40,7 @@ class CycleInsightsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title & Regularity Badge
+          // Title & Regularity Summary
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -58,24 +57,27 @@ class CycleInsightsCard extends StatelessWidget {
                 ],
               ),
               if (stats.cycleCount > 0)
-                AppChip(
-                  label: '${stats.regularityScore.toStringAsFixed(0)}% • ${stats.regularityLabel}',
-                  backgroundColor: regularityColor.withValues(alpha: 0.18),
-                  textColor: regularityColor,
-                  border: BorderSide(color: regularityColor.withValues(alpha: 0.4)),
+                Text(
+                  '${stats.regularityScore.toStringAsFixed(0)}% · ${stats.regularityLabel}',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: regularityColor,
+                    fontWeight: FontWeight.w600,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 )
               else
-                AppChip(
-                  label: 'No Data Yet',
-                  backgroundColor: colorScheme.surfaceContainerHighest,
-                  textColor: colorScheme.onSurfaceVariant,
-                  border: BorderSide(color: colorScheme.outlineVariant),
+                Text(
+                  'No data yet',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
             ],
           ),
           const SizedBox(height: 16),
 
-          // 3-Metric Metric Row
+          // 3-Metric Row separated by clean 1px vertical dividers (no nested tile boxes)
           Row(
             children: [
               Expanded(
@@ -87,7 +89,11 @@ class CycleInsightsCard extends StatelessWidget {
                   color: colorScheme.primary,
                 ),
               ),
-              const SizedBox(width: 8),
+              Container(
+                width: 1,
+                height: 44,
+                color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+              ),
               Expanded(
                 child: _MetricTile(
                   label: 'Avg Period',
@@ -97,7 +103,11 @@ class CycleInsightsCard extends StatelessWidget {
                   color: semantic?.phaseMenstrual ?? colorScheme.primary,
                 ),
               ),
-              const SizedBox(width: 8),
+              Container(
+                width: 1,
+                height: 44,
+                color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+              ),
               Expanded(
                 child: _MetricTile(
                   label: 'Variation',
@@ -117,6 +127,7 @@ class CycleInsightsCard extends StatelessWidget {
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.onSurfaceVariant,
                 fontStyle: FontStyle.italic,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ],
@@ -146,12 +157,8 @@ class _MetricTile extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(AppLayout.radiusM),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

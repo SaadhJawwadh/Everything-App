@@ -7,7 +7,6 @@ import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
-import '../core/ui/app_card.dart';
 import '../core/theme/app_layout.dart';
 import '../l10n/app_localizations.dart';
 
@@ -426,11 +425,12 @@ class AppLockScreenState extends State<AppLockScreen>
           color: (isDark ? Colors.black : Theme.of(context).colorScheme.surface),
           child: Scaffold(
             backgroundColor: Colors.transparent,
-            body: Center(
-              child: AppCard.frosted(
-                margin: const EdgeInsets.symmetric(horizontal: 24),
-                padding: const EdgeInsets.all(32),
-                borderRadius: 28,
+            body: SafeArea(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppLayout.spaceXXL),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -453,36 +453,34 @@ class AppLockScreenState extends State<AppLockScreen>
                             );
                           },
                           child: Container(
-                            padding: const EdgeInsets.all(20),
+                            width: 84,
+                            height: 84,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: Theme.of(context)
                                   .colorScheme
                                   .primaryContainer
-                                  .withValues(alpha: 0.7),
-                              border: Border.all(
-                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
-                                width: 1.5,
-                              ),
+                                  .withValues(alpha: 0.65),
                             ),
                             child: Icon(
-                              Icons.lock_outline,
-                              size: 56,
+                              Icons.lock_outline_rounded,
+                              size: 40,
                               color: Theme.of(context).colorScheme.onPrimaryContainer,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: AppLayout.spaceXL),
                         Text(
                           AppLocalizations.of(context)?.appLocked ?? 'App Locked',
                           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
+                          textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppLayout.spaceS),
                         Text(
                           AppLocalizations.of(context)?.appLockSubtitle ??
-                              'Authentication required to access content',
+                              'Verify your identity to open your private workspace.',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
@@ -576,7 +574,9 @@ class AppLockScreenState extends State<AppLockScreen>
                 ),
               ),
             ),
-          );
+          ),
+        ),
+      );
 
       return PopScope(
         canPop: false,

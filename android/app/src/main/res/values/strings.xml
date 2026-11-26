@@ -1,9 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="widget_todo_label">Tasks &amp; Notes</string>
+    <string name="widget_finance_label">Finances</string>
     <string name="finance_widget_description">Track today\'s spending, monthly totals, and your latest transactions right from the home screen.</string>
     <string name="notes_widget_description">Capture a note or search everything with one tap.</string>
     <string name="todo_widget_description">View, switch, and check off tasks from your notes directly on your home screen.</string>
     <string name="unified_widget_description">Finances and notes together in a unified Material 3 Expressive widget.</string>
+
+    <string name="widget_all_action_items">All Action Items</string>
+    <string name="widget_checklist_fallback">Checklist</string>
+    <string name="widget_all_tasks_completed">All tasks completed</string>
+    <string name="widget_tap_plus_to_add">Tap + to add one</string>
+    <string name="widget_no_pending_tasks">No pending tasks</string>
+    <string name="widget_locked_title">Workspace locked</string>
+    <string name="widget_locked_tap_unlock">Tap to unlock</string>
+    <string name="widget_finances_disabled">Finances disabled</string>
+    <string name="widget_finances_disabled_tap">Tap to enable in Settings</string>
+
+    <string name="widget_today_label">TODAY</string>
+    <string name="widget_spent_month_label">SPENT (MO)</string>
+    <string name="widget_net_label">NET</string>
+    <string name="widget_month_est_label">MONTH EST</string>
+    <string name="widget_pace_on_track">On Track</string>
+    <string name="widget_pace_fast">Pacing Fast</string>
+    <string name="widget_pace_exhausted">Budget Exhausted</string>
+    <string name="widget_sparkline_empty_hint">Add expenses to view trend</string>
+
+    <string name="widget_new_note">New Note</string>
+    <string name="widget_new_task">New Task</string>
+    <string name="widget_search">Search</string>
+    <string name="widget_scan_receipt">Scan Receipt</string>
+    <string name="widget_add_transaction">Add Transaction</string>
+    <string name="widget_view_all_tasks">View all %1$d tasks</string>
+
+    <string name="widget_picker_title">Select Checklist</string>
+    <string name="widget_picker_subtitle">Choose list to display on widget</string>
+    <string name="widget_picker_new_checklist">+ Create New List</string>
+    <string name="widget_picker_cancel">Cancel</string>
+    <string name="widget_left_count">%1$d left</string>
+    <string name="widget_done_count">%1$d/%2$d done</string>
+    <string name="widget_no_tasks_yet">No tasks yet</string>
+    <string name="widget_pending_done_fmt">%1$d pending • %2$d done</string>
+    <string name="widget_all_done_fmt">All %1$d tasks completed</string>
+
     <string name="shortcut_new_note_short">New note</string>
     <string name="shortcut_new_note_long">Create a new note</string>
     <string name="shortcut_new_transaction_short">New transaction</string>

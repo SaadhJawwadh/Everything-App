@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_layout.dart';
+import '../theme/app_theme.dart';
 
 /// Material 3 Expressive borderless surface top app bar.
 /// Uses 100% solid surfaceContainerLow fill with subtle tonal elevation and zero blur.
@@ -44,11 +45,19 @@ class ExpressiveSliverAppBar extends StatelessWidget {
     if (title != null) {
       headerContent = title!;
     } else {
+      final theme = Theme.of(context);
       headerContent = Text(
         titleText ?? '',
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+        style: theme.textTheme.titleLarge?.copyWith(
+              fontFamily: AppTheme.fontGoogleSansFlex,
+              fontFamilyFallback: AppTheme.fontFallbacks,
               fontWeight: FontWeight.bold,
               fontSize: 18,
+              fontVariations: AppTheme.buildFontVariations(
+                size: 18.0,
+                brightness: theme.brightness,
+                weight: 700,
+              ),
             ),
         overflow: TextOverflow.ellipsis,
       );

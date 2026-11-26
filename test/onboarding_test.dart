@@ -72,7 +72,7 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
-      expect(find.text('Welcome to Everything App'), findsOneWidget);
+      expect(find.text('Your private workspace, always offline.'), findsOneWidget);
       expect(find.text('Skip'), findsOneWidget);
       expect(find.text('Next'), findsOneWidget);
     });

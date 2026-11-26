@@ -118,12 +118,8 @@ class BurnRateForecastCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(AppLayout.spaceM),
               decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHigh.withValues(alpha: 0.5),
+                color: colorScheme.surfaceContainerLow,
                 borderRadius: BorderRadius.circular(AppLayout.radiusM),
-                border: Border.all(
-                  color: statusColor.withValues(alpha: 0.3),
-                  width: 1.2,
-                ),
               ),
               child: Row(
                 children: [
@@ -154,6 +150,7 @@ class BurnRateForecastCard extends StatelessWidget {
                           'for remaining ${forecast.remainingDays} days',
                           style: textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
+                            fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
                       ],
@@ -192,6 +189,7 @@ class BurnRateForecastCard extends StatelessWidget {
                           'Budget: $currency ${NumberFormat('#,##0').format(forecast.totalBudget)}',
                           style: textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
+                            fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
                       ],
@@ -210,10 +208,11 @@ class BurnRateForecastCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Day ${forecast.currentDay} of ${forecast.totalDaysInMonth} (${(forecast.elapsedFraction * 100).toInt()}% elapsed)',
+                      'Day ${forecast.currentDay} of ${forecast.totalDaysInMonth}',
                       style: textTheme.labelSmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
                     Text(
@@ -221,6 +220,7 @@ class BurnRateForecastCard extends StatelessWidget {
                       style: textTheme.labelSmall?.copyWith(
                         color: statusColor,
                         fontWeight: FontWeight.bold,
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
                   ],

@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/services/app_haptics.dart';
 import '../../core/theme/app_layout.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/ui/app_card.dart';
 import '../../core/ui/app_chip.dart';
 import '../../data/note_model.dart';
@@ -477,10 +478,18 @@ class _A2uiSmartActionCardState extends State<A2uiSmartActionCard> {
                           const SizedBox(width: 4),
                           Text(
                             badgeLabel,
-                            style: theme.textTheme.labelSmall?.copyWith(
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              fontFamily: AppTheme.fontGoogleSansFlex,
+                              fontFamilyFallback: AppTheme.fontFallbacks,
+                              fontSize: 13.0,
                               color: colorScheme.primary,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.3,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.0,
+                              fontVariations: AppTheme.buildFontVariations(
+                                size: 13.0,
+                                brightness: theme.brightness,
+                                weight: 600,
+                              ),
                             ),
                           ),
                           if (_isRefinedByAi) ...[
@@ -497,16 +506,26 @@ class _A2uiSmartActionCardState extends State<A2uiSmartActionCard> {
                       Text(
                         headlineText,
                         style: theme.textTheme.titleMedium?.copyWith(
+                          fontFamily: AppTheme.fontGoogleSansFlex,
+                          fontFamilyFallback: AppTheme.fontFallbacks,
                           fontWeight: FontWeight.w700,
                           color: colorScheme.onSurface,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                          fontVariations: AppTheme.buildFontVariations(
+                            size: 16.0,
+                            brightness: theme.brightness,
+                            weight: 700,
+                          ),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         subtitleText,
-                        style: theme.textTheme.bodySmall?.copyWith(
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontSize: 13.0,
                           color: colorScheme.onSurfaceVariant,
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

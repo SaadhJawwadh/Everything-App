@@ -103,8 +103,8 @@ class AppChip extends StatelessWidget {
 
     final horizPadding = isCompact ? 10.0 : 14.0;
     final vertPadding = isCompact ? 4.0 : 7.0;
-    final fontSize = isCompact ? 12.0 : 13.0;
-    final iconSize = isCompact ? 14.0 : 16.0;
+    const fontSize = 13.0;
+    final iconSize = isCompact ? 15.0 : 16.0;
 
     final effectiveRadius = borderRadiusGeometry ??
         BorderRadius.circular(borderRadius ?? AppLayout.radiusStadium);
@@ -149,12 +149,13 @@ class AppChip extends StatelessWidget {
                     label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: (theme.textTheme.labelMedium ?? const TextStyle()).copyWith(
+                    style: (theme.textTheme.labelLarge ?? const TextStyle()).copyWith(
                       fontFamily: AppTheme.fontGoogleSansFlex,
                       fontFamilyFallback: AppTheme.fontFallbacks,
                       fontSize: fontSize,
                       color: effectiveFg,
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                       fontVariations: AppTheme.buildFontVariations(
                         size: fontSize,
                         brightness: theme.brightness,

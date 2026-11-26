@@ -3,14 +3,53 @@ package com.saadhjawwadh.notebook
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.graphics.*
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.DashPathEffect
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.PointF
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.Shader
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.util.SizeF
+import android.view.View
 import android.widget.RemoteViews
-import org.json.JSONArray
+import androidx.core.content.ContextCompat
+import org.json.JSONObject
 
 class FinanceWidgetProvider : AppWidgetProvider() {
+
+    private data class FinanceSnapshot(
+        val spentToday: String,
+        val spentMonth: String,
+        val netMonth: String,
+        val netPositive: Boolean,
+        val account1Name: String,
+        val account2Name: String,
+        val dailyBalance: String,
+        val savingsBalance: String,
+        val enableSavingsVault: Boolean,
+        val enableBudgetsAndAnalytics: Boolean,
+        val showSplitBills: Boolean,
+        val splitBillsPending: String,
+        val budgetPercent: Int,
+        val budgetLabel: String,
+        val topCategory: String,
+        val topCategoryAmount: String,
+        val forecastAmount: String,
+        val forecastPace: String,
+        val sparklinePoints: List<Float>,
+        val hasEnoughSparklineData: Boolean
+    )
 
     override fun onUpdate(
         context: Context,
@@ -20,6 +59,7 @@ class FinanceWidgetProvider : AppWidgetProvider() {
         for (appWidgetId in appWidgetIds) {
             updateAppWidget(context, appWidgetManager, appWidgetId)
         }
+        super.onUpdate(context, appWidgetManager, appWidgetIds)
     }
 
     override fun onAppWidgetOptionsChanged(
@@ -29,6 +69,14 @@ class FinanceWidgetProvider : AppWidgetProvider() {
         newOptions: Bundle
     ) {
         updateAppWidget(context, appWidgetManager, appWidgetId, newOptions)
+        super.onAppWidgetOptionsChanged(context, appWidgetManager, appWidgetId, newOptions)
+    }
+
+    override fun onDisabled(context: Context) {
+        if (!WidgetCacheStore.isFinancialManagerEnabled(context)) {
+            WidgetVisibilityManager.disableComponentIfUnused(context, FinanceWidgetProvider::class.java)
+        }
+        super.onDisabled(context)
     }
 
     fun updateAppWidget(
@@ -37,94 +85,401 @@ class FinanceWidgetProvider : AppWidgetProvider() {
         appWidgetId: Int,
         options: Bundle? = null
     ) {
-        val views = RemoteViews(context.packageName, R.layout.finance_widget_layout)
+        val isDisabled = !WidgetCacheStore.isFinancialManagerEnabled(context)
+        val isLocked = !isDisabled && WidgetCacheStore.isFinanceLocked(context)
+        val snapshot = if (isDisabled || isLocked) null else parseSnapshot(context)
 
-        // Populate Widget Data with responsive size support
-        populateWidgetData(context, views, appWidgetId, options)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val sparklineBitmap = if (
+                snapshot != null &&
+                snapshot.enableBudgetsAndAnalytics &&
+                snapshot.hasEnoughSparklineData
+            ) {
+                generateSparklineBitmap(
+                    context = context,
+                    points = snapshot.sparklinePoints,
+                    isAlert = snapshot.forecastPace != "on_track"
+                )
+            } else {
+                null
+            }
 
-        // Set up click intents
-        setupIntents(context, views)
+            val stripViews = buildStripViews(context, isDisabled, isLocked, snapshot)
+            val compactViews = buildCompactViews(context, isDisabled, isLocked, snapshot)
+            val standardViews = buildFullViews(
+                context = context,
+                layoutRes = R.layout.finance_widget_layout,
+                isExpanded = false,
+                isDisabled = isDisabled,
+                isLocked = isLocked,
+                snapshot = snapshot,
+                sparklineBitmap = sparklineBitmap
+            )
+            val expandedViews = buildFullViews(
+                context = context,
+                layoutRes = R.layout.finance_widget_expanded,
+                isExpanded = true,
+                isDisabled = isDisabled,
+                isLocked = isLocked,
+                snapshot = snapshot,
+                sparklineBitmap = sparklineBitmap
+            )
 
-        appWidgetManager.updateAppWidget(appWidgetId, views)
+            val sizeMap = mapOf(
+                SizeF(110f, 56f) to stripViews,
+                SizeF(180f, 56f) to stripViews,
+                SizeF(140f, 110f) to compactViews,
+                SizeF(250f, 110f) to standardViews,
+                SizeF(360f, 280f) to expandedViews
+            )
+            appWidgetManager.updateAppWidget(appWidgetId, RemoteViews(sizeMap))
+        } else {
+            val opts = options ?: appWidgetManager.getAppWidgetOptions(appWidgetId)
+            val minWidth = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
+            val minHeight = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
+            val isStrip = minHeight in 1..90
+            val isCompact = !isStrip && ((minWidth in 1..220) || (minHeight in 1..150))
+            val isExpanded = !isStrip && !isCompact && minWidth >= 340 && minHeight >= 260
+
+            val views = when {
+                isStrip -> buildStripViews(context, isDisabled, isLocked, snapshot)
+                isCompact -> buildCompactViews(context, isDisabled, isLocked, snapshot)
+                else -> {
+                    val sparklineBitmap = if (
+                        snapshot != null &&
+                        snapshot.enableBudgetsAndAnalytics &&
+                        snapshot.hasEnoughSparklineData
+                    ) {
+                        generateSparklineBitmap(
+                            context = context,
+                            points = snapshot.sparklinePoints,
+                            isAlert = snapshot.forecastPace != "on_track"
+                        )
+                    } else {
+                        null
+                    }
+                    buildFullViews(
+                        context = context,
+                        layoutRes = if (isExpanded) R.layout.finance_widget_expanded else R.layout.finance_widget_layout,
+                        isExpanded = isExpanded,
+                        isDisabled = isDisabled,
+                        isLocked = isLocked,
+                        snapshot = snapshot,
+                        sparklineBitmap = sparklineBitmap
+                    )
+                }
+            }
+            appWidgetManager.updateAppWidget(appWidgetId, views)
+        }
     }
 
-    private fun populateWidgetData(
+    private fun parseSnapshot(context: Context): FinanceSnapshot {
+        val raw = WidgetCacheStore.getFinanceSnapshotJson(context)
+        return try {
+            val json = JSONObject(raw)
+            val sparkArray = json.optJSONArray("sparklinePoints")
+            val points = mutableListOf<Float>()
+            if (sparkArray != null) {
+                for (i in 0 until sparkArray.length()) {
+                    points.add(sparkArray.optDouble(i, 0.0).toFloat())
+                }
+            }
+            val pace = json.optString("forecastPace", "").ifBlank {
+                if (json.optBoolean("isTrendingUp", false)) "over_pace" else "on_track"
+            }
+            val hasEnough = json.optBoolean("hasEnoughSparklineData", points.size >= 2) && points.size >= 2
+
+            FinanceSnapshot(
+                spentToday = json.optString("spentToday", "--").ifBlank { "--" },
+                spentMonth = json.optString("spentMonth", "--").ifBlank { "--" },
+                netMonth = json.optString("netMonth", "--").ifBlank { "--" },
+                netPositive = json.optBoolean("netPositive", true),
+                account1Name = json.optString("account1Name", "Daily").ifBlank { "Daily" },
+                account2Name = json.optString("account2Name", "Savings").ifBlank { "Savings" },
+                dailyBalance = json.optString("dailyBalance", json.optString("dailyNet", "--")).ifBlank { "--" },
+                savingsBalance = json.optString("savingsBalance", json.optString("savingsNet", "--")).ifBlank { "--" },
+                enableSavingsVault = json.optBoolean("enableSavingsVault", true),
+                enableBudgetsAndAnalytics = json.optBoolean("enableBudgetsAndAnalytics", true),
+                showSplitBills = json.optBoolean("showSplitBills", false),
+                splitBillsPending = json.optString("splitBillsPending", ""),
+                budgetPercent = json.optInt("budgetPercent", -1),
+                budgetLabel = json.optString("budgetLabel", ""),
+                topCategory = json.optString("topCategory", ""),
+                topCategoryAmount = json.optString("topCategoryAmount", ""),
+                forecastAmount = json.optString("forecastAmount", ""),
+                forecastPace = pace,
+                sparklinePoints = points,
+                hasEnoughSparklineData = hasEnough
+            )
+        } catch (_: Exception) {
+            FinanceSnapshot(
+                spentToday = "--",
+                spentMonth = "--",
+                netMonth = "--",
+                netPositive = true,
+                account1Name = "Daily",
+                account2Name = "Savings",
+                dailyBalance = "--",
+                savingsBalance = "--",
+                enableSavingsVault = true,
+                enableBudgetsAndAnalytics = true,
+                showSplitBills = false,
+                splitBillsPending = "",
+                budgetPercent = -1,
+                budgetLabel = "",
+                topCategory = "",
+                topCategoryAmount = "",
+                forecastAmount = "",
+                forecastPace = "on_track",
+                sparklinePoints = emptyList(),
+                hasEnoughSparklineData = false
+            )
+        }
+    }
+
+    private fun applyLockOrDisabledMask(
         context: Context,
         views: RemoteViews,
-        appWidgetId: Int,
-        options: Bundle? = null
-    ) {
-        val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        isDisabled: Boolean,
+        isLocked: Boolean
+    ): Boolean {
+        val manageIntent = actionPendingIntent(context, ACTION_VIEW_LEDGER, 5)
+        views.setOnClickPendingIntent(android.R.id.background, manageIntent)
 
-        // Responsive size bucketing
-        val opts = options ?: AppWidgetManager.getInstance(context).getAppWidgetOptions(appWidgetId)
-        val minWidth = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
-        val minHeight = opts.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
-        val isCompact = (minWidth in 1..220) || (minHeight in 1..90)
-
-        if (isCompact) {
-            views.setViewVisibility(R.id.widget_analytics_card, android.view.View.GONE)
-            views.setViewVisibility(R.id.widget_note_button, android.view.View.GONE)
-        } else {
-            views.setViewVisibility(R.id.widget_analytics_card, android.view.View.VISIBLE)
-            views.setViewVisibility(R.id.widget_note_button, android.view.View.VISIBLE)
-        }
-
-        val spentToday = prefs.getString("flutter.widget_spent_today", "--") ?: "--"
-        val spentMonth = prefs.getString("flutter.widget_spent_month", "--") ?: "--"
-        val netMonth = prefs.getString("flutter.widget_net_month", "--") ?: "--"
-        val netPositive = prefs.getBoolean("flutter.widget_net_positive", true)
-
-        views.setTextViewText(R.id.widget_today_spent, spentToday)
-        views.setTextViewText(R.id.widget_month_spent, spentMonth)
-
-        if (netPositive) {
-            views.setViewVisibility(R.id.widget_month_net_positive, android.view.View.VISIBLE)
-            views.setViewVisibility(R.id.widget_month_net_negative, android.view.View.GONE)
-            views.setTextViewText(R.id.widget_month_net_positive, netMonth)
-        } else {
-            views.setViewVisibility(R.id.widget_month_net_positive, android.view.View.GONE)
-            views.setViewVisibility(R.id.widget_month_net_negative, android.view.View.VISIBLE)
-            views.setTextViewText(R.id.widget_month_net_negative, netMonth)
-        }
-
-        // Forecast & Pace Status
-        val forecastAmount = prefs.getString("flutter.widget_forecast_amount", "") ?: ""
-        val forecastTrend = prefs.getString("flutter.widget_forecast_trend", "") ?: ""
-        val isTrendingUp = prefs.getBoolean("flutter.widget_is_trending_up", false)
-
-        val displayForecastAmount = if (forecastAmount.isNotEmpty()) forecastAmount else spentMonth
-        views.setTextViewText(R.id.widget_forecast_amount, displayForecastAmount)
-
-        if (isTrendingUp) {
-            views.setViewVisibility(R.id.widget_forecast_trend_alert, android.view.View.VISIBLE)
-            views.setViewVisibility(R.id.widget_forecast_trend_normal, android.view.View.GONE)
+        if (isDisabled) {
+            views.setViewVisibility(R.id.finance_content_container, View.GONE)
+            views.setViewVisibility(R.id.finance_locked_container, View.VISIBLE)
             views.setTextViewText(
-                R.id.widget_forecast_trend_alert,
-                if (forecastTrend.isNotEmpty()) forecastTrend else "Pacing Fast"
+                R.id.finance_locked_label,
+                context.getString(R.string.widget_finances_disabled)
             )
-        } else {
-            views.setViewVisibility(R.id.widget_forecast_trend_alert, android.view.View.GONE)
-            views.setViewVisibility(R.id.widget_forecast_trend_normal, android.view.View.VISIBLE)
-            views.setTextViewText(
-                R.id.widget_forecast_trend_normal,
-                if (forecastTrend.isNotEmpty()) forecastTrend else "On Track"
-            )
+            views.setOnClickPendingIntent(R.id.finance_locked_container, manageIntent)
+            return true
         }
 
-        // Render Dynamic Mini Sparkline Plot
-        val sparklineJson = prefs.getString("flutter.widget_sparkline_data", "[]") ?: "[]"
-        val points = mutableListOf<Float>()
-        try {
-            val jsonArray = JSONArray(sparklineJson)
-            for (i in 0 until jsonArray.length()) {
-                points.add(jsonArray.getDouble(i).toFloat())
+        if (isLocked) {
+            views.setViewVisibility(R.id.finance_content_container, View.GONE)
+            views.setViewVisibility(R.id.finance_locked_container, View.VISIBLE)
+            views.setTextViewText(
+                R.id.finance_locked_label,
+                context.getString(R.string.widget_locked_title)
+            )
+            views.setOnClickPendingIntent(R.id.finance_locked_container, manageIntent)
+            return true
+        }
+
+        views.setViewVisibility(R.id.finance_locked_container, View.GONE)
+        views.setViewVisibility(R.id.finance_content_container, View.VISIBLE)
+        return false
+    }
+
+    private fun buildStripViews(
+        context: Context,
+        isDisabled: Boolean,
+        isLocked: Boolean,
+        snapshot: FinanceSnapshot?
+    ): RemoteViews {
+        val views = RemoteViews(context.packageName, R.layout.finance_widget_strip)
+        if (applyLockOrDisabledMask(context, views, isDisabled, isLocked) || snapshot == null) {
+            return views
+        }
+
+        views.setTextViewText(R.id.finance_strip_today, snapshot.spentToday)
+        bindNetViews(
+            views,
+            R.id.finance_strip_net_positive,
+            R.id.finance_strip_net_negative,
+            snapshot.netMonth,
+            snapshot.netPositive
+        )
+
+        val ledgerPendingIntent = actionPendingIntent(context, ACTION_VIEW_LEDGER, 2)
+        val addPendingIntent = actionPendingIntent(context, ACTION_ADD_TRANSACTION, 1)
+        val scanPendingIntent = actionPendingIntent(context, ACTION_SCAN_RECEIPT, 4)
+
+        views.setOnClickPendingIntent(android.R.id.background, ledgerPendingIntent)
+        views.setOnClickPendingIntent(R.id.finance_strip_add, addPendingIntent)
+        views.setOnClickPendingIntent(R.id.finance_strip_scan, scanPendingIntent)
+        return views
+    }
+
+    private fun buildCompactViews(
+        context: Context,
+        isDisabled: Boolean,
+        isLocked: Boolean,
+        snapshot: FinanceSnapshot?
+    ): RemoteViews {
+        val views = RemoteViews(context.packageName, R.layout.finance_widget_compact)
+        if (applyLockOrDisabledMask(context, views, isDisabled, isLocked) || snapshot == null) {
+            return views
+        }
+
+        views.setTextViewText(R.id.widget_account_chip, snapshot.account1Name)
+        views.setTextViewText(R.id.widget_today_spent, snapshot.spentToday)
+        bindNetViews(
+            views,
+            R.id.widget_month_net_positive,
+            R.id.widget_month_net_negative,
+            snapshot.netMonth,
+            snapshot.netPositive
+        )
+
+        views.setOnClickPendingIntent(
+            android.R.id.background,
+            actionPendingIntent(context, ACTION_VIEW_LEDGER, 2)
+        )
+        views.setOnClickPendingIntent(
+            R.id.widget_add_button,
+            actionPendingIntent(context, ACTION_ADD_TRANSACTION, 1)
+        )
+        return views
+    }
+
+    private fun buildFullViews(
+        context: Context,
+        layoutRes: Int,
+        isExpanded: Boolean,
+        isDisabled: Boolean,
+        isLocked: Boolean,
+        snapshot: FinanceSnapshot?,
+        sparklineBitmap: Bitmap?
+    ): RemoteViews {
+        val views = RemoteViews(context.packageName, layoutRes)
+        if (applyLockOrDisabledMask(context, views, isDisabled, isLocked) || snapshot == null) {
+            return views
+        }
+
+        views.setTextViewText(R.id.widget_account_chip, snapshot.account1Name)
+        views.setTextViewText(R.id.widget_today_spent, snapshot.spentToday)
+        views.setTextViewText(R.id.widget_month_spent, snapshot.spentMonth)
+        bindNetViews(
+            views,
+            R.id.widget_month_net_positive,
+            R.id.widget_month_net_negative,
+            snapshot.netMonth,
+            snapshot.netPositive
+        )
+
+        if (!snapshot.enableBudgetsAndAnalytics) {
+            views.setViewVisibility(R.id.widget_analytics_card, View.GONE)
+        } else {
+            views.setViewVisibility(R.id.widget_analytics_card, View.VISIBLE)
+            val displayForecast = if (snapshot.forecastAmount.isNotBlank()) {
+                snapshot.forecastAmount
+            } else {
+                snapshot.spentMonth
             }
-        } catch (_: Exception) {}
+            views.setTextViewText(R.id.widget_forecast_amount, displayForecast)
 
-        val sparklineBitmap = generateSparklineBitmap(context, points, isTrendingUp)
-        if (sparklineBitmap != null) {
-            views.setImageViewBitmap(R.id.widget_sparkline_plot, sparklineBitmap)
+            when (snapshot.forecastPace) {
+                "exhausted" -> {
+                    views.setViewVisibility(R.id.widget_forecast_trend_alert, View.VISIBLE)
+                    views.setViewVisibility(R.id.widget_forecast_trend_normal, View.GONE)
+                    views.setTextViewText(
+                        R.id.widget_forecast_trend_alert,
+                        context.getString(R.string.widget_pace_exhausted)
+                    )
+                }
+                "over_pace" -> {
+                    views.setViewVisibility(R.id.widget_forecast_trend_alert, View.VISIBLE)
+                    views.setViewVisibility(R.id.widget_forecast_trend_normal, View.GONE)
+                    views.setTextViewText(
+                        R.id.widget_forecast_trend_alert,
+                        context.getString(R.string.widget_pace_fast)
+                    )
+                }
+                else -> {
+                    views.setViewVisibility(R.id.widget_forecast_trend_alert, View.GONE)
+                    views.setViewVisibility(R.id.widget_forecast_trend_normal, View.VISIBLE)
+                    views.setTextViewText(
+                        R.id.widget_forecast_trend_normal,
+                        context.getString(R.string.widget_pace_on_track)
+                    )
+                }
+            }
+
+            if (sparklineBitmap != null) {
+                views.setViewVisibility(R.id.widget_sparkline_plot, View.VISIBLE)
+                views.setViewVisibility(R.id.widget_sparkline_empty, View.GONE)
+                views.setImageViewBitmap(R.id.widget_sparkline_plot, sparklineBitmap)
+            } else {
+                views.setViewVisibility(R.id.widget_sparkline_plot, View.GONE)
+                views.setViewVisibility(R.id.widget_sparkline_empty, View.VISIBLE)
+                views.setTextViewText(
+                    R.id.widget_sparkline_empty,
+                    context.getString(R.string.widget_sparkline_empty_hint)
+                )
+            }
+        }
+
+        if (isExpanded) {
+            if (snapshot.enableSavingsVault) {
+                views.setViewVisibility(R.id.widget_dual_account_row, View.VISIBLE)
+                views.setTextViewText(R.id.widget_daily_label, snapshot.account1Name)
+                views.setTextViewText(R.id.widget_daily_value, snapshot.dailyBalance)
+                views.setTextViewText(R.id.widget_savings_label, snapshot.account2Name)
+                views.setTextViewText(R.id.widget_savings_value, snapshot.savingsBalance)
+            } else {
+                views.setViewVisibility(R.id.widget_dual_account_row, View.GONE)
+            }
+
+            if (snapshot.enableBudgetsAndAnalytics && snapshot.budgetPercent >= 0) {
+                views.setViewVisibility(R.id.widget_budget_section, View.VISIBLE)
+                views.setTextViewText(R.id.widget_budget_label, snapshot.budgetLabel)
+                views.setTextViewText(R.id.widget_budget_percent, "${snapshot.budgetPercent}%")
+            } else {
+                views.setViewVisibility(R.id.widget_budget_section, View.GONE)
+            }
+
+            if (snapshot.enableBudgetsAndAnalytics && snapshot.topCategory.isNotBlank()) {
+                views.setViewVisibility(R.id.widget_top_category_label, View.VISIBLE)
+                val catText = if (snapshot.topCategoryAmount.isNotBlank()) {
+                    "${snapshot.topCategory} • ${snapshot.topCategoryAmount}"
+                } else {
+                    snapshot.topCategory
+                }
+                views.setTextViewText(R.id.widget_top_category_label, catText)
+            } else {
+                views.setViewVisibility(R.id.widget_top_category_label, View.GONE)
+            }
+
+            if (snapshot.showSplitBills && snapshot.splitBillsPending.isNotBlank()) {
+                views.setViewVisibility(R.id.widget_split_bills_chip, View.VISIBLE)
+                views.setTextViewText(R.id.widget_split_bills_chip, snapshot.splitBillsPending)
+            } else {
+                views.setViewVisibility(R.id.widget_split_bills_chip, View.GONE)
+            }
+        }
+
+        val addPendingIntent = actionPendingIntent(context, ACTION_ADD_TRANSACTION, 1)
+        val ledgerPendingIntent = actionPendingIntent(context, ACTION_VIEW_LEDGER, 2)
+        val budgetsPendingIntent = actionPendingIntent(context, ACTION_VIEW_BUDGETS, 3)
+        val scanPendingIntent = actionPendingIntent(context, ACTION_SCAN_RECEIPT, 4)
+
+        views.setOnClickPendingIntent(R.id.widget_add_button, addPendingIntent)
+        views.setOnClickPendingIntent(R.id.widget_scan_button, scanPendingIntent)
+        views.setOnClickPendingIntent(R.id.widget_overview_grid, ledgerPendingIntent)
+        views.setOnClickPendingIntent(R.id.widget_analytics_card, budgetsPendingIntent)
+        views.setOnClickPendingIntent(android.R.id.background, ledgerPendingIntent)
+
+        return views
+    }
+
+    private fun bindNetViews(
+        views: RemoteViews,
+        positiveViewId: Int,
+        negativeViewId: Int,
+        netMonth: String,
+        netPositive: Boolean
+    ) {
+        if (netPositive) {
+            views.setViewVisibility(positiveViewId, View.VISIBLE)
+            views.setViewVisibility(negativeViewId, View.GONE)
+            views.setTextViewText(positiveViewId, netMonth)
+        } else {
+            views.setViewVisibility(positiveViewId, View.GONE)
+            views.setViewVisibility(negativeViewId, View.VISIBLE)
+            views.setTextViewText(negativeViewId, netMonth)
         }
     }
 
@@ -133,19 +488,22 @@ class FinanceWidgetProvider : AppWidgetProvider() {
         points: List<Float>,
         isAlert: Boolean
     ): Bitmap? {
-        val width = 340
-        val height = 120
+        if (points.size < 2) return null
+
+        val density = context.resources.displayMetrics.density
+        val width = (170f * density).toInt().coerceIn(220, 680)
+        val height = (60f * density).toInt().coerceIn(80, 240)
+        val scale = width / 340f
+
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
-        val paddingX = 16f
-        val paddingY = 18f
+        val paddingX = 16f * scale
+        val paddingY = 18f * scale
+        val n = points.size
 
-        val drawPoints = if (points.size >= 2) points else listOf(100f, 120f, 110f, 140f, 130f, 150f)
-        val n = drawPoints.size
-
-        var maxVal = drawPoints.maxOrNull() ?: 1f
-        var minVal = drawPoints.minOrNull() ?: 0f
+        var maxVal = points.maxOrNull() ?: 1f
+        var minVal = points.minOrNull() ?: 0f
         if (maxVal == minVal) {
             maxVal += 10f
             minVal = (minVal - 10f).coerceAtLeast(0f)
@@ -153,24 +511,28 @@ class FinanceWidgetProvider : AppWidgetProvider() {
         val range = (maxVal - minVal).coerceAtLeast(1f)
 
         val coords = mutableListOf<PointF>()
-        val stepX = (width - 2 * paddingX) / (n - 1)
+        val stepX = (width - 2f * paddingX) / (n - 1)
         for (i in 0 until n) {
             val x = paddingX + i * stepX
-            val normY = (drawPoints[i] - minVal) / range
-            val y = height - paddingY - normY * (height - 2 * paddingY)
+            val normY = (points[i] - minVal) / range
+            val y = height - paddingY - normY * (height - 2f * paddingY)
             coords.add(PointF(x, y))
         }
 
-        val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
-        val useDynamicColor = prefs.getBoolean("flutter.useDynamicColor", true)
-        val primaryColor = if (useDynamicColor && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            context.getColor(R.color.widget_accent)
-        } else {
-            context.getColor(R.color.widget_primary)
-        }
-        val tertiaryColor = context.getColor(if (isAlert) R.color.widget_expense else R.color.widget_income)
+        val useDynamicColor = WidgetCacheStore.isUseDynamicColor(context)
+        val primaryColor = ContextCompat.getColor(
+            context,
+            if (useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                R.color.widget_accent
+            } else {
+                R.color.widget_primary
+            }
+        )
+        val tertiaryColor = ContextCompat.getColor(
+            context,
+            if (isAlert) R.color.widget_expense else R.color.widget_income
+        )
 
-        // Gradient Area Under Line
         val fillPath = Path()
         fillPath.moveTo(coords[0].x, coords[0].y)
         for (i in 0 until n - 1) {
@@ -194,7 +556,6 @@ class FinanceWidgetProvider : AppWidgetProvider() {
         }
         canvas.drawPath(fillPath, fillPaint)
 
-        // Solid Spine for historical points (0 until n-1)
         val solidPath = Path()
         solidPath.moveTo(coords[0].x, coords[0].y)
         val solidEndIdx = if (n >= 3) n - 2 else n - 1
@@ -207,14 +568,13 @@ class FinanceWidgetProvider : AppWidgetProvider() {
 
         val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = 6f
+            strokeWidth = 6f * scale
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
             color = primaryColor
         }
         canvas.drawPath(solidPath, strokePaint)
 
-        // Dashed Extension to Est point (from solidEndIdx to n-1)
         if (n >= 3) {
             val dashPath = Path()
             val p1 = coords[solidEndIdx]
@@ -225,15 +585,14 @@ class FinanceWidgetProvider : AppWidgetProvider() {
 
             val dashPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.STROKE
-                strokeWidth = 5.5f
+                strokeWidth = 5.5f * scale
                 strokeCap = Paint.Cap.ROUND
-                pathEffect = DashPathEffect(floatArrayOf(12f, 10f), 0f)
+                pathEffect = DashPathEffect(floatArrayOf(12f * scale, 10f * scale), 0f)
                 color = tertiaryColor
             }
             canvas.drawPath(dashPath, dashPaint)
         }
 
-        // Draw Historical Dots
         val dotPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.FILL
             color = primaryColor
@@ -242,11 +601,10 @@ class FinanceWidgetProvider : AppWidgetProvider() {
             xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR)
         }
         for (i in 0 until (if (n >= 3) n - 1 else n)) {
-            canvas.drawCircle(coords[i].x, coords[i].y, 7f, dotPaint)
-            canvas.drawCircle(coords[i].x, coords[i].y, 3.5f, dotHolePaint)
+            canvas.drawCircle(coords[i].x, coords[i].y, 7f * scale, dotPaint)
+            canvas.drawCircle(coords[i].x, coords[i].y, 3.5f * scale, dotHolePaint)
         }
 
-        // Highlighted Est Forecast End Dot
         val forecastDot = coords.last()
         val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.FILL
@@ -256,82 +614,45 @@ class FinanceWidgetProvider : AppWidgetProvider() {
             style = Paint.Style.FILL
             color = tertiaryColor
         }
-        canvas.drawCircle(forecastDot.x, forecastDot.y, 14f, glowPaint)
-        canvas.drawCircle(forecastDot.x, forecastDot.y, 8.5f, targetDotPaint)
-        canvas.drawCircle(forecastDot.x, forecastDot.y, 4f, dotHolePaint)
+        canvas.drawCircle(forecastDot.x, forecastDot.y, 14f * scale, glowPaint)
+        canvas.drawCircle(forecastDot.x, forecastDot.y, 8.5f * scale, targetDotPaint)
+        canvas.drawCircle(forecastDot.x, forecastDot.y, 4f * scale, dotHolePaint)
 
         return bitmap
     }
 
-    private fun setupIntents(context: Context, views: RemoteViews) {
-        // Intent for clicking the New Note button
-        val noteIntent = Intent(context, MainActivity::class.java).apply {
-            action = "com.saadhjawwadh.notebook.NEW_NOTE"
+    private fun actionPendingIntent(context: Context, action: String, slot: Int): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            this.action = action
+            data = Uri.parse("widget://finance/slot/$slot")
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
-        val notePendingIntent = PendingIntent.getActivity(
+        return PendingIntent.getActivity(
             context,
-            4,
-            noteIntent,
+            REQUEST_CODE_BASE + slot,
+            intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        views.setOnClickPendingIntent(R.id.widget_note_button, notePendingIntent)
-
-        // Intent for clicking the "+" quick-add button
-        val addIntent = Intent(context, MainActivity::class.java).apply {
-            action = "com.saadhjawwadh.notebook.ADD_TRANSACTION"
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val addPendingIntent = PendingIntent.getActivity(
-            context,
-            1,
-            addIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        views.setOnClickPendingIntent(R.id.widget_add_button, addPendingIntent)
-
-        // Intent for clicking the Top Overview Grid (opens Ledger)
-        val ledgerIntent = Intent(context, MainActivity::class.java).apply {
-            action = "com.saadhjawwadh.notebook.VIEW_LEDGER"
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val ledgerPendingIntent = PendingIntent.getActivity(
-            context,
-            2,
-            ledgerIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        views.setOnClickPendingIntent(R.id.widget_overview_grid, ledgerPendingIntent)
-
-        // Intent for clicking the Analytics & Sparkline card (opens Budgets & Analytics)
-        val budgetsIntent = Intent(context, MainActivity::class.java).apply {
-            action = "com.saadhjawwadh.notebook.VIEW_BUDGETS"
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val budgetsPendingIntent = PendingIntent.getActivity(
-            context,
-            3,
-            budgetsIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        views.setOnClickPendingIntent(R.id.widget_analytics_card, budgetsPendingIntent)
-
-        // Root fallback intent (opens Ledger)
-        views.setOnClickPendingIntent(R.id.widget_root, ledgerPendingIntent)
     }
 
     companion object {
+        private const val REQUEST_CODE_BASE = 200_000
+        private const val ACTION_ADD_TRANSACTION = "com.saadhjawwadh.notebook.ADD_TRANSACTION"
+        private const val ACTION_VIEW_LEDGER = "com.saadhjawwadh.notebook.VIEW_LEDGER"
+        private const val ACTION_VIEW_BUDGETS = "com.saadhjawwadh.notebook.VIEW_BUDGETS"
+        private const val ACTION_SCAN_RECEIPT = "com.saadhjawwadh.notebook.SCAN_RECEIPT"
+
         fun updateAllWidgets(context: Context) {
-            val appWidgetManager = AppWidgetManager.getInstance(context)
-            val thisWidget = android.content.ComponentName(context, FinanceWidgetProvider::class.java)
+            val appContext = context.applicationContext ?: context
+            val appWidgetManager = AppWidgetManager.getInstance(appContext)
+            val thisWidget = ComponentName(appContext, FinanceWidgetProvider::class.java)
             val allWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
             if (allWidgetIds.isNotEmpty()) {
                 val provider = FinanceWidgetProvider()
                 for (id in allWidgetIds) {
-                    provider.updateAppWidget(context, appWidgetManager, id)
+                    provider.updateAppWidget(appContext, appWidgetManager, id)
                 }
             }
         }
     }
 }
-

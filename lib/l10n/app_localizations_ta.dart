@@ -1018,4 +1018,16 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get lockAppNow => 'இப்போதே செயலியைப் பூட்டு';
+
+  @override
+  String get hideWidgetDataWhenLocked =>
+      'பூட்டியிருக்கும்போது விட்ஜெட் உள்ளடக்கத்தை மறை';
+
+  @override
+  String get hideWidgetDataWhenLockedSubtitle =>
+      'பூட்டியிருக்கும்போது நிதி இருப்புகளை •••• என மறைத்து முகப்புத் திரை விட்ஜெட் பணிகளை மறைக்கவும்';
+
+  @override
+  String get financesDisabledShortcutHint =>
+      'இந்த குறுக்குவழியைப் பயன்படுத்த அமைப்புகளில் நிதி மேலாளரை இயக்கவும்';
 }

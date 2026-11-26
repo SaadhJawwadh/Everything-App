@@ -301,5 +301,8 @@
   "lockHealthSubtitle": "打开健康需要身份验证",
   "screenshotShield": "防截屏保护",
   "screenshotShieldSubtitle": "在 Android 上禁止截屏和录屏",
-  "lockAppNow": "立即锁定应用"
+  "lockAppNow": "立即锁定应用",
+  "hideWidgetDataWhenLocked": "锁定时隐藏小组件内容",
+  "hideWidgetDataWhenLockedSubtitle": "锁定时用 •••• 遮蔽财务余额并隐藏桌面小组件中的任务",
+  "financesDisabledShortcutHint": "请在设置中启用财务管理以使用此快捷方式"
 }

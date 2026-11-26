@@ -13,6 +13,7 @@ import com.saadhjawwadh.notebook.NotesWidgetProvider
 import com.saadhjawwadh.notebook.R
 import com.saadhjawwadh.notebook.TodoWidgetProvider
 import com.saadhjawwadh.notebook.UnifiedWidgetProvider
+import com.saadhjawwadh.notebook.WidgetCacheStore
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
@@ -118,11 +119,10 @@ object AppFunctionBridge {
     }
 
     fun getCashFlowSummary(context: Context, params: GetCashFlowSummaryParams): CashFlowSummaryResult {
-        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val currencySymbol = getStoredCurrencySymbol(context)
+        var currencySymbol = getStoredCurrencySymbol(context)
         
-        // Instant reading from widget cached financial calculations
-        val financeJsonStr = prefs.getString("flutter.widget_finance_json", "{}") ?: "{}"
+        // Instant reading from isolated widget cache snapshot
+        val financeJsonStr = WidgetCacheStore.getFinanceSnapshotJson(context)
         var netBalance = 0.0
         var totalIncome = 0.0
         var totalExpense = 0.0
@@ -132,6 +132,10 @@ object AppFunctionBridge {
             netBalance = json.optDouble("netBalance", 0.0)
             totalIncome = json.optDouble("totalIncome", 0.0)
             totalExpense = json.optDouble("totalExpense", 0.0)
+            val snapCurrency = json.optString("currencySymbol", "")
+            if (snapCurrency.isNotBlank()) {
+                currencySymbol = snapCurrency
+            }
         } catch (_: Exception) {}
 
         val summary = "Your active balance is $currencySymbol$netBalance (Income: $currencySymbol$totalIncome, Spending: $currencySymbol$totalExpense)."
@@ -157,7 +161,7 @@ object AppFunctionBridge {
                     updated.put(obj)
                 }
             }
-            prefs.edit().putString(PENDING_QUEUE_KEY, updated.toString()).apply()
+            prefs.edit().putString(PENDING_QUEUE_KEY, updated.toString()).commit()
         } catch (_: Exception) {}
 
         // Dismiss notification
@@ -177,7 +181,7 @@ object AppFunctionBridge {
         val currentQueue = prefs.getString(PENDING_QUEUE_KEY, "[]") ?: "[]"
         val array = try { JSONArray(currentQueue) } catch (_: Exception) { JSONArray() }
         array.put(obj)
-        prefs.edit().putString(PENDING_QUEUE_KEY, array.toString()).apply()
+        prefs.edit().putString(PENDING_QUEUE_KEY, array.toString()).commit()
     }
 
     private fun getStoredCurrencySymbol(context: Context): String {

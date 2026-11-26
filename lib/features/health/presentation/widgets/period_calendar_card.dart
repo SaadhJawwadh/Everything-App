@@ -46,6 +46,7 @@ class PeriodCalendarCard extends StatelessWidget {
         style: TextStyle(
           color: isFilled ? textColor : color.withValues(alpha: 0.8),
           fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.normal,
+          fontFeatures: const [FontFeature.tabularFigures()],
         ),
       ),
     );

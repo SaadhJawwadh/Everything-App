@@ -2,14 +2,18 @@
 <resources>
     <color name="ic_launcher_background">#18181b</color>
     <color name="widget_background">#FDFCFF</color>
-    <color name="widget_surface">#F3F2F8</color>
+    <color name="widget_subcard">#F3F2F8</color>
     <color name="widget_primary">#6750A4</color>
+    <color name="widget_on_primary">#FFFFFF</color>
     <color name="widget_primary_container">#E8DEF8</color>
     <color name="widget_on_primary_container">#21005D</color>
-    <color name="widget_accent">#7D5260</color>
+    <color name="widget_secondary_container">#E8DEF8</color>
+    <color name="widget_on_secondary_container">#1D192B</color>
     <color name="widget_text_primary">#1C1B1F</color>
     <color name="widget_text_secondary">#49454F</color>
+    <color name="widget_divider">#E7E0EC</color>
     <color name="widget_border">#E7E0EC</color>
-    <color name="widget_income">#1B6E32</color>
+    <color name="widget_accent">#7D5260</color>
+    <color name="widget_income">#1B873F</color>
     <color name="widget_expense">#B3261E</color>
 </resources>

@@ -184,6 +184,7 @@ class AppTheme {
             : ThemeData.light())
         .textTheme;
 
+    // Body prose defaults to bundled Inter Regular (400) without faux-bold synthesis.
     final baseTextTheme = rawBaseTextTheme.apply(
       fontFamily: fontInter,
       fontFamilyFallback: fontFallbacks,
@@ -191,35 +192,46 @@ class AppTheme {
       displayColor: scheme.onSurface,
     );
 
+    double displayTracking(TextStyle? style, double fallbackSize) {
+      return (style?.fontSize ?? fallbackSize) * -0.02;
+    }
+
+    // UI chrome & display/headings standardize onto the full variable Google Sans Flex font.
     final textTheme = baseTextTheme.copyWith(
       displayLarge: baseTextTheme.displayLarge?.copyWith(
         fontFamily: fontGoogleSansFlex,
         fontFamilyFallback: fontFallbacks,
+        letterSpacing: displayTracking(baseTextTheme.displayLarge, 57.0),
         fontVariations: _buildFontVariations(size: 57.0, brightness: brightness, weight: 400),
       ),
       displayMedium: baseTextTheme.displayMedium?.copyWith(
         fontFamily: fontGoogleSansFlex,
         fontFamilyFallback: fontFallbacks,
+        letterSpacing: displayTracking(baseTextTheme.displayMedium, 45.0),
         fontVariations: _buildFontVariations(size: 45.0, brightness: brightness, weight: 400),
       ),
       displaySmall: baseTextTheme.displaySmall?.copyWith(
         fontFamily: fontGoogleSansFlex,
         fontFamilyFallback: fontFallbacks,
+        letterSpacing: displayTracking(baseTextTheme.displaySmall, 36.0),
         fontVariations: _buildFontVariations(size: 36.0, brightness: brightness, weight: 400),
       ),
       headlineLarge: baseTextTheme.headlineLarge?.copyWith(
         fontFamily: fontGoogleSansFlex,
         fontFamilyFallback: fontFallbacks,
+        letterSpacing: displayTracking(baseTextTheme.headlineLarge, 32.0),
         fontVariations: _buildFontVariations(size: 32.0, brightness: brightness, weight: 600),
       ),
       headlineMedium: baseTextTheme.headlineMedium?.copyWith(
         fontFamily: fontGoogleSansFlex,
         fontFamilyFallback: fontFallbacks,
+        letterSpacing: displayTracking(baseTextTheme.headlineMedium, 28.0),
         fontVariations: _buildFontVariations(size: 28.0, brightness: brightness, weight: 600),
       ),
       headlineSmall: baseTextTheme.headlineSmall?.copyWith(
         fontFamily: fontGoogleSansFlex,
         fontFamilyFallback: fontFallbacks,
+        letterSpacing: displayTracking(baseTextTheme.headlineSmall, 24.0),
         fontVariations: _buildFontVariations(size: 24.0, brightness: brightness, weight: 600),
       ),
       titleLarge: baseTextTheme.titleLarge?.copyWith(
@@ -232,10 +244,25 @@ class AppTheme {
         fontFamilyFallback: fontFallbacks,
         fontVariations: _buildFontVariations(size: 16.0, brightness: brightness, weight: 500),
       ),
+      titleSmall: baseTextTheme.titleSmall?.copyWith(
+        fontFamily: fontGoogleSansFlex,
+        fontFamilyFallback: fontFallbacks,
+        fontVariations: _buildFontVariations(size: 14.0, brightness: brightness, weight: 500),
+      ),
       labelLarge: baseTextTheme.labelLarge?.copyWith(
         fontFamily: fontGoogleSansFlex,
         fontFamilyFallback: fontFallbacks,
         fontVariations: _buildFontVariations(size: 14.0, brightness: brightness, weight: 500),
+      ),
+      labelMedium: baseTextTheme.labelMedium?.copyWith(
+        fontFamily: fontGoogleSansFlex,
+        fontFamilyFallback: fontFallbacks,
+        fontVariations: _buildFontVariations(size: 12.0, brightness: brightness, weight: 500),
+      ),
+      labelSmall: baseTextTheme.labelSmall?.copyWith(
+        fontFamily: fontGoogleSansFlex,
+        fontFamilyFallback: fontFallbacks,
+        fontVariations: _buildFontVariations(size: 11.0, brightness: brightness, weight: 500),
       ),
     );
 
@@ -278,7 +305,10 @@ class AppTheme {
           systemStatusBarContrastEnforced: false,
         ),
         titleTextStyle: textTheme.titleLarge?.copyWith(
+          fontFamily: fontGoogleSansFlex,
+          fontFamilyFallback: fontFallbacks,
           fontWeight: FontWeight.bold,
+          fontVariations: _buildFontVariations(size: 22.0, brightness: brightness, weight: 700),
         ),
         iconTheme: IconThemeData(color: scheme.onSurface),
       ),
@@ -310,7 +340,10 @@ class AppTheme {
         menuPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         labelTextStyle: WidgetStateProperty.all(
           textTheme.bodyMedium?.copyWith(
+            fontFamily: fontGoogleSansFlex,
+            fontFamilyFallback: fontFallbacks,
             fontWeight: FontWeight.w500,
+            fontVariations: _buildFontVariations(size: 14.0, brightness: brightness, weight: 500),
             color: scheme.onSurface,
           ),
         ),
@@ -348,7 +381,10 @@ class AppTheme {
           ),
         ),
         textStyle: textTheme.bodyMedium?.copyWith(
+          fontFamily: fontGoogleSansFlex,
+          fontFamilyFallback: fontFallbacks,
           fontWeight: FontWeight.w500,
+          fontVariations: _buildFontVariations(size: 14.0, brightness: brightness, weight: 500),
           color: scheme.onSurface,
         ),
       ),
@@ -462,8 +498,11 @@ class AppTheme {
         elevation: 4,
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         contentTextStyle: textTheme.bodyMedium?.copyWith(
+          fontFamily: fontGoogleSansFlex,
+          fontFamilyFallback: fontFallbacks,
           color: scheme.onInverseSurface,
           fontWeight: FontWeight.w500,
+          fontVariations: _buildFontVariations(size: 14.0, brightness: brightness, weight: 500),
         ),
         actionTextColor: scheme.inversePrimary,
         shape: RoundedRectangleBorder(

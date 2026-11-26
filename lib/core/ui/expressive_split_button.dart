@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/app_haptics.dart';
 import '../theme/app_layout.dart';
+import '../theme/app_theme.dart';
 
 /// Material 3 Expressive Split Button.
 /// Combines a primary constructive CTA on the left with an attached dropdown anchor menu on the right.
@@ -71,11 +72,22 @@ class ExpressiveSplitButton<T> extends StatelessWidget {
                         child: icon,
                       ),
                       const SizedBox(width: AppLayout.spaceS),
-                      Text(
-                        label,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: fg,
-                          fontWeight: FontWeight.bold,
+                      Flexible(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontFamily: AppTheme.fontGoogleSansFlex,
+                            fontFamilyFallback: AppTheme.fontFallbacks,
+                            color: fg,
+                            fontWeight: FontWeight.bold,
+                            fontVariations: AppTheme.buildFontVariations(
+                              size: 14.0,
+                              brightness: theme.brightness,
+                              weight: 700,
+                            ),
+                          ),
                         ),
                       ),
                     ],

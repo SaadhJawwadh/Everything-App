@@ -57,13 +57,20 @@ class AppRouter {
     return Navigator.of(context).pushNamed<T>(routeName, arguments: arguments);
   }
 
-  /// A horizontal shared-axis route builder.
-  static Route<T> sharedAxis<T>(Widget page) {
+  /// A horizontal shared-axis route builder honoring reduced-motion accessibility.
+  static Route<T> sharedAxis<T>(Widget page, {BuildContext? context}) {
+    final reduceMotion = context != null && AppLayout.shouldReduceMotion(context);
     return PageRouteBuilder<T>(
-      transitionDuration: AppLayout.animDefault,
-      reverseTransitionDuration: AppLayout.animDefault,
-      pageBuilder: (context, animation, secondaryAnimation) => page,
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      transitionDuration: reduceMotion ? Duration.zero : AppLayout.animDefault,
+      reverseTransitionDuration: reduceMotion ? Duration.zero : AppLayout.animDefault,
+      pageBuilder: (ctx, animation, secondaryAnimation) => page,
+      transitionsBuilder: (ctx, animation, secondaryAnimation, child) {
+        if (AppLayout.shouldReduceMotion(ctx)) {
+          return FadeTransition(
+            opacity: animation,
+            child: child,
+          );
+        }
         return SharedAxisTransition(
           animation: animation,
           secondaryAnimation: secondaryAnimation,

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_todo_label">待办与笔记</string>
+    <string name="widget_finance_label">财务</string>
+    <string name="finance_widget_description">在主屏幕上直接查看今日支出、本月汇总和最新交易。</string>
+    <string name="notes_widget_description">一键记录笔记或搜索全部内容。</string>
+    <string name="todo_widget_description">在主屏幕上直接查看、切换和勾选笔记中的待办事项。</string>
+    <string name="unified_widget_description">将财务与笔记整合在统一的 Material 3 Expressive 小组件中。</string>
+
+    <string name="widget_all_action_items">全部待办</string>
+    <string name="widget_checklist_fallback">清单</string>
+    <string name="widget_all_tasks_completed">所有任务已完成</string>
+    <string name="widget_tap_plus_to_add">点击 + 添加</string>
+    <string name="widget_no_pending_tasks">暂无待办任务</string>
+    <string name="widget_locked_title">工作区已锁定</string>
+    <string name="widget_locked_tap_unlock">点击解锁</string>
+    <string name="widget_finances_disabled">财务功能已关闭</string>
+    <string name="widget_finances_disabled_tap">点击前往设置开启</string>
+
+    <string name="widget_today_label">今日</string>
+    <string name="widget_spent_month_label">本月支出</string>
+    <string name="widget_net_label">净收支</string>
+    <string name="widget_month_est_label">本月预估</string>
+    <string name="widget_pace_on_track">进度正常</string>
+    <string name="widget_pace_fast">支出偏快</string>
+    <string name="widget_pace_exhausted">预算已用完</string>
+    <string name="widget_sparkline_empty_hint">添加支出以查看趋势</string>
+
+    <string name="widget_new_note">新建笔记</string>
+    <string name="widget_new_task">新建任务</string>
+    <string name="widget_search">搜索</string>
+    <string name="widget_scan_receipt">扫描小票</string>
+    <string name="widget_add_transaction">记一笔</string>
+    <string name="widget_view_all_tasks">查看全部 %1$d 项任务</string>
+
+    <string name="widget_picker_title">选择清单</string>
+    <string name="widget_picker_subtitle">选择要在小组件显示的清单</string>
+    <string name="widget_picker_new_checklist">+ 新建清单</string>
+    <string name="widget_picker_cancel">取消</string>
+    <string name="widget_left_count">剩余 %1$d 项</string>
+    <string name="widget_done_count">已完成 %1$d/%2$d</string>
+    <string name="widget_no_tasks_yet">暂无任务</string>
+    <string name="widget_pending_done_fmt">%1$d 待办 • %2$d 已完成</string>
+    <string name="widget_all_done_fmt">全部 %1$d 项任务已完成</string>
+
+    <string name="shortcut_new_note_short">新建笔记</string>
+    <string name="shortcut_new_note_long">创建一条新笔记</string>
+    <string name="shortcut_new_transaction_short">记一笔</string>
+    <string name="shortcut_new_transaction_long">添加新交易记录</string>
+    <string name="shortcut_search_short">搜索</string>
+    <string name="shortcut_search_long">搜索笔记和交易</string>
+    <string name="shortcut_scan_receipt_short">扫描小票</string>
+    <string name="shortcut_scan_receipt_long">使用 OCR 扫描纸质小票</string>
+    <string name="shortcut_sync_devices_short">同步设备</string>
+    <string name="shortcut_sync_devices_long">局域网 Wi-Fi 点对点同步</string>
+    <string name="shortcut_new_checklist_short">新建清单</string>
+    <string name="app_function_desc">Everything App 私人工作区，支持笔记、清单和财务管理</string>
+</resources>

@@ -1016,4 +1016,16 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get lockAppNow => 'Verrouiller l’app maintenant';
+
+  @override
+  String get hideWidgetDataWhenLocked =>
+      'Masquer le contenu du widget si verrouillé';
+
+  @override
+  String get hideWidgetDataWhenLockedSubtitle =>
+      'Masquer les soldes avec •••• et cacher les tâches sur les widgets lorsque verrouillé';
+
+  @override
+  String get financesDisabledShortcutHint =>
+      'Activez le gestionnaire financier dans les Paramètres pour utiliser ce raccourci';
 }

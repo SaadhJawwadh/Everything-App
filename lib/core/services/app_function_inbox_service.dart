@@ -29,6 +29,9 @@ class AppFunctionInboxService {
 
     try {
       final prefs = await SharedPreferences.getInstance();
+      try {
+        await prefs.reload();
+      } catch (_) {}
       final rawQueue = prefs.getString(queueKey);
       if (rawQueue == null || rawQueue.isEmpty || rawQueue == '[]') {
         _isDraining = false;

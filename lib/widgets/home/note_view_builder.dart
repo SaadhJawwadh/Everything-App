@@ -165,19 +165,23 @@ class NoteViewBuilder extends StatelessWidget {
         delegate: SliverChildBuilderDelegate(
           (context, index) {
             final note = noteProvider.filteredNotes[index];
+            final card = Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildDismissibleNoteCard(context, note, onRefresh, noteProvider),
+            );
+            if (reduceMotion) {
+              return KeyedSubtree(key: ValueKey(note.id), child: card);
+            }
             return AnimationConfiguration.staggeredList(
               key: ValueKey(note.id),
               position: index.clamp(0, 8),
               duration: AppLayout.animShort,
               child: SlideAnimation(
-                verticalOffset: reduceMotion ? 0.0 : 16.0,
+                verticalOffset: 16.0,
                 curve: AppLayout.curveStrongEaseOut,
                 child: FadeInAnimation(
                   curve: AppLayout.curveStrongEaseOut,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _buildDismissibleNoteCard(context, note, onRefresh, noteProvider),
-                  ),
+                  child: card,
                 ),
               ),
             );
@@ -197,17 +201,21 @@ class NoteViewBuilder extends StatelessWidget {
         childCount: noteProvider.filteredNotes.length,
         itemBuilder: (context, index) {
           final note = noteProvider.filteredNotes[index];
+          final card = _buildOpenContainer(context, note, onRefresh, noteProvider);
+          if (reduceMotion) {
+            return KeyedSubtree(key: ValueKey(note.id), child: card);
+          }
           return AnimationConfiguration.staggeredGrid(
             key: ValueKey(note.id),
             position: index.clamp(0, 8),
             duration: AppLayout.animShort,
             columnCount: columnCount,
             child: ScaleAnimation(
-              scale: reduceMotion ? 1.0 : 0.95,
+              scale: 0.95,
               curve: AppLayout.curveStrongEaseOut,
               child: FadeInAnimation(
                 curve: AppLayout.curveStrongEaseOut,
-                child: _buildOpenContainer(context, note, onRefresh, noteProvider),
+                child: card,
               ),
             ),
           );

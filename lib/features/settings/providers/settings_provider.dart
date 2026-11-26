@@ -131,6 +131,9 @@ class SettingsProvider extends ChangeNotifier {
   bool _screenshotShieldEnabled = false;
   bool get screenshotShieldEnabled => _screenshotShieldEnabled;
 
+  bool _hideWidgetDataWhenLocked = true;
+  bool get hideWidgetDataWhenLocked => _hideWidgetDataWhenLocked;
+
   bool _budgetAlertsEnabled = true;
   bool get budgetAlertsEnabled => _budgetAlertsEnabled;
 
@@ -288,6 +291,7 @@ class SettingsProvider extends ChangeNotifier {
     _lockFinances = prefs.getBool('lockFinances') ?? false;
     _lockHealth = prefs.getBool('lockHealth') ?? false;
     _screenshotShieldEnabled = prefs.getBool('screenshotShieldEnabled') ?? false;
+    _hideWidgetDataWhenLocked = prefs.getBool('hideWidgetDataWhenLocked') ?? true;
     _budgetAlertsEnabled = prefs.getBool('budgetAlertsEnabled') ?? true;
     _billRemindersEnabled = prefs.getBool('billRemindersEnabled') ?? true;
     _weeklyDigestEnabled = prefs.getBool('weeklyDigestEnabled') ?? false;
@@ -412,6 +416,9 @@ class SettingsProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('currency', curr);
     notifyListeners();
+    if (!kIsWeb) {
+      await WidgetHelper.updateWidgetData();
+    }
   }
 
   Future<void> setSelectedLanguage(String code) async {
@@ -430,6 +437,11 @@ class SettingsProvider extends ChangeNotifier {
       await prefs.setString('selectedLanguageCode', _selectedLanguageCode!);
     }
     notifyListeners();
+    if (!kIsWeb) {
+      unawaited(WidgetHelper.syncWidgetConfig(languageCode: selectedLanguageCode));
+      unawaited(WidgetHelper.updateWidgetData());
+      unawaited(WidgetHelper.updateTodoWidgetData());
+    }
   }
 
   Future<void> setTrashAutoPurgeDays(int days) async {
@@ -617,6 +629,12 @@ class SettingsProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('showFinancialManager', show);
     notifyListeners();
+    if (!kIsWeb) {
+      unawaited(WidgetHelper.syncWidgetConfig(showFinancialManager: show));
+      if (show) {
+        await WidgetHelper.updateWidgetData();
+      }
+    }
   }
 
   Future<void> setShowSplitBills(bool show) async {
@@ -624,6 +642,9 @@ class SettingsProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('showSplitBills', show);
     notifyListeners();
+    if (!kIsWeb) {
+      await WidgetHelper.updateWidgetData();
+    }
   }
 
   Future<void> setEnableSavingsVault(bool enable) async {
@@ -631,6 +652,9 @@ class SettingsProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('enableSavingsVault', enable);
     notifyListeners();
+    if (!kIsWeb) {
+      await WidgetHelper.updateWidgetData();
+    }
   }
 
   Future<void> setEnableSmsImport(bool enable) async {
@@ -645,6 +669,9 @@ class SettingsProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('enableBudgetsAndAnalytics', enable);
     notifyListeners();
+    if (!kIsWeb) {
+      await WidgetHelper.updateWidgetData();
+    }
   }
 
   Future<void> setEnableRecurringRules(bool enable) async {
@@ -674,6 +701,9 @@ class SettingsProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('account1Name', clean);
     notifyListeners();
+    if (!kIsWeb) {
+      await WidgetHelper.updateWidgetData();
+    }
   }
 
   Future<void> setAccount2Name(String name) async {
@@ -682,6 +712,9 @@ class SettingsProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('account2Name', clean);
     notifyListeners();
+    if (!kIsWeb) {
+      await WidgetHelper.updateWidgetData();
+    }
   }
 
   Future<void> setCategoryAccountRouting(String category, String? accountKey) async {
@@ -752,6 +785,9 @@ class SettingsProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('appLockEnabled', enabled);
     notifyListeners();
+    if (!kIsWeb) {
+      unawaited(WidgetHelper.syncWidgetConfig(appLockEnabled: enabled));
+    }
   }
 
   Future<void> setUseBiometrics(bool use) async {
@@ -766,6 +802,9 @@ class SettingsProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('lockFinances', locked);
     notifyListeners();
+    if (!kIsWeb) {
+      unawaited(WidgetHelper.syncWidgetConfig(lockFinances: locked));
+    }
   }
 
   Future<void> setLockHealth(bool locked) async {
@@ -780,6 +819,19 @@ class SettingsProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('screenshotShieldEnabled', enabled);
     notifyListeners();
+    if (!kIsWeb) {
+      unawaited(WidgetHelper.syncWidgetConfig(screenshotShieldEnabled: enabled));
+    }
+  }
+
+  Future<void> setHideWidgetDataWhenLocked(bool hide) async {
+    _hideWidgetDataWhenLocked = hide;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('hideWidgetDataWhenLocked', hide);
+    notifyListeners();
+    if (!kIsWeb) {
+      unawaited(WidgetHelper.syncWidgetConfig(hideWidgetDataWhenLocked: hide));
+    }
   }
 
   Future<void> setBudgetAlertsEnabled(bool enabled) async {
@@ -909,6 +961,7 @@ class SettingsProvider extends ChangeNotifier {
         'lockFinances': _lockFinances,
         'lockHealth': _lockHealth,
         'screenshotShieldEnabled': _screenshotShieldEnabled,
+        'hideWidgetDataWhenLocked': _hideWidgetDataWhenLocked,
         'budgetAlertsEnabled': _budgetAlertsEnabled,
         'billRemindersEnabled': _billRemindersEnabled,
         'weeklyDigestEnabled': _weeklyDigestEnabled,
@@ -1138,6 +1191,10 @@ class SettingsProvider extends ChangeNotifier {
       if (map.containsKey('screenshotShieldEnabled')) {
         final val = map['screenshotShieldEnabled'];
         if (val is bool) await setScreenshotShieldEnabled(val);
+      }
+      if (map.containsKey('hideWidgetDataWhenLocked')) {
+        final val = map['hideWidgetDataWhenLocked'];
+        if (val is bool) await setHideWidgetDataWhenLocked(val);
       }
       if (map.containsKey('budgetAlertsEnabled')) {
         final val = map['budgetAlertsEnabled'];

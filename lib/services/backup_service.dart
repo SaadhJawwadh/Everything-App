@@ -76,6 +76,11 @@ void callbackDispatcher() {
 /// from an isolate (auto-backup) where BuildContext is unavailable, falls back
 /// to reading the stored prefs directly (best-effort).
 Future<String> generateBackupJson({Map<String, dynamic>? settingsOverride}) async {
+  // 0. Flush any pending home screen widget checklist toggles before snapshotting
+  try {
+    await WidgetHelper.syncPendingTodoToggles();
+  } catch (_) {}
+
   // 1. Materialize any due recurring transactions before snapshotting
   try {
     await RecurringRuleRepository.instance.materializeDueRules();
@@ -184,6 +189,7 @@ Future<String> generateBackupJson({Map<String, dynamic>? settingsOverride}) asyn
       'lockFinances': prefs.getBool('lockFinances') ?? false,
       'lockHealth': prefs.getBool('lockHealth') ?? false,
       'screenshotShieldEnabled': prefs.getBool('screenshotShieldEnabled') ?? false,
+      'hideWidgetDataWhenLocked': prefs.getBool('hideWidgetDataWhenLocked') ?? true,
       'budgetAlertsEnabled': prefs.getBool('budgetAlertsEnabled') ?? true,
       'billRemindersEnabled': prefs.getBool('billRemindersEnabled') ?? true,
       'weeklyDigestEnabled': prefs.getBool('weeklyDigestEnabled') ?? false,
@@ -233,9 +239,6 @@ Future<bool> performAutoBackup() async {
       debugPrint('[AutoBackup] Aborted: Backup vault key unavailable (fail-closed).');
       return false;
     }
-
-    // Flush any pending widget checkbox changes into notes db before backup
-    await WidgetHelper.syncPendingTodoToggles();
 
     final appDir = await getApplicationDocumentsDirectory();
     final jsonContent = await generateBackupJson();

@@ -1,12 +1,12 @@
 <en-US>
-🌟 Everything App 3.7.1 — Smoother, Faster & Smarter!
-• Fluid 120Hz Smoothness: Faster startup, silky scrolling across notes, ledgers & calendars, snappier animations, and Reduce Motion support.
-• Scan Text to Note: Extract editable text from photos offline with /scan.
-• Smart Finance & Privacy: Budget alerts, 48h bill reminders, Simplify Group Debts, encrypted auto-backups & module locks.
+Everything App 3.8.0: Redesigned Widgets, Story Cards & Web Companion
+• Material You Widgets: Adaptive Tasks & Notes and Finances widgets for every phone, foldable, and tablet.
+• Widget Privacy Lock: Mask balances and tasks when the app is locked.
+• Poster Story Cards & Browser Companion: Bold editorial card themes, faster Ledger view, and local Wi-Fi browser access.
 </en-US>
 <ta-IN>
-🌟 Everything App 3.7.1 — வேகமான, மென்மையான அனுபவம்!
-• மென்மையான இயக்கம்: விரைவான தொடக்கம், 120Hz மென்மையான ஸ்க்ரோலிங், உடனடி தேடல் & Reduce Motion ஆதரவு.
-• Scan Text to Note: புகைப்பட எழுத்துக்களை ஆஃப்லைனில் குறிப்புகளாக மாற்றலாம் (/scan).
-• நிதி & பாதுகாப்பு: பட்ஜெட் எச்சரிக்கைகள், குழு கடன் எளிமையாக்கல், மறைகுறியாக்கப்பட்ட பேக்கப் & தனிப்பகுதி பூட்டு.
+Everything App 3.8.0: புதிய விட்ஜெட்கள், Story Cards & Web Companion
+• Material You விட்ஜெட்கள்: அனைத்து போன், போல்டபிள் & டேப்லெட் திரைகளுக்கும் பொருந்தும் Tasks & Finances விட்ஜெட்கள்.
+• விட்ஜெட் தனியுரிமை பூட்டு: ஆப் பூட்டப்பட்டிருக்கும்போது தொகை & பணிகளை மறைக்கலாம்.
+• Poster Story Cards & Browser Companion: புதிய அட்டை வடிவமைப்புகள், விரைவான Ledger & Wi-Fi உலாவி அணுகல்.
 </ta-IN>

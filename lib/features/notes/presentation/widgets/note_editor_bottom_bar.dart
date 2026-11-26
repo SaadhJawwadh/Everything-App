@@ -87,43 +87,51 @@ class NoteEditorBottomBar extends StatelessWidget {
                         .withValues(alpha: 0.95),
                     children: [
                       // ── FIXED LEFT: Horizontal Stepper [ ‹ ] [ › ] ──
-                      Tooltip(
-                        message: 'Nudge left (Double-tap / long-press for word)',
-                        child: InkResponse(
-                          radius: 16,
-                          onTap: () => onNudgeLeft(byWord: false),
-                          onDoubleTap: () => onNudgeLeft(byWord: true),
-                          onLongPress: () => onNudgeLeft(byWord: true),
-                          child: SizedBox(
-                            width: 32,
-                            height: 36,
-                            child: Icon(
-                              Icons.chevron_left_rounded,
-                              color: textColor,
-                              size: 22,
+                      Semantics(
+                        button: true,
+                        label: 'Nudge cursor left',
+                        child: Tooltip(
+                          message: 'Nudge left (Double-tap / long-press for word)',
+                          child: InkResponse(
+                            radius: 24,
+                            onTap: () => onNudgeLeft(byWord: false),
+                            onDoubleTap: () => onNudgeLeft(byWord: true),
+                            onLongPress: () => onNudgeLeft(byWord: true),
+                            child: SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: Icon(
+                                Icons.chevron_left_rounded,
+                                color: textColor,
+                                size: 22,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                      Tooltip(
-                        message: 'Nudge right (Double-tap / long-press for word)',
-                        child: InkResponse(
-                          radius: 16,
-                          onTap: () => onNudgeRight(byWord: false),
-                          onDoubleTap: () => onNudgeRight(byWord: true),
-                          onLongPress: () => onNudgeRight(byWord: true),
-                          child: SizedBox(
-                            width: 32,
-                            height: 36,
-                            child: Icon(
-                              Icons.chevron_right_rounded,
-                              color: textColor,
-                              size: 22,
+                      Semantics(
+                        button: true,
+                        label: 'Nudge cursor right',
+                        child: Tooltip(
+                          message: 'Nudge right (Double-tap / long-press for word)',
+                          child: InkResponse(
+                            radius: 24,
+                            onTap: () => onNudgeRight(byWord: false),
+                            onDoubleTap: () => onNudgeRight(byWord: true),
+                            onLongPress: () => onNudgeRight(byWord: true),
+                            child: SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: Icon(
+                                Icons.chevron_right_rounded,
+                                color: textColor,
+                                size: 22,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8.0),
+                      const SizedBox(width: 4.0),
 
                       // ── SCROLLABLE CENTER: Formatting Tools ──
                       Expanded(
@@ -201,7 +209,7 @@ class NoteEditorBottomBar extends StatelessWidget {
                                         style: TextButton.styleFrom(
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 8, vertical: 4),
-                                          minimumSize: Size.zero,
+                                          minimumSize: const Size(48, 48),
                                           tapTargetSize:
                                               MaterialTapTargetSize.shrinkWrap,
                                         ),
@@ -537,35 +545,43 @@ class NoteEditorBottomBar extends StatelessWidget {
                       ),
 
                       // ── FIXED RIGHT: Vertical Stepper [ ▲ ] [ ▼ ] ──
-                      const SizedBox(width: 8.0),
-                      Tooltip(
-                        message: 'Expand selection line up',
-                        child: InkResponse(
-                          radius: 16,
-                          onTap: onNudgeUp,
-                          child: SizedBox(
-                            width: 32,
-                            height: 36,
-                            child: Icon(
-                              Icons.keyboard_arrow_up_rounded,
-                              color: textColor,
-                              size: 22,
+                      const SizedBox(width: 4.0),
+                      Semantics(
+                        button: true,
+                        label: 'Expand selection line up',
+                        child: Tooltip(
+                          message: 'Expand selection line up',
+                          child: InkResponse(
+                            radius: 24,
+                            onTap: onNudgeUp,
+                            child: SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: Icon(
+                                Icons.keyboard_arrow_up_rounded,
+                                color: textColor,
+                                size: 22,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                      Tooltip(
-                        message: 'Expand selection line down',
-                        child: InkResponse(
-                          radius: 16,
-                          onTap: onNudgeDown,
-                          child: SizedBox(
-                            width: 32,
-                            height: 36,
-                            child: Icon(
-                              Icons.keyboard_arrow_down_rounded,
-                              color: textColor,
-                              size: 22,
+                      Semantics(
+                        button: true,
+                        label: 'Expand selection line down',
+                        child: Tooltip(
+                          message: 'Expand selection line down',
+                          child: InkResponse(
+                            radius: 24,
+                            onTap: onNudgeDown,
+                            child: SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                color: textColor,
+                                size: 22,
+                              ),
                             ),
                           ),
                         ),

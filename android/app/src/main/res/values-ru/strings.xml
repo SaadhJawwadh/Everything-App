@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_todo_label">Задачи и заметки</string>
+    <string name="widget_finance_label">Финансы</string>
+    <string name="finance_widget_description">Отслеживайте траты за сегодня, итоги за месяц и последние операции прямо с главного экрана.</string>
+    <string name="notes_widget_description">Создайте заметку или найдите нужное одним касанием.</string>
+    <string name="todo_widget_description">Просматривайте, переключайте и отмечайте задачи из заметок прямо на главном экране.</string>
+    <string name="unified_widget_description">Финансы и заметки вместе в едином виджете Material 3 Expressive.</string>
+
+    <string name="widget_all_action_items">Все задачи</string>
+    <string name="widget_checklist_fallback">Список дел</string>
+    <string name="widget_all_tasks_completed">Все задачи выполнены</string>
+    <string name="widget_tap_plus_to_add">Нажмите +, чтобы добавить</string>
+    <string name="widget_no_pending_tasks">Нет активных задач</string>
+    <string name="widget_locked_title">Доступ заблокирован</string>
+    <string name="widget_locked_tap_unlock">Нажмите для разблокировки</string>
+    <string name="widget_finances_disabled">Финансы отключены</string>
+    <string name="widget_finances_disabled_tap">Нажмите, чтобы включить в настройках</string>
+
+    <string name="widget_today_label">СЕГОДНЯ</string>
+    <string name="widget_spent_month_label">РАСХОД (МЕС)</string>
+    <string name="widget_net_label">БАЛАНС</string>
+    <string name="widget_month_est_label">ПРОГНОЗ</string>
+    <string name="widget_pace_on_track">В норме</string>
+    <string name="widget_pace_fast">Высокий темп</string>
+    <string name="widget_pace_exhausted">Бюджет исчерпан</string>
+    <string name="widget_sparkline_empty_hint">Добавьте расходы для графика</string>
+
+    <string name="widget_new_note">Новая заметка</string>
+    <string name="widget_new_task">Новая задача</string>
+    <string name="widget_search">Поиск</string>
+    <string name="widget_scan_receipt">Сканировать чек</string>
+    <string name="widget_add_transaction">Добавить операцию</string>
+    <string name="widget_view_all_tasks">Показать все (%1$d)</string>
+
+    <string name="widget_picker_title">Выберите список</string>
+    <string name="widget_picker_subtitle">Выберите список для виджета</string>
+    <string name="widget_picker_new_checklist">+ Создать список</string>
+    <string name="widget_picker_cancel">Отмена</string>
+    <string name="widget_left_count">Осталось: %1$d</string>
+    <string name="widget_done_count">%1$d/%2$d готово</string>
+    <string name="widget_no_tasks_yet">Пока нет задач</string>
+    <string name="widget_pending_done_fmt">%1$d в работе • %2$d готово</string>
+    <string name="widget_all_done_fmt">Все %1$d задач выполнены</string>
+
+    <string name="shortcut_new_note_short">Новая заметка</string>
+    <string name="shortcut_new_note_long">Создать новую заметку</string>
+    <string name="shortcut_new_transaction_short">Новая операция</string>
+    <string name="shortcut_new_transaction_long">Добавить новую операцию</string>
+    <string name="shortcut_search_short">Поиск</string>
+    <string name="shortcut_search_long">Поиск по заметкам и операциям</string>
+    <string name="shortcut_scan_receipt_short">Скан чека</string>
+    <string name="shortcut_scan_receipt_long">Сканировать бумажный чек</string>
+    <string name="shortcut_sync_devices_short">Синхронизация</string>
+    <string name="shortcut_sync_devices_long">Локальная P2P-синхронизация по Wi-Fi</string>
+    <string name="shortcut_new_checklist_short">Новый список</string>
+    <string name="app_function_desc">Личное пространство Everything App для заметок, списков и учёта финансов</string>
+</resources>

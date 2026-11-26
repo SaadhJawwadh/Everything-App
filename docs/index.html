@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-accent="indigo">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Everything App is an offline-first workspace for encrypted notes, dual-account finances, cycle tracking, and local Wi-Fi P2P sync.">
+  <meta name="theme-color" content="#141318">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Everything App">
+  <meta property="og:description" content="Encrypted notes, private finances, cycle tracking, and local Wi-Fi sync. Zero cloud servers.">
+  <title>Everything App</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+      /* Strict 3-size body scale */
+      --text-heading: 1.5rem;
+      --text-body: 1rem;
+      --text-sm: 0.875rem;
+
+      /* Surface & ink tokens (Dark default) */
+      --bg: #141318;
+      --bg-elevated: #1D1B24;
+      --bg-subtle: #262430;
+      --border: rgba(242, 242, 247, 0.11);
+      --text: #F2F2F7;
+      --text-muted: #A7A5B4;
+
+      /* Deliberate accent */
+      --accent: #6B4EFF;
+      --accent-ink: #FFFFFF;
+      --accent-soft: rgba(107, 78, 255, 0.16);
+      --hero-glow: radial-gradient(ellipse 75% 55% at 50% 0%, rgba(107, 78, 255, 0.22), transparent 70%);
+      --header-scrolled: rgba(20, 19, 24, 0.92);
+    }
+
+    html[data-theme="light"] {
+      --bg: #F6F5FA;
+      --bg-elevated: #FFFFFF;
+      --bg-subtle: #ECEAF3;
+      --border: rgba(20, 19, 24, 0.11);
+      --text: #141318;
+      --text-muted: #565466;
+      --accent-soft: rgba(107, 78, 255, 0.10);
+      --hero-glow: radial-gradient(ellipse 75% 55% at 50% 0%, rgba(107, 78, 255, 0.14), transparent 70%);
+      --header-scrolled: rgba(246, 245, 250, 0.92);
+    }
+
+    html[data-accent="emerald"] {
+      --accent: #2D8A5B;
+      --accent-soft: rgba(45, 138, 91, 0.16);
+      --hero-glow: radial-gradient(ellipse 75% 55% at 50% 0%, rgba(45, 138, 91, 0.20), transparent 70%);
+    }
+
+    html[data-accent="rose"] {
+      --accent: #C95B82;
+      --accent-soft: rgba(201, 91, 130, 0.16);
+      --hero-glow: radial-gradient(ellipse 75% 55% at 50% 0%, rgba(201, 91, 130, 0.20), transparent 70%);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      margin: 0;
+      background-color: var(--bg);
+      color: var(--text);
+      font-size: var(--text-body);
+      line-height: 1.6;
+      font-variant-numeric: tabular-nums;
+      overflow-x: clip;
+      transition: background-color 200ms cubic-bezier(0.22, 1, 0.36, 1), color 200ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button, input {
+      font-family: inherit;
+    }
+
+    .container {
+      width: min(1160px, 100% - 40px);
+      margin-inline: auto;
+    }
+
+    /* Single-line borderless header bleeding over hero y = 0 */
+    .site-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      padding: 18px 0;
+      border-bottom: 1px solid transparent;
+      transition: background-color 200ms cubic-bezier(0.22, 1, 0.36, 1), border-color 200ms cubic-bezier(0.22, 1, 0.36, 1), padding 200ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .site-header.is-scrolled {
+      background-color: var(--header-scrolled);
+      border-bottom-color: var(--border);
+      padding: 12px 0;
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .brand-wordmark {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.125rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      white-space: nowrap;
+    }
+
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .header-nav a {
+      transition: color 160ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .header-nav a:hover {
+      color: var(--text);
+    }
+
+    .header-link-cta {
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--text);
+      padding: 8px 16px;
+      border-radius: 999px;
+      background-color: var(--bg-subtle);
+      white-space: nowrap;
+      transition: background-color 160ms cubic-bezier(0.22, 1, 0.36, 1), transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .header-link-cta:hover {
+      background-color: var(--accent-soft);
+      transform: translateY(-1px);
+    }
+
+    /* Bold non-split hero bleeding to y = 0 */
+    .hero {
+      position: relative;
+      padding: 136px 0 72px;
+      background-image: var(--hero-glow);
+      text-align: center;
+    }
+
+    .hero-title {
+      margin: 0 auto;
+      max-width: 15ch;
+      font-size: clamp(2.15rem, 7.2vw, 6.25rem);
+      font-weight: 800;
+      line-height: 0.98;
+      letter-spacing: -0.045em;
+    }
+
+    .hero-copy {
+      margin: 24px auto 0;
+      max-width: 48ch;
+      font-size: var(--text-body);
+      color: var(--text-muted);
+    }
+
+    .hero-action {
+      margin-top: 32px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .primary-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 48px;
+      padding: 0 28px;
+      border-radius: 999px;
+      background-color: var(--accent);
+      color: var(--accent-ink);
+      font-size: var(--text-body);
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1), opacity 160ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .primary-cta:hover {
+      transform: translateY(-2px);
+      opacity: 0.94;
+    }
+
+    /* Wide interactive stage below hero headline */
+    .hero-stage {
+      margin: 56px auto 0;
+      width: min(1040px, 100%);
+      background-color: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      padding: 24px;
+      text-align: left;
+      transition: background-color 200ms cubic-bezier(0.22, 1, 0.36, 1), border-color 200ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .stage-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* Non-button segmented controls */
+    .segmented {
+      display: inline-flex;
+      align-items: center;
+      background-color: var(--bg-subtle);
+      padding: 4px;
+      border-radius: 999px;
+      gap: 4px;
+    }
+
+    .segmented input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .segmented label {
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 160ms cubic-bezier(0.22, 1, 0.36, 1), color 160ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .segmented input:checked + label {
+      background-color: var(--bg-elevated);
+      color: var(--text);
+    }
+
+    .accent-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: var(--text-sm);
+      color: var(--text-muted);
+    }
+
+    .swatch-radio {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .swatch-radio input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .swatch-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      border: 2px solid transparent;
+      transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1), border-color 160ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .swatch-radio input:checked + .swatch-dot {
+      border-color: var(--text);
+      transform: scale(1.12);
+    }
+
+    .stage-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 28px;
+      padding-top: 24px;
+      align-items: stretch;
+    }
+
+    .stage-preview {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 24px;
+      border-radius: 20px;
+      background-color: var(--bg-subtle);
+      min-height: 270px;
+    }
+
+    .preview-heading {
+      margin: 0;
+      font-size: var(--text-heading);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+
+    .preview-body {
+      margin: 8px 0 0;
+      font-size: var(--text-body);
+      color: var(--text-muted);
+      max-width: 52ch;
+    }
+
+    .preview-rows {
+      display: grid;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .preview-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+      font-size: var(--text-sm);
+    }
+
+    .preview-row strong {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .preview-row span {
+      color: var(--text-muted);
+    }
+
+    .stage-inspector {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 8px 4px;
+    }
+
+    .inspector-title {
+      margin: 0;
+      font-size: var(--text-heading);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+
+    .inspector-list {
+      margin: 12px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 12px;
+      font-size: var(--text-body);
+      color: var(--text-muted);
+    }
+
+    .inspector-list li {
+      padding-left: 18px;
+      position: relative;
+    }
+
+    .inspector-list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.62em;
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background-color: var(--accent);
+    }
+
+    .airgap-switch {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 18px;
+      border-radius: 16px;
+      background-color: var(--bg-subtle);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .airgap-switch input {
+      accent-color: var(--accent);
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    /* Below-the-fold sections */
+    .section {
+      padding: 88px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .section-head {
+      max-width: 62ch;
+      margin-bottom: 48px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 2.75rem);
+      font-weight: 800;
+      letter-spacing: -0.035em;
+      line-height: 1.08;
+    }
+
+    .section-head p {
+      margin: 16px 0 0;
+      font-size: var(--text-body);
+      color: var(--text-muted);
+    }
+
+    .architecture-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 40px 56px;
+    }
+
+    .arch-item {
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    .arch-item h3 {
+      margin: 0;
+      font-size: var(--text-heading);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .arch-item p {
+      margin: 12px 0 0;
+      font-size: var(--text-body);
+      color: var(--text-muted);
+      max-width: 58ch;
+    }
+
+    .sync-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+    }
+
+    .sync-diagram {
+      padding: 28px;
+      border-radius: 24px;
+      background-color: var(--bg-elevated);
+      border: 1px solid var(--border);
+      display: grid;
+      gap: 18px;
+    }
+
+    .sync-node {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 18px;
+      border-radius: 16px;
+      background-color: var(--bg-subtle);
+      font-size: var(--text-sm);
+    }
+
+    .sync-node strong {
+      font-weight: 700;
+    }
+
+    .sync-node span {
+      color: var(--text-muted);
+    }
+
+    .cta-band {
+      padding: 88px 0;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .cta-band h2 {
+      margin: 0 auto;
+      max-width: 18ch;
+      font-size: clamp(2rem, 4.5vw, 3.25rem);
+      font-weight: 800;
+      letter-spacing: -0.035em;
+      line-height: 1.06;
+    }
+
+    .cta-band p {
+      margin: 16px auto 32px;
+      max-width: 48ch;
+      font-size: var(--text-body);
+      color: var(--text-muted);
+    }
+
+    .site-footer {
+      padding: 36px 0 48px;
+      border-top: 1px solid var(--border);
+      font-size: var(--text-sm);
+      color: var(--text-muted);
+    }
+
+    .footer-inner {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+
+    .footer-links a:hover {
+      color: var(--text);
+    }
+
+    @media (max-width: 860px) {
+      .header-nav {
+        display: none;
+      }
+
+      .hero {
+        padding: 104px 0 56px;
+      }
+
+      .hero-stage {
+        padding: 16px;
+        border-radius: 22px;
+      }
+
+      .stage-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .segmented {
+        flex-wrap: wrap;
+        max-width: 100%;
+        border-radius: 18px;
+      }
+
+      .segmented label {
+        padding: 7px 11px;
+      }
+
+      .stage-grid,
+      .architecture-grid,
+      .sync-split {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+      body, .site-header, .header-link-cta, .primary-cta, .hero-stage, .segmented label, .swatch-dot {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header" id="site-header">
+    <div class="container header-inner">
+      <a href="#" class="brand-wordmark">
+        <svg width="24" height="24" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+          <rect x="3" y="3" width="34" height="34" rx="10" fill="currentColor" fill-opacity="0.1" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 15H28M12 20H24M12 25H19" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+        </svg>
+        <span>Everything App</span>
+      </a>
+
+      <nav class="header-nav" aria-label="Primary">
+        <a href="#modules">Modules</a>
+        <a href="#sync">Local sync</a>
+        <a href="#security">Encryption</a>
+      </nav>
+
+      <a href="https://play.google.com/store/apps/details?id=com.saadhjawwadh.notebook" class="header-link-cta" target="_blank" rel="noopener noreferrer">Google Play</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <h1 class="hero-title">Private notes, finances, and health on your own device</h1>
+        <p class="hero-copy">An encrypted offline workspace with dual-account SMS tracking, local P2P sync, and zero cloud servers.</p>
+        <div class="hero-action">
+          <a href="https://play.google.com/store/apps/details?id=com.saadhjawwadh.notebook" class="primary-cta" target="_blank" rel="noopener noreferrer">Download on Google Play</a>
+        </div>
+
+        <div class="hero-stage" aria-label="Interactive workspace and theme preview">
+          <div class="stage-toolbar">
+            <div class="segmented" role="radiogroup" aria-label="Workspace module">
+              <input type="radio" name="module" id="mod-notes" value="notes" checked>
+              <label for="mod-notes">Notes</label>
+              <input type="radio" name="module" id="mod-finances" value="finances">
+              <label for="mod-finances">Finances</label>
+              <input type="radio" name="module" id="mod-sync" value="sync">
+              <label for="mod-sync">Wi-Fi sync</label>
+              <input type="radio" name="module" id="mod-health" value="health">
+              <label for="mod-health">Health</label>
+            </div>
+
+            <div class="segmented" role="radiogroup" aria-label="Surface theme">
+              <input type="radio" name="surface" id="theme-dark" value="dark" checked>
+              <label for="theme-dark">Obsidian</label>
+              <input type="radio" name="surface" id="theme-light" value="light">
+              <label for="theme-light">Daylight</label>
+            </div>
+
+            <div class="accent-group" role="radiogroup" aria-label="Accent color">
+              <span>Accent</span>
+              <label class="swatch-radio" title="Indigo">
+                <input type="radio" name="accent" value="indigo" checked>
+                <span class="swatch-dot" style="background-color: #6B4EFF;"></span>
+              </label>
+              <label class="swatch-radio" title="Emerald">
+                <input type="radio" name="accent" value="emerald">
+                <span class="swatch-dot" style="background-color: #2D8A5B;"></span>
+              </label>
+              <label class="swatch-radio" title="Rose">
+                <input type="radio" name="accent" value="rose">
+                <span class="swatch-dot" style="background-color: #C95B82;"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="stage-grid">
+            <div class="stage-preview" id="stage-preview">
+              <div>
+                <h2 class="preview-heading" id="preview-title">Encrypted Quill notes and collapsible checklists</h2>
+                <p class="preview-body" id="preview-desc">Write rich notes with inline tables, on-device OCR scanning, and locked vault entries stored inside SQLCipher.</p>
+              </div>
+              <div class="preview-rows" id="preview-rows">
+                <div class="preview-row">
+                  <strong>Database engine</strong>
+                  <span>SQLCipher AES-256 with WAL</span>
+                </div>
+                <div class="preview-row">
+                  <strong>On-device AI</strong>
+                  <span>Gemini Nano summaries and tone refine</span>
+                </div>
+                <div class="preview-row">
+                  <strong>Story cards</strong>
+                  <span>Multi-slide export with zero cloud upload</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="stage-inspector">
+              <div>
+                <h3 class="inspector-title">Offline privacy guarantees</h3>
+                <ul class="inspector-list" id="inspector-list">
+                  <li>Zero telemetry, analytics SDKs, or cloud accounts</li>
+                  <li>Keys generated and sealed inside Android Keystore</li>
+                  <li>Locked notes stay hidden from search and browser companion</li>
+                </ul>
+              </div>
+
+              <label class="airgap-switch">
+                <span id="airgap-label">Strict offline mode active: 0 external requests</span>
+                <input type="checkbox" id="airgap-toggle" checked>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="modules">
+      <div class="container">
+        <div class="section-head">
+          <h2>Four focused tools in one encrypted vault</h2>
+          <p>Built for people who want their notes, money, and personal health logs to stay fast and private without monthly subscriptions.</p>
+        </div>
+
+        <div class="architecture-grid">
+          <article class="arch-item">
+            <h3>Rich notes and Story Cards</h3>
+            <p>Format checklists, blockquotes, and tables in a lossless Quill editor. Extract text from photos with offline OCR and export multi-slide Story Cards.</p>
+          </article>
+
+          <article class="arch-item">
+            <h3>Dual-account financial ledger</h3>
+            <p>Separate daily operating spend from savings vaults. Auto-import bank SMS alerts locally, track category budgets, and simplify group Split Bills.</p>
+          </article>
+
+          <article class="arch-item">
+            <h3>Discreet cycle and health log</h3>
+            <p>Predict upcoming cycles and fertile windows using outlier-aware local math, paired with customizable discreet notifications and optional period notes.</p>
+          </article>
+
+          <article class="arch-item">
+            <h3>Adaptive Material You widgets</h3>
+            <p>Pin Tasks and Finances home widgets that scale from compact 4x1 strips to tablet layouts, automatically masking balances when App Lock is active.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="sync">
+      <div class="container sync-split">
+        <div>
+          <div class="section-head" style="margin-bottom: 0;">
+            <h2>Direct Wi-Fi sync and desktop browser companion</h2>
+            <p>Pair devices over local Wi-Fi using a 6-digit code and AES-256 encrypted payloads. Open your phone's IP in any desktop browser on port 8765 to browse unlocked notes or download a verified backup.</p>
+          </div>
+        </div>
+
+        <div class="sync-diagram" aria-label="Local sync topology">
+          <div class="sync-node">
+            <strong>Primary phone</strong>
+            <span>Port 8765 HTTP + UDP beacon 8766</span>
+          </div>
+          <div class="sync-node">
+            <strong>Desktop browser companion</strong>
+            <span>Read-only unlocked notes after pair-code unlock</span>
+          </div>
+          <div class="sync-node">
+            <strong>Secondary device</strong>
+            <span>Two-way last-write-wins delta merge</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="security">
+      <div class="container">
+        <div class="section-head">
+          <h2>Security you can verify locally</h2>
+          <p>Every record stays on hardware you control, encrypted at rest with SQLCipher and protected by biometric or PIN app locks.</p>
+        </div>
+
+        <div class="architecture-grid">
+          <article class="arch-item">
+            <h3>Hardware-backed key storage</h3>
+            <p>Database encryption keys live inside Android Keystore and iOS Keychain rather than plaintext preferences.</p>
+          </article>
+
+          <article class="arch-item">
+            <h3>Tamper-proof v3 backups</h3>
+            <p>Automated and manual JSON backups include integrity verification and rolling pre-migration database snapshots.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-band">
+      <div class="container">
+        <h2>Keep your entire workspace offline and yours</h2>
+        <p>Install Everything App v3.8.0 on Android from Google Play or inspect the source on GitHub.</p>
+        <a href="https://github.com/SaadhJawwadh/Note-taking/releases" class="primary-cta" target="_blank" rel="noopener noreferrer">View releases on GitHub</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span>Everything App v3.8.0</span>
+      <div class="footer-links">
+        <a href="https://play.google.com/store/apps/details?id=com.saadhjawwadh.notebook" target="_blank" rel="noopener noreferrer">Google Play</a>
+        <a href="https://github.com/SaadhJawwadh/Note-taking" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var header = document.getElementById('site-header');
+      function updateHeader() {
+        if (window.scrollY > 16) {
+          header.classList.add('is-scrolled');
+        } else {
+          header.classList.remove('is-scrolled');
+        }
+      }
+      window.addEventListener('scroll', updateHeader, { passive: true });
+      updateHeader();
+
+      var modules = {
+        notes: {
+          title: 'Encrypted Quill notes and collapsible checklists',
+          desc: 'Write rich notes with inline tables, on-device OCR scanning, and locked vault entries stored inside SQLCipher.',
+          rows: [
+            ['Database engine', 'SQLCipher AES-256 with WAL'],
+            ['On-device AI', 'Gemini Nano summaries and tone refine'],
+            ['Story cards', 'Multi-slide export with zero cloud upload']
+          ]
+        },
+        finances: {
+          title: 'Dual-account ledger with local SMS auto-import',
+          desc: 'Separate daily operating cash flow from savings vaults, parse bank SMS alerts on-device, and settle group Split Bills.',
+          rows: [
+            ['Account model', 'Daily Operating and Savings Vault'],
+            ['Budget alerts', '80% and 100% monthly category checks'],
+            ['Split bills', 'Offline receipt OCR and debt simplification']
+          ]
+        },
+        sync: {
+          title: 'Zero-cloud Wi-Fi sync and browser companion',
+          desc: 'Merge devices over local Wi-Fi on port 8765 or unlock the read-only browser companion on your desktop with a 6-digit pair code.',
+          rows: [
+            ['Transport', 'Local HTTP 8765 and UDP 8766 discovery'],
+            ['Browser access', 'Pair-code session token, locked notes excluded'],
+            ['Conflict strategy', 'Two-way LWW merge with tombstone tracking']
+          ]
+        },
+        health: {
+          title: 'Outlier-aware cycle and ovulation tracking',
+          desc: 'Log cycles privately with local prediction math that ignores irregular outliers and sends discreet system reminders.',
+          rows: [
+            ['Prediction window', 'Filters cycles under 15 or over 60 days'],
+            ['Privacy controls', 'Dedicated Health tab lock and custom alert text'],
+            ['Storage', '100% local encrypted SQLite tables']
+          ]
+        }
+      };
+
+      var titleEl = document.getElementById('preview-title');
+      var descEl = document.getElementById('preview-desc');
+      var rowsEl = document.getElementById('preview-rows');
+
+      function renderModule(key) {
+        var mod = modules[key] || modules.notes;
+        titleEl.textContent = mod.title;
+        descEl.textContent = mod.desc;
+        rowsEl.innerHTML = '';
+        mod.rows.forEach(function (pair) {
+          var row = document.createElement('div');
+          row.className = 'preview-row';
+          var strong = document.createElement('strong');
+          strong.textContent = pair[0];
+          var span = document.createElement('span');
+          span.textContent = pair[1];
+          row.appendChild(strong);
+          row.appendChild(span);
+          rowsEl.appendChild(row);
+        });
+      }
+
+      document.querySelectorAll('input[name="module"]').forEach(function (input) {
+        input.addEventListener('change', function (e) {
+          renderModule(e.target.value);
+        });
+      });
+
+      document.querySelectorAll('input[name="surface"]').forEach(function (input) {
+        input.addEventListener('change', function (e) {
+          document.documentElement.setAttribute('data-theme', e.target.value);
+        });
+      });
+
+      document.querySelectorAll('input[name="accent"]').forEach(function (input) {
+        input.addEventListener('change', function (e) {
+          document.documentElement.setAttribute('data-accent', e.target.value);
+        });
+      });
+
+      var airgapToggle = document.getElementById('airgap-toggle');
+      var airgapLabel = document.getElementById('airgap-label');
+      airgapToggle.addEventListener('change', function () {
+        if (airgapToggle.checked) {
+          airgapLabel.textContent = 'Strict offline mode active: 0 external requests';
+        } else {
+          airgapLabel.textContent = 'Local Wi-Fi sync enabled on port 8765 only';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

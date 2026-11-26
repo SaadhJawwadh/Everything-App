@@ -308,38 +308,15 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
       label: formattedForecast != null
           ? 'Estimated month end spending: $formattedForecast'
           : 'Average spending: $formattedAvg per month',
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-        decoration: BoxDecoration(
-          color: colorScheme.secondaryContainer.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: colorScheme.outlineVariant.withValues(alpha: 0.35),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              formattedForecast != null
-                  ? 'Est ~$formattedForecast'
-                  : 'Avg ~$formattedAvg/mo',
-              style: textTheme.labelSmall?.copyWith(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: colorScheme.onSecondaryContainer,
-              ),
-            ),
-            if (formattedForecast != null) ...[
-              const SizedBox(width: 3),
-              Icon(
-                Icons.auto_awesome_rounded,
-                size: 11,
-                color: colorScheme.primary,
-              ),
-            ],
-          ],
+      child: Text(
+        formattedForecast != null
+            ? 'Est ~$formattedForecast'
+            : 'Avg ~$formattedAvg/mo',
+        style: textTheme.labelSmall?.copyWith(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: colorScheme.onSurfaceVariant,
+          fontFeatures: const [FontFeature.tabularFigures()],
         ),
       ),
     );
@@ -355,19 +332,13 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
         ? '${(rem / 1000).toStringAsFixed(1)}k'
         : rem.toStringAsFixed(0);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: colorScheme.primaryContainer.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        '${widget.currency} $formatted left',
-        style: textTheme.labelSmall?.copyWith(
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-          color: colorScheme.onPrimaryContainer,
-        ),
+    return Text(
+      '${widget.currency} $formatted left',
+      style: textTheme.labelSmall?.copyWith(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: colorScheme.primary,
+        fontFeatures: const [FontFeature.tabularFigures()],
       ),
     );
   }
@@ -546,6 +517,7 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                             style: textTheme.labelMedium?.copyWith(
                               color: colorScheme.onSurface,
                               fontWeight: FontWeight.bold,
+                              fontFeatures: const [FontFeature.tabularFigures()],
                             ),
                           ),
                           TextSpan(
@@ -582,6 +554,7 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                             style: textTheme.labelMedium?.copyWith(
                               color: colorScheme.primary,
                               fontWeight: FontWeight.bold,
+                              fontFeatures: const [FontFeature.tabularFigures()],
                             ),
                           ),
                         ],
@@ -747,7 +720,7 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                           Text(
                             'Total',
                             style: textTheme.labelSmall?.copyWith(
-                              fontSize: 9,
+                              fontSize: 11,
                               color: colorScheme.onSurfaceVariant,
                             ),
                           ),
@@ -807,6 +780,7 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                         fontWeight: FontWeight.bold,
                         color: colorScheme.onSurfaceVariant,
                         fontSize: 11,
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
                   ],
@@ -878,7 +852,7 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                       Text(
                         'Spent',
                         style: textTheme.labelSmall?.copyWith(
-                          fontSize: 9,
+                          fontSize: 11,
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
@@ -900,7 +874,7 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                     'Daily Safe-to-Spend',
                     style: textTheme.labelSmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
-                      fontSize: 10,
+                      fontSize: 11,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -920,8 +894,9 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                   Text(
                     '${forecast.remainingDays} days left',
                     style: textTheme.labelSmall?.copyWith(
-                      fontSize: 10,
+                      fontSize: 11,
                       color: colorScheme.onSurfaceVariant,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                 ],
@@ -930,7 +905,7 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
 
             const SizedBox(width: AppLayout.spaceM),
 
-            // Right Column: Projected Month-End & Status Pill
+            // Right Column: Projected Month-End & Status
             Expanded(
               flex: 5,
               child: Column(
@@ -941,7 +916,7 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                     'Projected Month-End',
                     style: textTheme.labelSmall?.copyWith(
                       color: colorScheme.onSurfaceVariant,
-                      fontSize: 10,
+                      fontSize: 11,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -957,24 +932,15 @@ class _MinimalChartDeckState extends State<MinimalChartDeck> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 3),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                    decoration: BoxDecoration(
+                  const SizedBox(height: 2),
+                  Text(
+                    statusText,
+                    style: textTheme.labelSmall?.copyWith(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
                       color: isOverBudget
-                          ? colorScheme.errorContainer
-                          : colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      statusText,
-                      style: textTheme.labelSmall?.copyWith(
-                        fontSize: 8.5,
-                        fontWeight: FontWeight.bold,
-                        color: isOverBudget
-                            ? colorScheme.onErrorContainer
-                            : colorScheme.onPrimaryContainer,
-                      ),
+                          ? colorScheme.error
+                          : colorScheme.primary,
                     ),
                   ),
                 ],

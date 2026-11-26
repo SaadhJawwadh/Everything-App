@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/services/app_haptics.dart';
 import '../../core/theme/app_layout.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/ui/app_card.dart';
 import '../../features/notes/presentation/widgets/note_migration_sheet.dart';
 import 'keyboard_shortcuts_dialog.dart';
@@ -129,7 +130,7 @@ class HomeTipCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: AppCard(
-        padding: const EdgeInsets.fromLTRB(14, 12, 12, 10),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -149,28 +150,39 @@ class HomeTipCard extends StatelessWidget {
                     color: colorScheme.onPrimaryContainer,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            'PRO-TIP',
-                            style: textTheme.labelSmall?.copyWith(
-                              color: colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.8,
-                              fontSize: 10,
-                            ),
+                      Text(
+                        'Pro tip',
+                        style: textTheme.labelLarge?.copyWith(
+                          fontFamily: AppTheme.fontGoogleSansFlex,
+                          fontFamilyFallback: AppTheme.fontFallbacks,
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13.0,
+                          letterSpacing: 0.0,
+                          fontVariations: AppTheme.buildFontVariations(
+                            size: 13.0,
+                            brightness: theme.brightness,
+                            weight: 600,
                           ),
-                        ],
+                        ),
                       ),
                       Text(
                         tip.title,
                         style: textTheme.titleSmall?.copyWith(
+                          fontFamily: AppTheme.fontGoogleSansFlex,
+                          fontFamilyFallback: AppTheme.fontFallbacks,
                           fontWeight: FontWeight.w600,
+                          fontSize: 15.0,
+                          fontVariations: AppTheme.buildFontVariations(
+                            size: 15.0,
+                            brightness: theme.brightness,
+                            weight: 600,
+                          ),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -178,39 +190,33 @@ class HomeTipCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 18),
-                  tooltip: 'Dismiss tip',
-                  visualDensity: VisualDensity.compact,
-                  onPressed: onDismiss,
-                ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text(
               tip.description,
-              style: textTheme.bodySmall?.copyWith(
-                 color: colorScheme.onSurfaceVariant,
-                height: 1.35,
+              style: textTheme.bodyMedium?.copyWith(
+                fontFamily: AppTheme.fontInter,
+                fontFamilyFallback: AppTheme.fontFallbacks,
+                fontSize: 13.5,
+                color: colorScheme.onSurfaceVariant,
+                height: 1.4,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 TextButton(
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    visualDensity: VisualDensity.compact,
-                  ),
                   onPressed: () {
                     AppHaptics.selectionClick();
                     onDisable();
                   },
                   child: Text(
                     "Don't show tips",
-                    style: textTheme.labelSmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                    style: textTheme.labelLarge?.copyWith(
+                      fontSize: 13.0,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -219,29 +225,22 @@ class HomeTipCard extends StatelessWidget {
                   children: [
                     if (tip.actionLabel != null && tip.onAction != null) ...[
                       TextButton.icon(
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          visualDensity: VisualDensity.compact,
-                        ),
                         onPressed: tip.onAction!,
-                        icon: const Icon(Icons.arrow_forward_rounded, size: 14),
+                        icon: const Icon(Icons.arrow_forward_rounded, size: 16),
                         label: Text(
                           tip.actionLabel!,
-                          style: textTheme.labelSmall?.copyWith(
+                          style: textTheme.labelLarge?.copyWith(
+                            fontSize: 13.5,
                             color: colorScheme.primary,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
                     ],
                     FilledButton.tonal(
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        visualDensity: VisualDensity.compact,
-                      ),
                       onPressed: onDismiss,
-                      child: const Text('Got it', style: TextStyle(fontSize: 12)),
+                      child: const Text('Got it'),
                     ),
                   ],
                 ),

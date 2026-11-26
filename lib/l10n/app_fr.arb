@@ -301,5 +301,8 @@
   "lockHealthSubtitle": "Authentification requise pour ouvrir Santé",
   "screenshotShield": "Protection contre les captures",
   "screenshotShieldSubtitle": "Bloquer les captures et l’enregistrement d’écran sur Android",
-  "lockAppNow": "Verrouiller l’app maintenant"
+  "lockAppNow": "Verrouiller l’app maintenant",
+  "hideWidgetDataWhenLocked": "Masquer le contenu du widget si verrouillé",
+  "hideWidgetDataWhenLockedSubtitle": "Masquer les soldes avec •••• et cacher les tâches sur les widgets lorsque verrouillé",
+  "financesDisabledShortcutHint": "Activez le gestionnaire financier dans les Paramètres pour utiliser ce raccourci"
 }

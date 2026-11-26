@@ -1018,4 +1018,16 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get lockAppNow => 'Bloquear app ahora';
+
+  @override
+  String get hideWidgetDataWhenLocked =>
+      'Ocultar contenido del widget al bloquear';
+
+  @override
+  String get hideWidgetDataWhenLockedSubtitle =>
+      'Ocultar saldos con •••• y esconder tareas en los widgets cuando esté bloqueado';
+
+  @override
+  String get financesDisabledShortcutHint =>
+      'Activa el Gestor Financiero en Ajustes para usar este acceso directo';
 }

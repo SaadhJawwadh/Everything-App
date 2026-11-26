@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
-    android:targetCellWidth="3"
-    android:targetCellHeight="2"
-    android:minWidth="180dp"
-    android:minHeight="110dp"
-    android:minResizeWidth="180dp"
-    android:minResizeHeight="110dp"
-    android:updatePeriodMillis="1800000"
-    android:initialLayout="@layout/finance_widget_layout"
-    android:previewImage="@mipmap/ic_launcher"
-    android:previewLayout="@layout/finance_widget_layout"
     android:description="@string/finance_widget_description"
+    android:initialLayout="@layout/finance_widget_layout"
+    android:maxResizeHeight="360dp"
+    android:minHeight="110dp"
+    android:minResizeHeight="56dp"
+    android:minResizeWidth="140dp"
+    android:minWidth="250dp"
+    android:previewImage="@drawable/preview_finance_fallback"
+    android:previewLayout="@layout/preview_finance_widget"
     android:resizeMode="horizontal|vertical"
-    android:widgetCategory="home_screen">
-</appwidget-provider>
+    android:targetCellHeight="2"
+    android:targetCellWidth="4"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen" />

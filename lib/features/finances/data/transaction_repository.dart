@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import '../../../data/database_helper.dart';
@@ -630,6 +631,7 @@ class TransactionRepository {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     });
+    unawaited(WidgetHelper.updateWidgetData());
   }
 
   Future<void> deleteCategoryDefinition(String name) async {
@@ -654,6 +656,7 @@ class TransactionRepository {
         whereArgs: [name],
       );
     });
+    unawaited(WidgetHelper.updateWidgetData());
   }
 
   Future<List<SmsContact>> getAllSmsContacts() async {

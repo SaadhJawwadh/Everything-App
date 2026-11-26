@@ -1921,6 +1921,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Lock App Now'**
   String get lockAppNow;
+
+  /// No description provided for @hideWidgetDataWhenLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide Widget Content When Locked'**
+  String get hideWidgetDataWhenLocked;
+
+  /// No description provided for @hideWidgetDataWhenLockedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mask financial balances with •••• and hide tasks on home screen widgets when locked'**
+  String get hideWidgetDataWhenLockedSubtitle;
+
+  /// No description provided for @financesDisabledShortcutHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Financial Manager in Settings to use this shortcut'**
+  String get financesDisabledShortcutHint;
 }
 
 class _AppLocalizationsDelegate

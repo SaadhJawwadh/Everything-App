@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/ui/app_card.dart';
 import '../../../settings/providers/settings_provider.dart';
 import '../../../../services/local_ai_service.dart';
 
@@ -56,24 +57,37 @@ class NoteAiOptionsSheet {
 
             Widget buildSectionHeader(String title, IconData icon) {
               return Padding(
-                padding: const EdgeInsets.fromLTRB(2, 10, 2, 4),
+                padding: const EdgeInsets.fromLTRB(2, 12, 2, 6),
                 child: Row(
                   children: [
-                    Icon(icon, size: 14, color: colorScheme.primary),
+                    Icon(icon, size: 16, color: colorScheme.primary),
                     const SizedBox(width: 6),
                     Text(
-                      title.toUpperCase(),
-                      style: theme.textTheme.labelSmall?.copyWith(
+                      title,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontFamily: AppTheme.fontGoogleSansFlex,
+                        fontFamilyFallback: AppTheme.fontFallbacks,
+                        fontSize: 13.0,
                         color: colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.7,
-                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        fontVariations: AppTheme.buildFontVariations(
+                          size: 13.0,
+                          brightness: theme.brightness,
+                          weight: 600,
+                        ),
                       ),
                     ),
                   ],
                 ),
               );
             }
+
+            final engineSummary = settings.isDeviceAiSupported
+                ? 'Android AI Core · 100% offline'
+                : 'Offline NLP engine · 100% private';
+            final scopeSummary = isSelection
+                ? 'Selected text (${targetText.length} chars)'
+                : 'Entire note (${targetText.length} chars)';
 
             return SafeArea(
               child: Padding(
@@ -87,128 +101,40 @@ class NoteAiOptionsSheet {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        (() {
-                          final badgeColor = settings.isDeviceAiSupported
-                              ? (theme.extension<AppSemanticColors>()?.success ?? colorScheme.primary)
-                              : colorScheme.tertiary;
-                          return Center(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: badgeColor.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(AppLayout.radiusMAX),
-                                border: Border.all(
-                                  color: badgeColor.withValues(alpha: 0.35),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 7,
-                                    height: 7,
-                                    decoration: BoxDecoration(
-                                      color: badgeColor,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    settings.isDeviceAiSupported
-                                        ? 'NPU Hardware Ready • 100% Offline'
-                                        : 'Offline NLP Engines • 100% Offline',
-                                    style: theme.textTheme.labelSmall?.copyWith(
-                                      color: badgeColor,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 10,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        })(),
-                        const SizedBox(height: 10),
                         Center(
                           child: Container(
-                            padding: const EdgeInsets.all(8),
+                            padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
                               color: colorScheme.primaryContainer,
                               shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: colorScheme.primary.withValues(alpha: 0.15),
-                                  blurRadius: 8,
-                                  spreadRadius: 1,
-                                ),
-                              ],
                             ),
                             child: Icon(
                               Icons.auto_awesome_rounded,
-                              size: 20,
+                              size: 22,
                               color: colorScheme.onPrimaryContainer,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
                         Text(
                           'On-Device Gemini AI',
                           style: theme.textTheme.titleMedium?.copyWith(
+                            fontFamily: AppTheme.fontGoogleSansFlex,
+                            fontFamilyFallback: AppTheme.fontFallbacks,
                             fontWeight: FontWeight.bold,
                             letterSpacing: -0.2,
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 4),
                         Text(
-                          settings.isDeviceAiSupported
-                              ? 'Powered by Android AI Core • 100% Offline & Private'
-                              : 'Powered by offline rules & patterns • 100% Offline & Private',
-                          style: theme.textTheme.labelSmall?.copyWith(
+                          '$engineSummary · $scopeSummary',
+                          style: theme.textTheme.bodyMedium?.copyWith(
                             color: colorScheme.onSurfaceVariant,
-                            fontSize: 11,
+                            fontSize: 13.0,
+                            fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                           textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-
-                        // Context Badge
-                        Center(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: isSelection
-                                  ? colorScheme.primaryContainer.withValues(alpha: 0.7)
-                                  : colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(AppLayout.radiusMAX),
-                              border: Border.all(
-                                color: isSelection
-                                    ? colorScheme.primary.withValues(alpha: 0.3)
-                                    : colorScheme.outlineVariant.withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  isSelection ? Icons.highlight_rounded : Icons.article_outlined,
-                                  size: 13,
-                                  color: isSelection ? colorScheme.primary : colorScheme.onSurfaceVariant,
-                                ),
-                                const SizedBox(width: 5),
-                                Text(
-                                  isSelection
-                                      ? 'Selected text only (${targetText.length} chars)'
-                                      : 'Entire note (${targetText.length} chars)',
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: isSelection ? colorScheme.primary : colorScheme.onSurfaceVariant,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
                         ),
                         const SizedBox(height: 12),
 
@@ -250,6 +176,7 @@ class NoteAiOptionsSheet {
                             icon: Icons.spellcheck_rounded,
                             title: 'Proofread & Fix Grammar',
                             subtitle: 'Fix spelling, grammar, and punctuation cleanly',
+                            groupPosition: AppCardGroupPosition.first,
                             onTap: () async {
                               final nav = Navigator.of(sheetContext);
                               if (targetText.isEmpty) {
@@ -283,12 +210,13 @@ class NoteAiOptionsSheet {
                               }
                             },
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 2),
                           _buildAiTile(
                             context: sheetContext,
                             icon: Icons.auto_fix_high_rounded,
                             title: 'Improve Fluency',
                             subtitle: 'Enhance vocabulary, flow, and sentence variety',
+                            groupPosition: AppCardGroupPosition.middle,
                             onTap: () async {
                               final nav = Navigator.of(sheetContext);
                               if (targetText.isEmpty) {
@@ -322,12 +250,13 @@ class NoteAiOptionsSheet {
                               }
                             },
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 2),
                           _buildAiTile(
                             context: sheetContext,
                             icon: Icons.work_outline_rounded,
                             title: 'Make Professional',
                             subtitle: 'Polite, clear, and business-ready tone',
+                            groupPosition: AppCardGroupPosition.middle,
                             onTap: () async {
                               final nav = Navigator.of(sheetContext);
                               if (targetText.isEmpty) {
@@ -361,12 +290,13 @@ class NoteAiOptionsSheet {
                               }
                             },
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 2),
                           _buildAiTile(
                             context: sheetContext,
                             icon: Icons.compress_rounded,
                             title: 'Summarize & Shorten',
                             subtitle: 'Condense into concise, punchy bullet points',
+                            groupPosition: AppCardGroupPosition.middle,
                             onTap: () async {
                               final nav = Navigator.of(sheetContext);
                               if (targetText.isEmpty) {
@@ -400,12 +330,13 @@ class NoteAiOptionsSheet {
                               }
                             },
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 2),
                           _buildAiTile(
                             context: sheetContext,
                             icon: Icons.unfold_more_rounded,
                             title: 'Elaborate & Expand',
                             subtitle: 'Flesh out quick notes into structured paragraphs',
+                            groupPosition: AppCardGroupPosition.last,
                             onTap: () async {
                               final nav = Navigator.of(sheetContext);
                               if (targetText.isEmpty) {
@@ -448,6 +379,7 @@ class NoteAiOptionsSheet {
                               icon: Icons.title_rounded,
                               title: 'Suggest Title',
                               subtitle: 'Generate a clean title from note content',
+                              groupPosition: AppCardGroupPosition.first,
                               onTap: () async {
                                 final nav = Navigator.of(sheetContext);
                                 if (targetText.isEmpty) {
@@ -481,12 +413,13 @@ class NoteAiOptionsSheet {
                                 }
                               },
                             ),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 2),
                             _buildAiTile(
                               context: sheetContext,
                               icon: Icons.label_outline_rounded,
                               title: 'Suggest Tags',
                               subtitle: 'Auto-detect topics and apply tags',
+                              groupPosition: AppCardGroupPosition.middle,
                               onTap: () async {
                                 final nav = Navigator.of(sheetContext);
                                 if (targetText.isEmpty) {
@@ -520,12 +453,13 @@ class NoteAiOptionsSheet {
                                 });
                               },
                             ),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 2),
                             _buildAiTile(
                               context: sheetContext,
                               icon: Icons.summarize_outlined,
                               title: 'Generate Summary Card',
                               subtitle: 'Create a permanent summary header on this note',
+                              groupPosition: AppCardGroupPosition.last,
                               onTap: () async {
                                 final nav = Navigator.of(sheetContext);
                                 if (targetText.isEmpty) {
@@ -708,51 +642,49 @@ class NoteAiOptionsSheet {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    AppCardGroupPosition groupPosition = AppCardGroupPosition.none,
   }) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(AppLayout.radiusM),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
-          width: 0.8,
-        ),
-      ),
+    return AppCard(
+      groupPosition: groupPosition,
+      backgroundColor: colorScheme.surfaceContainerLow,
+      padding: EdgeInsets.zero,
       child: ListTile(
         dense: true,
-        visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppLayout.radiusM)),
         leading: Container(
-          padding: const EdgeInsets.all(6),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: colorScheme.primaryContainer.withValues(alpha: 0.35),
-            borderRadius: BorderRadius.circular(AppLayout.radiusS),
+            color: colorScheme.primaryContainer.withValues(alpha: 0.4),
+            shape: BoxShape.circle,
           ),
           child: Icon(icon, size: 18, color: colorScheme.primary),
         ),
         title: Text(
           title,
           style: theme.textTheme.titleSmall?.copyWith(
+            fontFamily: AppTheme.fontGoogleSansFlex,
+            fontFamilyFallback: AppTheme.fontFallbacks,
             fontWeight: FontWeight.w600,
             color: colorScheme.onSurface,
-            fontSize: 13.5,
+            fontSize: 14.0,
           ),
         ),
         subtitle: Text(
           subtitle,
-          style: theme.textTheme.bodySmall?.copyWith(
+          style: theme.textTheme.bodyMedium?.copyWith(
             color: colorScheme.onSurfaceVariant,
-            fontSize: 11.5,
-            height: 1.15,
+            fontSize: 13.0,
+            height: 1.25,
           ),
         ),
-        trailing: Icon(Icons.chevron_right_rounded,
-            size: 18, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+        trailing: Icon(
+          Icons.chevron_right_rounded,
+          size: 18,
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
         onTap: onTap,
       ),
     );

@@ -315,5 +315,8 @@
   "lockHealthSubtitle": "Требовать вход для открытия «Здоровья»",
   "screenshotShield": "Защита от скриншотов",
   "screenshotShieldSubtitle": "Блокировать скриншоты и запись экрана на Android",
-  "lockAppNow": "Заблокировать сейчас"
+  "lockAppNow": "Заблокировать сейчас",
+  "hideWidgetDataWhenLocked": "Скрывать данные виджета при блокировке",
+  "hideWidgetDataWhenLockedSubtitle": "Маскировать балансы символами •••• и скрывать задачи на виджетах при блокировке",
+  "financesDisabledShortcutHint": "Включите «Финансовый менеджер» в настройках, чтобы использовать этот ярлык"
 }

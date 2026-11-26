@@ -77,7 +77,11 @@ class FinanceHeroSummaryCard extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           '$currency ${amount.toStringAsFixed(0)}',
-          style: tt.titleSmall?.copyWith(color: color, fontWeight: FontWeight.bold),
+          style: tt.titleSmall?.copyWith(
+            color: color,
+            fontWeight: FontWeight.bold,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
         ),
       ],
     );
@@ -169,7 +173,7 @@ class FinanceHeroSummaryCard extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                isPositive ? 'Net Savings Surplus' : 'Net Cash Flow Deficit',
+                isPositive ? 'Net cash flow' : 'Net deficit',
                 style: tt.labelSmall?.copyWith(color: onColor.withValues(alpha: 0.8)),
               ),
             ],
@@ -243,6 +247,7 @@ class FinanceHeroSummaryCard extends StatelessWidget {
                                   fontFamilyFallback: AppTheme.fontFallbacks,
                                   color: onColor,
                                   fontWeight: selectedAccount == AccountType.daily ? FontWeight.bold : FontWeight.w500,
+                                  fontFeatures: const [FontFeature.tabularFigures()],
                                   fontVariations: AppTheme.buildFontVariations(
                                     size: tt.labelSmall?.fontSize ?? 11.0,
                                     brightness: Theme.of(context).brightness,
@@ -320,6 +325,7 @@ class FinanceHeroSummaryCard extends StatelessWidget {
                                   fontFamilyFallback: AppTheme.fontFallbacks,
                                   color: onColor,
                                   fontWeight: selectedAccount == AccountType.savings ? FontWeight.bold : FontWeight.w500,
+                                  fontFeatures: const [FontFeature.tabularFigures()],
                                   fontVariations: AppTheme.buildFontVariations(
                                     size: tt.labelSmall?.fontSize ?? 11.0,
                                     brightness: Theme.of(context).brightness,

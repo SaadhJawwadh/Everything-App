@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
 /// Visual theme presets for the Story Card.
+///
+/// Enum identifiers are preserved for backward compatibility with persisted
+/// user preferences while providing art-directed poster palettes.
 enum StoryCardThemePreset {
-  editorial('Editorial', Icons.menu_book_rounded),
-  obsidianAura('Obsidian Aura', Icons.auto_awesome_rounded),
-  velvetOled('Velvet OLED', Icons.dark_mode_rounded),
-  frostedGlassLuxe('Frosted Luxe', Icons.blur_on_rounded),
-  noteTint('Note Accent', Icons.color_lens_outlined),
+  editorial('Gallery', Icons.crop_portrait_rounded),
+  obsidianAura('Forest', Icons.park_outlined),
+  velvetOled('Cobalt', Icons.palette_outlined),
+  frostedGlassLuxe('Silver', Icons.layers_outlined),
+  noteTint('Note Tint', Icons.color_lens_outlined),
   terminal('Terminal', Icons.terminal_rounded);
 
   final String label;
@@ -14,18 +17,13 @@ enum StoryCardThemePreset {
   const StoryCardThemePreset(this.label, this.icon);
 }
 
-/// Resolved color and visual styling properties for a Story Card theme.
+/// Resolved color and typographic styling properties for a Story Card theme.
 class StoryCardThemeStyle {
   final Color background;
   final Color text;
   final Color accent;
   final Color subtext;
   final Color border;
-  final Color categoryBg;
-  final Color categoryText;
-  final bool hasAuraGlow;
-  final List<Color>? auraColors;
-  final bool isFrostedGlass;
   final bool isEditorial;
   final bool isTerminal;
 
@@ -35,16 +33,12 @@ class StoryCardThemeStyle {
     required this.accent,
     required this.subtext,
     required this.border,
-    required this.categoryBg,
-    required this.categoryText,
-    this.hasAuraGlow = false,
-    this.auraColors,
-    this.isFrostedGlass = false,
     this.isEditorial = false,
     this.isTerminal = false,
   });
 
-  /// Resolves the concrete [StoryCardThemeStyle] given the preset, app theme, and optional note color.
+  /// Resolves the concrete [StoryCardThemeStyle] given the preset, app theme,
+  /// and optional note color.
   factory StoryCardThemeStyle.resolve({
     required StoryCardThemePreset preset,
     required ThemeData appTheme,
@@ -53,88 +47,76 @@ class StoryCardThemeStyle {
     switch (preset) {
       case StoryCardThemePreset.editorial:
         return const StoryCardThemeStyle(
-          background: Color(0xFFFBF8F2),
-          text: Color(0xFF1E1E1E),
-          accent: Color(0xFF8B2500),
-          subtext: Color(0xFF5A5A5A),
-          border: Color(0xFFE5DFD3),
-          categoryBg: Color(0xFF8B2500),
-          categoryText: Color(0xFFFFF7F2),
+          background: Color(0xFFF7F8FA),
+          text: Color(0xFF0E1116),
+          accent: Color(0xFFC82E16),
+          subtext: Color(0xFF4B5362),
+          border: Color(0xFFD8DDE6),
           isEditorial: true,
         );
 
       case StoryCardThemePreset.obsidianAura:
         return const StoryCardThemeStyle(
-          background: Color(0xFF0C0E14),
-          text: Color(0xFFF8F9FA),
-          accent: Color(0xFF818CF8),
-          subtext: Color(0xFF94A3B8),
-          border: Color(0xFF1E293B),
-          categoryBg: Color(0x336366F1),
-          categoryText: Color(0xFFC7D2FE),
-          hasAuraGlow: true,
-          auraColors: [
-            Color(0x406366F1), // Indigo
-            Color(0x30A855F7), // Purple
-            Color(0x000C0E14),
-          ],
+          background: Color(0xFF0A2219),
+          text: Color(0xFFF2F6F3),
+          accent: Color(0xFFC5EE6B),
+          subtext: Color(0xFF9CB5A8),
+          border: Color(0xFF1B3D2F),
         );
 
       case StoryCardThemePreset.velvetOled:
-        return StoryCardThemeStyle(
-          background: Colors.black,
-          text: const Color(0xFFF5F5F7),
-          accent: appTheme.colorScheme.primary,
-          subtext: const Color(0xFFA1A1AA),
-          border: const Color(0x2EFFFFFF),
-          categoryBg: appTheme.colorScheme.primaryContainer.withValues(alpha: 0.35),
-          categoryText: appTheme.colorScheme.primary,
+        return const StoryCardThemeStyle(
+          background: Color(0xFF1239D6),
+          text: Color(0xFFFFFFFF),
+          accent: Color(0xFFFFE14D),
+          subtext: Color(0xFFD4E0FF),
+          border: Color(0xFF2E56EE),
         );
 
       case StoryCardThemePreset.frostedGlassLuxe:
         return const StoryCardThemeStyle(
-          background: Color(0xDD12131F),
-          text: Color(0xFFF8FAFC),
-          accent: Color(0xFF38BDF8),
-          subtext: Color(0xFF94A3B8),
-          border: Color(0x4038BDF8),
-          categoryBg: Color(0x3338BDF8),
-          categoryText: Color(0xFFBAE6FD),
-          isFrostedGlass: true,
-          hasAuraGlow: true,
-          auraColors: [
-            Color(0x3D0EA5E9), // Sky blue
-            Color(0x296366F1), // Indigo
-            Color(0x000F172A),
-          ],
+          background: Color(0xFFE1E4E9),
+          text: Color(0xFF101318),
+          accent: Color(0xFF1239D6),
+          subtext: Color(0xFF434B58),
+          border: Color(0xFFC2C8D2),
         );
 
       case StoryCardThemePreset.noteTint:
         final seedColor = noteColorValue != 0
             ? Color(noteColorValue)
-            : appTheme.colorScheme.secondaryContainer;
-        final isBright = seedColor.computeLuminance() > 0.45;
-        final textColor = isBright ? const Color(0xFF18181B) : const Color(0xFFF4EFF4);
-        final accentColor = isBright ? const Color(0xFF311B92) : const Color(0xFFD0BCFF);
+            : appTheme.colorScheme.primaryContainer;
+        final isBright = seedColor.computeLuminance() > 0.42;
+        final textColor = isBright
+            ? const Color(0xFF0E1116)
+            : const Color(0xFFF6F7F9);
+        final hsl = HSLColor.fromColor(seedColor);
+        final Color accentColor;
+        if (hsl.saturation < 0.14) {
+          accentColor = isBright
+              ? const Color(0xFF1239D6)
+              : const Color(0xFFFF5E3A);
+        } else {
+          accentColor = hsl
+              .withLightness(isBright ? 0.24 : 0.82)
+              .withSaturation((hsl.saturation + 0.15).clamp(0.45, 0.92))
+              .toColor();
+        }
         return StoryCardThemeStyle(
           background: seedColor,
           text: textColor,
           accent: accentColor,
-          subtext: textColor.withValues(alpha: 0.72),
+          subtext: textColor.withValues(alpha: 0.74),
           border: textColor.withValues(alpha: 0.16),
-          categoryBg: textColor.withValues(alpha: 0.12),
-          categoryText: textColor,
         );
 
       case StoryCardThemePreset.terminal:
         return const StoryCardThemeStyle(
-          background: Color(0xFF1E1E2E),
-          text: Color(0xFFCDD6F4),
-          accent: Color(0xFF89B4FA),
-          subtext: Color(0xFF7F849C),
-          border: Color(0x4089B4FA),
-          categoryBg: Color(0x2689B4FA),
-          categoryText: Color(0xFF89B4FA),
+          background: Color(0xFF0B0D12),
+          text: Color(0xFFF1F3F5),
+          accent: Color(0xFFFF5E3A),
+          subtext: Color(0xFF9BA3B2),
+          border: Color(0xFF222733),
           isTerminal: true,
         );
     }

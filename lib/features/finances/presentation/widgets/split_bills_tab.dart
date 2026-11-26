@@ -9,7 +9,6 @@ import '../../../../core/theme/app_layout.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/ui/app_bottom_sheet.dart';
 import '../../../../core/ui/app_card.dart';
-import '../../../../core/ui/app_chip.dart';
 import '../../../../core/ui/app_dialog.dart';
 import '../../../../core/ui/edge_fade_mask.dart';
 import '../../../../core/ui/expressive_shape_morph_indicator.dart';
@@ -120,7 +119,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
               AppHaptics.selectionClick();
               AppBottomSheet.show(
                 context: context,
-                title: 'Simplified Plan — $groupTag',
+                title: 'Simplified Plan: $groupTag',
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -132,7 +131,10 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                         title: Text('${t.from} → ${t.to}'),
                         trailing: Text(
                           '$currency ${t.amount.toStringAsFixed(2).replaceAll('.00', '')}',
-                          style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                          style: textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
                         ),
                       ),
                     const SizedBox(height: AppLayout.spaceM),
@@ -146,7 +148,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                         Navigator.pop(context);
                         await SplitShareService.shareText(
                           msg,
-                          subject: 'Settlement Plan — $groupTag',
+                          subject: 'Settlement Plan: $groupTag',
                         );
                       },
                       icon: const Icon(Icons.share_rounded),
@@ -334,12 +336,18 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                               segments: [
                                 ButtonSegment<int>(
                                   value: 0,
-                                  label: Text('People (${splitProvider.contactBalances.length})'),
+                                  label: Text(
+                                    'People (${splitProvider.contactBalances.length})',
+                                    style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()]),
+                                  ),
                                   icon: const Icon(Icons.people_alt_outlined, size: 18),
                                 ),
                                 ButtonSegment<int>(
                                   value: 1,
-                                  label: Text('Bills (${splitProvider.bills.length})'),
+                                  label: Text(
+                                    'Bills (${splitProvider.bills.length})',
+                                    style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()]),
+                                  ),
                                   icon: const Icon(Icons.receipt_long_outlined, size: 18),
                                 ),
                               ],
@@ -532,17 +540,20 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                 ),
               ),
               const SizedBox(width: AppLayout.spaceS),
-              // Net Position Pill
+              // Net Position (plain typographic hierarchy)
               Flexible(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerRight,
-                  child: AppChip(
-                    label: net >= 0
-                        ? '+$currency ${net.toStringAsFixed(2).replaceAll('.00', '')} (Net Owed)'
-                        : '-$currency ${net.abs().toStringAsFixed(2).replaceAll('.00', '')} (Net You Owe)',
-                    backgroundColor: (net >= 0 ? successColor : debtColor).withValues(alpha: 0.18),
-                    textColor: net >= 0 ? successColor : debtColor,
+                  child: Text(
+                    net >= 0
+                        ? '+$currency ${net.toStringAsFixed(2).replaceAll('.00', '')} net owed'
+                        : '-$currency ${net.abs().toStringAsFixed(2).replaceAll('.00', '')} net you owe',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: net >= 0 ? successColor : debtColor,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
                   ),
                 ),
               ),
@@ -551,7 +562,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
           const SizedBox(height: AppLayout.spaceL),
           Row(
             children: [
-              // You are owed metric
+              // You are owed metric (flat tonal surface, no nested border cage)
               Expanded(
                 child: InkWell(
                   onTap: () {
@@ -561,9 +572,8 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                   child: Container(
                     padding: const EdgeInsets.all(AppLayout.spaceM),
                     decoration: BoxDecoration(
-                      color: successColor.withValues(alpha: isDark ? 0.12 : 0.10),
+                      color: successColor.withValues(alpha: isDark ? 0.12 : 0.08),
                       borderRadius: BorderRadius.circular(AppLayout.radiusM),
-                      border: Border.all(color: successColor.withValues(alpha: 0.25)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -599,7 +609,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                 ),
               ),
               const SizedBox(width: AppLayout.spaceM),
-              // You owe metric
+              // You owe metric (flat tonal surface, no nested border cage)
               Expanded(
                 child: InkWell(
                   onTap: () {
@@ -609,9 +619,8 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                   child: Container(
                     padding: const EdgeInsets.all(AppLayout.spaceM),
                     decoration: BoxDecoration(
-                      color: debtColor.withValues(alpha: isDark ? 0.12 : 0.10),
+                      color: debtColor.withValues(alpha: isDark ? 0.12 : 0.08),
                       borderRadius: BorderRadius.circular(AppLayout.radiusM),
-                      border: Border.all(color: debtColor.withValues(alpha: 0.25)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1113,10 +1122,12 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                                       ),
                                       if (bill.groupTag != null && bill.groupTag!.isNotEmpty) ...[
                                         const SizedBox(width: AppLayout.spaceXS),
-                                        AppChip(
-                                          label: bill.groupTag!,
-                                          backgroundColor: TransactionCategory.colorFor(bill.groupTag!).withValues(alpha: 0.15),
-                                          textColor: TransactionCategory.colorFor(bill.groupTag!),
+                                        Text(
+                                          '#${bill.groupTag!}',
+                                          style: theme.textTheme.labelMedium?.copyWith(
+                                            color: TransactionCategory.colorFor(bill.groupTag!),
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
                                       ],
                                     ],
@@ -1124,7 +1135,10 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                                   const SizedBox(height: 2),
                                   Text(
                                     '${DateFormat('MMM d, yyyy').format(bill.date)} • Paid by ${bill.payerName}',
-                                    style: theme.textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                      fontFeatures: const [FontFeature.tabularFigures()],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -1135,45 +1149,44 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                               children: [
                                 Text(
                                   '$currency ${bill.totalAmount.toStringAsFixed(2).replaceAll('.00', '')}',
-                                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontFeatures: const [FontFeature.tabularFigures()],
+                                  ),
                                 ),
                                 const SizedBox(height: 2),
                                 Builder(
                                   builder: (context) {
                                     final String statusLabel;
-                                    final IconData statusIcon;
                                     final Color statusColor;
                                     if (!bill.isPayerUser) {
                                       if (bill.isUserSharePaid) {
                                         statusLabel = 'Settled for You';
-                                        statusIcon = Icons.check_circle_rounded;
                                         statusColor = successColor;
                                       } else {
                                         statusLabel = 'You Owe $currency ${bill.userShare.toStringAsFixed(2).replaceAll('.00', '')}';
-                                        statusIcon = Icons.hourglass_top_rounded;
                                         statusColor = debtColor;
                                       }
                                     } else {
                                       if (isSettled) {
                                         statusLabel = 'Settled';
-                                        statusIcon = Icons.check_circle_rounded;
                                         statusColor = successColor;
                                       } else if (bill.totalReceived > 0) {
                                         statusLabel = 'Partial';
-                                        statusIcon = Icons.timelapse_rounded;
                                         statusColor = colorScheme.primary;
                                       } else {
                                         statusLabel = 'Unsettled';
-                                        statusIcon = Icons.hourglass_top_rounded;
                                         statusColor = colorScheme.tertiary;
                                       }
                                     }
 
-                                    return AppChip(
-                                      label: statusLabel,
-                                      icon: statusIcon,
-                                      backgroundColor: statusColor.withValues(alpha: 0.15),
-                                      textColor: statusColor,
+                                    return Text(
+                                      statusLabel,
+                                      style: theme.textTheme.labelMedium?.copyWith(
+                                        color: statusColor,
+                                        fontWeight: FontWeight.w600,
+                                        fontFeatures: const [FontFeature.tabularFigures()],
+                                      ),
                                     );
                                   },
                                 ),
@@ -1182,99 +1195,91 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                           ],
                         ),
 
-                        // Interactive Status Banner when Someone Else Paid
+                        // Action row when Someone Else Paid (flat 1px divider, no duplicate banner)
                         if (!bill.isPayerUser) ...[
                           const SizedBox(height: AppLayout.spaceM),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: bill.isUserSharePaid
-                                  ? successColor.withValues(alpha: 0.1)
-                                  : colorScheme.errorContainer.withValues(alpha: 0.25),
-                              borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                              border: Border.all(
-                                color: bill.isUserSharePaid
-                                    ? successColor.withValues(alpha: 0.3)
-                                    : colorScheme.error.withValues(alpha: 0.3),
+                          Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+                          ),
+                          const SizedBox(height: AppLayout.spaceS),
+                          Row(
+                            children: [
+                              Icon(
+                                bill.isUserSharePaid ? Icons.check_circle_outline_rounded : Icons.pending_actions_rounded,
+                                size: 18,
+                                color: bill.isUserSharePaid ? successColor : colorScheme.error,
                               ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  bill.isUserSharePaid ? Icons.check_circle_outline_rounded : Icons.pending_actions_rounded,
-                                  size: 18,
-                                  color: bill.isUserSharePaid ? successColor : colorScheme.error,
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  bill.isUserSharePaid
+                                      ? 'Your share is settled with ${bill.payerName}'
+                                      : 'Settle with ${bill.payerName}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: bill.isUserSharePaid ? successColor : colorScheme.error,
+                                  ),
                                 ),
+                              ),
+                              if (bill.isUserSharePaid) ...[
                                 const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    bill.isUserSharePaid
-                                        ? 'Your share of $currency ${bill.userShare.toStringAsFixed(2).replaceAll('.00', '')} is settled with ${bill.payerName}'
-                                        : 'You owe ${bill.payerName}: $currency ${bill.userShare.toStringAsFixed(2).replaceAll('.00', '')}',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: bill.isUserSharePaid ? successColor : colorScheme.error,
-                                    ),
+                                ConstrainedBox(
+                                  constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                                  child: IconButton(
+                                    icon: const Icon(Icons.undo_rounded, size: 18),
+                                    tooltip: 'Reopen your share',
+                                    onPressed: () async {
+                                      final userPart = bill.userParticipant;
+                                      if (userPart != null) {
+                                        await _unsettleParticipant(context, splitProvider, userPart, bill);
+                                      } else {
+                                        final removedTx = await splitProvider.toggleUserShareForBill(bill.id, false);
+                                        if (removedTx != null) {
+                                          await TransactionRepository.instance.deleteTransaction(removedTx);
+                                        }
+                                        FinancialManagerScreen.refreshNotifier.value++;
+                                        if (context.mounted) {
+                                          try {
+                                            await Provider.of<FinancialManagerProvider>(context, listen: false).loadTransactions();
+                                          } catch (_) {}
+                                        }
+                                      }
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).clearSnackBars();
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Reopened your share for "${bill.title}"'),
+                                            behavior: SnackBarBehavior.floating,
+                                          ),
+                                        );
+                                      }
+                                    },
                                   ),
                                 ),
-                                if (bill.isUserSharePaid) ...[
-                                  const SizedBox(width: 8),
-                                  ConstrainedBox(
-                                    constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                                    child: IconButton(
-                                      icon: const Icon(Icons.undo_rounded, size: 18),
-                                      tooltip: 'Reopen your share',
-                                      onPressed: () async {
-                                        final userPart = bill.userParticipant;
-                                        if (userPart != null) {
-                                          await _unsettleParticipant(context, splitProvider, userPart, bill);
-                                        } else {
-                                          final removedTx = await splitProvider.toggleUserShareForBill(bill.id, false);
-                                          if (removedTx != null) {
-                                            await TransactionRepository.instance.deleteTransaction(removedTx);
-                                          }
-                                          FinancialManagerScreen.refreshNotifier.value++;
-                                          if (context.mounted) {
-                                            try {
-                                              await Provider.of<FinancialManagerProvider>(context, listen: false).loadTransactions();
-                                            } catch (_) {}
-                                          }
-                                        }
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(context).clearSnackBars();
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text('Reopened your share for "${bill.title}"'),
-                                              behavior: SnackBarBehavior.floating,
-                                            ),
-                                          );
-                                        }
-                                      },
-                                    ),
+                              ] else ...[
+                                const SizedBox(width: 8),
+                                FilledButton.tonal(
+                                  onPressed: () {
+                                    final userPart = bill.userParticipant;
+                                    SettleUpSheet.show(
+                                      context,
+                                      contactName: bill.payerName,
+                                      netAmount: -bill.userShare,
+                                      specificBill: bill,
+                                      specificParticipant: userPart,
+                                    );
+                                  },
+                                  style: FilledButton.styleFrom(
+                                    visualDensity: VisualDensity.compact,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    shape: const StadiumBorder(),
                                   ),
-                                ] else ...[
-                                  const SizedBox(width: 8),
-                                  FilledButton.tonal(
-                                    onPressed: () {
-                                      final userPart = bill.userParticipant;
-                                      SettleUpSheet.show(
-                                        context,
-                                        contactName: bill.payerName,
-                                        netAmount: -bill.userShare,
-                                        specificBill: bill,
-                                        specificParticipant: userPart,
-                                      );
-                                    },
-                                    style: FilledButton.styleFrom(
-                                      visualDensity: VisualDensity.compact,
-                                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                                      shape: const StadiumBorder(),
-                                    ),
-                                    child: const Text('Settle My Share', style: TextStyle(fontSize: 12)),
-                                  ),
-                                ],
+                                  child: const Text('Settle My Share', style: TextStyle(fontSize: 12)),
+                                ),
                               ],
-                            ),
+                            ],
                           ),
                         ],
 
@@ -1292,11 +1297,17 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                             children: [
                               Text(
                                 'Received $currency ${totalReceived.toStringAsFixed(2).replaceAll('.00', '')} of ${totalExpected.toStringAsFixed(2).replaceAll('.00', '')}',
-                                style: theme.textTheme.labelSmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                  fontFeatures: const [FontFeature.tabularFigures()],
+                                ),
                               ),
                               Text(
                                 '${bill.participants.where((p) => p.hasPaid && p.contactName.toLowerCase() != 'you').length}/${bill.participants.where((p) => p.contactName.toLowerCase() != 'you').length} Paid',
-                                style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  fontFeatures: const [FontFeature.tabularFigures()],
+                                ),
                               ),
                             ],
                           ),
@@ -1411,9 +1422,6 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                                         ? successColor.withValues(alpha: 0.12)
                                         : colorScheme.surfaceContainerHighest,
                                     borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                                    border: Border.all(
-                                      color: p.hasPaid ? successColor.withValues(alpha: 0.3) : Colors.transparent,
-                                    ),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -1433,6 +1441,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                                         style: theme.textTheme.labelSmall?.copyWith(
                                           color: p.hasPaid ? successColor : colorScheme.onSurface,
                                           fontWeight: p.hasPaid ? FontWeight.bold : FontWeight.normal,
+                                          fontFeatures: const [FontFeature.tabularFigures()],
                                         ),
                                       ),
                                     ],
@@ -1578,6 +1587,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                                     : '-$currency ${currentNetBalance.abs().toStringAsFixed(2).replaceAll('.00', '')}'),
                             style: theme.textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.bold,
+                              fontFeatures: const [FontFeature.tabularFigures()],
                               color: currentNetBalance > 0
                                   ? successColor
                                   : (currentNetBalance < 0 ? debtColor : colorScheme.onSurface),
@@ -1709,6 +1719,7 @@ class _SplitBillsTabState extends State<SplitBillsTab> {
                                   '$currency ${shareAmt.toStringAsFixed(2).replaceAll('.00', '')}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
+                                    fontFeatures: const [FontFeature.tabularFigures()],
                                     color: isPaid ? successColor : colorScheme.onSurface,
                                   ),
                                 ),

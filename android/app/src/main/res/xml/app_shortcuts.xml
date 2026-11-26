@@ -12,28 +12,6 @@
             android:targetClass="com.saadhjawwadh.notebook.MainActivity" />
     </shortcut>
     <shortcut
-        android:shortcutId="new_transaction"
-        android:enabled="true"
-        android:icon="@drawable/ic_shortcut_new_transaction"
-        android:shortcutShortLabel="@string/shortcut_new_transaction_short"
-        android:shortcutLongLabel="@string/shortcut_new_transaction_long">
-        <intent
-            android:action="com.saadhjawwadh.notebook.ADD_TRANSACTION"
-            android:targetPackage="com.saadhjawwadh.notebook"
-            android:targetClass="com.saadhjawwadh.notebook.MainActivity" />
-    </shortcut>
-    <shortcut
-        android:shortcutId="scan_receipt"
-        android:enabled="true"
-        android:icon="@drawable/ic_shortcut_scan_receipt"
-        android:shortcutShortLabel="@string/shortcut_scan_receipt_short"
-        android:shortcutLongLabel="@string/shortcut_scan_receipt_long">
-        <intent
-            android:action="com.saadhjawwadh.notebook.SCAN_RECEIPT"
-            android:targetPackage="com.saadhjawwadh.notebook"
-            android:targetClass="com.saadhjawwadh.notebook.MainActivity" />
-    </shortcut>
-    <shortcut
         android:shortcutId="sync_devices"
         android:enabled="true"
         android:icon="@drawable/ic_shortcut_sync"

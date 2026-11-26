@@ -126,8 +126,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Verifies Net Savings Surplus label and trend metrics
-      expect(find.text('Net Savings Surplus'), findsOneWidget);
+      // Verifies Net cash flow label and trend metrics
+      expect(find.text('Net cash flow'), findsOneWidget);
       expect(find.text('Income'), findsOneWidget);
       expect(find.text('Expense'), findsOneWidget);
       expect(find.textContaining('Daily Checking'), findsOneWidget);

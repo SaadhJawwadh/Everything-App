@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/ui/app_card.dart';
-import '../../../../core/ui/app_chip.dart';
 import '../../../../core/ui/app_dialog.dart';
 import 'package:note_taking_app/features/settings/providers/settings_provider.dart';
 import '../../../../data/transaction_model.dart';
@@ -126,7 +125,11 @@ class SavingsGoalsCard extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: goals.length,
-            separatorBuilder: (_, __) => const SizedBox(height: AppLayout.spaceM),
+            separatorBuilder: (_, __) => Divider(
+              height: AppLayout.spaceL * 1.5,
+              thickness: 1,
+              color: colorScheme.outlineVariant.withValues(alpha: 0.35),
+            ),
             itemBuilder: (context, index) {
               final goal = goals[index];
               return _buildGoalRow(context, goal, currencySymbol, provider);
@@ -165,15 +168,11 @@ class SavingsGoalsCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            colorScheme.primaryContainer.withValues(alpha: isDark ? 0.35 : 0.25),
-            colorScheme.tertiaryContainer.withValues(alpha: isDark ? 0.25 : 0.15),
+            colorScheme.primaryContainer.withValues(alpha: isDark ? 0.30 : 0.28),
+            colorScheme.tertiaryContainer.withValues(alpha: isDark ? 0.22 : 0.18),
           ],
         ),
         borderRadius: BorderRadius.circular(AppLayout.radiusL),
-        border: Border.all(
-          color: colorScheme.primary.withValues(alpha: 0.2),
-          width: 1.2,
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,11 +184,10 @@ class SavingsGoalsCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'TOTAL SAVED',
-                    style: theme.textTheme.labelSmall?.copyWith(
+                    'Total saved',
+                    style: theme.textTheme.labelMedium?.copyWith(
                       color: colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.8,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -203,18 +201,12 @@ class SavingsGoalsCard extends StatelessWidget {
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(AppLayout.radiusStadium),
-                ),
-                child: Text(
-                  '${(ratio * 100).toStringAsFixed(0)}% Achieved',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.primary,
-                  ),
+              Text(
+                '${(ratio * 100).toStringAsFixed(0)}% achieved',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.primary,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ],
@@ -236,6 +228,7 @@ class SavingsGoalsCard extends StatelessWidget {
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: colorScheme.onSurfaceVariant,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
               Text(
@@ -243,6 +236,7 @@ class SavingsGoalsCard extends StatelessWidget {
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: colorScheme.onSurfaceVariant,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ],
@@ -268,38 +262,20 @@ class SavingsGoalsCard extends StatelessWidget {
     final isAchieved = goal.isCompleted || (goal.targetAmount > 0 && goal.currentAmount >= goal.targetAmount);
     final isFinishLine = showDelight && !isAchieved && goal.progressPercent >= 75 && goal.remainingAmount > 0;
 
-    return Container(
-      padding: const EdgeInsets.all(AppLayout.spaceL),
-      decoration: BoxDecoration(
-        color: goalColor.withValues(alpha: isDark ? 0.12 : 0.05),
-        borderRadius: BorderRadius.circular(AppLayout.radiusL),
-        border: Border.all(
-          color: goalColor.withValues(
-            alpha: isAchieved && showDelight
-                ? (isDark ? 0.55 : 0.4)
-                : (isFinishLine
-                    ? (isDark ? 0.5 : 0.35)
-                    : (isDark ? 0.35 : 0.22)),
-          ),
-          width: (isAchieved && showDelight) || isFinishLine ? 1.5 : 1.2,
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppLayout.spaceXS),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row 1: Glowing Icon, Title, Badges, 3-dots Menu
+          // Row 1: Icon, Title, Typographic Metadata, 3-dots Menu
           Row(
             children: [
               Container(
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: goalColor.withValues(alpha: 0.2),
+                  color: goalColor.withValues(alpha: isDark ? 0.22 : 0.14),
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: goalColor.withValues(alpha: 0.4),
-                    width: 1.5,
-                  ),
                 ),
                 child: Icon(
                   SavingsGoalModel.getIcon(goal.iconCodePoint),
@@ -320,58 +296,22 @@ class SavingsGoalsCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        AppChip(
-                          label: goal.category,
-                          backgroundColor: goalColor.withValues(alpha: 0.18),
-                          textColor: goalColor,
-                          isCompact: true,
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: (goal.account == AccountType.savings
-                                    ? const Color(0xFF10B981)
-                                    : const Color(0xFF3B82F6))
-                                .withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                goal.account == AccountType.savings
-                                    ? Icons.shield_outlined
-                                    : Icons.account_balance_wallet_outlined,
-                                size: 10,
-                                color: goal.account == AccountType.savings
-                                    ? const Color(0xFF10B981)
-                                    : const Color(0xFF3B82F6),
-                              ),
-                              const SizedBox(width: 3),
-                              Text(
-                                goal.account == AccountType.savings ? 'Savings Vault' : 'Daily Account',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: goal.account == AccountType.savings
-                                      ? const Color(0xFF10B981)
-                                      : const Color(0xFF3B82F6),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 2),
+                    Text(
+                      '${goal.category} · ${goal.account == AccountType.savings ? 'Savings Vault' : 'Daily Account'}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert_rounded, size: 20),
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppLayout.radiusM)),
                 onSelected: (val) {
                   if (val == 'edit') {
@@ -430,56 +370,37 @@ class SavingsGoalsCard extends StatelessWidget {
               Row(
                 children: [
                   if (isAchieved && showDelight)
-                    Container(
-                      margin: const EdgeInsets.only(right: 6),
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                      decoration: BoxDecoration(
-                        color: goalColor.withValues(alpha: 0.22),
-                        borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.celebration_rounded, size: 11, color: goalColor),
-                          const SizedBox(width: 3),
-                          Text(
-                            'Fully Funded',
-                            style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: goalColor),
-                          ),
-                        ],
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Text(
+                        'Fully funded ·',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: goalColor,
+                        ),
                       ),
                     )
                   else if (isFinishLine)
-                    Container(
-                      margin: const EdgeInsets.only(right: 6),
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                      decoration: BoxDecoration(
-                        color: goalColor.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.flag_circle_rounded, size: 12, color: goalColor),
-                          const SizedBox(width: 3),
-                          Text(
-                            'Only $currency ${goal.remainingAmount.toStringAsFixed(0)} left!',
-                            style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: goalColor),
-                          ),
-                        ],
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Text(
+                        '$currency ${goal.remainingAmount.toStringAsFixed(0)} left ·',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: goalColor,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
                       ),
                     )
                   else if (goal.milestoneLabel.isNotEmpty)
-                    Container(
-                      margin: const EdgeInsets.only(right: 6),
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                      decoration: BoxDecoration(
-                        color: goalColor.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                      ),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
                       child: Text(
-                        goal.milestoneLabel,
-                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: goalColor),
+                        '${goal.milestoneLabel} ·',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: goalColor,
+                        ),
                       ),
                     ),
                   Text(
@@ -487,6 +408,7 @@ class SavingsGoalsCard extends StatelessWidget {
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: goalColor,
+                      fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
                 ],
@@ -532,6 +454,7 @@ class SavingsGoalsCard extends StatelessWidget {
                             style: theme.textTheme.bodySmall?.copyWith(
                               fontSize: 11,
                               color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                              fontFeatures: const [FontFeature.tabularFigures()],
                             ),
                           ),
                         ],
@@ -548,6 +471,7 @@ class SavingsGoalsCard extends StatelessWidget {
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   fontWeight: FontWeight.w600,
                                   color: colorScheme.onSurfaceVariant,
+                                  fontFeatures: const [FontFeature.tabularFigures()],
                                 ),
                               ),
                             ],
@@ -558,6 +482,7 @@ class SavingsGoalsCard extends StatelessWidget {
                             style: theme.textTheme.bodySmall?.copyWith(
                               fontSize: 11,
                               color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                              fontFeatures: const [FontFeature.tabularFigures()],
                             ),
                           ),
                         ],

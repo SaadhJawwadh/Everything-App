@@ -1,62 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/todo_item_container"
+    android:id="@+id/todo_item_row"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:minHeight="44dp"
-    android:orientation="horizontal"
+    android:minHeight="48dp"
     android:gravity="center_vertical"
+    android:orientation="horizontal"
     android:paddingStart="2dp"
     android:paddingEnd="8dp"
-    android:paddingTop="1dp"
-    android:paddingBottom="1dp">
+    android:paddingTop="2dp"
+    android:paddingBottom="2dp">
 
     <FrameLayout
-        android:id="@+id/todo_item_check_touch"
+        android:id="@+id/todo_item_checkbox_wrapper"
         android:layout_width="48dp"
-        android:layout_height="44dp"
+        android:layout_height="48dp"
         android:minWidth="48dp"
-        android:minHeight="44dp"
-        android:gravity="center">
+        android:minHeight="48dp"
+        android:clickable="true"
+        android:focusable="true">
 
         <ImageView
             android:id="@+id/todo_item_checkbox"
             android:layout_width="22dp"
             android:layout_height="22dp"
             android:layout_gravity="center"
-            android:src="@drawable/ic_checkbox_unchecked"
-            android:contentDescription="Toggle Task" />
+            android:contentDescription="@string/widget_new_task"
+            android:src="@drawable/ic_checkbox_unchecked" />
     </FrameLayout>
 
     <LinearLayout
         android:id="@+id/todo_item_text_container"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:minHeight="36dp"
+        android:minHeight="48dp"
         android:layout_weight="1"
+        android:clickable="true"
+        android:focusable="true"
         android:gravity="center_vertical"
+        android:orientation="vertical"
         android:paddingStart="4dp"
-        android:paddingEnd="4dp"
-        android:orientation="vertical">
+        android:paddingEnd="4dp">
 
         <TextView
             android:id="@+id/todo_item_text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/google_sans_flex"
-            android:textSize="13.5sp"
-            android:textColor="@color/widget_text_primary"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif"
             android:maxLines="2"
-            android:ellipsize="end" />
+            android:textColor="@color/widget_text_primary"
+            android:textSize="13.5sp" />
 
         <TextView
-            android:id="@+id/todo_item_badge"
+            android:id="@+id/todo_item_source_note"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/google_sans_flex"
-            android:textSize="11sp"
+            android:ellipsize="end"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="1"
             android:textColor="@color/widget_primary"
-            android:textStyle="bold"
+            android:textSize="11sp"
             android:visibility="gone" />
     </LinearLayout>
 

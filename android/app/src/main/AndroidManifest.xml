@@ -36,8 +36,9 @@
 
     <application
         android:label="Everything App"
-        android:name="${applicationName}"
+        android:name=".EverythingApplication"
         android:localeConfig="@xml/locales_config"
+        android:supportsRtl="true"
         android:hardwareAccelerated="true"
         android:enableOnBackInvokedCallback="true"
         android:allowBackup="true"
@@ -119,7 +120,10 @@
             android:value="2" />
 
         <!-- Finance Widget Broadcast Receiver -->
-        <receiver android:name=".FinanceWidgetProvider" android:exported="true">
+        <receiver
+            android:name=".FinanceWidgetProvider"
+            android:label="@string/widget_finance_label"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -139,7 +143,10 @@
         </receiver>
 
         <!-- Todo & Checklist Home Screen Widget Provider -->
-        <receiver android:name=".TodoWidgetProvider" android:exported="true">
+        <receiver
+            android:name=".TodoWidgetProvider"
+            android:label="@string/widget_todo_label"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -161,7 +168,6 @@
         <!-- Todo Widget Action Receiver for 0ms Desktop Interaction -->
         <receiver android:name=".TodoWidgetActionReceiver" android:exported="false">
             <intent-filter>
-                <action android:name="com.saadhjawwadh.notebook.ACTION_CYCLE_NOTE" />
                 <action android:name="com.saadhjawwadh.notebook.ACTION_ITEM_CLICK" />
             </intent-filter>
         </receiver>
@@ -175,11 +181,15 @@
         <!-- Google Tasks-Style Widget List Picker Dialog Activity -->
         <activity
             android:name=".TodoListPickerActivity"
-            android:exported="false"
+            android:exported="true"
             android:theme="@style/Theme.TodoListPicker"
             android:taskAffinity="com.saadhjawwadh.notebook.widget_picker"
             android:launchMode="singleTop"
-            android:excludeFromRecents="true" />
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
 
         <!-- FileProvider for Story Cards clipboard & local image sharing -->
         <provider

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_todo_label">Tareas y notas</string>
+    <string name="widget_finance_label">Finanzas</string>
+    <string name="finance_widget_description">Consulta el gasto de hoy, los totales del mes y tus últimas transacciones desde la pantalla de inicio.</string>
+    <string name="notes_widget_description">Crea una nota o busca todo con un solo toque.</string>
+    <string name="todo_widget_description">Ve, cambia y marca tareas de tus notas directamente en tu pantalla de inicio.</string>
+    <string name="unified_widget_description">Finanzas y notas juntas en un widget unificado Material 3 Expressive.</string>
+
+    <string name="widget_all_action_items">Todas las tareas</string>
+    <string name="widget_checklist_fallback">Lista de tareas</string>
+    <string name="widget_all_tasks_completed">Todas las tareas completadas</string>
+    <string name="widget_tap_plus_to_add">Toca + para añadir una</string>
+    <string name="widget_no_pending_tasks">Sin tareas pendientes</string>
+    <string name="widget_locked_title">Espacio bloqueado</string>
+    <string name="widget_locked_tap_unlock">Toca para desbloquear</string>
+    <string name="widget_finances_disabled">Finanzas desactivadas</string>
+    <string name="widget_finances_disabled_tap">Toca para activar en Ajustes</string>
+
+    <string name="widget_today_label">HOY</string>
+    <string name="widget_spent_month_label">GASTO (MES)</string>
+    <string name="widget_net_label">NETO</string>
+    <string name="widget_month_est_label">EST. MENSUAL</string>
+    <string name="widget_pace_on_track">Al día</string>
+    <string name="widget_pace_fast">Ritmo rápido</string>
+    <string name="widget_pace_exhausted">Presupuesto agotado</string>
+    <string name="widget_sparkline_empty_hint">Añade gastos para ver la tendencia</string>
+
+    <string name="widget_new_note">Nueva nota</string>
+    <string name="widget_new_task">Nueva tarea</string>
+    <string name="widget_search">Buscar</string>
+    <string name="widget_scan_receipt">Escanear recibo</string>
+    <string name="widget_add_transaction">Añadir transacción</string>
+    <string name="widget_view_all_tasks">Ver las %1$d tareas</string>
+
+    <string name="widget_picker_title">Seleccionar lista</string>
+    <string name="widget_picker_subtitle">Elige una lista para el widget</string>
+    <string name="widget_picker_new_checklist">+ Crear nueva lista</string>
+    <string name="widget_picker_cancel">Cancelar</string>
+    <string name="widget_left_count">Faltan %1$d</string>
+    <string name="widget_done_count">%1$d/%2$d hechas</string>
+    <string name="widget_no_tasks_yet">Aún no hay tareas</string>
+    <string name="widget_pending_done_fmt">%1$d pendientes • %2$d hechas</string>
+    <string name="widget_all_done_fmt">Las %1$d tareas completadas</string>
+
+    <string name="shortcut_new_note_short">Nueva nota</string>
+    <string name="shortcut_new_note_long">Crear una nueva nota</string>
+    <string name="shortcut_new_transaction_short">Nueva transacción</string>
+    <string name="shortcut_new_transaction_long">Añadir una nueva transacción</string>
+    <string name="shortcut_search_short">Buscar</string>
+    <string name="shortcut_search_long">Buscar notas y transacciones</string>
+    <string name="shortcut_scan_receipt_short">Escanear recibo</string>
+    <string name="shortcut_scan_receipt_long">Escanear recibo físico con OCR</string>
+    <string name="shortcut_sync_devices_short">Sincronizar</string>
+    <string name="shortcut_sync_devices_long">Sincronización local P2P por Wi-Fi</string>
+    <string name="shortcut_new_checklist_short">Nueva lista</string>
+    <string name="app_function_desc">Espacio privado de Everything App para notas, listas y control financiero</string>
+</resources>

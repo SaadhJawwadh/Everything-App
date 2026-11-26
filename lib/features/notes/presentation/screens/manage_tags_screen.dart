@@ -215,55 +215,60 @@ class _ManageTagsScreenState extends State<ManageTagsScreen> {
                               ? Color(tagColorValue)
                               : null;
 
+                      final reduceMotion = AppLayout.shouldReduceMotion(context);
+                      final tagCard = Semantics(
+                        label: 'Tag: $tag',
+                        child: Card(
+                          elevation: 0,
+                          margin: const EdgeInsets.only(bottom: 8),
+                          color: colorScheme.surfaceContainerLow,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppLayout.radiusL),
+                            side: BorderSide(
+                              color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                              width: 1.0,
+                            ),
+                          ),
+                          child: ListTile(
+                            leading: Container(
+                              width: 24,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                color: tagColor ?? colorScheme.primary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            title: Text(tag),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit_outlined),
+                                  tooltip: 'Edit',
+                                  onPressed: () => _editTag(tag),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline),
+                                  tooltip: 'Delete',
+                                  onPressed: () => _deleteTag(tag),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                      if (reduceMotion) {
+                        return tagCard;
+                      }
                       return AnimationConfiguration.staggeredList(
                         position: index.clamp(0, 8),
                         duration: AppLayout.animShort,
                         child: SlideAnimation(
-                          verticalOffset: AppLayout.shouldReduceMotion(context) ? 0.0 : 16.0,
+                          verticalOffset: 16.0,
                           curve: AppLayout.curveStrongEaseOut,
                           child: FadeInAnimation(
                             curve: AppLayout.curveStrongEaseOut,
-                            child: Semantics(
-                              label: 'Tag: $tag',
-                              child: Card(
-                                elevation: 0,
-                                margin: const EdgeInsets.only(bottom: 8),
-                                color: colorScheme.surfaceContainerLow,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(AppLayout.radiusL),
-                                  side: BorderSide(
-                                    color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-                                    width: 1.0,
-                                  ),
-                                ),
-                                child: ListTile(
-                                  leading: Container(
-                                    width: 24,
-                                    height: 24,
-                                    decoration: BoxDecoration(
-                                      color: tagColor ?? colorScheme.primary,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  title: Text(tag),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.edit_outlined),
-                                        tooltip: 'Edit',
-                                        onPressed: () => _editTag(tag),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete_outline),
-                                        tooltip: 'Delete',
-                                        onPressed: () => _deleteTag(tag),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
+                            child: tagCard,
                           ),
                         ),
                       );

@@ -1020,4 +1020,15 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get lockAppNow => 'App jetzt sperren';
+
+  @override
+  String get hideWidgetDataWhenLocked => 'Widget-Inhalte bei Sperre ausblenden';
+
+  @override
+  String get hideWidgetDataWhenLockedSubtitle =>
+      'Kontostände mit •••• maskieren und Aufgaben in Widgets bei Sperre ausblenden';
+
+  @override
+  String get financesDisabledShortcutHint =>
+      'Aktiviere den Finanzmanager in den Einstellungen, um diese Verknüpfung zu nutzen';
 }

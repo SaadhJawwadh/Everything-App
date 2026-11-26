@@ -171,70 +171,69 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
       padding: const EdgeInsets.fromLTRB(16, 6, 16, AppLayout.fabBottomPadding),
       sliver: SliverList(
         delegate: SliverChildListDelegate([
-          // ── 1. Sub-Segmented Deep-Dive Toggle & Main Card ───────────
-          AppCard(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // ── 1. Sub-Segmented Deep-Dive Toggle ───────────────────────
+          _buildPillToggle(colorScheme, textTheme),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Header with Full-Width Segmented Pill Toggle
-                _buildPillToggle(colorScheme, textTheme),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _activeDeckIndex == 0
-                          ? 'EXPENSE DISTRIBUTION'
-                          : _activeDeckIndex == 1
-                              ? 'MONTHLY BUDGET LIMITS'
-                              : 'SAVINGS GOALS & VAULT',
-                      style: textTheme.labelSmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    Text(
-                      _activeDeckIndex == 0
-                          ? '${categoryExpenses.length} Categories'
-                          : _activeDeckIndex == 1
-                              ? 'Target Limits'
-                              : 'Goal Pockets',
-                      style: textTheme.labelSmall?.copyWith(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // Animated View Switching
-                AnimatedSize(
-                  duration: AppLayout.animModal,
-                  curve: Curves.easeInOutCubic,
-                  child: _activeDeckIndex == 0
-                      ? _buildDetailedBreakdown(
-                          categoryExpenses,
-                          totalExpense,
-                          colorScheme,
-                          textTheme,
-                        )
+                Text(
+                  _activeDeckIndex == 0
+                      ? 'Expense distribution'
                       : _activeDeckIndex == 1
-                          ? _buildBudgetsSection(
-                              forecast,
-                              _resolveCurrentMonthBudgetExpenses(),
-                              colorScheme,
-                              textTheme,
-                            )
-                          : _buildSavingsSection(
-                              colorScheme,
-                              textTheme,
-                            ),
+                          ? 'Monthly budget limits'
+                          : 'Savings goals & vault',
+                  style: textTheme.titleSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  _activeDeckIndex == 0
+                      ? '${categoryExpenses.length} Categories'
+                      : _activeDeckIndex == 1
+                          ? 'Target Limits'
+                          : 'Goal Pockets',
+                  style: textTheme.labelMedium?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 10),
+
+          // Animated View Switching (flat 1-level cards, zero outer card cage)
+          AnimatedSize(
+            duration: AppLayout.shouldReduceMotion(context)
+                ? Duration.zero
+                : AppLayout.animModal,
+            curve: Curves.easeInOutCubic,
+            child: _activeDeckIndex == 0
+                ? AppCard(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+                    child: _buildDetailedBreakdown(
+                      categoryExpenses,
+                      totalExpense,
+                      colorScheme,
+                      textTheme,
+                    ),
+                  )
+                : _activeDeckIndex == 1
+                    ? _buildBudgetsSection(
+                        forecast,
+                        _resolveCurrentMonthBudgetExpenses(),
+                        colorScheme,
+                        textTheme,
+                      )
+                    : _buildSavingsSection(
+                        colorScheme,
+                        textTheme,
+                      ),
           ),
         ]),
       ),
@@ -410,15 +409,9 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
           const SizedBox(height: 16),
         ] else ...[
           // Friendly Budget Setup Prompt
-          Container(
+          AppCard(
+            backgroundColor: colorScheme.primaryContainer.withValues(alpha: 0.35),
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: colorScheme.primaryContainer.withValues(alpha: 0.35),
-              borderRadius: BorderRadius.circular(AppLayout.radiusM),
-              border: Border.all(
-                color: colorScheme.primary.withValues(alpha: 0.25),
-              ),
-            ),
             child: Row(
               children: [
                 Container(
@@ -472,7 +465,7 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
   Widget _buildSavingsSection(ColorScheme colorScheme, TextTheme textTheme) {
     return SavingsGoalsCard(
       currency: widget.currency,
-      isEmbeddedInCard: true,
+      isEmbeddedInCard: false,
     );
   }
 
@@ -598,7 +591,7 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
                                       fontWeight: selectedCat != null
                                           ? FontWeight.bold
                                           : FontWeight.w500,
-                                      fontSize: 10,
+                                      fontSize: 11,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -617,9 +610,10 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
                                         ? '$selectedPct%'
                                         : '${sortedEntries.length} categories',
                                     style: textTheme.labelSmall?.copyWith(
-                                      fontSize: 9,
+                                      fontSize: 11,
                                       color: colorScheme.onSurfaceVariant,
                                       fontWeight: FontWeight.w600,
+                                      fontFeatures: const [FontFeature.tabularFigures()],
                                     ),
                                   ),
                                 ],
@@ -635,21 +629,9 @@ class _FinancialAnalyticsTabState extends State<FinancialAnalyticsTab> {
             ),
 
             // ── Ranked Category Spend List ────────────────────────────────
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Ranked Category Spend',
-                  style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  '${(totalExpense > 0 ? 100 : 0)}% of total',
-                  style: textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+            Text(
+              'Ranked Category Spend',
+              style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
             ...sortedEntries.asMap().entries.map((item) {

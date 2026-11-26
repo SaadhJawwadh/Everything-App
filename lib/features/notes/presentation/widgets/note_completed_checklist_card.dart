@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_layout.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/app_haptics.dart';
 
 /// Collapsible card displaying completed checklist tasks with uncheck/delete bulk and single actions.
@@ -66,8 +67,16 @@ class NoteCompletedChecklistCard extends StatelessWidget {
                     Text(
                       '${completedItems.length} completed ${completedItems.length == 1 ? 'item' : 'items'}',
                       style: theme.textTheme.titleSmall?.copyWith(
+                        fontFamily: AppTheme.fontGoogleSansFlex,
+                        fontFamilyFallback: AppTheme.fontFallbacks,
                         color: noteScheme.onSurfaceVariant,
                         fontWeight: FontWeight.bold,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                        fontVariations: AppTheme.buildFontVariations(
+                          size: 14.0,
+                          brightness: theme.brightness,
+                          weight: 700,
+                        ),
                       ),
                     ),
                     const Spacer(),

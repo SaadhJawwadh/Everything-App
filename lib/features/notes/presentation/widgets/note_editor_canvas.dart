@@ -114,193 +114,198 @@ class NoteEditorCanvas extends StatelessWidget {
         },
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: titleController,
-                readOnly: isNoteInTrash,
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  color: textColor,
-                  fontWeight: FontWeight.bold,
-                ),
-                decoration: InputDecoration(
-                  hintText: 'Title',
-                  filled: false,
-                  fillColor: Colors.transparent,
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
-                  hintStyle: theme.textTheme.headlineMedium?.copyWith(
-                    color: hintColor,
-                    fontWeight: FontWeight.bold,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 680),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    readOnly: isNoteInTrash,
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Title',
+                      filled: false,
+                      fillColor: Colors.transparent,
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      hintStyle: theme.textTheme.headlineMedium?.copyWith(
+                        color: hintColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    enableInteractiveSelection: true,
+                    textCapitalization: TextCapitalization.sentences,
+                    autocorrect: true,
+                    maxLines: null,
                   ),
-                ),
-                enableInteractiveSelection: true,
-                textCapitalization: TextCapitalization.sentences,
-                autocorrect: true,
-                maxLines: null,
-              ),
-              NoteMetadataChipsBar(
-                reminderAt: reminderAt,
-                isNoteLocked: isNoteLocked,
-                isCustomFolder: isCustomFolder,
-                folder: folder,
-                tags: tags,
-                tagColors: tagColors,
-                textColor: textColor,
-                onPickReminder: onPickReminder,
-                onClearReminder: onClearReminder,
-                onPickFolder: onPickFolder,
-                onDeleteTag: onDeleteTag,
-              ),
-              NoteCompletedChecklistCard(
-                completedItems: completedItems,
-                isCollapsed: isCompletedCollapsed,
-                onToggleCollapse: onToggleCompletedCollapse,
-                onUncheckAll: onUncheckAllCompleted,
-                onDeleteAll: onDeleteAllCompleted,
-                onRestoreItem: onRestoreCompletedItem,
-                onDeleteItem: onDeleteCompletedItem,
-                noteScheme: noteScheme,
-                textColor: textColor,
-              ),
-              NotificationListener<TableCellFocusNotification>(
-                onNotification: (notification) {
-                  onTableCellFocusChanged(notification.isFocused);
-                  return true;
-                },
-                child: CallbackShortcuts(
-                  bindings: {
-                    const SingleActivator(LogicalKeyboardKey.keyA, control: true):
-                        onSelectAllText,
-                    const SingleActivator(LogicalKeyboardKey.keyA, meta: true):
-                        onSelectAllText,
-                  },
-                  child: QuillEditor.basic(
-                    controller: quillController,
-                    focusNode: focusNode,
-                    config: QuillEditorConfig(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      autoFocus: false,
-                      showCursor: !isEditingTableCell,
-                      enableInteractiveSelection: true,
-                      enableSelectionToolbar: true,
-                      contextMenuBuilder: (context, rawEditorState) {
-                        final buttonItems =
-                            rawEditorState.contextMenuButtonItems;
-                        return AdaptiveTextSelectionToolbar.buttonItems(
-                          anchors: rawEditorState.contextMenuAnchors,
-                          buttonItems: [
-                            ...buttonItems,
-                            ContextMenuButtonItem(
-                              onPressed: () {
-                                rawEditorState.hideToolbar();
-                                onOpenStoryCardSelected();
+                  NoteMetadataChipsBar(
+                    reminderAt: reminderAt,
+                    isNoteLocked: isNoteLocked,
+                    isCustomFolder: isCustomFolder,
+                    folder: folder,
+                    tags: tags,
+                    tagColors: tagColors,
+                    textColor: textColor,
+                    onPickReminder: onPickReminder,
+                    onClearReminder: onClearReminder,
+                    onPickFolder: onPickFolder,
+                    onDeleteTag: onDeleteTag,
+                  ),
+                  NotificationListener<TableCellFocusNotification>(
+                    onNotification: (notification) {
+                      onTableCellFocusChanged(notification.isFocused);
+                      return true;
+                    },
+                    child: CallbackShortcuts(
+                      bindings: {
+                        const SingleActivator(LogicalKeyboardKey.keyA, control: true):
+                            onSelectAllText,
+                        const SingleActivator(LogicalKeyboardKey.keyA, meta: true):
+                            onSelectAllText,
+                      },
+                      child: QuillEditor.basic(
+                        controller: quillController,
+                        focusNode: focusNode,
+                        config: QuillEditorConfig(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          autoFocus: false,
+                          showCursor: !isEditingTableCell,
+                          enableInteractiveSelection: true,
+                          enableSelectionToolbar: true,
+                          contextMenuBuilder: (context, rawEditorState) {
+                            final buttonItems =
+                                rawEditorState.contextMenuButtonItems;
+                            return AdaptiveTextSelectionToolbar.buttonItems(
+                              anchors: rawEditorState.contextMenuAnchors,
+                              buttonItems: [
+                                ...buttonItems,
+                                ContextMenuButtonItem(
+                                  onPressed: () {
+                                    rawEditorState.hideToolbar();
+                                    onOpenStoryCardSelected();
+                                  },
+                                  label: 'Story Card',
+                                ),
+                              ],
+                            );
+                          },
+                          // ignore: experimental_member_use
+                          characterShortcutEvents: standardCharactersShortcutEvents,
+                          // ignore: experimental_member_use
+                          spaceShortcutEvents: [
+                            ...standardSpaceShorcutEvents,
+                            // ignore: experimental_member_use
+                            SpaceShortcutEvent(
+                              character: '[]',
+                              handler: (node, controller) {
+                                controller.replaceText(
+                                  controller.selection.baseOffset - 2,
+                                  2,
+                                  '\n',
+                                  null,
+                                );
+                                final base = controller.selection.baseOffset - 2;
+                                controller.updateSelection(
+                                  controller.selection.copyWith(
+                                    baseOffset: base,
+                                    extentOffset: base,
+                                  ),
+                                  ChangeSource.local,
+                                );
+                                controller
+                                  ..formatSelection(Attribute.unchecked)
+                                  ..replaceText(
+                                    controller.selection.baseOffset + 1,
+                                    1,
+                                    '',
+                                    null,
+                                  );
+                                return true;
                               },
-                              label: 'Story Card',
                             ),
                           ],
-                        );
-                      },
-                      // ignore: experimental_member_use
-                      characterShortcutEvents: standardCharactersShortcutEvents,
-                      // ignore: experimental_member_use
-                      spaceShortcutEvents: [
-                        ...standardSpaceShorcutEvents,
-                        // ignore: experimental_member_use
-                        SpaceShortcutEvent(
-                          character: '[]',
-                          handler: (node, controller) {
-                            controller.replaceText(
-                              controller.selection.baseOffset - 2,
-                              2,
-                              '\n',
-                              null,
-                            );
-                            final base = controller.selection.baseOffset - 2;
-                            controller.updateSelection(
-                              controller.selection.copyWith(
-                                baseOffset: base,
-                                extentOffset: base,
-                              ),
-                              ChangeSource.local,
-                            );
-                            controller
-                              ..formatSelection(Attribute.unchecked)
-                              ..replaceText(
-                                controller.selection.baseOffset + 1,
-                                1,
-                                '',
-                                null,
-                              );
-                            return true;
-                          },
+                          expands: false,
+                          scrollable: false,
+                          placeholder: 'Start typing...',
+                          embedBuilders: [
+                            const RoundedImageEmbedBuilder(),
+                            const TableEmbedBuilder(),
+                            ...FlutterQuillEmbeds.editorBuilders(),
+                          ],
+                          customStyles: NoteEditorStyles.build(
+                            theme: theme,
+                            noteScheme: noteScheme,
+                          ),
                         ),
-                      ],
-                      expands: false,
-                      scrollable: false,
-                      placeholder: 'Start typing...',
-                      embedBuilders: [
-                        const RoundedImageEmbedBuilder(),
-                        const TableEmbedBuilder(),
-                        ...FlutterQuillEmbeds.editorBuilders(),
-                      ],
-                      customStyles: NoteEditorStyles.build(
-                        theme: theme,
-                        noteScheme: noteScheme,
                       ),
                     ),
                   ),
-                ),
-              ),
-              ...noteUrls.map(
-                (url) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Stack(
-                    children: [
-                      AnyLinkPreview(
-                        link: url,
-                        displayDirection: UIDirection.uiDirectionHorizontal,
-                        cache: const Duration(hours: 1),
-                        backgroundColor: theme.colorScheme.surfaceContainer,
-                        errorWidget: const SizedBox.shrink(),
-                        errorImage: "https://via.placeholder.com/150",
-                        removeElevation: true,
-                        borderRadius: 12,
-                      ),
-                      Positioned(
-                        top: 6,
-                        right: 6,
-                        child: Tooltip(
-                          message: 'Remove Link Preview',
-                          child: Material(
-                            color: theme.colorScheme.surfaceContainerHighest
-                                .withValues(alpha: 0.9),
-                            shape: const CircleBorder(),
-                            elevation: 2,
-                            child: InkWell(
-                              customBorder: const CircleBorder(),
-                              onTap: () {
-                                AppHaptics.selectionClick();
-                                onDismissUrl(url);
-                              },
-                              child: const Padding(
-                                padding: EdgeInsets.all(6),
-                                child: Icon(
-                                  Icons.close_rounded,
-                                  size: 16,
+                  NoteCompletedChecklistCard(
+                    completedItems: completedItems,
+                    isCollapsed: isCompletedCollapsed,
+                    onToggleCollapse: onToggleCompletedCollapse,
+                    onUncheckAll: onUncheckAllCompleted,
+                    onDeleteAll: onDeleteAllCompleted,
+                    onRestoreItem: onRestoreCompletedItem,
+                    onDeleteItem: onDeleteCompletedItem,
+                    noteScheme: noteScheme,
+                    textColor: textColor,
+                  ),
+                  ...noteUrls.map(
+                    (url) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Stack(
+                        children: [
+                          AnyLinkPreview(
+                            link: url,
+                            displayDirection: UIDirection.uiDirectionHorizontal,
+                            cache: const Duration(hours: 1),
+                            backgroundColor: theme.colorScheme.surfaceContainer,
+                            errorWidget: const SizedBox.shrink(),
+                            errorImage: "https://via.placeholder.com/150",
+                            removeElevation: true,
+                            borderRadius: 12,
+                          ),
+                          Positioned(
+                            top: 6,
+                            right: 6,
+                            child: Tooltip(
+                              message: 'Remove Link Preview',
+                              child: Material(
+                                color: theme.colorScheme.surfaceContainerHighest
+                                    .withValues(alpha: 0.9),
+                                shape: const CircleBorder(),
+                                elevation: 2,
+                                child: InkWell(
+                                  customBorder: const CircleBorder(),
+                                  onTap: () {
+                                    AppHaptics.selectionClick();
+                                    onDismissUrl(url);
+                                  },
+                                  child: const Padding(
+                                    padding: EdgeInsets.all(6),
+                                    child: Icon(
+                                      Icons.close_rounded,
+                                      size: 16,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                  SizedBox(height: isKeyboardOpen ? 220 : 100),
+                ],
               ),
-              SizedBox(height: isKeyboardOpen ? 220 : 100),
-            ],
+            ),
           ),
         ),
       ),

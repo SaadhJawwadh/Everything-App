@@ -1,11 +1,11 @@
 {
-    "name": "note_taking_app",
-    "short_name": "note_taking_app",
+    "name": "Everything App",
+    "short_name": "Everything",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#18181b",
-    "theme_color": "#18181b",
-    "description": "A new Flutter project.",
+    "background_color": "#141318",
+    "theme_color": "#141318",
+    "description": "Offline-first encrypted notes, private financial ledger, cycle tracker, and zero-cloud P2P device sync.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

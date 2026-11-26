@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background_shape"
+    android:clipToOutline="true"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
+
+    <!-- Active Content Container -->
+    <LinearLayout
+        android:id="@+id/todo_content_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <!-- New Task Primary Pill CTA -->
+        <LinearLayout
+            android:id="@+id/todo_strip_new_task"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:background="@drawable/widget_cta_primary_shape"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:contentDescription="@string/widget_new_task"
+                android:src="@drawable/ic_add_small"
+                android:tint="@color/widget_on_primary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:text="@string/widget_new_task"
+                android:textColor="@color/widget_on_primary"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- New Note Secondary Button -->
+        <FrameLayout
+            android:id="@+id/todo_strip_new_note"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:background="@drawable/widget_cta_secondary_shape"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:contentDescription="@string/widget_new_note"
+                android:src="@drawable/ic_note_add_rounded"
+                android:tint="@color/widget_on_secondary_container" />
+        </FrameLayout>
+
+        <!-- Search Secondary Button -->
+        <FrameLayout
+            android:id="@+id/todo_strip_search"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:background="@drawable/widget_cta_secondary_shape"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:contentDescription="@string/widget_search"
+                android:src="@drawable/ic_search_rounded"
+                android:tint="@color/widget_on_secondary_container" />
+        </FrameLayout>
+
+        <!-- Pending Count Badge -->
+        <TextView
+            android:id="@+id/todo_strip_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/widget_badge_tonal_shape"
+            android:fontFamily="sans-serif-medium"
+            android:fontFeatureSettings="tnum"
+            android:gravity="center"
+            android:maxLines="1"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="12sp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- Locked State Container -->
+    <LinearLayout
+        android:id="@+id/todo_locked_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="@string/widget_locked_title"
+            android:src="@drawable/ic_lock_rounded"
+            android:tint="@color/widget_primary" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:fontFamily="sans-serif-medium"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:text="@string/widget_locked_title"
+            android:textColor="@color/widget_text_primary"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+</FrameLayout>

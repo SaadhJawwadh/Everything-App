@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_todo_label">பணிகள் &amp; குறிப்புகள்</string>
+    <string name="widget_finance_label">நிதி</string>
+    <string name="finance_widget_description">இன்றைய செலவு, மாத மொத்தம் மற்றும் சமீபத்திய பரிவர்த்தனைகளை முகப்புத் திரையிலிருந்தே கண்காணிக்கவும்.</string>
+    <string name="notes_widget_description">ஒரே தட்டலில் குறிப்பு எடுக்கவும் அல்லது அனைத்தையும் தேடவும்.</string>
+    <string name="todo_widget_description">முகப்புத் திரையிலிருந்தே உங்கள் குறிப்புகளில் உள்ள பணிகளைப் பார்க்கவும், மாற்றவும், முடிக்கவும்.</string>
+    <string name="unified_widget_description">Material 3 Expressive விட்ஜெட்டில் நிதியும் குறிப்புகளும் ஒன்றாக.</string>
+
+    <string name="widget_all_action_items">அனைத்துப் பணிகள்</string>
+    <string name="widget_checklist_fallback">சரிபார்ப்புப் பட்டியல்</string>
+    <string name="widget_all_tasks_completed">அனைத்துப் பணிகளும் முடிந்தன</string>
+    <string name="widget_tap_plus_to_add">சேர்க்க + ஐத் தட்டவும்</string>
+    <string name="widget_no_pending_tasks">நிலுவையில் பணிகள் இல்லை</string>
+    <string name="widget_locked_title">பணியிடம் பூட்டப்பட்டுள்ளது</string>
+    <string name="widget_locked_tap_unlock">திறக்கத் தட்டவும்</string>
+    <string name="widget_finances_disabled">நிதி முடக்கப்பட்டுள்ளது</string>
+    <string name="widget_finances_disabled_tap">அமைப்புகளில் இயக்கத் தட்டவும்</string>
+
+    <string name="widget_today_label">இன்று</string>
+    <string name="widget_spent_month_label">செலவு (மாதம்)</string>
+    <string name="widget_net_label">நிகரம்</string>
+    <string name="widget_month_est_label">மாத மதிப்பீடு</string>
+    <string name="widget_pace_on_track">சரியான பாதையில்</string>
+    <string name="widget_pace_fast">வேகமாகச் செலவாகிறது</string>
+    <string name="widget_pace_exhausted">பட்ஜெட் முடிந்தது</string>
+    <string name="widget_sparkline_empty_hint">போக்கைக் காண செலவுகளைச் சேர்க்கவும்</string>
+
+    <string name="widget_new_note">புதிய குறிப்பு</string>
+    <string name="widget_new_task">புதிய பணி</string>
+    <string name="widget_search">தேடு</string>
+    <string name="widget_scan_receipt">ரசீதை ஸ்கேன் செய்</string>
+    <string name="widget_add_transaction">பரிவர்த்தனை சேர்</string>
+    <string name="widget_view_all_tasks">அனைத்து %1$d பணிகளையும் பார்</string>
+
+    <string name="widget_picker_title">பட்டியலைத் தேர்ந்தெடு</string>
+    <string name="widget_picker_subtitle">விட்ஜெட்டில் காட்ட பட்டியலைத் தேர்ந்தெடுக்கவும்</string>
+    <string name="widget_picker_new_checklist">+ புதிய பட்டியலை உருவாக்கு</string>
+    <string name="widget_picker_cancel">ரத்து செய்</string>
+    <string name="widget_left_count">%1$d மீதம்</string>
+    <string name="widget_done_count">%1$d/%2$d முடிந்தது</string>
+    <string name="widget_no_tasks_yet">பணிகள் இன்னும் இல்லை</string>
+    <string name="widget_pending_done_fmt">%1$d நிலுவை • %2$d முடிந்தது</string>
+    <string name="widget_all_done_fmt">அனைத்து %1$d பணிகளும் முடிந்தன</string>
+
+    <string name="shortcut_new_note_short">புதிய குறிப்பு</string>
+    <string name="shortcut_new_note_long">புதிய குறிப்பை உருவாக்கு</string>
+    <string name="shortcut_new_transaction_short">புதிய பரிவர்த்தனை</string>
+    <string name="shortcut_new_transaction_long">புதிய பரிவர்த்தனையைச் சேர்</string>
+    <string name="shortcut_search_short">தேடு</string>
+    <string name="shortcut_search_long">குறிப்புகள் மற்றும் பரிவர்த்தனைகளில் தேடு</string>
+    <string name="shortcut_scan_receipt_short">ரசீது ஸ்கேன்</string>
+    <string name="shortcut_scan_receipt_long">OCR மூலம் ரசீதை ஸ்கேன் செய்</string>
+    <string name="shortcut_sync_devices_short">சாதன ஒத்திசைவு</string>
+    <string name="shortcut_sync_devices_long">P2P உள்ளூர் Wi-Fi ஒத்திசைவு</string>
+    <string name="shortcut_new_checklist_short">புதிய பட்டியல்</string>
+    <string name="app_function_desc">குறிப்புகள், பட்டியல்கள் மற்றும் நிதி கண்காணிப்புக்கான Everything App தனிப்பட்ட பணியிடம்</string>
+</resources>

@@ -7,6 +7,8 @@
     <!-- Exclude secure storage keys that cannot be restored across devices -->
     <exclude domain="sharedpref" path="FlutterSecureKeyStorage.xml" />
     <exclude domain="sharedpref" path="FlutterSecureStorage.xml" />
+    <!-- Exclude ephemeral widget cache from cloud backup -->
+    <exclude domain="sharedpref" path="widget_cache.xml" />
     <!-- Exclude encrypted database file from cloud backup to prevent key mismatch corruption on new devices -->
     <exclude domain="database" path="notes.db"/>
     <!-- Exclude unencrypted auto-backup JSON files from cloud backup to preserve local privacy -->

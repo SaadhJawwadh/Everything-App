@@ -314,6 +314,7 @@ class _PeriodLogDashboardCardState extends State<PeriodLogDashboardCard> {
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: colorScheme.onPrimaryContainer,
                             fontWeight: FontWeight.bold,
+                            fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
                       ),

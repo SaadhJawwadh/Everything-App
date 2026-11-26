@@ -38,42 +38,32 @@ class OnboardingWelcomeSlide extends StatelessWidget {
       child: Column(
         children: [
           const SizedBox(height: AppLayout.spaceL),
-          // Circle App Logo
-          Container(
-            width: 108,
-            height: 108,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: Icon(
-              Icons.note_alt_rounded,
-              color: theme.colorScheme.onPrimary,
-              size: 52,
+          // App Brand Mark
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppLayout.radiusXXL),
+            child: Image.asset(
+              'assets/app_icon.png',
+              width: 96,
+              height: 96,
+              cacheWidth: 256,
             ),
           ),
           const SizedBox(height: AppLayout.spaceXXL),
           Text(
-            'Welcome to Everything App',
-            style: theme.textTheme.headlineMedium?.copyWith(
+            'Your private workspace, always offline.',
+            style: theme.textTheme.headlineLarge?.copyWith(
               fontWeight: FontWeight.bold,
-              letterSpacing: -0.5,
+              letterSpacing: -0.6,
+              height: 1.08,
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppLayout.spaceM),
           Text(
-            'Your minimalist, private, offline-first workspace. Write notes, track finances, and manage your health seamlessly.',
+            'Notes, finances, and health tracking stored on your device with zero cloud accounts.',
             style: theme.textTheme.bodyLarge?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
-              height: 1.5,
+              height: 1.45,
             ),
             textAlign: TextAlign.center,
           ),
@@ -933,32 +923,10 @@ class OnboardingModulesSlide extends StatelessWidget {
                     Icons.water_drop_outlined,
                     color: theme.colorScheme.tertiary,
                   ),
-                  title: Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          'Period & Health Tracker',
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: AppLayout.spaceS),
-                      if (settings.isPeriodTrackerEnabled)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.tertiaryContainer,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            'Active',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onTertiaryContainer,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                    ],
+                  title: Text(
+                    'Period & Health Tracker',
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
                   ),
                   subtitle: Text(
                     'Offline cycle logging, predictions, regularity analytics, and discreet alerts.',
@@ -968,58 +936,6 @@ class OnboardingModulesSlide extends StatelessWidget {
                   onChanged: (val) {
                     AppHaptics.selectionClick();
                     settings.setIsPeriodTrackerEnabled(val);
-                  },
-                ),
-              ),
-              const SizedBox(height: AppLayout.spaceM),
-
-              // Split Bills Powerup Card
-              AppCard(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppLayout.spaceL,
-                  vertical: AppLayout.spaceS,
-                ),
-                child: SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  secondary: Icon(
-                    Icons.pie_chart_outline_rounded,
-                    color: theme.colorScheme.primary,
-                  ),
-                  title: Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          'Split Bills & Shared Debts',
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: AppLayout.spaceS),
-                      if (settings.showSplitBills)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primaryContainer,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            'Active',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.onPrimaryContainer,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  subtitle: Text(
-                    'Group bill splitting, equal & exact shares, 100% offline receipt OCR, WhatsApp breakdowns, and debt tracking.',
-                    style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                  ),
-                  value: settings.showSplitBills,
-                  onChanged: (val) {
-                    AppHaptics.selectionClick();
-                    settings.setShowSplitBills(val);
                   },
                 ),
               ),
@@ -1248,8 +1164,8 @@ class OnboardingTipsSlide extends StatelessWidget {
           _buildOnboardingFeatureCard(
             theme,
             icon: Icons.widgets_rounded,
-            title: 'Next-Gen Android Home Screen Widgets',
-            desc: 'Todo, Finance, and Unified widgets with Android 12–15+ dynamic wallpaper colors, responsive size scaling, and instant list switching.',
+            title: 'Home Screen Widgets',
+            desc: 'Tasks & Notes and Finances widgets with adaptive wallpaper colors, responsive resizing, and instant list switching.',
           ),
           const SizedBox(height: AppLayout.spaceM),
           _buildOnboardingFeatureCard(

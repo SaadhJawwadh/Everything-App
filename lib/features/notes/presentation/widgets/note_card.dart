@@ -6,7 +6,6 @@ import 'package:flutter_quill/flutter_quill.dart';
 import '../../../../data/note_model.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/services/app_haptics.dart';
-import '../../../../core/ui/app_chip.dart';
 import '../../../../widgets/home/universal_search_overlay.dart';
 import '../../../../utils/quill_checklist_helper.dart';
 import '../../../../utils/rich_text_utils.dart';
@@ -167,11 +166,33 @@ class NoteCard extends StatelessWidget {
                   ),
                 if (note.isLocked) ...[
                   const SizedBox(height: AppLayout.spaceS),
-                  AppChip(
-                    label: 'Locked Note',
-                    icon: Icons.lock_outline,
-                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                    textColor: theme.colorScheme.onSurfaceVariant,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.lock_outline,
+                        size: 16,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: AppLayout.spaceXS),
+                      Flexible(
+                        child: Text(
+                          'Locked note',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontFamily: AppTheme.fontGoogleSansFlex,
+                            fontFamilyFallback: AppTheme.fontFallbacks,
+                            fontSize: 13.0,
+                            fontWeight: FontWeight.w500,
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontVariations: AppTheme.buildFontVariations(
+                              size: 13.0,
+                              brightness: theme.brightness,
+                              weight: 500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
                 if (!note.isLocked && note.imagePath != null) ...[
@@ -180,29 +201,43 @@ class NoteCard extends StatelessWidget {
                 ],
                 if (!note.isLocked && totalChecklistItems > 0) ...[
                   const SizedBox(height: AppLayout.spaceS),
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Builder(builder: (context) {
-                          final successColor = theme.extension<AppSemanticColors>()?.success ??
-                              (theme.brightness == Brightness.dark ? const Color(0xFF4CAF50) : const Color(0xFF1B873F));
-                          return AppChip(
-                            label: '$checkedCount/$totalChecklistItems Done',
-                            isCompact: true,
-                            icon: checkedCount == totalChecklistItems
-                                ? Icons.check_circle_outline_rounded
-                                : Icons.checklist_rounded,
-                            backgroundColor: checkedCount == totalChecklistItems
-                                ? successColor.withValues(alpha: 0.15)
-                                : theme.colorScheme.secondaryContainer.withValues(alpha: 0.4),
-                            textColor: checkedCount == totalChecklistItems
-                                ? successColor
-                                : theme.colorScheme.onSecondaryContainer,
-                          );
-                        }),
-                      ),
-                    ],
-                  ),
+                  Builder(builder: (context) {
+                    final successColor = theme.extension<AppSemanticColors>()?.success ??
+                        (theme.brightness == Brightness.dark ? const Color(0xFF4CAF50) : const Color(0xFF1B873F));
+                    final allDone = checkedCount == totalChecklistItems;
+                    final statusColor = allDone ? successColor : theme.colorScheme.onSurfaceVariant;
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          allDone
+                              ? Icons.check_circle_outline_rounded
+                              : Icons.checklist_rounded,
+                          size: 16,
+                          color: statusColor,
+                        ),
+                        const SizedBox(width: AppLayout.spaceXS),
+                        Flexible(
+                          child: Text(
+                            '$checkedCount/$totalChecklistItems Done',
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              fontFamily: AppTheme.fontGoogleSansFlex,
+                              fontFamilyFallback: AppTheme.fontFallbacks,
+                              fontSize: 13.0,
+                              fontWeight: FontWeight.w600,
+                              color: statusColor,
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                              fontVariations: AppTheme.buildFontVariations(
+                                size: 13.0,
+                                brightness: theme.brightness,
+                                weight: 600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
                   const SizedBox(height: AppLayout.spaceS),
                   ..._buildChecklistPreview(context, theme, searchQuery, checklistItems),
                 ] else if (!note.isLocked && ((note.previewText?.isNotEmpty ?? false) || note.content.isNotEmpty))
@@ -230,7 +265,25 @@ class NoteCard extends StatelessWidget {
                           bg = scheme.primaryContainer;
                           fg = scheme.onPrimaryContainer;
                         }
-                        return Container(padding: const EdgeInsets.symmetric(horizontal: AppLayout.spaceS, vertical: AppLayout.spaceXS), decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(AppLayout.radiusStadium)), child: Text(tag, style: TextStyle(fontSize: 11.5, color: fg, fontWeight: FontWeight.w600)));
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: AppLayout.spaceS, vertical: AppLayout.spaceXS),
+                          decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(AppLayout.radiusStadium)),
+                          child: Text(
+                            tag,
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              fontFamily: AppTheme.fontGoogleSansFlex,
+                              fontFamilyFallback: AppTheme.fontFallbacks,
+                              fontSize: 13.0,
+                              color: fg,
+                              fontWeight: FontWeight.w600,
+                              fontVariations: AppTheme.buildFontVariations(
+                                size: 13.0,
+                                brightness: theme.brightness,
+                                weight: 600,
+                              ),
+                            ),
+                          ),
+                        );
                       }),
                       if (note.tags.length > 3)
                         Container(
@@ -241,7 +294,19 @@ class NoteCard extends StatelessWidget {
                           ),
                           child: Text(
                             '+${note.tags.length - 3}',
-                            style: TextStyle(fontSize: 11.5, color: theme.colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600),
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              fontFamily: AppTheme.fontGoogleSansFlex,
+                              fontFamilyFallback: AppTheme.fontFallbacks,
+                              fontSize: 13.0,
+                              color: theme.colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                              fontVariations: AppTheme.buildFontVariations(
+                                size: 13.0,
+                                brightness: theme.brightness,
+                                weight: 600,
+                              ),
+                            ),
                           ),
                         ),
                     ],
@@ -302,40 +367,38 @@ class NoteCard extends StatelessWidget {
           return [
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4.0),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(AppLayout.radiusS),
-                  border: Border.all(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.25),
-                    width: 1.0,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.check_circle_outline_rounded,
+                    size: 16,
+                    color: theme.colorScheme.primary,
                   ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.check_circle_outline_rounded,
-                      size: 16,
-                      color: theme.colorScheme.primary,
-                    ),
-                    const SizedBox(width: AppLayout.spaceXS),
-                    Flexible(
-                      child: Text(
-                        AppLocalizations.of(context)?.allTasksCompleted(completedItems.length) ??
-                            'All ${completedItems.length} tasks completed',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w600,
-                          height: 1.25,
+                  const SizedBox(width: AppLayout.spaceXS),
+                  Flexible(
+                    child: Text(
+                      AppLocalizations.of(context)?.allTasksCompleted(completedItems.length) ??
+                          'All ${completedItems.length} tasks completed',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontFamily: AppTheme.fontGoogleSansFlex,
+                        fontFamilyFallback: AppTheme.fontFallbacks,
+                        fontSize: 13.0,
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                        height: 1.25,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                        fontVariations: AppTheme.buildFontVariations(
+                          size: 13.0,
+                          brightness: theme.brightness,
+                          weight: 600,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ];
@@ -393,31 +456,22 @@ class NoteCard extends StatelessWidget {
         }),
         if (remainingCount > 0)
           Padding(
-            padding: const EdgeInsets.only(top: 4.0),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(AppLayout.radiusS),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.checklist_rounded,
-                    size: 14,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    AppLocalizations.of(context)?.moreItems(remainingCount) ??
-                        '+$remainingCount more items',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+            padding: const EdgeInsets.only(top: 4.0, left: 28.0),
+            child: Text(
+              AppLocalizations.of(context)?.moreItems(remainingCount) ??
+                  '+$remainingCount more items',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontFamily: AppTheme.fontGoogleSansFlex,
+                fontFamilyFallback: AppTheme.fontFallbacks,
+                fontSize: 13.0,
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+                fontFeatures: const [FontFeature.tabularFigures()],
+                fontVariations: AppTheme.buildFontVariations(
+                  size: 13.0,
+                  brightness: theme.brightness,
+                  weight: 500,
+                ),
               ),
             ),
           ),

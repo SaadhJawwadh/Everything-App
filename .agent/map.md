@@ -195,7 +195,7 @@ lib/
 │   ├── app_route.dart                # Re-exports lib/core/routes/app_router.dart (AppRoute alias)
 │   ├── quill_checklist_helper.dart   # Quill checklist formatting utilities
 │   ├── rich_text_utils.dart          # Delta-to-Markdown & Plain Text preview helpers
-│   └── widget_helper.dart            # Android widget data updater
+│   └── widget_helper.dart            # Android widget data updater & isolated cache bridge (TodoWidgetProvider, FinanceWidgetProvider, EverythingApplication, WidgetCacheStore, WidgetVisibilityManager, ShortcutHelper)
 ├── widgets/                          # Reusable Global UI Widgets
 │   ├── editor/
 │   │   ├── editor_note_details_sheet.dart# Note info & metadata sheet

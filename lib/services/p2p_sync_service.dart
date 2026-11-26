@@ -11,6 +11,7 @@ import 'sync_merge_service.dart';
 import '../features/sync/data/p2p_pairing_model.dart';
 import '../features/finances/presentation/screens/financial_manager_screen.dart';
 import 'p2p_relay_sync_service.dart';
+import 'p2p_web_companion.dart';
 import 'sync_crypto_service.dart';
 
 class SyncResult {
@@ -95,6 +96,11 @@ class P2pSyncService {
   Timer? _beaconTimer;
 
   final SyncCryptoService _crypto = SyncCryptoService.instance;
+  P2pWebCompanion _webCompanion = P2pWebCompanion.instance;
+
+  /// Replaces the browser companion handler (used in tests).
+  @visibleForTesting
+  void setWebCompanion(P2pWebCompanion companion) => _webCompanion = companion;
 
   final StreamController<SyncResult> _syncEventsController = StreamController<SyncResult>.broadcast();
   Stream<SyncResult> get syncEvents => _syncEventsController.stream;
@@ -1190,6 +1196,21 @@ class P2pSyncService {
           }
         } finally {
           _isSyncing = false;
+        }
+      }
+      // 5. Read-Only Local Wi-Fi Browser Companion
+      else if (P2pWebCompanion.canHandlePath(path)) {
+        final handled = await _webCompanion.handleRequest(
+          request: request,
+          clientIp: clientIp,
+          userName: userName,
+          trustedPairCodes: _candidateCodes(pairCode),
+          readBoundedBody: readBoundedBody,
+          onFailedAuth: _recordFailedAuth,
+          onClearAuth: _clearFailedAuth,
+        );
+        if (!handled) {
+          response.statusCode = HttpStatus.notFound;
         }
       } else {
         response.statusCode = HttpStatus.notFound;

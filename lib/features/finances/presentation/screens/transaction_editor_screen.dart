@@ -260,7 +260,7 @@ class _TransactionEditorScreenState extends State<TransactionEditorScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                'Repeats ${_repeatFrequency!.label.toLowerCase()} — updated for future payments'),
+                'Repeats ${_repeatFrequency!.label.toLowerCase()}, updated for future payments'),
             behavior: SnackBarBehavior.floating,
           ),
         );

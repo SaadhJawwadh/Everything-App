@@ -115,7 +115,7 @@ void main() {
       expect(picked, 'scan');
     });
 
-    testWidgets('StoryCardStudioSheet shows Share All & Save All for multi-slide notes', (tester) async {
+    testWidgets('StoryCardStudioSheet shows Share All & Save action for multi-slide notes', (tester) async {
       SharedPreferences.setMockInitialValues({});
       final settings = SettingsProvider();
       await settings.loadSettings();
@@ -140,7 +140,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Share All ('), findsOneWidget);
-      expect(find.textContaining('Save All ('), findsOneWidget);
+      expect(find.byIcon(Icons.download_for_offline_outlined), findsOneWidget);
     });
   });
 }

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_todo_label">Aufgaben &amp; Notizen</string>
+    <string name="widget_finance_label">Finanzen</string>
+    <string name="finance_widget_description">Behalte heutige Ausgaben, Monatssummen und letzte Buchungen direkt auf dem Startbildschirm im Blick.</string>
+    <string name="notes_widget_description">Erstelle eine Notiz oder durchsuche alles mit einem Tippen.</string>
+    <string name="todo_widget_description">Aufgaben aus deinen Notizen direkt auf dem Startbildschirm ansehen, wechseln und abhaken.</string>
+    <string name="unified_widget_description">Finanzen und Notizen vereint in einem Material 3 Expressive Widget.</string>
+
+    <string name="widget_all_action_items">Alle Aufgaben</string>
+    <string name="widget_checklist_fallback">Checkliste</string>
+    <string name="widget_all_tasks_completed">Alle Aufgaben erledigt</string>
+    <string name="widget_tap_plus_to_add">Tippe auf +, um eine hinzuzufügen</string>
+    <string name="widget_no_pending_tasks">Keine offenen Aufgaben</string>
+    <string name="widget_locked_title">Arbeitsbereich gesperrt</string>
+    <string name="widget_locked_tap_unlock">Zum Entsperren tippen</string>
+    <string name="widget_finances_disabled">Finanzen deaktiviert</string>
+    <string name="widget_finances_disabled_tap">Tippen zum Aktivieren in den Einstellungen</string>
+
+    <string name="widget_today_label">HEUTE</string>
+    <string name="widget_spent_month_label">AUSGABEN (MONAT)</string>
+    <string name="widget_net_label">NETTO</string>
+    <string name="widget_month_est_label">MONATSPROGNOSE</string>
+    <string name="widget_pace_on_track">Im Plan</string>
+    <string name="widget_pace_fast">Schnelles Tempo</string>
+    <string name="widget_pace_exhausted">Budget erschöpft</string>
+    <string name="widget_sparkline_empty_hint">Ausgaben hinzufügen für Trend</string>
+
+    <string name="widget_new_note">Neue Notiz</string>
+    <string name="widget_new_task">Neue Aufgabe</string>
+    <string name="widget_search">Suche</string>
+    <string name="widget_scan_receipt">Beleg scannen</string>
+    <string name="widget_add_transaction">Buchung hinzufügen</string>
+    <string name="widget_view_all_tasks">Alle %1$d Aufgaben ansehen</string>
+
+    <string name="widget_picker_title">Liste auswählen</string>
+    <string name="widget_picker_subtitle">Liste für das Widget auswählen</string>
+    <string name="widget_picker_new_checklist">+ Neue Liste erstellen</string>
+    <string name="widget_picker_cancel">Abbrechen</string>
+    <string name="widget_left_count">Noch %1$d</string>
+    <string name="widget_done_count">%1$d/%2$d erledigt</string>
+    <string name="widget_no_tasks_yet">Noch keine Aufgaben</string>
+    <string name="widget_pending_done_fmt">%1$d offen • %2$d erledigt</string>
+    <string name="widget_all_done_fmt">Alle %1$d Aufgaben erledigt</string>
+
+    <string name="shortcut_new_note_short">Neue Notiz</string>
+    <string name="shortcut_new_note_long">Neue Notiz erstellen</string>
+    <string name="shortcut_new_transaction_short">Neue Buchung</string>
+    <string name="shortcut_new_transaction_long">Neue Buchung hinzufügen</string>
+    <string name="shortcut_search_short">Suche</string>
+    <string name="shortcut_search_long">Notizen und Buchungen durchsuchen</string>
+    <string name="shortcut_scan_receipt_short">Beleg scannen</string>
+    <string name="shortcut_scan_receipt_long">Papierbeleg per OCR scannen</string>
+    <string name="shortcut_sync_devices_short">Synchronisieren</string>
+    <string name="shortcut_sync_devices_long">Lokale P2P-WLAN-Synchronisation</string>
+    <string name="shortcut_new_checklist_short">Neue Liste</string>
+    <string name="app_function_desc">Privater Arbeitsbereich der Everything App für Notizen, Checklisten und Finanzen</string>
+</resources>

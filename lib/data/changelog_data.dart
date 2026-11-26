@@ -49,24 +49,32 @@ class ChangelogRelease {
 
 /// Latest release kept in Dart for synchronous rendering.
 final ChangelogRelease kLatestChangelog = ChangelogRelease(
-  version: 'v3.7.1',
-  date: 'November 23, 2026',
+  version: 'v3.8.0',
+  date: 'November 26, 2026',
   isLatest: true,
   categories: [
     ChangelogCategory(
+      title: "What's New",
+      items: [
+        'Redesigned Material You Home Widgets: Streamlined to two adaptive widgets (Tasks & Notes, and Finances) that scale from compact 4x1 strips to spacious tablet and foldable layouts.',
+        'Widget Privacy Lock: Automatically mask balances and checklist items on your home screen when App Lock or Finance Lock is active, with a toggle in Security Settings.',
+        'Poster Story Cards & Local Wi-Fi Browser Companion: Bold chromatic Story Card themes with poster typography, plus a PIN-protected local Wi-Fi browser companion on port 8765.',
+        'Dynamic App Shortcuts: Long-press shortcuts now adapt to your enabled modules, with quick access to New Note, Sync, Search, New Transaction, and Scan Receipt.',
+      ],
+    ),
+    ChangelogCategory(
       title: 'Improvements',
       items: [
-        'Smoother, Snappier Animations: Refined spring motion across cards, sheets, dialogs, and buttons for crisp, responsive feedback.',
-        'Faster Startup & Scrolling: Deferred non-critical background startup work and optimized notes, finances, split bills, and calendars for fluid 120Hz scrolling.',
-        'Instant Search, Filters & Actions: Made search toggles, account and tag filter switches, and swipe actions respond immediately.',
-        'Reduce Motion Accessibility: Honored your system Reduce Motion setting across loaders, cards, sheets, dialogs, and list entrances.',
+        'Faster Ledger & Tabular Numerals: Live transactions appear immediately above the fold, tabular figures keep every amount aligned, and nested card clutter is removed across Finances, Health, and Settings.',
+        'Snappier Checklist Switching & Previews: Added distinct widget names and realistic previews in the Android picker, smoother list switching, and an option to start a new checklist directly.',
+        'Smaller App Size & Full Translation: Trimmed ~5 MB of duplicate font assets and translated all widget labels and states across all 8 supported languages.',
       ],
     ),
     ChangelogCategory(
       title: 'Fixes',
       items: [
-        'Typing & Keyboard Fluidity: Eliminated keyboard animation stutter in the rich note editor.',
-        'Smoother Charts & Battery Efficiency: Stopped idle animations at rest, prevented redundant data reloads, and kept spending charts smooth while scrubbing.',
+        'Always-Fresh Widget Updates: Fixed background sync and currency/language changes not refreshing widgets, and fixed Android 14+ task-row tap reliability.',
+        'Accurate Dual-Account & Task Counts: Fixed midnight boundary totals, pending checklist filtering, and dark-mode checkbox contrast.',
       ],
     ),
   ],

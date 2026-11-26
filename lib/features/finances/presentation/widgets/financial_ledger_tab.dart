@@ -104,6 +104,7 @@ class FinancialLedgerTab extends StatelessWidget {
                         style: textTheme.labelMedium?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.w600,
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
                     ),
@@ -221,7 +222,10 @@ class FinancialLedgerTab extends StatelessWidget {
                               ),
                               subtitle: Text(
                                 '${transaction.account == AccountType.savings ? 'Savings • ' : ''}${transaction.category} • $formattedTime',
-                                style: textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                  fontFeatures: const [FontFeature.tabularFigures()],
+                                ),
                               ),
                               trailing: Text(
                                 '${transaction.isExpense ? '-' : '+'}$currency $formattedAmount',

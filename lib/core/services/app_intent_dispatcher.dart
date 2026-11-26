@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -19,15 +20,18 @@ import '../../features/finances/providers/financial_manager_provider.dart';
 import '../../features/notes/data/note_repository.dart';
 import '../../features/notes/presentation/screens/note_editor_screen.dart';
 import '../../features/notes/providers/note_provider.dart';
+import '../../l10n/app_localizations.dart';
 import '../../screens/app_lock_screen.dart';
 import '../../features/settings/providers/settings_provider.dart';
 import '../../features/sync/presentation/screens/p2p_sync_screen.dart';
+import '../../utils/quill_checklist_helper.dart';
 import '../../utils/rich_text_utils.dart';
 import '../../utils/widget_helper.dart';
 import '../../widgets/home/home_app_bar.dart';
 import '../../widgets/home/quick_add_todo_sheet.dart';
 import 'package:uuid/uuid.dart';
 import '../routes/app_router.dart';
+import '../ui/module_lock_gate.dart';
 
 class AppIntentDispatcher {
   AppIntentDispatcher._();
@@ -109,7 +113,7 @@ class AppIntentDispatcher {
       if (action == null) return false;
 
       final Map<Object?, Object?>? rawExtras = await _widgetChannel
-          .invokeMethod<Map<Object?, Object?>>('getPendingIntentExtras');
+          .invokeMethod<Map<Object?, Object?>>('peekPendingIntentExtras');
       final extras = <String, String>{};
       rawExtras?.forEach((k, v) {
         if (k != null && v != null) {
@@ -122,8 +126,10 @@ class AppIntentDispatcher {
       if (action == 'add_transaction' && settings.showFinancialManager) {
         final amount = double.tryParse(extras['amount'] ?? '');
         if (amount != null && amount > 0) {
-          // Consume the pending action
+          // Consume the pending action and extras
           await _widgetChannel.invokeMethod<String>('getPendingAction');
+          await _widgetChannel
+              .invokeMethod<Map<Object?, Object?>>('getPendingIntentExtras');
           final desc = (extras['description'] ?? '').trim().isNotEmpty
               ? extras['description']!.trim()
               : 'Quick Expense';
@@ -158,6 +164,8 @@ class AppIntentDispatcher {
         final todoText = (extras['todo_text'] ?? '').trim();
         if (todoText.isNotEmpty) {
           await _widgetChannel.invokeMethod<String>('getPendingAction');
+          await _widgetChannel
+              .invokeMethod<Map<Object?, Object?>>('getPendingIntentExtras');
           final parts = action.split(':');
           final targetNoteId = parts.length > 1 ? parts[1] : null;
           await WidgetHelper.quickAddTask(
@@ -174,6 +182,8 @@ class AppIntentDispatcher {
         final content = (extras['content'] ?? '').trim();
         if (content.isNotEmpty) {
           await _widgetChannel.invokeMethod<String>('getPendingAction');
+          await _widgetChannel
+              .invokeMethod<Map<Object?, Object?>>('getPendingIntentExtras');
           final title = (extras['title'] ?? '').trim().isNotEmpty
               ? extras['title']!.trim()
               : content.split(RegExp(r'\s+')).take(6).join(' ');
@@ -255,9 +265,28 @@ class AppIntentDispatcher {
         }
       }
 
+      void showFinancesDisabledHint() {
+        final l10n = AppLocalizations.of(context);
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(
+            content: Text(
+              l10n?.financesDisabledShortcutHint ??
+                  'Enable Financial Manager in Settings to use this shortcut',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+
       if (action == 'add_transaction') {
-        if (!settings.showFinancialManager) return;
+        if (!settings.showFinancialManager) {
+          showFinancesDisabledHint();
+          return;
+        }
         switchToFinancesIfAvailable();
+        if (ModuleLockGate.isModuleCurrentlyLocked(settings, 'finances')) {
+          return;
+        }
         if (context.mounted) {
           final prefillDesc = extras['description'];
           final prefillCategory = extras['category'];
@@ -277,7 +306,10 @@ class AppIntentDispatcher {
       } else if (action == 'view_trends' ||
           action == 'view_budgets' ||
           action == 'view_ledger') {
-        if (!settings.showFinancialManager) return;
+        if (!settings.showFinancialManager) {
+          showFinancesDisabledHint();
+          return;
+        }
         switchToFinancesIfAvailable();
         FinancialManagerScreen.tabRedirectNotifier.value =
             action == 'view_budgets' ? 'Budgets' : 'Ledger';
@@ -286,6 +318,16 @@ class AppIntentDispatcher {
               initialSharedText: extras['content'] ?? extras['title'],
               initialFolder: extras['folder'] ?? noteProvider.selectedFolder,
             ));
+      } else if (action == 'new_checklist_note') {
+        final doc = Document();
+        QuillChecklistHelper.appendChecklistItem(doc, '');
+        await AppRouter.push(
+          context,
+          NoteEditorScreen(
+            templateContent: RichTextUtils.deltaToJson(doc.toDelta()),
+            initialFolder: extras['folder'] ?? noteProvider.selectedFolder,
+          ),
+        );
       } else if (action == 'search') {
         HomeAppBar.searchRequestedNotifier.value = true;
         final searchQuery = extras['query'];
@@ -293,8 +335,14 @@ class AppIntentDispatcher {
           noteProvider.setSearchQuery(searchQuery);
         }
       } else if (action == 'scan_receipt') {
-        if (!settings.showFinancialManager) return;
+        if (!settings.showFinancialManager) {
+          showFinancesDisabledHint();
+          return;
+        }
         switchToFinancesIfAvailable();
+        if (ModuleLockGate.isModuleCurrentlyLocked(settings, 'finances')) {
+          return;
+        }
         final res = await ReceiptScannerSheet.show(context);
         if (res != null && context.mounted) {
           final double? total = res['total'] as double?;
