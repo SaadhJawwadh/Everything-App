@@ -1,7 +1,8 @@
 
+### 🚀 Improvements
+- **Pinned Story Card Studio Layout**: Pinned the studio header and bottom Share, Save, and Copy bar with responsive preview scaling so 9:16 Story, 4:5 Portrait, and 1:1 Square cards stay fully visible without clipping the top of your card.
+- **Visible In-Sheet Export Alerts**: Export errors and confirmations now display directly inside the Story Card Studio sheet instead of hiding behind it.
+
 ### 🐛 Fixes
-- **Transaction Edits Preserved Against AI Overwrites**: Manual category, description, and date edits on SMS-imported transactions now mark the record as refined and preserve time-of-day, UUIDs, and settlement links so background AI catch-up never reverts user changes.
-- **Finance Widget Cold-Start Sync**: Fixed the cold-start race between `SettingsProvider` initialization and `HomeScreen` widget config syncing, added native self-healing from `FlutterSharedPreferences`, and removed the stale padlock icon so enabled Finance widgets never randomly show "Finances disabled".
-- **App Lock & Module Lock Conflict Fixes**: Fixed PIN-fallback infinite re-lock loops under Immediate timeout, stale native screen-off flags, `ModuleLockGate` resume auto-prompting, keyboard focus leaks while locked, cold-start `WhatsNewSheet` / `BiometricPrompt` collisions, and closed lock bypasses in Search, Smart Action Cards, Security Settings, and QR Scanner.
-- **Notes Save & Embed Safety**: Added lifecycle background flush for pending note debounces, immediate saves on lock/folder/reminder/tag changes, and ensured image-only or table-only notes are never deleted as empty.
+- **Multi-Slide Story Card Share All & Save All**: Fixed an issue in release builds where tapping **Share All** or **Save All** on multi-slide notes failed silently instead of exporting all slides.
 

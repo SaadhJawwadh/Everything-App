@@ -288,14 +288,14 @@ void main() {
       expect(settings.trashAutoPurgeDays, 30);
     });
 
-    testWidgets('WhatsNewSheet renders v3.8.2 cards and records version on dismiss', (tester) async {
+    testWidgets('WhatsNewSheet renders v3.8.3 cards and records version on dismiss', (tester) async {
       tester.view.physicalSize = const Size(1080, 3200);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
 
       SharedPreferences.setMockInitialValues({
-        'lastSeenVersion': '3.8.1',
+        'lastSeenVersion': '3.8.2',
       });
       final settings = SettingsProvider();
       await settings.loadSettings();
@@ -305,7 +305,7 @@ void main() {
           value: settings,
           child: const MaterialApp(
             home: Scaffold(
-              body: WhatsNewSheet(currentVersion: '3.8.2'),
+              body: WhatsNewSheet(currentVersion: '3.8.3'),
             ),
           ),
         ),
@@ -317,12 +317,12 @@ void main() {
       expect(find.text("Improvements"), findsOneWidget);
       expect(find.text("Fixes"), findsOneWidget);
 
-      // Check marquee items for v3.8.2
+      // Check marquee items for v3.8.3
       expect(find.text("Material You home widgets"), findsOneWidget);
       expect(find.text("Always-visible widgets"), findsOneWidget);
       expect(find.text("Poster Story Cards & Web Companion"), findsOneWidget);
       expect(find.text("Faster ledger, cleaner cards & 8 languages"), findsOneWidget);
-      expect(find.text("Reliable saves, widgets & App Lock"), findsOneWidget);
+      expect(find.text("Reliable saves, Story Cards & App Lock"), findsOneWidget);
 
       // Tap "Awesome, Got It!" to finish
       await tester.runAsync(() async {
@@ -331,7 +331,7 @@ void main() {
       });
       await tester.pumpAndSettle();
 
-      expect(settings.lastSeenVersion, '3.8.2');
+      expect(settings.lastSeenVersion, '3.8.3');
     });
   });
 }

@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'dart:typed_data';
+import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,6 +28,9 @@ class StoryCardStudioSheet extends StatefulWidget {
   final String category;
   final int noteColorValue;
   final DateTime noteDate;
+  final StoryCardRenderService renderService;
+  final StoryCardMediaService mediaService;
+  final Future<Directory> Function()? tempDirProvider;
 
   const StoryCardStudioSheet({
     super.key,
@@ -37,6 +39,9 @@ class StoryCardStudioSheet extends StatefulWidget {
     this.category = 'Note',
     this.noteColorValue = 0,
     required this.noteDate,
+    this.renderService = const StoryCardRenderService(),
+    this.mediaService = const StoryCardMediaService(),
+    this.tempDirProvider,
   });
 
   /// Displays the [StoryCardStudioSheet] modal bottom sheet.
@@ -52,6 +57,7 @@ class StoryCardStudioSheet extends StatefulWidget {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
+      padding: EdgeInsets.zero,
       child: StoryCardStudioSheet(
         initialText: initialText,
         noteTitle: noteTitle,
@@ -73,8 +79,6 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
   static const String _prefWatermarkKey = 'story_pref_watermark';
 
   final GlobalKey _repaintKey = GlobalKey();
-  final StoryCardRenderService _renderService = const StoryCardRenderService();
-  final StoryCardMediaService _mediaService = const StoryCardMediaService();
 
   late TextEditingController _textController;
   late TextEditingController _titleController;
@@ -84,6 +88,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
   bool _isEditingText = false;
   bool _isSummarizing = false;
   String? _feedbackMessage;
+  bool _feedbackIsError = false;
   Timer? _feedbackTimer;
 
   @override
@@ -215,6 +220,7 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
       }
     } catch (_) {
       if (mounted) {
+        _setFeedback('Could not generate AI highlight', isError: true);
         AppSnackBar.showError(context, message: 'Could not generate AI highlight');
       }
     } finally {
@@ -230,30 +236,36 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
     super.dispose();
   }
 
-  void _setFeedback(String message) {
+  void _setFeedback(String message, {bool isError = false}) {
     _feedbackTimer?.cancel();
     if (mounted) {
-      setState(() => _feedbackMessage = message);
+      setState(() {
+        _feedbackMessage = message;
+        _feedbackIsError = isError;
+      });
       _feedbackTimer = Timer(const Duration(seconds: 3), () {
         if (mounted) {
-          setState(() => _feedbackMessage = null);
+          setState(() {
+            _feedbackMessage = null;
+            _feedbackIsError = false;
+          });
         }
       });
     }
   }
 
   Future<Uint8List?> _captureCard({double pixelRatio = 3.5}) async {
-    return await _renderService.capturePng(_repaintKey, pixelRatio: pixelRatio);
+    return await widget.renderService.capturePng(_repaintKey, pixelRatio: pixelRatio);
   }
 
   /// Captures every slide sequentially by switching [currentSlideIndex],
-  /// waiting for endOfFrame (+ an extra frame if still needing paint), writing
-  /// each PNG to a temp file to avoid holding all buffers in RAM, and restoring
-  /// the original slide index in `finally`.
+  /// waiting two rendered frames so layout and paint settle in all build modes,
+  /// writing each PNG to a temp file to avoid holding all buffers in RAM, and
+  /// restoring the original slide index in `finally`.
   Future<List<File>> _captureAllSlideFiles() async {
     final total = _config.slides.length;
     final originalIndex = _config.currentSlideIndex;
-    final tempDir = await getTemporaryDirectory();
+    final tempDir = await (widget.tempDirProvider?.call() ?? getTemporaryDirectory());
     final ts = DateTime.now().millisecondsSinceEpoch;
     final files = <File>[];
 
@@ -261,11 +273,10 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
       for (int i = 0; i < total; i++) {
         if (!mounted) break;
         setState(() => _config = _config.copyWith(currentSlideIndex: i));
+        WidgetsBinding.instance.ensureVisualUpdate();
         await WidgetsBinding.instance.endOfFrame;
-        final boundary = _repaintKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-        if (boundary != null && boundary.debugNeedsPaint) {
-          await WidgetsBinding.instance.endOfFrame;
-        }
+        WidgetsBinding.instance.scheduleFrame();
+        await WidgetsBinding.instance.endOfFrame;
         final bytes = await _captureCard(pixelRatio: 2.5);
         if (bytes != null) {
           final file = File('${tempDir.path}/story_share_${ts}_s${i + 1}.png');
@@ -288,15 +299,21 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
     try {
       final files = await _captureAllSlideFiles();
       if (files.isEmpty || !mounted) {
-        if (mounted) AppSnackBar.showError(context, message: 'Could not generate story slides');
+        if (mounted) {
+          _setFeedback('Could not generate story slides', isError: true);
+          AppSnackBar.showError(context, message: 'Could not generate story slides');
+        }
         return;
       }
-      await _mediaService.shareMultipleImageFiles(
+      await widget.mediaService.shareMultipleImageFiles(
         files,
         title: _config.resolvedTitle,
       );
     } catch (e) {
-      if (mounted) AppSnackBar.showError(context, message: 'Sharing slides failed: $e');
+      if (mounted) {
+        _setFeedback('Sharing slides failed: $e', isError: true);
+        AppSnackBar.showError(context, message: 'Sharing slides failed: $e');
+      }
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }
@@ -306,13 +323,17 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
     if (_isExporting) return;
     setState(() => _isExporting = true);
     AppHaptics.mediumImpact();
+    List<File> files = const [];
     try {
-      final files = await _captureAllSlideFiles();
+      files = await _captureAllSlideFiles();
       if (files.isEmpty || !mounted) {
-        if (mounted) AppSnackBar.showError(context, message: 'Could not generate story slides');
+        if (mounted) {
+          _setFeedback('Could not generate story slides', isError: true);
+          AppSnackBar.showError(context, message: 'Could not generate story slides');
+        }
         return;
       }
-      final saved = await _mediaService.saveMultipleImageFilesToGallery(files);
+      final saved = await widget.mediaService.saveMultipleImageFilesToGallery(files);
       if (mounted) {
         if (saved > 0) {
           _setFeedback('Saved $saved slides to Gallery');
@@ -321,12 +342,21 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
             message: 'Saved $saved of ${files.length} slides to Pictures/EverythingApp',
           );
         } else {
+          _setFeedback('Failed to save slides to gallery', isError: true);
           AppSnackBar.showError(context, message: 'Failed to save slides to gallery');
         }
       }
     } catch (e) {
-      if (mounted) AppSnackBar.showError(context, message: 'Saving slides failed: $e');
+      if (mounted) {
+        _setFeedback('Saving slides failed: $e', isError: true);
+        AppSnackBar.showError(context, message: 'Saving slides failed: $e');
+      }
     } finally {
+      for (final file in files) {
+        try {
+          if (await file.exists()) await file.delete();
+        } catch (_) {}
+      }
       if (mounted) setState(() => _isExporting = false);
     }
   }
@@ -339,16 +369,22 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
     try {
       final bytes = await _captureCard();
       if (bytes == null || !mounted) {
-        if (mounted) AppSnackBar.showError(context, message: 'Could not generate story image');
+        if (mounted) {
+          _setFeedback('Could not generate story image', isError: true);
+          AppSnackBar.showError(context, message: 'Could not generate story image');
+        }
         return;
       }
 
-      await _mediaService.shareImage(
+      await widget.mediaService.shareImage(
         bytes,
         title: _config.resolvedTitle,
       );
     } catch (e) {
-      if (mounted) AppSnackBar.showError(context, message: 'Sharing failed: $e');
+      if (mounted) {
+        _setFeedback('Sharing failed: $e', isError: true);
+        AppSnackBar.showError(context, message: 'Sharing failed: $e');
+      }
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }
@@ -362,11 +398,14 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
     try {
       final bytes = await _captureCard();
       if (bytes == null || !mounted) {
-        if (mounted) AppSnackBar.showError(context, message: 'Could not generate story image');
+        if (mounted) {
+          _setFeedback('Could not generate story image', isError: true);
+          AppSnackBar.showError(context, message: 'Could not generate story image');
+        }
         return;
       }
 
-      final savedPath = await _mediaService.saveImageToGallery(bytes);
+      final savedPath = await widget.mediaService.saveImageToGallery(bytes);
       if (mounted) {
         if (savedPath != null) {
           _setFeedback('Saved to Gallery in Pictures/EverythingApp');
@@ -375,11 +414,15 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
             message: 'Saved to Gallery in $savedPath',
           );
         } else {
+          _setFeedback('Failed to save image to gallery', isError: true);
           AppSnackBar.showError(context, message: 'Failed to save image to gallery');
         }
       }
     } catch (e) {
-      if (mounted) AppSnackBar.showError(context, message: 'Failed to save image: $e');
+      if (mounted) {
+        _setFeedback('Failed to save image: $e', isError: true);
+        AppSnackBar.showError(context, message: 'Failed to save image: $e');
+      }
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }
@@ -393,11 +436,14 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
     try {
       final bytes = await _captureCard();
       if (bytes == null || !mounted) {
-        if (mounted) AppSnackBar.showError(context, message: 'Could not render image for clipboard');
+        if (mounted) {
+          _setFeedback('Could not render image for clipboard', isError: true);
+          AppSnackBar.showError(context, message: 'Could not render image for clipboard');
+        }
         return;
       }
 
-      final success = await _mediaService.copyImageToClipboard(
+      final success = await widget.mediaService.copyImageToClipboard(
         bytes,
         fallbackText: _config.resolvedText,
       );
@@ -419,7 +465,10 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
         }
       }
     } catch (e) {
-      if (mounted) AppSnackBar.showError(context, message: 'Clipboard copy failed: $e');
+      if (mounted) {
+        _setFeedback('Clipboard copy failed: $e', isError: true);
+        AppSnackBar.showError(context, message: 'Clipboard copy failed: $e');
+      }
     } finally {
       if (mounted) setState(() => _isExporting = false);
     }
@@ -432,30 +481,37 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
     final textTheme = theme.textTheme;
 
     final mediaQuery = MediaQuery.of(context);
-    final maxHeight = mediaQuery.size.height * 0.88;
+    final availableHeight = mediaQuery.size.height;
+    final maxHeight = availableHeight * 0.88;
 
-    // Card preview viewport sizing
-    final previewHeight = _config.aspectRatio == StoryCardAspectRatio.story
-        ? 340.0
-        : (_config.aspectRatio == StoryCardAspectRatio.portrait ? 300.0 : 260.0);
-    final previewWidth = previewHeight * _config.aspectRatio.ratio;
+    // Responsive card preview viewport sizing so 9:16, 4:5, and 1:1 fit without clipping.
+    final targetPreviewHeight = _config.aspectRatio == StoryCardAspectRatio.story
+        ? (availableHeight * 0.34).clamp(220.0, 310.0)
+        : (_config.aspectRatio == StoryCardAspectRatio.portrait
+            ? (availableHeight * 0.30).clamp(200.0, 275.0)
+            : (availableHeight * 0.26).clamp(185.0, 245.0));
+    final maxPreviewWidth =
+        (mediaQuery.size.width - AppLayout.spaceL * 2).clamp(160.0, 420.0);
+    final rawPreviewWidth = targetPreviewHeight * _config.aspectRatio.ratio;
+    final previewWidth =
+        rawPreviewWidth > maxPreviewWidth ? maxPreviewWidth : rawPreviewWidth;
+    final previewHeight = previewWidth / _config.aspectRatio.ratio;
 
     return ConstrainedBox(
       constraints: BoxConstraints(maxHeight: maxHeight),
-      child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(
-          AppLayout.spaceL,
-          AppLayout.spaceXS,
-          AppLayout.spaceL,
-          mediaQuery.viewInsets.bottom + AppLayout.spaceL,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Sheet Header: Title & Edit Note Text Toggle
-            Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 1. Pinned Sheet Header: Title & Edit Note Text Toggle
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppLayout.spaceL,
+              0,
+              AppLayout.spaceL,
+              AppLayout.spaceXS,
+            ),
+            child: Row(
               children: [
                 Icon(Icons.auto_awesome_rounded, size: 20, color: colorScheme.primary),
                 const SizedBox(width: AppLayout.spaceS),
@@ -486,35 +542,51 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                 ),
               ],
             ),
-            if (_config.totalWordCount > 30 && _isGenAiActive(context)) ...[
-              const SizedBox(height: AppLayout.spaceXS),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: ActionChip(
-                  avatar: _isSummarizing
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(
-                          Icons.auto_awesome_rounded,
-                          size: 15,
-                          color: colorScheme.primary,
-                        ),
-                  label: Text(
-                    _isSummarizing ? 'Distilling...' : 'AI Highlight',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  materialTapTargetSize: MaterialTapTargetSize.padded,
-                  onPressed: _isSummarizing ? null : _applyAiHighlight,
-                ),
+          ),
+
+          // 2. Scrollable Middle: AI Highlight, Editor, Preview, Slide Switcher & Controls
+          Flexible(
+            fit: FlexFit.loose,
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(
+                AppLayout.spaceL,
+                AppLayout.spaceXS,
+                AppLayout.spaceL,
+                AppLayout.spaceS,
               ),
-            ],
-            const SizedBox(height: AppLayout.spaceS),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (_config.totalWordCount > 30 && _isGenAiActive(context)) ...[
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: ActionChip(
+                        avatar: _isSummarizing
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Icon(
+                                Icons.auto_awesome_rounded,
+                                size: 15,
+                                color: colorScheme.primary,
+                              ),
+                        label: Text(
+                          _isSummarizing ? 'Distilling...' : 'AI Highlight',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        materialTapTargetSize: MaterialTapTargetSize.padded,
+                        onPressed: _isSummarizing ? null : _applyAiHighlight,
+                      ),
+                    ),
+                    const SizedBox(height: AppLayout.spaceS),
+                  ],
 
             // Optional Text & Title Editor Box
             if (_isEditingText) ...[
@@ -864,164 +936,195 @@ class _StoryCardStudioSheetState extends State<StoryCardStudioSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: AppLayout.spaceM),
-
-            // In-Sheet Live Feedback Banner
-            AnimatedSwitcher(
-              duration: AppLayout.shouldReduceMotion(context)
-                  ? Duration.zero
-                  : AppLayout.animModal,
-              switchInCurve: AppLayout.curveStrongEaseOut,
-              switchOutCurve: AppLayout.curveEmphasizedAccelerate,
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: animation,
-                child: SizeTransition(sizeFactor: animation, child: child),
+                ],
               ),
-              child: _feedbackMessage != null
-                  ? Container(
-                      key: ValueKey<String>(_feedbackMessage!),
-                      margin: const EdgeInsets.only(bottom: AppLayout.spaceM),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppLayout.spaceM,
-                        vertical: AppLayout.spaceS,
-                      ),
-                      decoration: BoxDecoration(
-                        color: colorScheme.primaryContainer.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(AppLayout.radiusM),
-                        border: Border.all(
-                          color: colorScheme.primary.withValues(alpha: 0.4),
-                          width: 1.0,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.check_circle_rounded,
-                            size: 16,
-                            color: colorScheme.primary,
-                          ),
-                          const SizedBox(width: AppLayout.spaceS),
-                          Flexible(
-                            child: Text(
-                              _feedbackMessage!,
-                              style: textTheme.labelMedium?.copyWith(
-                                color: colorScheme.onPrimaryContainer,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : const SizedBox.shrink(key: ValueKey('empty_feedback')),
             ),
+          ),
 
-            // Action Bar: 1 Primary CTA (Share / Share All) + Compact Secondary Icon Actions (Save, Copy)
-            Builder(
-              builder: (context) {
-                final slideCount = _config.slides.length;
-                final isMultiSlide = slideCount > 1;
-                return Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 48,
-                        child: FilledButton.icon(
-                          onPressed: _isExporting
-                              ? null
-                              : (isMultiSlide ? _shareAllSlides : _shareCard),
-                          icon: _isExporting
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : Icon(
-                                  isMultiSlide
-                                      ? Icons.collections_outlined
-                                      : Icons.share_rounded,
-                                  size: 20,
-                                ),
-                          label: Text(
-                            _isExporting
-                                ? 'Exporting...'
-                                : (isMultiSlide ? 'Share All ($slideCount)' : 'Share'),
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppLayout.spaceS),
-                    Semantics(
-                      button: true,
-                      label: isMultiSlide
-                          ? 'Save all slides to gallery'
-                          : 'Save image to gallery',
-                      child: SizedBox(
-                        width: 48,
-                        height: 48,
-                        child: IconButton.filledTonal(
-                          onPressed: _isExporting
-                              ? null
-                              : (isMultiSlide
-                                  ? _saveAllSlidesToGallery
-                                  : _saveCardToGallery),
-                          tooltip: isMultiSlide
-                              ? 'Save all $slideCount slides to gallery'
-                              : 'Save to Gallery (Pictures/EverythingApp)',
-                          icon: Icon(
-                            isMultiSlide
-                                ? Icons.download_for_offline_outlined
-                                : Icons.download_rounded,
-                            size: 22,
-                          ),
-                          style: IconButton.styleFrom(
-                            minimumSize: const Size(48, 48),
-                            backgroundColor: colorScheme.surfaceContainerHighest,
-                            foregroundColor: colorScheme.onSurface,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppLayout.radiusM),
-                              side: BorderSide(
-                                color: colorScheme.outlineVariant.withValues(alpha: 0.7),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppLayout.spaceS),
-                    Semantics(
-                      button: true,
-                      label: 'Copy image to clipboard',
-                      child: SizedBox(
-                        width: 48,
-                        height: 48,
-                        child: IconButton.filledTonal(
-                          onPressed: _isExporting ? null : _copyImageToClipboard,
-                          tooltip: 'Copy Image to Clipboard',
-                          icon: const Icon(Icons.copy_rounded, size: 20),
-                          style: IconButton.styleFrom(
-                            minimumSize: const Size(48, 48),
-                            backgroundColor: colorScheme.surfaceContainerHighest,
-                            foregroundColor: colorScheme.onSurface,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppLayout.radiusM),
-                              side: BorderSide(
-                                color: colorScheme.outlineVariant.withValues(alpha: 0.7),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
+          // 3. Pinned Bottom Footer: Subtle Divider + Feedback Banner + Action Bar
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              AppLayout.spaceL,
+              AppLayout.spaceS,
+              AppLayout.spaceL,
+              mediaQuery.viewInsets.bottom + AppLayout.spaceM,
             ),
-          ],
-        ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // In-Sheet Live Feedback Banner
+                AnimatedSwitcher(
+                  duration: AppLayout.shouldReduceMotion(context)
+                      ? Duration.zero
+                      : AppLayout.animModal,
+                  switchInCurve: AppLayout.curveStrongEaseOut,
+                  switchOutCurve: AppLayout.curveEmphasizedAccelerate,
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: SizeTransition(sizeFactor: animation, child: child),
+                  ),
+                  child: _feedbackMessage != null
+                      ? Container(
+                          key: ValueKey<String>('${_feedbackIsError ? 'err' : 'ok'}_$_feedbackMessage'),
+                          margin: const EdgeInsets.only(bottom: AppLayout.spaceS),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppLayout.spaceM,
+                            vertical: AppLayout.spaceS,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _feedbackIsError
+                                ? colorScheme.errorContainer.withValues(alpha: 0.75)
+                                : colorScheme.primaryContainer.withValues(alpha: 0.6),
+                            borderRadius: BorderRadius.circular(AppLayout.radiusM),
+                            border: Border.all(
+                              color: (_feedbackIsError ? colorScheme.error : colorScheme.primary)
+                                  .withValues(alpha: 0.4),
+                              width: 1.0,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                _feedbackIsError
+                                    ? Icons.error_outline_rounded
+                                    : Icons.check_circle_rounded,
+                                size: 16,
+                                color: _feedbackIsError
+                                    ? colorScheme.error
+                                    : colorScheme.primary,
+                              ),
+                              const SizedBox(width: AppLayout.spaceS),
+                              Flexible(
+                                child: Text(
+                                  _feedbackMessage!,
+                                  style: textTheme.labelMedium?.copyWith(
+                                    color: _feedbackIsError
+                                        ? colorScheme.onErrorContainer
+                                        : colorScheme.onPrimaryContainer,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : const SizedBox.shrink(key: ValueKey('empty_feedback')),
+                ),
+
+                // Action Bar: 1 Primary CTA (Share / Share All) + Compact Secondary Icon Actions (Save, Copy)
+                Builder(
+                  builder: (context) {
+                    final slideCount = _config.slides.length;
+                    final isMultiSlide = slideCount > 1;
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 48,
+                            child: FilledButton.icon(
+                              onPressed: _isExporting
+                                  ? null
+                                  : (isMultiSlide ? _shareAllSlides : _shareCard),
+                              icon: _isExporting
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : Icon(
+                                      isMultiSlide
+                                          ? Icons.collections_outlined
+                                          : Icons.share_rounded,
+                                      size: 20,
+                                    ),
+                              label: Text(
+                                _isExporting
+                                    ? 'Exporting...'
+                                    : (isMultiSlide ? 'Share All ($slideCount)' : 'Share'),
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppLayout.spaceS),
+                        Semantics(
+                          button: true,
+                          label: isMultiSlide
+                              ? 'Save all slides to gallery'
+                              : 'Save image to gallery',
+                          child: SizedBox(
+                            width: 48,
+                            height: 48,
+                            child: IconButton.filledTonal(
+                              onPressed: _isExporting
+                                  ? null
+                                  : (isMultiSlide
+                                      ? _saveAllSlidesToGallery
+                                      : _saveCardToGallery),
+                              tooltip: isMultiSlide
+                                  ? 'Save all $slideCount slides to gallery'
+                                  : 'Save to Gallery (Pictures/EverythingApp)',
+                              icon: Icon(
+                                isMultiSlide
+                                    ? Icons.download_for_offline_outlined
+                                    : Icons.download_rounded,
+                                size: 22,
+                              ),
+                              style: IconButton.styleFrom(
+                                minimumSize: const Size(48, 48),
+                                backgroundColor: colorScheme.surfaceContainerHighest,
+                                foregroundColor: colorScheme.onSurface,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(AppLayout.radiusM),
+                                  side: BorderSide(
+                                    color: colorScheme.outlineVariant.withValues(alpha: 0.7),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppLayout.spaceS),
+                        Semantics(
+                          button: true,
+                          label: 'Copy image to clipboard',
+                          child: SizedBox(
+                            width: 48,
+                            height: 48,
+                            child: IconButton.filledTonal(
+                              onPressed: _isExporting ? null : _copyImageToClipboard,
+                              tooltip: 'Copy Image to Clipboard',
+                              icon: const Icon(Icons.copy_rounded, size: 20),
+                              style: IconButton.styleFrom(
+                                minimumSize: const Size(48, 48),
+                                backgroundColor: colorScheme.surfaceContainerHighest,
+                                foregroundColor: colorScheme.onSurface,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(AppLayout.radiusM),
+                                  side: BorderSide(
+                                    color: colorScheme.outlineVariant.withValues(alpha: 0.7),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

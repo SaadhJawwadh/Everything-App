@@ -1,6 +1,59 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:note_taking_app/features/story_cards/story_cards.dart';
+
+class _FakeStoryCardRenderService extends StoryCardRenderService {
+  int captureCount = 0;
+  bool shouldReturnNull = false;
+  bool shouldThrow = false;
+
+  _FakeStoryCardRenderService();
+
+  @override
+  Future<Uint8List?> capturePng(
+    GlobalKey repaintKey, {
+    double pixelRatio = 3.5,
+  }) async {
+    captureCount++;
+    if (shouldThrow) {
+      throw StateError('Simulated render failure');
+    }
+    if (shouldReturnNull) return null;
+    // Minimal non-empty PNG header + payload bytes for test verification
+    return Uint8List.fromList([137, 80, 78, 71, 13, 10, 26, 10, captureCount]);
+  }
+}
+
+class _FakeStoryCardMediaService extends StoryCardMediaService {
+  List<File> sharedFiles = const [];
+  List<int> savedFileSizes = const [];
+  String? lastSharedTitle;
+  bool shareShouldSucceed = true;
+  int? saveCountOverride;
+
+  _FakeStoryCardMediaService();
+
+  @override
+  Future<bool> shareMultipleImageFiles(
+    List<File> files, {
+    required String title,
+  }) async {
+    sharedFiles = List<File>.from(files);
+    lastSharedTitle = title;
+    return shareShouldSucceed;
+  }
+
+  @override
+  Future<int> saveMultipleImageFilesToGallery(List<File> files) async {
+    savedFileSizes = [
+      for (final f in files) f.lengthSync(),
+    ];
+    return saveCountOverride ?? files.length;
+  }
+}
 
 void main() {
   Widget buildTestSheet({
@@ -468,5 +521,235 @@ void main() {
     expect(silver.background, const Color(0xFFE1E4E9));
     expect(terminal.background, const Color(0xFF0B0D12));
     expect(terminal.isTerminal, isTrue);
+  });
+
+  Future<void> pumpExportAndSettle(WidgetTester tester) async {
+    for (int i = 0; i < 15; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 10)),
+      );
+    }
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('StoryCardStudioSheet Share All captures every slide cleanly and restores slide index', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.0;
+    final tempDir = Directory.systemTemp.createTempSync('story_share_test_');
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+
+    final fakeRender = _FakeStoryCardRenderService();
+    final fakeMedia = _FakeStoryCardMediaService();
+    final longNote = [
+      List.generate(70, (i) => 'alpha$i').join(' '),
+      List.generate(70, (i) => 'beta$i').join(' '),
+    ].join('\n\n');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StoryCardStudioSheet(
+            initialText: longNote,
+            noteTitle: 'Multi Slide Share',
+            noteDate: DateTime(2026, 9, 3),
+            renderService: fakeRender,
+            mediaService: fakeMedia,
+            tempDirProvider: () async => tempDir,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Advance to Slide 2 of 2 before sharing all
+    await tester.tap(find.byTooltip('Next slide'));
+    await tester.pumpAndSettle();
+    expect(find.text('Slide 2 of 2'), findsOneWidget);
+
+    await tester.tap(find.text('Share All (2)'));
+    await pumpExportAndSettle(tester);
+
+    expect(fakeRender.captureCount, 2);
+    expect(fakeMedia.sharedFiles.length, 2);
+    expect(fakeMedia.lastSharedTitle, 'Multi Slide Share');
+    for (final file in fakeMedia.sharedFiles) {
+      expect(file.existsSync(), isTrue);
+      expect(file.lengthSync(), greaterThan(0));
+    }
+    // Restores original slide index after export
+    expect(find.text('Slide 2 of 2'), findsOneWidget);
+  });
+
+  testWidgets('StoryCardStudioSheet Save All captures every slide, saves to gallery, and shows in-sheet success banner', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.0;
+    final tempDir = Directory.systemTemp.createTempSync('story_save_test_');
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+
+    final fakeRender = _FakeStoryCardRenderService();
+    final fakeMedia = _FakeStoryCardMediaService();
+    final longNote = [
+      List.generate(70, (i) => 'gamma$i').join(' '),
+      List.generate(70, (i) => 'delta$i').join(' '),
+    ].join('\n\n');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StoryCardStudioSheet(
+            initialText: longNote,
+            noteTitle: 'Multi Slide Save',
+            noteDate: DateTime(2026, 9, 3),
+            renderService: fakeRender,
+            mediaService: fakeMedia,
+            tempDirProvider: () async => tempDir,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Save all 2 slides to gallery'));
+    await pumpExportAndSettle(tester);
+
+    expect(fakeRender.captureCount, 2);
+    expect(fakeMedia.savedFileSizes.length, 2);
+    expect(fakeMedia.savedFileSizes, everyElement(greaterThan(0)));
+    expect(
+      find.descendant(
+        of: find.byType(StoryCardStudioSheet),
+        matching: find.text('Saved 2 slides to Gallery'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(StoryCardStudioSheet),
+        matching: find.byIcon(Icons.check_circle_rounded),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('StoryCardStudioSheet shows in-sheet error banner visibly when export fails', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.0;
+    final tempDir = Directory.systemTemp.createTempSync('story_err_test_');
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+      if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    });
+
+    final fakeRender = _FakeStoryCardRenderService()..shouldThrow = true;
+    final fakeMedia = _FakeStoryCardMediaService();
+    final longNote = [
+      List.generate(70, (i) => 'errA$i').join(' '),
+      List.generate(70, (i) => 'errB$i').join(' '),
+    ].join('\n\n');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StoryCardStudioSheet(
+            initialText: longNote,
+            noteTitle: 'Error Banner Test',
+            noteDate: DateTime(2026, 9, 3),
+            renderService: fakeRender,
+            mediaService: fakeMedia,
+            tempDirProvider: () async => tempDir,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Share All (2)'));
+    await pumpExportAndSettle(tester);
+
+    expect(
+      find.descendant(
+        of: find.byType(StoryCardStudioSheet),
+        matching: find.textContaining('Sharing slides failed:'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(StoryCardStudioSheet),
+        matching: find.byIcon(Icons.error_outline_rounded),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('StoryCardStudioSheet modal keeps 9:16 preview unclipped and Share All visible simultaneously', (tester) async {
+    const viewportSize = Size(412, 915);
+    tester.view.physicalSize = viewportSize;
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final longNote = [
+      List.generate(70, (i) => 'omega$i').join(' '),
+      List.generate(70, (i) => 'sigma$i').join(' '),
+    ].join('\n\n');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () => StoryCardStudioSheet.show(
+                context: context,
+                initialText: longNote,
+                noteTitle: 'Office or Park?',
+                category: 'Brutally Honest',
+                noteDate: DateTime(2026, 9, 3),
+              ),
+              child: const Text('Open Studio'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open Studio'));
+    await tester.pumpAndSettle();
+
+    void assertPreviewAndCtaVisible() {
+      final previewRect = tester.getRect(find.byType(StoryCardPreview));
+      final shareRect = tester.getRect(find.text('Share All (2)'));
+      expect(previewRect.top, greaterThanOrEqualTo(0.0));
+      expect(previewRect.bottom, lessThanOrEqualTo(viewportSize.height));
+      expect(previewRect.left, greaterThanOrEqualTo(0.0));
+      expect(previewRect.right, lessThanOrEqualTo(viewportSize.width));
+      expect(shareRect.top, greaterThanOrEqualTo(previewRect.bottom));
+      expect(shareRect.bottom, lessThanOrEqualTo(viewportSize.height));
+    }
+
+    // 9:16 Story (default)
+    assertPreviewAndCtaVisible();
+
+    // 1:1 Square
+    await tester.tap(find.text('1:1 Square'));
+    await tester.pumpAndSettle();
+    assertPreviewAndCtaVisible();
+
+    // 4:5 Portrait
+    await tester.tap(find.text('4:5 Portrait'));
+    await tester.pumpAndSettle();
+    assertPreviewAndCtaVisible();
   });
 }

@@ -24,6 +24,7 @@ class AppBottomSheet extends StatelessWidget {
     required Widget child,
     String? title,
     List<Widget>? actions,
+    EdgeInsetsGeometry? padding,
     bool isScrollControlled = true,
     bool showDragHandle = true,
   }) {
@@ -44,6 +45,7 @@ class AppBottomSheet extends StatelessWidget {
       builder: (context) => AppBottomSheet(
         title: title,
         actions: actions,
+        padding: padding,
         showDragHandle: showDragHandle,
         child: child,
       ),

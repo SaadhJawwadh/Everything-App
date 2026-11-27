@@ -49,30 +49,21 @@ class ChangelogRelease {
 
 /// Latest release kept in Dart for synchronous rendering.
 final ChangelogRelease kLatestChangelog = ChangelogRelease(
-  version: 'v3.8.2',
-  date: 'November 26, 2026',
+  version: 'v3.8.3',
+  date: 'November 27, 2026',
   isLatest: true,
   categories: [
     ChangelogCategory(
-      title: "What's New",
-      items: [
-        'Redesigned Material You Home Widgets: Streamlined to two adaptive widgets (Tasks & Notes, and Finances) with rounded tonal task cards and edge-to-edge checklist switching.',
-        'Always-Visible Home Widgets: Home widgets stay live even when App Lock or Finance Lock is active, with clear Security Settings disclosures.',
-        'Poster Story Cards & Local Wi-Fi Browser Companion: Bold chromatic Story Card themes with poster typography, plus a PIN-protected local Wi-Fi browser companion on port 8765.',
-      ],
-    ),
-    ChangelogCategory(
       title: 'Improvements',
       items: [
-        'Cleaner Tasks & Notes Widget Header: Removed harsh header dividers and balanced pill proportions while keeping full 48dp touch targets.',
-        'Faster Ledger & 8-Language Support: Live transactions appear immediately above the fold, tabular numerals keep figures aligned, and widget labels are translated across 8 languages.',
+        'Pinned Story Card Studio Layout: Pinned the studio header and bottom Share, Save, and Copy bar with responsive preview scaling so 9:16 Story, 4:5 Portrait, and 1:1 Square cards stay fully visible without clipping.',
+        'Visible In-Sheet Export Alerts: Export errors and confirmations now display directly inside the Story Card Studio sheet instead of hiding behind it.',
       ],
     ),
     ChangelogCategory(
       title: 'Fixes',
       items: [
-        'Bulletproof Transaction & Note Saves: Manual transaction edits are no longer reverted by background AI, split-bill and savings goal links stay intact, and image-only notes save safely on app background.',
-        'Finance Widget & App Lock Stability: Fixed random "Finances disabled" flashes on cold start, PIN-fallback re-lock loops, screen-off latch races, and module-lock resume prompts.',
+        'Multi-Slide Story Card Share All & Save All: Fixed a release-build issue where tapping Share All or Save All on multi-slide notes failed silently instead of exporting all slides.',
       ],
     ),
   ],

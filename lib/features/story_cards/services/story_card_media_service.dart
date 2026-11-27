@@ -91,6 +91,24 @@ class StoryCardMediaService {
     return imageCopied;
   }
 
+  /// Deletes expired `story_share_*.png` temporary files older than 1 hour.
+  Future<void> _cleanupOldShareTempFiles(Directory tempDir) async {
+    final cutoff = DateTime.now().subtract(const Duration(hours: 1));
+    await for (final entity in tempDir.list()) {
+      if (entity is File) {
+        final baseName = entity.uri.pathSegments.last;
+        if (baseName.startsWith('story_share_') && baseName.endsWith('.png')) {
+          try {
+            final stat = await entity.stat();
+            if (stat.modified.isBefore(cutoff)) {
+              await entity.delete();
+            }
+          } catch (_) {}
+        }
+      }
+    }
+  }
+
   /// Shares the story card via native OS share sheet.
   Future<bool> shareImage(
     Uint8List bytes, {
@@ -100,27 +118,14 @@ class StoryCardMediaService {
     final name = filename ?? 'story_share_${DateTime.now().millisecondsSinceEpoch}.png';
     try {
       final tempDir = await getTemporaryDirectory();
-      final cutoff = DateTime.now().subtract(const Duration(hours: 1));
-      await for (final entity in tempDir.list()) {
-        if (entity is File) {
-          final baseName = entity.uri.pathSegments.last;
-          if (baseName.startsWith('story_share_') && baseName.endsWith('.png')) {
-            try {
-              final stat = await entity.stat();
-              if (stat.modified.isBefore(cutoff)) {
-                await entity.delete();
-              }
-            } catch (_) {}
-          }
-        }
-      }
+      await _cleanupOldShareTempFiles(tempDir);
 
       final file = File('${tempDir.path}/$name');
       await file.writeAsBytes(bytes);
 
       final result = await AppLockScreen.withLockIgnored(
         () => Share.shareXFiles(
-          [XFile(file.path)],
+          [XFile(file.path, mimeType: 'image/png')],
           text: title.isNotEmpty ? title : 'Story Note',
         ),
       );
@@ -138,9 +143,11 @@ class StoryCardMediaService {
   }) async {
     if (files.isEmpty) return false;
     try {
+      final tempDir = await getTemporaryDirectory();
+      await _cleanupOldShareTempFiles(tempDir);
       return await AppLockScreen.withLockIgnored(() async {
         final result = await Share.shareXFiles(
-          files.map((f) => XFile(f.path)).toList(),
+          files.map((f) => XFile(f.path, mimeType: 'image/png')).toList(),
           text: title.isNotEmpty ? title : 'Story Note',
         );
         return result.status == ShareResultStatus.success;

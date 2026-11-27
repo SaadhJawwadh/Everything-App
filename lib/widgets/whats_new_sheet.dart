@@ -81,8 +81,8 @@ class WhatsNewSheet extends StatelessWidget {
         items: [
           _WhatsNewItem(
             icon: Icons.verified_user_rounded,
-            title: "Reliable saves, widgets & App Lock",
-            desc: "Preserved manual transaction edits and image notes, fixed random Finance widget resets, and resolved PIN/App Lock resume conflicts.",
+            title: "Reliable saves, Story Cards & App Lock",
+            desc: "Fixed multi-slide Story Card Share All & Save All exports and unclipped 9:16 previews, preserved manual edits and image notes, and resolved PIN/App Lock resume conflicts.",
           ),
         ],
       ),
