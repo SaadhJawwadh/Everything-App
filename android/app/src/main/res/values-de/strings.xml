@@ -55,4 +55,9 @@
     <string name="shortcut_sync_devices_long">Lokale P2P-WLAN-Synchronisation</string>
     <string name="shortcut_new_checklist_short">Neue Liste</string>
     <string name="app_function_desc">Privater Arbeitsbereich der Everything App für Notizen, Checklisten und Finanzen</string>
+    <string name="widget_quick_add_title">Aufgabe hinzufügen</string>
+    <string name="widget_quick_add_hint">Was muss erledigt werden?</string>
+    <string name="widget_quick_add_save">Hinzufügen</string>
+    <string name="widget_quick_add_another">+ Weitere hinzufügen</string>
+    <string name="widget_quick_add_added_fmt">Hinzugefügt: %1$s</string>
 </resources>

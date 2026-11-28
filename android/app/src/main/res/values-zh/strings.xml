@@ -55,4 +55,9 @@
     <string name="shortcut_sync_devices_long">局域网 Wi-Fi 点对点同步</string>
     <string name="shortcut_new_checklist_short">新建清单</string>
     <string name="app_function_desc">Everything App 私人工作区，支持笔记、清单和财务管理</string>
+    <string name="widget_quick_add_title">添加任务</string>
+    <string name="widget_quick_add_hint">需要做什么？</string>
+    <string name="widget_quick_add_save">添加</string>
+    <string name="widget_quick_add_another">+ 继续添加</string>
+    <string name="widget_quick_add_added_fmt">已添加：%1$s</string>
 </resources>

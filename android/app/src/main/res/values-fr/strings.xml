@@ -55,4 +55,9 @@
     <string name="shortcut_sync_devices_long">Synchronisation locale P2P Wi-Fi</string>
     <string name="shortcut_new_checklist_short">Nouvelle liste</string>
     <string name="app_function_desc">Espace privé Everything App pour notes, listes et suivi financier</string>
+    <string name="widget_quick_add_title">Ajouter une tâche</string>
+    <string name="widget_quick_add_hint">Que faut-il faire ?</string>
+    <string name="widget_quick_add_save">Ajouter</string>
+    <string name="widget_quick_add_another">+ Ajouter une autre</string>
+    <string name="widget_quick_add_added_fmt">Ajoutée : %1$s</string>
 </resources>

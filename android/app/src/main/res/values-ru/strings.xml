@@ -55,4 +55,9 @@
     <string name="shortcut_sync_devices_long">Локальная P2P-синхронизация по Wi-Fi</string>
     <string name="shortcut_new_checklist_short">Новый список</string>
     <string name="app_function_desc">Личное пространство Everything App для заметок, списков и учёта финансов</string>
+    <string name="widget_quick_add_title">Добавить задачу</string>
+    <string name="widget_quick_add_hint">Что нужно сделать?</string>
+    <string name="widget_quick_add_save">Добавить</string>
+    <string name="widget_quick_add_another">+ Добавить ещё</string>
+    <string name="widget_quick_add_added_fmt">Добавлено: %1$s</string>
 </resources>

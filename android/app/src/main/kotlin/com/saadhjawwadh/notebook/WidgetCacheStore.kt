@@ -19,6 +19,8 @@ object WidgetCacheStore {
     const val KEY_FINANCE_SNAPSHOT = "finance_snapshot_json"
     const val KEY_TODO_NOTES = "todo_notes_json"
     const val KEY_PENDING_TOGGLES = "pending_toggles_json"
+    const val KEY_PENDING_QUICK_ADDS = "pending_quick_adds_json"
+    const val SYNTHETIC_NEW_TASKS_NOTE_ID = "__pending_new_tasks__"
     const val KEY_ACTIVE_NOTE_ID = "active_note_id"
     const val KEY_ACTIVE_NOTE_TITLE = "active_note_title"
     const val PREFIX_ACTIVE_NOTE_ID = "active_note_id_"
@@ -81,6 +83,14 @@ object WidgetCacheStore {
     @Synchronized
     fun setPendingTogglesJson(context: Context, json: String): Boolean =
         prefs(context).edit().putString(KEY_PENDING_TOGGLES, json).commit()
+
+    @Synchronized
+    fun getPendingQuickAddsJson(context: Context): String =
+        prefs(context).getString(KEY_PENDING_QUICK_ADDS, "[]") ?: "[]"
+
+    @Synchronized
+    fun setPendingQuickAddsJson(context: Context, json: String): Boolean =
+        prefs(context).edit().putString(KEY_PENDING_QUICK_ADDS, json).commit()
 
     @Synchronized
     fun getActiveNoteId(context: Context, appWidgetId: Int): String {
@@ -519,12 +529,115 @@ object WidgetCacheStore {
     }
 
     @Synchronized
+    fun addTodoItemOptimistically(
+        context: Context,
+        requestedNoteId: String,
+        taskText: String
+    ): String {
+        val cleaned = taskText.trim()
+        if (cleaned.isEmpty()) return ""
+
+        var resolvedNoteId = ""
+        try {
+            val notesArr = JSONArray(getTodoNotesJson(context))
+            var targetIdx = -1
+
+            if (requestedNoteId.isNotBlank() && requestedNoteId != "ALL_NOTES") {
+                for (i in 0 until notesArr.length()) {
+                    if (notesArr.getJSONObject(i).optString("id") == requestedNoteId) {
+                        targetIdx = i
+                        break
+                    }
+                }
+            }
+
+            if (targetIdx < 0) {
+                val defaultTitles = setOf("my tasks", "quick tasks", "todo", "tasks")
+                for (i in 0 until notesArr.length()) {
+                    val titleLower = notesArr.getJSONObject(i).optString("title", "").trim().lowercase()
+                    if (titleLower in defaultTitles) {
+                        targetIdx = i
+                        break
+                    }
+                }
+            }
+
+            if (targetIdx < 0 && notesArr.length() > 0) {
+                targetIdx = 0
+            }
+
+            val noteObj = if (targetIdx >= 0) {
+                notesArr.getJSONObject(targetIdx)
+            } else {
+                JSONObject().apply {
+                    put("id", SYNTHETIC_NEW_TASKS_NOTE_ID)
+                    put("title", "My Tasks")
+                    put("pendingCount", 0)
+                    put("checkedCount", 0)
+                    put("totalCount", 0)
+                    put("items", JSONArray())
+                }.also { notesArr.put(it) }
+            }
+
+            resolvedNoteId = noteObj.optString("id", SYNTHETIC_NEW_TASKS_NOTE_ID)
+            val itemsArr = noteObj.optJSONArray("items") ?: JSONArray().also {
+                noteObj.put("items", it)
+            }
+
+            val newItemObj = JSONObject().apply {
+                put("lineIndex", -1)
+                put("text", cleaned)
+                put("isDone", false)
+            }
+            itemsArr.put(newItemObj)
+
+            val prevTotal = if (noteObj.has("totalCount")) {
+                noteObj.optInt("totalCount", itemsArr.length() - 1)
+            } else {
+                itemsArr.length() - 1
+            }
+            val prevPending = if (noteObj.has("pendingCount")) {
+                noteObj.optInt("pendingCount", itemsArr.length() - 1)
+            } else {
+                itemsArr.length() - 1
+            }
+            noteObj.put("totalCount", prevTotal + 1)
+            noteObj.put("pendingCount", prevPending + 1)
+
+            setTodoNotesJson(context, notesArr.toString())
+        } catch (_: Exception) {
+            if (resolvedNoteId.isEmpty()) {
+                resolvedNoteId = if (requestedNoteId.isNotBlank() && requestedNoteId != "ALL_NOTES") {
+                    requestedNoteId
+                } else {
+                    SYNTHETIC_NEW_TASKS_NOTE_ID
+                }
+            }
+        }
+
+        try {
+            val pendingArr = JSONArray(getPendingQuickAddsJson(context))
+            val quickAddObj = JSONObject().apply {
+                put("id", java.util.UUID.randomUUID().toString())
+                put("noteId", resolvedNoteId)
+                put("text", cleaned)
+                put("timestamp", System.currentTimeMillis())
+            }
+            pendingArr.put(quickAddObj)
+            setPendingQuickAddsJson(context, pendingArr.toString())
+        } catch (_: Exception) {}
+
+        return resolvedNoteId
+    }
+
+    @Synchronized
     fun getSnapshotMap(context: Context): Map<String, Any?> {
         val store = prefs(context)
         return mapOf(
             KEY_FINANCE_SNAPSHOT to getFinanceSnapshotJson(context),
             KEY_TODO_NOTES to getTodoNotesJson(context),
             KEY_PENDING_TOGGLES to getPendingTogglesJson(context),
+            KEY_PENDING_QUICK_ADDS to getPendingQuickAddsJson(context),
             KEY_ACTIVE_NOTE_ID to (store.getString(KEY_ACTIVE_NOTE_ID, "ALL_NOTES") ?: "ALL_NOTES"),
             KEY_ACTIVE_NOTE_TITLE to (store.getString(KEY_ACTIVE_NOTE_TITLE, "") ?: ""),
             KEY_SHOW_FINANCIAL_MANAGER to isFinancialManagerEnabled(context),

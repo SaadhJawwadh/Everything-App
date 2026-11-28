@@ -41,7 +41,7 @@ class WhatsNewSheet extends StatelessWidget {
           _WhatsNewItem(
             icon: Icons.widgets_outlined,
             title: "Material You home widgets",
-            desc: "Streamlined Tasks & Notes and Finances widgets with rounded task cards and adaptive layouts.",
+            desc: "Streamlined Tasks & Notes and Finances widgets with instant Home screen quick-add (+ Add another) and denser 3+ task rows.",
           ),
           _WhatsNewItem(
             icon: Icons.lock_open_rounded,

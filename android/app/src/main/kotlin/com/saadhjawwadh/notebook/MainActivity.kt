@@ -119,7 +119,8 @@ class MainActivity: FlutterFragmentActivity() {
                 "title",
                 "content",
                 "folder",
-                "query"
+                "query",
+                "active_note_title"
             )) {
                 if (bundle.containsKey(key)) {
                     extrasMap[key] = bundle.get(key)?.toString()
@@ -396,6 +397,14 @@ class MainActivity: FlutterFragmentActivity() {
                 "setPendingTodoToggles" -> {
                     val json = (call.arguments as? String) ?: call.argument<String>("json") ?: "[]"
                     WidgetCacheStore.setPendingTogglesJson(applicationContext, json)
+                    result.success(true)
+                }
+                "getPendingTodoQuickAdds" -> {
+                    result.success(WidgetCacheStore.getPendingQuickAddsJson(applicationContext))
+                }
+                "setPendingTodoQuickAdds" -> {
+                    val json = (call.arguments as? String) ?: call.argument<String>("json") ?: "[]"
+                    WidgetCacheStore.setPendingQuickAddsJson(applicationContext, json)
                     result.success(true)
                 }
                 "getWidgetActiveNoteIds" -> {

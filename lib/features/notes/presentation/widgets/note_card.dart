@@ -406,7 +406,7 @@ class NoteCard extends StatelessWidget {
         return const [];
       }
 
-      final previewItems = pendingItems.take(4).toList();
+      final previewItems = pendingItems.take(3).toList();
       final remainingCount = pendingItems.length - previewItems.length;
 
       return [
@@ -424,7 +424,7 @@ class NoteCard extends StatelessWidget {
               },
               borderRadius: BorderRadius.circular(AppLayout.radiusS),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4.5),
+                padding: const EdgeInsets.symmetric(vertical: 3.5),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [

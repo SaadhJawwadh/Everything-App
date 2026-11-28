@@ -3,33 +3,33 @@
     android:id="@+id/todo_item_row"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:paddingBottom="6dp">
+    android:paddingBottom="4dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:minHeight="48dp"
+        android:minHeight="40dp"
         android:background="@drawable/widget_subcard_shape"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="2dp"
         android:paddingEnd="10dp"
-        android:paddingTop="2dp"
-        android:paddingBottom="2dp">
+        android:paddingTop="0dp"
+        android:paddingBottom="0dp">
 
         <FrameLayout
             android:id="@+id/todo_item_checkbox_wrapper"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:minWidth="48dp"
-            android:minHeight="48dp"
+            android:layout_width="44dp"
+            android:layout_height="40dp"
+            android:minWidth="44dp"
+            android:minHeight="40dp"
             android:clickable="true"
             android:focusable="true">
 
             <ImageView
                 android:id="@+id/todo_item_checkbox"
-                android:layout_width="22dp"
-                android:layout_height="22dp"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
                 android:layout_gravity="center"
                 android:contentDescription="@string/widget_new_task"
                 android:src="@drawable/ic_checkbox_unchecked" />
@@ -39,14 +39,16 @@
             android:id="@+id/todo_item_text_container"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:minHeight="48dp"
+            android:minHeight="40dp"
             android:layout_weight="1"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center_vertical"
             android:orientation="vertical"
             android:paddingStart="2dp"
-            android:paddingEnd="4dp">
+            android:paddingEnd="4dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp">
 
             <TextView
                 android:id="@+id/todo_item_text"

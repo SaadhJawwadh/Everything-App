@@ -55,4 +55,9 @@
     <string name="shortcut_sync_devices_long">P2P உள்ளூர் Wi-Fi ஒத்திசைவு</string>
     <string name="shortcut_new_checklist_short">புதிய பட்டியல்</string>
     <string name="app_function_desc">குறிப்புகள், பட்டியல்கள் மற்றும் நிதி கண்காணிப்புக்கான Everything App தனிப்பட்ட பணியிடம்</string>
+    <string name="widget_quick_add_title">பணி சேர்</string>
+    <string name="widget_quick_add_hint">என்ன செய்ய வேண்டும்?</string>
+    <string name="widget_quick_add_save">சேர்</string>
+    <string name="widget_quick_add_another">+ இன்னொன்று சேர்</string>
+    <string name="widget_quick_add_added_fmt">சேர்க்கப்பட்டது: %1$s</string>
 </resources>

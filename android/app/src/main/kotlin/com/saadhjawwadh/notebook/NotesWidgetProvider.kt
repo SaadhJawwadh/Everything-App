@@ -43,7 +43,7 @@ class NotesWidgetProvider : AppWidgetProvider() {
             )
             views.setOnClickPendingIntent(
                 R.id.notes_widget_new_checklist,
-                actionPendingIntent(context, "com.saadhjawwadh.notebook.QUICK_ADD_TODO", 2)
+                quickAddPendingIntent(context, 2)
             )
             views.setOnClickPendingIntent(
                 R.id.notes_widget_search,
@@ -51,6 +51,20 @@ class NotesWidgetProvider : AppWidgetProvider() {
             )
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
+        }
+
+        private fun quickAddPendingIntent(context: Context, slot: Int): PendingIntent {
+            val intent = Intent(context, TodoQuickAddActivity::class.java).apply {
+                putExtra("active_note_id", "ALL_NOTES")
+                data = Uri.parse("widget://notes_quick_add/slot/$slot")
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            return PendingIntent.getActivity(
+                context,
+                REQUEST_CODE_BASE + slot,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
         }
 
         private fun actionPendingIntent(context: Context, action: String, slot: Int): PendingIntent {

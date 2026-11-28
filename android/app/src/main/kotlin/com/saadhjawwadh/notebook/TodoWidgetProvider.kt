@@ -262,9 +262,7 @@ class TodoWidgetProvider : AppWidgetProvider() {
             )
             views.setOnClickPendingIntent(
                 R.id.todo_strip_new_task,
-                activityIntent(context, appWidgetId, 2, ACTION_QUICK_ADD) {
-                    putExtra("active_note_id", state.activeNoteId)
-                }
+                quickAddPendingIntent(context, appWidgetId, 2, state.activeNoteId, state.title)
             )
             views.setOnClickPendingIntent(
                 R.id.todo_strip_search,
@@ -350,10 +348,14 @@ class TodoWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.todo_widget_switcher, pickerPendingIntent)
             views.setOnClickPendingIntent(R.id.todo_widget_title, pickerPendingIntent)
 
-            // Quick add task button & empty state tap
-            val addPendingIntent = activityIntent(context, appWidgetId, 2, ACTION_QUICK_ADD) {
-                putExtra("active_note_id", state.activeNoteId)
-            }
+            // Quick add task button & empty state tap (opens instant native overlay)
+            val addPendingIntent = quickAddPendingIntent(
+                context,
+                appWidgetId,
+                2,
+                state.activeNoteId,
+                state.title
+            )
             views.setOnClickPendingIntent(R.id.todo_widget_add, addPendingIntent)
             views.setOnClickPendingIntent(R.id.todo_widget_empty_container, addPendingIntent)
 
@@ -480,6 +482,28 @@ class TodoWidgetProvider : AppWidgetProvider() {
         private fun requestCode(appWidgetId: Int, slot: Int): Int {
             val safeId = if (appWidgetId == AppWidgetManager.INVALID_APPWIDGET_ID) 0 else appWidgetId
             return REQUEST_CODE_BASE + safeId * 10 + slot
+        }
+
+        private fun quickAddPendingIntent(
+            context: Context,
+            appWidgetId: Int,
+            slot: Int,
+            activeNoteId: String,
+            activeNoteTitle: String
+        ): PendingIntent {
+            val intent = Intent(context, TodoQuickAddActivity::class.java).apply {
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
+                putExtra("active_note_id", activeNoteId)
+                putExtra("active_note_title", activeNoteTitle)
+                data = Uri.parse("widget://todo_quick_add/$appWidgetId/slot/$slot")
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            return PendingIntent.getActivity(
+                context,
+                requestCode(appWidgetId, slot),
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
         }
 
         private inline fun activityIntent(

@@ -191,6 +191,16 @@
             </intent-filter>
         </activity>
 
+        <!-- Instant Native Translucent Quick-Add Task Overlay -->
+        <activity
+            android:name=".TodoQuickAddActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TodoListPicker"
+            android:taskAffinity="com.saadhjawwadh.notebook.widget_quick_add"
+            android:launchMode="singleTop"
+            android:excludeFromRecents="true"
+            android:windowSoftInputMode="adjustResize|stateVisible" />
+
         <!-- FileProvider for Story Cards clipboard & local image sharing -->
         <provider
             android:name="androidx.core.content.FileProvider"

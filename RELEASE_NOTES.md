@@ -1,8 +1,11 @@
 
+### 🌟 What's New
+- **Instant Home Screen Quick-Add**: Tapping **+** on the Tasks & Notes widget now opens a lightweight Material You quick-add overlay right over your Home screen—no full app launch, no black screen, and instant **+ Add another** support for rapid multi-item entry.
+
 ### 🚀 Improvements
-- **Pinned Story Card Studio Layout**: Pinned the studio header and bottom Share, Save, and Copy bar with responsive preview scaling so 9:16 Story, 4:5 Portrait, and 1:1 Square cards stay fully visible without clipping the top of your card.
-- **Visible In-Sheet Export Alerts**: Export errors and confirmations now display directly inside the Story Card Studio sheet instead of hiding behind it.
+- **Higher-Density Tasks Widget**: Refined task card spacing and added a subtle bottom scroll fade so 3+ tasks fit comfortably at a glance and newly added items are immediately visible.
+- **Polished Quick-Add Sheet & Calmer Notes Grid**: Added a clear outlined input box, smart button states, **+ Add another**, floating confirmation banners, and tighter 3-item checklist previews to reduce grid shifting.
 
 ### 🐛 Fixes
-- **Multi-Slide Story Card Share All & Save All**: Fixed an issue in release builds where tapping **Share All** or **Save All** on multi-slide notes failed silently instead of exporting all slides.
+- **Cold-Start Dark Flash**: Matched the Android 12+ launch window background to the app surface so dark-mode launches transition cleanly without a solid black frame.
 

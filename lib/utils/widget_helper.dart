@@ -28,6 +28,7 @@ class WidgetHelper {
 
   static Future<void>? _todoActiveFuture;
   static bool _todoDirty = false;
+  static Future<void>? _pendingTodoSyncFuture;
 
   /// Pushes non-sensitive widget configuration & privacy flags to the native
   /// `WidgetCacheStore` and triggers launcher shortcut / component state sync.
@@ -291,9 +292,15 @@ class WidgetHelper {
     }
   }
 
-  /// Synchronizes any pending checkbox toggles queued by the Android AppWidget
-  /// and writes the changes back into the notes database.
-  static Future<void> syncPendingTodoToggles() async {
+  /// Synchronizes any pending quick-adds and checkbox toggles queued by the
+  /// Android AppWidget and writes the changes back into the notes database.
+  static Future<void> syncPendingTodoToggles() {
+    return _pendingTodoSyncFuture ??= _performSyncPendingTodoMutations()
+        .whenComplete(() => _pendingTodoSyncFuture = null);
+  }
+
+  static Future<void> _performSyncPendingTodoMutations() async {
+    await _syncPendingTodoQuickAdds();
     try {
       final prefs = await SharedPreferences.getInstance();
       bool usedChannel = false;
@@ -429,6 +436,238 @@ class WidgetHelper {
     } catch (e) {
       debugPrint('Sync pending todo toggles failed: $e');
     }
+  }
+
+  static Future<void> _syncPendingTodoQuickAdds() async {
+    try {
+      String? pendingStr;
+      try {
+        pendingStr =
+            await _channel.invokeMethod<String>('getPendingTodoQuickAdds');
+      } on MissingPluginException {
+        return;
+      } catch (_) {
+        return;
+      }
+
+      if (pendingStr == null || pendingStr.isEmpty || pendingStr == '[]') {
+        return;
+      }
+
+      final dynamic decoded = json.decode(pendingStr);
+      if (decoded is! List || decoded.isEmpty) return;
+
+      final List<Map<String, dynamic>> entries = [];
+      final Set<String> seenIds = {};
+      int maxProcessedTimestamp = 0;
+
+      for (final raw in decoded) {
+        if (raw is! Map) continue;
+        final text = (raw['text'] as String?)?.trim() ?? '';
+        if (text.isEmpty) continue;
+        final ts = (raw['timestamp'] as num?)?.toInt() ?? 0;
+        if (ts > maxProcessedTimestamp) {
+          maxProcessedTimestamp = ts;
+        }
+        final entryId = (raw['id'] as String?)?.trim() ?? '';
+        if (entryId.isNotEmpty && !seenIds.add(entryId)) {
+          continue;
+        }
+        entries.add(Map<String, dynamic>.from(raw));
+      }
+
+      if (entries.isNotEmpty) {
+        entries.sort((a, b) =>
+            ((a['timestamp'] as num?)?.toInt() ?? 0)
+                .compareTo((b['timestamp'] as num?)?.toInt() ?? 0));
+
+        final repo = NoteRepository.instance;
+        final Map<String, List<String>> groupedByNote = {};
+        for (final entry in entries) {
+          final requestedId = (entry['noteId'] as String?)?.trim() ?? '';
+          final text = (entry['text'] as String?)?.trim() ?? '';
+          if (text.isEmpty) continue;
+          groupedByNote.putIfAbsent(requestedId, () => []).add(text);
+        }
+
+        String? resolvedSyntheticNoteId;
+        String? resolvedSyntheticNoteTitle;
+
+        for (final group in groupedByNote.entries) {
+          final requestedId = group.key;
+          final effectiveId =
+              (requestedId.isEmpty || requestedId == '__pending_new_tasks__')
+                  ? null
+                  : requestedId;
+          final targetNote = await _resolveQuickAddTargetNote(repo, effectiveId);
+          final Note savedNote;
+          if (targetNote != null) {
+            final delta = RichTextUtils.contentToDelta(targetNote.content);
+            final doc = Document.fromDelta(delta);
+            for (final taskText in group.value) {
+              QuillChecklistHelper.appendChecklistItem(doc, taskText);
+            }
+            targetNote.content = RichTextUtils.deltaToJson(doc.toDelta());
+            targetNote.dateModified = DateTime.now();
+            await repo.updateNote(targetNote);
+            savedNote = targetNote;
+          } else {
+            final now = DateTime.now();
+            final doc = Document();
+            for (final taskText in group.value) {
+              QuillChecklistHelper.appendChecklistItem(doc, taskText);
+            }
+            final newNote = Note(
+              id: const Uuid().v4(),
+              title: 'My Tasks',
+              content: RichTextUtils.deltaToJson(doc.toDelta()),
+              dateCreated: now,
+              dateModified: now,
+              category: 'Notes',
+            );
+            await repo.createNote(newNote);
+            savedNote = newNote;
+          }
+
+          if (requestedId == '__pending_new_tasks__') {
+            resolvedSyntheticNoteId = savedNote.id;
+            resolvedSyntheticNoteTitle =
+                savedNote.title.trim().isEmpty ? 'My Tasks' : savedNote.title.trim();
+          }
+        }
+
+        if (resolvedSyntheticNoteId != null) {
+          try {
+            final activeIds = await _channel
+                .invokeMapMethod<String, String>('getWidgetActiveNoteIds');
+            if (activeIds != null) {
+              final updates = <String, Map<String, String>>{};
+              for (final entry in activeIds.entries) {
+                if (entry.value == '__pending_new_tasks__') {
+                  updates[entry.key] = {
+                    'id': resolvedSyntheticNoteId,
+                    'title': resolvedSyntheticNoteTitle ?? 'My Tasks',
+                  };
+                }
+              }
+              if (updates.isNotEmpty) {
+                await _channel.invokeMethod('updateWidgetActiveNoteTitles', updates);
+              }
+            }
+          } catch (_) {}
+        }
+      }
+
+      // Preserve any quick-adds queued while SQLite writes were in flight
+      String? latestPendingStr;
+      try {
+        latestPendingStr =
+            await _channel.invokeMethod<String>('getPendingTodoQuickAdds');
+      } catch (_) {}
+
+      final List<dynamic> remaining = [];
+      if (latestPendingStr != null &&
+          latestPendingStr.isNotEmpty &&
+          latestPendingStr != '[]') {
+        try {
+          final latestList = json.decode(latestPendingStr);
+          if (latestList is List) {
+            for (final item in latestList) {
+              if (item is Map) {
+                final ts = (item['timestamp'] as num?)?.toInt() ?? 0;
+                if (ts > maxProcessedTimestamp) {
+                  remaining.add(item);
+                }
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      final remainingJson = remaining.isEmpty ? '[]' : json.encode(remaining);
+      try {
+        await _channel.invokeMethod('setPendingTodoQuickAdds', remainingJson);
+      } catch (_) {}
+    } catch (e) {
+      debugPrint('Sync pending todo quick-adds failed: $e');
+    }
+  }
+
+  static Future<Note?> _resolveQuickAddTargetNote(
+    NoteRepository repo,
+    String? noteId,
+  ) async {
+    if (noteId != null &&
+        noteId.isNotEmpty &&
+        noteId != 'ALL_NOTES' &&
+        noteId != '__pending_new_tasks__') {
+      final exact = await repo.readNote(noteId);
+      if (exact != null) return exact;
+    }
+
+    final candidateIds = <String>[];
+    try {
+      final channelMap = await _channel
+          .invokeMapMethod<String, String>('getWidgetActiveNoteIds');
+      if (channelMap != null) {
+        for (final entry in channelMap.entries) {
+          if (entry.key != 'global' &&
+              entry.value.isNotEmpty &&
+              entry.value != 'ALL_NOTES' &&
+              entry.value != '__pending_new_tasks__') {
+            candidateIds.add(entry.value);
+          }
+        }
+      }
+    } catch (_) {}
+
+    if (candidateIds.isEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      for (final key in prefs.getKeys()) {
+        if (key.startsWith('widget_active_note_id_')) {
+          final candidateId = prefs.getString(key);
+          if (candidateId != null &&
+              candidateId.isNotEmpty &&
+              candidateId != 'ALL_NOTES' &&
+              candidateId != '__pending_new_tasks__') {
+            candidateIds.add(candidateId);
+          }
+        }
+      }
+    }
+
+    for (final candidateId in candidateIds) {
+      final n = await repo.readNote(candidateId);
+      if (n != null && !n.isLocked && n.deletedAt == null && !n.isArchived) {
+        return n;
+      }
+    }
+
+    final activeNotes =
+        await repo.readAllNotes(isArchived: false, isTrashed: false);
+    for (final n in activeNotes) {
+      if (n.isLocked) continue;
+      final titleLower = n.title.trim().toLowerCase();
+      if (titleLower == 'my tasks' ||
+          titleLower == 'quick tasks' ||
+          titleLower == 'todo' ||
+          titleLower == 'tasks') {
+        return n;
+      }
+    }
+
+    for (final n in activeNotes) {
+      if (n.isLocked) continue;
+      if (n.content.contains('"list":"checked"') ||
+          n.content.contains('"list":"unchecked"') ||
+          n.content.contains('- [ ]') ||
+          n.content.contains('- [x]') ||
+          n.content.contains('- [X]')) {
+        return n;
+      }
+    }
+
+    return null;
   }
 
   /// Coalesces rapid consecutive calls to recompute checklist widget data.
@@ -635,83 +874,7 @@ class WidgetHelper {
       await syncPendingTodoToggles();
 
       final repo = NoteRepository.instance;
-      Note? targetNote;
-
-      if (noteId != null && noteId.isNotEmpty && noteId != 'ALL_NOTES') {
-        targetNote = await repo.readNote(noteId);
-      }
-
-      if (targetNote == null) {
-        // Check if any Todo widget instance has a specific active note pinned
-        final candidateIds = <String>[];
-        try {
-          final channelMap = await _channel
-              .invokeMapMethod<String, String>('getWidgetActiveNoteIds');
-          if (channelMap != null) {
-            for (final entry in channelMap.entries) {
-              if (entry.key != 'global' &&
-                  entry.value.isNotEmpty &&
-                  entry.value != 'ALL_NOTES') {
-                candidateIds.add(entry.value);
-              }
-            }
-          }
-        } catch (_) {}
-
-        if (candidateIds.isEmpty) {
-          final prefs = await SharedPreferences.getInstance();
-          for (final key in prefs.getKeys()) {
-            if (key.startsWith('widget_active_note_id_')) {
-              final candidateId = prefs.getString(key);
-              if (candidateId != null &&
-                  candidateId.isNotEmpty &&
-                  candidateId != 'ALL_NOTES') {
-                candidateIds.add(candidateId);
-              }
-            }
-          }
-        }
-
-        for (final candidateId in candidateIds) {
-          final n = await repo.readNote(candidateId);
-          if (n != null && !n.isLocked && n.deletedAt == null && !n.isArchived) {
-            targetNote = n;
-            break;
-          }
-        }
-      }
-
-      if (targetNote == null) {
-        // Find existing "My Tasks" / "Quick Tasks" or first pinned checklist note
-        final activeNotes =
-            await repo.readAllNotes(isArchived: false, isTrashed: false);
-        for (final n in activeNotes) {
-          if (n.isLocked) continue;
-          final titleLower = n.title.trim().toLowerCase();
-          if (titleLower == 'my tasks' ||
-              titleLower == 'quick tasks' ||
-              titleLower == 'todo' ||
-              titleLower == 'tasks') {
-            targetNote = n;
-            break;
-          }
-        }
-
-        if (targetNote == null && activeNotes.isNotEmpty) {
-          for (final n in activeNotes) {
-            if (n.isLocked) continue;
-            // Strict checklist signature check (activeNotes is already ordered with isPinned DESC)
-            if (n.content.contains('"list":"checked"') ||
-                n.content.contains('"list":"unchecked"') ||
-                n.content.contains('- [ ]') ||
-                n.content.contains('- [x]') ||
-                n.content.contains('- [X]')) {
-              targetNote = n;
-              break;
-            }
-          }
-        }
-      }
+      final Note? targetNote = await _resolveQuickAddTargetNote(repo, noteId);
 
       Note savedNote;
       if (targetNote != null) {

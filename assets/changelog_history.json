@@ -1,5 +1,25 @@
 [
   {
+    "version": "v3.8.3",
+    "date": "November 27, 2026",
+    "isLatest": false,
+    "categories": [
+      {
+        "title": "Improvements",
+        "items": [
+          "Pinned Story Card Studio Layout: Pinned the studio header and bottom Share, Save, and Copy bar with responsive preview scaling so 9:16 Story, 4:5 Portrait, and 1:1 Square cards stay fully visible without clipping.",
+          "Visible In-Sheet Export Alerts: Export errors and confirmations now display directly inside the Story Card Studio sheet instead of hiding behind it."
+        ]
+      },
+      {
+        "title": "Fixes",
+        "items": [
+          "Multi-Slide Story Card Share All & Save All: Fixed a release-build issue where tapping Share All or Save All on multi-slide notes failed silently instead of exporting all slides."
+        ]
+      }
+    ]
+  },
+  {
     "version": "v3.8.2",
     "date": "November 26, 2026",
     "isLatest": false,

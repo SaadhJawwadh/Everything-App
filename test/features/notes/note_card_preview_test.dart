@@ -120,5 +120,30 @@ void main() {
       expect(tappedLineIndex, 0);
       expect(tappedText, 'Buy Groceries');
     });
+
+    testWidgets('Caps checklist preview at 3 pending items to minimize masonry reflow jumps', (tester) async {
+      final now = DateTime.now();
+      final note = Note(
+        id: 'note_4',
+        title: 'Compact List',
+        content: jsonEncode([
+          {'insert': 'Item 1\n', 'attributes': {'list': 'unchecked'}},
+          {'insert': 'Item 2\n', 'attributes': {'list': 'unchecked'}},
+          {'insert': 'Item 3\n', 'attributes': {'list': 'unchecked'}},
+          {'insert': 'Item 4\n', 'attributes': {'list': 'unchecked'}},
+        ]),
+        dateCreated: now,
+        dateModified: now,
+      );
+
+      await tester.pumpWidget(buildTestCard(note));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Item 1'), findsOneWidget);
+      expect(find.text('Item 2'), findsOneWidget);
+      expect(find.text('Item 3'), findsOneWidget);
+      expect(find.text('Item 4'), findsNothing);
+      expect(find.text('+1 more items'), findsOneWidget);
+    });
   });
 }

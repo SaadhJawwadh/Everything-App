@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/quick_add_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <FrameLayout
+        android:id="@+id/quick_add_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000"
+        android:clickable="true"
+        android:focusable="true">
+
+        <LinearLayout
+            android:id="@+id/quick_add_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxWidth="440dp"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/widget_dialog_background"
+            android:clickable="true"
+            android:focusable="true"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <!-- Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <FrameLayout
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="@drawable/widget_cta_secondary_shape">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@string/widget_quick_add_title"
+                        android:src="@drawable/ic_checklist"
+                        android:tint="@color/widget_on_secondary_container" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/quick_add_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:fontFamily="sans-serif-medium"
+                        android:maxLines="1"
+                        android:text="@string/widget_quick_add_title"
+                        android:textColor="@color/widget_text_primary"
+                        android:textSize="16.5sp" />
+
+                    <TextView
+                        android:id="@+id/quick_add_subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="1dp"
+                        android:ellipsize="end"
+                        android:fontFamily="sans-serif"
+                        android:maxLines="1"
+                        android:text="@string/widget_quick_add_title"
+                        android:textColor="@color/widget_text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Input -->
+            <EditText
+                android:id="@+id/quick_add_input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:minHeight="48dp"
+                android:background="@drawable/widget_quick_add_input_bg"
+                android:hint="@string/widget_quick_add_hint"
+                android:imeOptions="actionDone"
+                android:inputType="textCapSentences|textAutoCorrect"
+                android:maxLines="3"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp"
+                android:textColor="@color/widget_text_primary"
+                android:textColorHint="@color/widget_text_secondary"
+                android:textSize="15sp" />
+
+            <!-- Inline confirmation -->
+            <TextView
+                android:id="@+id/quick_add_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:ellipsize="end"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:textColor="@color/widget_primary"
+                android:textSize="12sp"
+                android:visibility="gone" />
+
+            <!-- Bottom Actions -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="14dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/quick_add_btn_another"
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:minWidth="48dp"
+                    android:minHeight="48dp"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:fontFamily="sans-serif-medium"
+                    android:gravity="center"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:text="@string/widget_quick_add_another"
+                    android:textColor="@color/widget_primary"
+                    android:textSize="13.5sp" />
+
+                <FrameLayout
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <TextView
+                    android:id="@+id/quick_add_btn_cancel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:minWidth="48dp"
+                    android:minHeight="48dp"
+                    android:background="?android:attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:fontFamily="sans-serif-medium"
+                    android:gravity="center"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:text="@string/widget_picker_cancel"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="13.5sp" />
+
+                <FrameLayout
+                    android:id="@+id/quick_add_btn_save"
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="4dp"
+                    android:minWidth="76dp"
+                    android:minHeight="48dp"
+                    android:clickable="true"
+                    android:focusable="true">
+
+                    <TextView
+                        android:id="@+id/quick_add_btn_save_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="40dp"
+                        android:minWidth="72dp"
+                        android:layout_gravity="center"
+                        android:background="@drawable/widget_cta_primary_shape"
+                        android:fontFamily="sans-serif-medium"
+                        android:gravity="center"
+                        android:paddingStart="18dp"
+                        android:paddingEnd="18dp"
+                        android:text="@string/widget_quick_add_save"
+                        android:textColor="@color/widget_on_primary"
+                        android:textSize="13.5sp" />
+                </FrameLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
+</FrameLayout>

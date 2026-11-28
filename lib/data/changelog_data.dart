@@ -49,21 +49,27 @@ class ChangelogRelease {
 
 /// Latest release kept in Dart for synchronous rendering.
 final ChangelogRelease kLatestChangelog = ChangelogRelease(
-  version: 'v3.8.3',
-  date: 'November 27, 2026',
+  version: 'v3.8.4',
+  date: 'November 28, 2026',
   isLatest: true,
   categories: [
     ChangelogCategory(
+      title: "What's New",
+      items: [
+        'Instant Home Screen Quick-Add: Tapping + on the Tasks & Notes widget opens a lightweight Material You quick-add overlay right over your Home screen with + Add another for rapid multi-item entry.',
+      ],
+    ),
+    ChangelogCategory(
       title: 'Improvements',
       items: [
-        'Pinned Story Card Studio Layout: Pinned the studio header and bottom Share, Save, and Copy bar with responsive preview scaling so 9:16 Story, 4:5 Portrait, and 1:1 Square cards stay fully visible without clipping.',
-        'Visible In-Sheet Export Alerts: Export errors and confirmations now display directly inside the Story Card Studio sheet instead of hiding behind it.',
+        'Higher-Density Tasks Widget: Refined task row spacing and added a bottom scroll fade so 3+ tasks fit cleanly at a glance.',
+        'Polished Quick-Add Sheet & Calmer Notes Grid: Added an outlined input box, smart submit states, + Add another, floating confirmation banners, and tighter 3-item checklist previews.',
       ],
     ),
     ChangelogCategory(
       title: 'Fixes',
       items: [
-        'Multi-Slide Story Card Share All & Save All: Fixed a release-build issue where tapping Share All or Save All on multi-slide notes failed silently instead of exporting all slides.',
+        'Cold-Start Dark Flash: Matched the Android 12+ launch window background to the app surface so dark-mode launches transition smoothly.',
       ],
     ),
   ],

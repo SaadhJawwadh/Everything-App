@@ -372,7 +372,12 @@ class AppIntentDispatcher {
       } else if (action.startsWith('quick_add_todo')) {
         final parts = action.split(':');
         final targetNoteId = parts.length > 1 ? parts[1] : 'ALL_NOTES';
-        await QuickAddTodoSheet.show(context, targetNoteId);
+        final targetTitle = extras['active_note_title']?.toString();
+        await QuickAddTodoSheet.show(
+          context,
+          targetNoteId,
+          initialNoteTitle: targetTitle,
+        );
       } else if (action.startsWith('open_note:')) {
         final parts = action.split(':');
         final noteId = parts.length > 1 ? parts[1] : '';

@@ -524,11 +524,14 @@ void main() {
   });
 
   Future<void> pumpExportAndSettle(WidgetTester tester) async {
-    for (int i = 0; i < 15; i++) {
+    for (int i = 0; i < 40; i++) {
       await tester.pump(const Duration(milliseconds: 20));
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 10)),
       );
+      if (find.byType(CircularProgressIndicator).evaluate().isEmpty) {
+        break;
+      }
     }
     await tester.pumpAndSettle();
   }
